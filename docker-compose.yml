@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: beps-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-beps}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-beps_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-beps}
+      # ภาษาไทย: ต้องใช้ ICU collation (th-TH) ไม่ใช่ locale แบบ libc
+      # เพราะการเรียงตามลำดับ byte จะดันชื่อที่ขึ้นต้นด้วยสระหน้า (เ แ โ ใ ไ) ไปท้ายรายการ
+      # เช่น "เกษตรศาสตร์" ต้องเรียงอยู่ใต้ ก ไม่ใช่ต่อท้ายพยัญชนะทั้งหมด
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C.UTF-8 --locale-provider=icu --icu-locale=th-TH'
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - beps-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-beps} -d ${POSTGRES_DB:-beps}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  beps-pgdata:

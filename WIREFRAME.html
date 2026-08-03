@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BEPS-SYSTEM — Wireframe (Low Fidelity)</title>
+<style>
+  :root{
+    --ink:#1f2328; --mid:#6b7280; --line:#c9ced6; --line2:#e5e8ec;
+    --bg:#f6f7f9; --card:#fff; --fill:#eef0f3; --accent:#8a94a6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;
+    font-size:13px;line-height:1.5;padding:32px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--mid);margin:0 0 28px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;background:var(--card);
+    border:1px solid var(--line2);border-radius:8px;padding:12px 16px;margin-bottom:32px}
+  .legend span{color:var(--mid)}
+  .legend b{color:var(--ink);font-weight:600}
+
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    margin-bottom:34px;overflow:hidden}
+  .screen > header{border-bottom:1px solid var(--line);padding:10px 14px;
+    background:#fafbfc;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .sid{font-weight:700;font-size:12px;background:var(--ink);color:#fff;
+    border-radius:4px;padding:2px 7px}
+  .stitle{font-weight:600}
+  .snote{color:var(--mid);font-size:12px}
+  .new{background:#fff;border:1px dashed var(--ink);border-radius:4px;
+    padding:1px 6px;font-size:11px;font-weight:600}
+  .body{display:flex;min-height:220px}
+
+  /* sidebar */
+  .side{width:180px;border-right:1px solid var(--line);background:#fbfcfd;
+    padding:12px 10px;flex-shrink:0}
+  .logo{height:34px;border:1px solid var(--line);border-radius:5px;
+    display:grid;place-items:center;color:var(--mid);font-size:11px;margin-bottom:12px}
+  .navg{color:var(--mid);font-size:11px;margin:12px 0 5px;font-weight:600}
+  .navi{border:1px solid var(--line2);border-radius:4px;padding:4px 7px;
+    margin-bottom:4px;background:#fff;font-size:12px}
+  .navi.on{background:var(--fill);border-color:var(--line);font-weight:600}
+
+  .main{flex:1;padding:14px;min-width:0}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--line2)}
+  .h2{font-weight:600;font-size:15px;margin:0}
+  .spacer{flex:1}
+  .btn{border:1px solid var(--line);border-radius:5px;padding:3px 10px;background:#fff}
+  .btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .seg div{padding:3px 10px;border-right:1px solid var(--line)}
+  .seg div:last-child{border-right:0}
+  .seg div.on{background:var(--fill);font-weight:600}
+  .inp{border:1px solid var(--line);border-radius:5px;padding:4px 8px;
+    color:var(--mid);background:#fff;min-width:130px}
+  .sel::after{content:" ▾"}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+  .kpi{border:1px solid var(--line2);border-radius:6px;padding:8px 10px;background:#fff}
+  .kpi .l{color:var(--mid);font-size:11px}
+  .kpi .v{font-size:17px;font-weight:700;letter-spacing:-.3px}
+  .kpi .u{color:var(--mid);font-size:11px}
+
+  .row{display:grid;gap:10px;margin-bottom:10px}
+  .r2{grid-template-columns:1fr 1fr}
+  .r3{grid-template-columns:1fr 1fr 1fr}
+  .r21{grid-template-columns:2fr 1fr}
+  .r12{grid-template-columns:1fr 2fr}
+  @media(max-width:820px){.r2,.r3,.r21,.r12{grid-template-columns:1fr}.body{flex-direction:column}.side{width:auto;border-right:0;border-bottom:1px solid var(--line)}}
+
+  .box{border:1px solid var(--line2);border-radius:6px;padding:10px;background:#fff}
+  .box .bt{font-weight:600;font-size:12px;margin-bottom:2px}
+  .box .bs{color:var(--mid);font-size:11px;margin-bottom:8px}
+
+  /* fake charts */
+  .bars{display:flex;align-items:flex-end;gap:5px;height:96px;
+    border-left:1px solid var(--line);border-bottom:1px solid var(--line);padding:0 4px 0 6px}
+  .bars i{flex:1;background:var(--fill);border:1px solid var(--line);border-bottom:0;
+    border-radius:2px 2px 0 0;display:block}
+  .lines{height:110px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+    position:relative;overflow:hidden}
+  .lines svg{position:absolute;inset:0;width:100%;height:100%}
+  .stack{display:flex;height:22px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .stack i{display:grid;place-items:center;font-size:10px;color:var(--mid);
+    border-right:1px solid var(--line);background:var(--fill)}
+  .stack i:last-child{border-right:0;background:#fff}
+  .scatter{height:120px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+    position:relative}
+  .scatter b{position:absolute;border:1px solid var(--accent);border-radius:50%;
+    background:var(--fill);display:block}
+  .heat{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .heat i{height:16px;background:var(--fill);border:1px solid var(--line2);border-radius:2px}
+
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{border-bottom:1px solid var(--line2);padding:4px 6px;text-align:left}
+  th{color:var(--mid);font-weight:600;font-size:11px;background:#fafbfc}
+  td.n,th.n{text-align:right}
+  .ph{color:var(--accent)}
+  .tree td:first-child{padding-left:6px}
+  .ind1{padding-left:22px !important}
+  .ind2{padding-left:40px !important}
+  .tag{border:1px solid var(--line);border-radius:3px;padding:0 5px;font-size:11px;color:var(--mid)}
+
+  .ann{border-top:1px dashed var(--line);background:#fbfcfd;padding:9px 14px;
+    color:var(--mid);font-size:12px}
+  .ann b{color:var(--ink)}
+  .ann ul{margin:4px 0 0;padding-left:18px}
+
+  .formrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+  .f label{display:block;color:var(--mid);font-size:11px;margin-bottom:3px}
+  .f .inp{width:100%;min-width:0}
+  .step{font-size:11px;color:var(--mid);border:1px solid var(--line2);
+    border-radius:4px;padding:2px 7px;background:#fafbfc;display:inline-block;margin-bottom:8px}
+  .center{display:grid;place-items:center;padding:34px;min-height:220px}
+  .card-c{width:300px;border:1px solid var(--line);border-radius:8px;padding:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>BEPS-SYSTEM — Wireframe (Low Fidelity)</h1>
+<p class="sub">ระบบวิเคราะห์จุดคุ้มทุนหลักสูตร · อ้างอิงจาก SA.md หัวข้อ 3 (FR), 5 (ER), 7 (prototype) · ยังไม่ใช่ visual design — เน้นโครงหน้าจอ ลำดับข้อมูล และจุดที่ต้องสร้างใหม่จาก prototype</p>
+
+<div class="legend">
+  <span><b>W1–W5</b> = หน้าที่ prototype มีแล้ว (ยกโครงมาใช้)</span>
+  <span><b class="new">NEW</b> = ต้องสร้างใหม่ ไม่มีใน prototype</span>
+  <span><b class="ph">ข้อความสีเทา</b> = placeholder / ข้อมูลจำลอง</span>
+</div>
+
+
+<!-- ===== W0 LOGIN ===== -->
+<section class="screen">
+  <header><span class="sid">W0</span><span class="stitle">เข้าสู่ระบบ</span>
+    <span class="new">NEW</span>
+    <span class="snote">prototype เปิดสาธารณะไม่มี auth — production ต้องมี (FR สิทธิ์ / ER: USER, ROLE)</span></header>
+  <div class="body"><div class="center">
+    <div class="card-c">
+      <div class="logo" style="margin-bottom:16px">โลโก้ MSU + MSU-BEPS</div>
+      <div class="f" style="margin-bottom:8px"><label>อีเมล / ผู้ใช้</label><div class="inp" style="width:100%">&nbsp;</div></div>
+      <div class="f" style="margin-bottom:14px"><label>รหัสผ่าน</label><div class="inp" style="width:100%">&nbsp;</div></div>
+      <div class="btn pri" style="text-align:center">เข้าสู่ระบบ</div>
+      <p class="snote" style="margin:12px 0 0">เชื่อม SSO มหาวิทยาลัย (ถ้ามี) · role กำหนด scope ที่มองเห็น</p>
+    </div>
+  </div></div>
+  <div class="ann"><b>Role → สิ่งที่เห็น:</b>
+    <ul>
+      <li><b>viewer</b> — ดู W1–W5 อย่างเดียว ไม่เห็นเมนูจัดการ/อนุมัติ</li>
+      <li><b>faculty_officer</b> — W1–W7 แต่ข้อมูลจำกัดเฉพาะคณะตัวเอง (USER.faculty_id) + ส่งขออนุมัติค่าธรรมเนียมได้</li>
+      <li><b>budget_office</b> — ทุกคณะ + อนุมัติค่าธรรมเนียม (W8) + จัดการอัตราเงินสมทบ</li>
+      <li><b>admin</b> — ทั้งหมด + จัดการผู้ใช้/หมวดต้นทุน (W9)</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ===== W1 DASHBOARD ===== -->
+<section class="screen">
+  <header><span class="sid">W1</span><span class="stitle">ภาพรวมมหาวิทยาลัย (Dashboard)</span>
+    <span class="snote">FR-5,6,7,13,14 · toggle ฐานรายได้มีผลทุกหน้า</span></header>
+  <div class="body">
+    <nav class="side">
+      <div class="logo">MSU-BEPS</div>
+      <div class="navg">ข้อมูลภาพรวม</div>
+      <div class="navi on">ภาพรวมมหาวิทยาลัย</div>
+      <div class="navi">รายได้รายคณะ</div>
+      <div class="navi">โครงสร้างต้นทุน</div>
+      <div class="navi">รายได้ vs ต้นทุน/หัว</div>
+      <div class="navg">เจาะลึกจุดคุ้มทุน</div>
+      <div class="navi">คณะ · ระดับ · หลักสูตร</div>
+      <div class="navi">กราฟจุดคุ้มทุน</div>
+      <div class="navg">การวิเคราะห์</div>
+      <div class="navi">Cross Analysis</div>
+      <div class="navi">สูตร &amp; หลักวิชาการ</div>
+      <div class="navg">คำนวณด้วยตนเอง</div>
+      <div class="navi">จุดคุ้มทุนรายคณะ</div>
+      <div class="navi">จุดคุ้มทุนรายหลักสูตร</div>
+      <div class="navg">จัดการข้อมูล <span class="new">NEW</span></div>
+      <div class="navi">ค่าธรรมเนียม / อนุมัติ</div>
+      <div class="navi">ต้นทุน &amp; ค่าเสื่อม</div>
+      <div class="navi">งบประมาณ / Sync</div>
+    </nav>
+    <div class="main">
+      <div class="toolbar">
+        <h2 class="h2">ภาพรวมมหาวิทยาลัย</h2>
+        <span class="spacer"></span>
+        <span class="snote">ปีงบประมาณ</span><span class="inp sel">2568</span>
+        <span class="snote">ฐานรายได้</span>
+        <span class="seg"><div class="on">รวมเงินแผ่นดิน</div><div>ไม่รวมเงินแผ่นดิน</div></span>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">นิสิตทั้งหมด (Q)</div><div class="v ph">48,695</div><div class="u">คน · 20 คณะ · 230 หลักสูตร</div></div>
+        <div class="kpi"><div class="l">รายได้รวม (TR)</div><div class="v ph">2,448.7</div><div class="u">ล้านบาท</div></div>
+        <div class="kpi"><div class="l">ต้นทุนรวม (TC)</div><div class="v ph">2,415.8</div><div class="u">ล้านบาท</div></div>
+        <div class="kpi"><div class="l">ส่วนเกิน/ขาดทุน (π)</div><div class="v ph">+32.8</div><div class="u">ล้านบาท · 1.3%</div></div>
+        <div class="kpi"><div class="l">รายได้ต่อหัว (R)</div><div class="v ph">50,286</div><div class="u">บาท/คน</div></div>
+        <div class="kpi"><div class="l">นิสิต ณ จุดคุ้มทุน (Q*)</div><div class="v ph">47,644</div><div class="u">คน · จริง 48,695</div></div>
+      </div>
+      <div class="row r21">
+        <div class="box">
+          <div class="bt">รายได้ (TR) เทียบ ต้นทุน (TC) รายคณะ</div>
+          <div class="bs">เรียงตามจำนวนนิสิต · หน่วยล้านบาท · แท่งคู่ TR/TC</div>
+          <div class="bars">
+            <i style="height:88%"></i><i style="height:76%"></i><i style="height:62%"></i><i style="height:58%"></i>
+            <i style="height:49%"></i><i style="height:44%"></i><i style="height:38%"></i><i style="height:34%"></i>
+            <i style="height:30%"></i><i style="height:26%"></i><i style="height:22%"></i><i style="height:18%"></i>
+            <i style="height:15%"></i><i style="height:12%"></i><i style="height:9%"></i><i style="height:7%"></i>
+          </div>
+        </div>
+        <div class="box">
+          <div class="bt">โครงสร้างต้นทุนรวม</div>
+          <div class="bs">TFC เทียบ TVC + ค่าเสื่อมราคา</div>
+          <div class="stack" style="margin-bottom:6px"><i style="flex:62">TFC 62%</i><i style="flex:38">TVC 38%</i></div>
+          <table>
+            <tr><td>ต้นทุนคงที่ (TFC)</td><td class="n ph">1,488.6 ลบ.</td></tr>
+            <tr><td>ต้นทุนผันแปร (TVC)</td><td class="n ph">927.2 ลบ.</td></tr>
+            <tr><td>ค่าเสื่อมราคา (ใน TFC)</td><td class="n ph">302.5 ลบ.</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="row r2">
+        <div class="box">
+          <div class="bt">คณะที่มีส่วนเกินสูงสุด <span class="tag">Top surplus</span></div>
+          <table><thead><tr><th>#</th><th>คณะ</th><th class="n">ส่วนเกิน (ลบ.)</th><th class="n">Q* / Q</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="ph">การบัญชีและการจัดการ</td><td class="n ph">+85.1</td><td class="n ph">6,255 / 10,212</td></tr>
+            <tr><td>2</td><td class="ph">นิติศาสตร์</td><td class="n ph">+60.2</td><td class="n ph">967 / 3,697</td></tr>
+            <tr><td>3</td><td class="ph">วล.การเมืองการปกครอง</td><td class="n ph">+30.1</td><td class="n ph">2,587 / 4,142</td></tr>
+          </tbody></table>
+        </div>
+        <div class="box">
+          <div class="bt">คณะที่ต้องเฝ้าระวัง <span class="tag">Watchlist</span></div>
+          <table><thead><tr><th>#</th><th>คณะ</th><th class="n">ขาดทุน (ลบ.)</th><th class="n">Q* / Q</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="ph">แพทยศาสตร์</td><td class="n ph">−145.3</td><td class="n ph">2,719 / 787</td></tr>
+            <tr><td>2</td><td class="ph">วิทยาศาสตร์</td><td class="n ph">−34.4</td><td class="n ph">3,034 / 2,388</td></tr>
+            <tr><td>3</td><td class="ph">วล.ดุริยางคศิลป์</td><td class="n ph">−32.5</td><td class="n ph">2,253 / 859</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="box">
+        <div class="bt">ประเด็นสำคัญ — ภาพรวม (auto-generated)</div>
+        <div class="bs ph">• ทั้งมหาวิทยาลัยมีนิสิต … คน มีส่วนเกิน … จุดคุ้มทุนรวมอยู่ที่ … คน<br>
+          • คณะที่ทำส่วนเกินสูงสุดคือ … ขณะที่ … ขาดทุนมากสุด<br>
+          • มี … คณะ จาก 20 ที่ยังไม่คุ้มทุนในโหมดนี้ และ … หลักสูตร จาก 230 ที่ Q ต่ำกว่า Q*</div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>หมายเหตุออกแบบ:</b> toggle ฐานรายได้ (สูตร 5a/5b) เป็น global state — ทุกหน้าต้องอ่านค่าเดียวกัน และ backend ต้องคำนวณผลไว้ทั้ง 2 โหมด (ER: <code>BREAK_EVEN_RESULT.revenue_mode</code>) · เพิ่ม dropdown ปีงบประมาณที่ prototype ยังไม่มี (prototype fix ที่ snapshot 20260711)</div>
+</section>
+
+
+<!-- ===== W2 DRILLDOWN ===== -->
+<section class="screen">
+  <header><span class="sid">W2</span><span class="stitle">เจาะลึกจุดคุ้มทุน 3 ระดับ (Drill-down)</span>
+    <span class="snote">FR-18 · คณะ → ระดับการศึกษา → หลักสูตร</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">เจาะลึกจุดคุ้มทุน</div>
+      <div class="navi on">คณะ · ระดับ · หลักสูตร</div>
+      <div class="navi">กราฟจุดคุ้มทุน</div></nav>
+    <div class="main">
+      <div class="toolbar">
+        <h2 class="h2">เจาะลึกจุดคุ้มทุน 3 ระดับ</h2><span class="spacer"></span>
+        <span class="btn">ขยายทั้งหมด</span><span class="btn">ย่อทั้งหมด</span>
+        <span class="seg"><div class="on">รวมเงินแผ่นดิน</div><div>ไม่รวม</div></span>
+      </div>
+      <div class="toolbar" style="border:0;padding:0;margin-bottom:10px">
+        <span class="inp" style="min-width:260px">ค้นหาคณะ / ระดับ / ชื่อหลักสูตร / ชื่อปริญญา…</span>
+        <span class="tag">230 หลักสูตร</span>
+        <span class="seg"><div class="on">ทั้งหมด</div><div>คุ้มทุน</div><div>ยังไม่คุ้ม</div><div>R ≤ AVC</div></span>
+        <span class="spacer"></span><span class="btn">⬇ Export</span>
+      </div>
+      <table class="tree">
+        <thead><tr><th>คณะ / ระดับ / หลักสูตร</th><th class="n">นิสิต (Q)</th><th class="n">จุดคุ้มทุน Q*</th>
+          <th class="n">รายได้/หัว R</th><th class="n">AVC</th><th class="n">TR (ลบ.)</th><th class="n">ส่วนเกิน (ลบ.)</th><th>สถานะ</th></tr></thead>
+        <tbody>
+          <tr><td><b>▾ คณะการบัญชีและการจัดการ</b></td><td class="n ph">10,212</td><td class="n ph">6,255</td>
+            <td class="n ph">41,230</td><td class="n ph">18,410</td><td class="n ph">421.0</td><td class="n ph">+85.1</td><td><span class="tag">✓ คุ้มทุน</span></td></tr>
+          <tr><td class="ind1">▾ ปริญญาตรี</td><td class="n ph">9,180</td><td class="n ph">5,402</td>
+            <td class="n ph">39,800</td><td class="n ph">17,900</td><td class="n ph">365.4</td><td class="n ph">+71.2</td><td><span class="tag">✓</span></td></tr>
+          <tr><td class="ind2 ph">บัญชีบัณฑิต</td><td class="n ph">1,840</td><td class="n ph">1,102</td>
+            <td class="n ph">40,100</td><td class="n ph">17,200</td><td class="n ph">73.8</td><td class="n ph">+16.9</td><td><span class="tag">✓</span></td></tr>
+          <tr><td class="ind2 ph">การตลาด</td><td class="n ph">1,120</td><td class="n ph">1,308</td>
+            <td class="n ph">38,900</td><td class="n ph">19,400</td><td class="n ph">43.6</td><td class="n ph">−3.8</td><td><span class="tag">⚠ ยังไม่คุ้ม</span></td></tr>
+          <tr><td class="ind1">▸ ปริญญาโท</td><td class="n ph">720</td><td class="n ph">601</td>
+            <td class="n ph">52,400</td><td class="n ph">24,100</td><td class="n ph">37.7</td><td class="n ph">+9.1</td><td><span class="tag">✓</span></td></tr>
+          <tr><td><b>▸ คณะแพทยศาสตร์</b></td><td class="n ph">787</td><td class="n ph">2,719</td>
+            <td class="n ph">184,600</td><td class="n ph">201,300</td><td class="n ph">145.3</td><td class="n ph">−145.3</td><td><span class="tag">✕ R ≤ AVC</span></td></tr>
+        </tbody>
+      </table>
+      <div class="box" style="margin-top:10px"><div class="bt">ประเด็นสำคัญ — จุดคุ้มทุนรายหลักสูตร</div>
+        <div class="bs ph">• สรุปอัตโนมัติตามผลกรองปัจจุบัน</div></div>
+    </div>
+  </div>
+  <div class="ann"><b>Logic ที่ต้องระวัง:</b> Q* ของแถวคณะ = <b>ผลรวม Q* ของหลักสูตรย่อย</b> (สูตร 6a) ไม่ใช่คำนวณจาก TFC รวมคณะ · แถวที่ R ≤ AVC ใช้สูตร 7 (Q* = TC ÷ R) และต้องติดป้ายชัดเจนว่าเป็น "เป้าหมายขั้นต่ำ" ไม่ใช่จุดคุ้มทุนจริง · หลักสูตรที่ยังไม่มีนิสิต (Q=0) แสดง Q* เป็น "—"</div>
+</section>
+
+
+<!-- ===== W3 BE CHART ===== -->
+<section class="screen">
+  <header><span class="sid">W3</span><span class="stitle">กราฟจุดคุ้มทุน (Break-Even Chart)</span>
+    <span class="snote">FR-19 · เลือกหน่วยวิเคราะห์ได้ 4 ระดับ</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">เจาะลึกจุดคุ้มทุน</div>
+      <div class="navi">คณะ · ระดับ · หลักสูตร</div>
+      <div class="navi on">กราฟจุดคุ้มทุน</div></nav>
+    <div class="main">
+      <div class="toolbar">
+        <h2 class="h2">กราฟจุดคุ้มทุน</h2><span class="spacer"></span>
+        <span class="seg"><div class="on">รวมเงินแผ่นดิน</div><div>ไม่รวม</div></span>
+      </div>
+      <div class="toolbar" style="border:0;padding:0">
+        <span class="snote">หน่วยวิเคราะห์</span><span class="inp sel">รายหลักสูตร</span>
+        <span class="inp sel">คณะการบัญชีและการจัดการ</span>
+        <span class="inp sel">ปริญญาตรี</span>
+        <span class="inp sel">บัญชีบัณฑิต</span>
+      </div>
+      <div class="row r21">
+        <div class="box">
+          <div class="bt">แผนภาพจุดคุ้มทุน</div>
+          <div class="bs">เส้น TR ตัด TC ที่ Q* · เส้น TFC เป็นเส้นแนวนอน · แกน X = จำนวนนิสิต</div>
+          <div class="lines">
+            <svg viewBox="0 0 300 110" preserveAspectRatio="none">
+              <line x1="0" y1="70" x2="300" y2="70" stroke="#c9ced6" stroke-dasharray="4 3"/>
+              <line x1="0" y1="70" x2="300" y2="22" stroke="#6b7280"/>
+              <line x1="0" y1="105" x2="300" y2="8" stroke="#1f2328"/>
+              <circle cx="128" cy="49" r="4" fill="#fff" stroke="#1f2328" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="snote" style="margin-top:6px">▬ TR &nbsp; ▬ TC &nbsp; ┄ TFC &nbsp; ◦ Q* (จุดตัด)</div>
+        </div>
+        <div class="box">
+          <div class="bt">สรุปการวิเคราะห์</div>
+          <table>
+            <tr><td>Q จริง</td><td class="n ph">1,840 คน</td></tr>
+            <tr><td>Q* (จุดคุ้มทุน)</td><td class="n ph">1,102 คน</td></tr>
+            <tr><td>R / หัว</td><td class="n ph">40,100</td></tr>
+            <tr><td>AVC / หัว</td><td class="n ph">17,200</td></tr>
+            <tr><td>CM = R − AVC</td><td class="n ph">22,900</td></tr>
+            <tr><td>BE Revenue (Q*×R)</td><td class="n ph">44.2 ลบ.</td></tr>
+            <tr><td>Margin of Safety</td><td class="n ph">+29.6 ลบ.</td></tr>
+            <tr><td>π (ส่วนเกิน)</td><td class="n ph">+16.9 ลบ.</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="row r2">
+        <div class="box"><div class="bt">🎓 ข้อเสนอแนะ — ผู้บริหารหลักสูตร</div>
+          <div class="bs ph">• ข้อเสนอเชิงปฏิบัติการระดับหลักสูตรที่เลือก (auto-generated)</div></div>
+        <div class="box"><div class="bt">🏛️ ข้อเสนอแนะ — ผู้บริหารคณะ / มหาวิทยาลัย</div>
+          <div class="bs ph">• ข้อเสนอเชิงกลยุทธ์ระดับพอร์ตหลักสูตรและงบประมาณ</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>หมายเหตุ:</b> dropdown เรียงซ้อนกัน 4 ชั้น — เปลี่ยน "หน่วยวิเคราะห์" แล้ว dropdown ที่ไม่เกี่ยวต้องซ่อน (เช่น เลือก "มหาวิทยาลัย (รวม)" → ซ่อนทั้ง 3 อัน) · ถ้า CM ≤ 0 เส้น TR จะไม่ตัด TC → ต้องแสดงข้อความแทนจุดตัด ไม่ใช่วาดจุดผิดตำแหน่ง</div>
+</section>
+
+
+<!-- ===== W4 PER-HEAD + COST ===== -->
+<section class="screen">
+  <header><span class="sid">W4</span><span class="stitle">รายได้ vs ต้นทุน/หัว &amp; โครงสร้างต้นทุน</span>
+    <span class="snote">2 หน้าใช้โครงเดียวกัน · KPI + กราฟ + ตารางเทียบทุกคณะ</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">ข้อมูลภาพรวม</div>
+      <div class="navi">รายได้รายคณะ</div>
+      <div class="navi">โครงสร้างต้นทุน</div>
+      <div class="navi on">รายได้ vs ต้นทุน/หัว</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">รายได้ vs ต้นทุน ต่อหัวนิสิต</h2><span class="spacer"></span>
+        <span class="seg"><div class="on">รวมเงินแผ่นดิน</div><div>ไม่รวม</div></span></div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">รายได้ต่อหัว (R)</div><div class="v ph">50,286</div><div class="u">บาท/คน</div></div>
+        <div class="kpi"><div class="l">ต้นทุนรวมต่อหัว (ATC)</div><div class="v ph">49,612</div><div class="u">บาท/คน · TC÷Q</div></div>
+        <div class="kpi"><div class="l">ส่วนต่าง R − ATC</div><div class="v ph">+674</div><div class="u">บาท/คน</div></div>
+        <div class="kpi"><div class="l">คณะที่ R ≥ ATC</div><div class="v ph">14 / 20</div><div class="u">คณะ</div></div>
+      </div>
+      <div class="row r21">
+        <div class="box"><div class="bt">รายได้/หัว เทียบ ต้นทุน/หัว รายคณะ</div>
+          <div class="bs">แกน Y = บาท/คน · แท่ง ATC สูงกว่า R = ขาดทุนต่อหัว · 3 ชุด: R, ATC, AVC</div>
+          <div class="bars">
+            <i style="height:40%"></i><i style="height:44%"></i><i style="height:30%"></i><i style="height:52%"></i>
+            <i style="height:46%"></i><i style="height:35%"></i><i style="height:60%"></i><i style="height:55%"></i>
+            <i style="height:72%"></i><i style="height:68%"></i><i style="height:88%"></i><i style="height:95%"></i>
+          </div></div>
+        <div class="box"><div class="bt">แผนภาพประสิทธิภาพ — R เทียบ ATC</div>
+          <div class="bs">เหนือเส้นทแยง = คุ้มทุน · ขนาดจุด = จำนวนนิสิต</div>
+          <div class="scatter">
+            <b style="left:12%;bottom:20%;width:10px;height:10px"></b>
+            <b style="left:26%;bottom:38%;width:18px;height:18px"></b>
+            <b style="left:40%;bottom:30%;width:12px;height:12px"></b>
+            <b style="left:55%;bottom:62%;width:22px;height:22px"></b>
+            <b style="left:70%;bottom:48%;width:9px;height:9px"></b>
+            <b style="left:82%;bottom:78%;width:14px;height:14px"></b>
+          </div></div>
+      </div>
+      <div class="box">
+        <div class="bt">ตารางเปรียบเทียบต่อหัว รายคณะ</div>
+        <div class="bs">เรียงตามส่วนต่าง R − ATC · หน่วยบาท/คน</div>
+        <div class="toolbar" style="border:0;padding:0;margin-bottom:8px">
+          <span class="inp" style="min-width:220px">ค้นหาคณะ / สถานะ…</span>
+          <span class="seg"><div class="on">ทั้งหมด</div><div>✓ คุ้ม</div><div>⚠ ขาด</div></span>
+          <span class="spacer"></span><span class="btn">⬇ Export</span>
+        </div>
+        <table><thead><tr><th>คณะ / วิทยาลัย</th><th class="n">นิสิต</th><th class="n">R/หัว</th>
+          <th class="n">ATC/หัว</th><th class="n">AVC/หัว</th><th class="n">CM/หัว</th><th class="n">R−ATC</th><th>สถานะ</th></tr></thead>
+          <tbody>
+            <tr><td class="ph">นิติศาสตร์</td><td class="n ph">3,697</td><td class="n ph">38,900</td><td class="n ph">22,600</td>
+              <td class="n ph">10,200</td><td class="n ph">28,700</td><td class="n ph">+16,300</td><td><span class="tag">✓ คุ้ม</span></td></tr>
+            <tr><td class="ph">การบัญชีและการจัดการ</td><td class="n ph">10,212</td><td class="n ph">41,230</td><td class="n ph">32,900</td>
+              <td class="n ph">18,410</td><td class="n ph">22,820</td><td class="n ph">+8,330</td><td><span class="tag">✓ คุ้ม</span></td></tr>
+            <tr><td class="ph">แพทยศาสตร์</td><td class="n ph">787</td><td class="n ph">184,600</td><td class="n ph">369,200</td>
+              <td class="n ph">201,300</td><td class="n ph">−16,700</td><td class="n ph">−184,600</td><td><span class="tag">⚠ ขาด</span></td></tr>
+          </tbody></table>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>หมายเหตุ:</b> หน้า "โครงสร้างต้นทุน" ใช้โครงเดียวกัน เปลี่ยนเป็น KPI (TC, TFC, TVC, AVC) + กราฟ stacked TFC/TVC รายคณะ + breakdown TFC แยกองค์ประกอบ (เงินเดือน/ค่าเสื่อม/ปันส่วนสำนักงาน) ตาม <code>COST_ITEM.budget_code</code></div>
+</section>
+
+
+<!-- ===== W5 CROSS ANALYSIS ===== -->
+<section class="screen">
+  <header><span class="sid">W5</span><span class="stitle">Cross Analysis</span>
+    <span class="snote">FR-20 · อาจเลื่อนเป็น Phase 2 (คำถามเปิดข้อ 9)</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">การวิเคราะห์</div>
+      <div class="navi on">Cross Analysis</div>
+      <div class="navi">สูตร &amp; หลักวิชาการ</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">Cross Analysis</h2><span class="spacer"></span>
+        <span class="seg"><div class="on">รวมเงินแผ่นดิน</div><div>ไม่รวม</div></span></div>
+      <div class="box" style="margin-bottom:10px">
+        <div class="bt">Heatmap — ตัวชี้วัดสำคัญรายคณะ</div>
+        <div class="bs">แถว = คณะ (20) · คอลัมน์ = Q, R, ATC, AVC, CM, Utilization, กำไร% · เขียว=ดี แดง=ต้องปรับปรุง</div>
+        <div class="heat">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+      <div class="row r2">
+        <div class="box"><div class="bt">Scatter: Q* เทียบ กำไร %</div>
+          <div class="scatter"><b style="left:15%;bottom:30%;width:12px;height:12px"></b>
+            <b style="left:35%;bottom:55%;width:16px;height:16px"></b>
+            <b style="left:58%;bottom:25%;width:10px;height:10px"></b>
+            <b style="left:76%;bottom:68%;width:20px;height:20px"></b></div></div>
+        <div class="box"><div class="bt">Scatter: AVC/R % เทียบ Utilization %</div>
+          <div class="scatter"><b style="left:22%;bottom:60%;width:14px;height:14px"></b>
+            <b style="left:44%;bottom:35%;width:18px;height:18px"></b>
+            <b style="left:66%;bottom:50%;width:11px;height:11px"></b>
+            <b style="left:85%;bottom:22%;width:15px;height:15px"></b></div></div>
+      </div>
+      <div class="box" style="margin-bottom:10px">
+        <div class="bt">Quadrant Analysis — จัดกลุ่มคณะตามประสิทธิภาพ</div>
+        <div class="bs">แกน X = Utilization Q/Q* (%) · แกน Y = กำไร % · ขนาดฟอง = รายได้รวม · เส้นแบ่ง 4 ควอดแรนต์</div>
+        <div class="scatter" style="height:150px">
+          <b style="left:18%;bottom:70%;width:16px;height:16px"></b>
+          <b style="left:30%;bottom:24%;width:12px;height:12px"></b>
+          <b style="left:62%;bottom:78%;width:26px;height:26px"></b>
+          <b style="left:74%;bottom:40%;width:14px;height:14px"></b>
+          <b style="left:88%;bottom:60%;width:18px;height:18px"></b>
+        </div>
+      </div>
+      <div class="box">
+        <div class="bt">ตารางจัดอันดับ</div>
+        <div class="toolbar" style="border:0;padding:0;margin-bottom:8px">
+          <span class="snote">เรียงตาม</span>
+          <span class="seg"><div class="on">กำไร %</div><div>Utilization</div><div>CM/หัว</div><div>ส่วนเกิน</div><div>AVC/R%</div></span>
+        </div>
+        <table><thead><tr><th>#</th><th>คณะ</th><th class="n">กำไร %</th><th class="n">Utilization</th>
+          <th class="n">CM/หัว</th><th class="n">ส่วนเกิน</th><th class="n">AVC/R %</th></tr></thead>
+          <tbody><tr><td>1</td><td class="ph">…</td><td class="n ph">…</td><td class="n ph">…</td>
+            <td class="n ph">…</td><td class="n ph">…</td><td class="n ph">…</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>นิยามตัวชี้วัดที่ต้องยืนยัน:</b> Utilization = Q ÷ Q* (%) · กำไร% = π ÷ TR · AVC/R% = สัดส่วนต้นทุนผันแปรต่อรายได้ต่อหัว — ทั้ง 3 ตัวคำนวณจาก <code>BREAK_EVEN_RESULT</code> ได้เลย ไม่ต้องเก็บซ้ำ</div>
+</section>
+
+
+<!-- ===== W6 SCENARIO FACULTY ===== -->
+<section class="screen">
+  <header><span class="sid">W6</span><span class="stitle">คำนวณจุดคุ้มทุนรายคณะ (กรอกเอง / Scenario)</span>
+    <span class="snote">FR-15,16,17 · 3 ขั้นตอน + บันทึกหลาย scenario เทียบกัน</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">คำนวณด้วยตนเอง</div>
+      <div class="navi on">จุดคุ้มทุนรายคณะ</div>
+      <div class="navi">จุดคุ้มทุนรายหลักสูตร</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">✏️ คำนวณจุดคุ้มทุนรายคณะ / หน่วยงาน</h2><span class="spacer"></span>
+        <span class="tag">ข้อมูลอัพเดท 20260711</span></div>
+      <div class="row r21">
+        <div>
+          <div class="box" style="margin-bottom:10px">
+            <span class="step">ขั้นตอนที่ 1 — เลือกคณะ / หน่วยงาน</span>
+            <div class="bs">เลือกจากระบบเพื่อดึงข้อมูลอัตโนมัติ หรือกรอกเอง แล้วปรับแก้ได้</div>
+            <div class="f" style="margin-bottom:8px"><label>📋 เลือกคณะจากระบบ</label><div class="inp sel" style="width:100%">— เลือกคณะ —</div></div>
+            <div class="formrow f">
+              <div><label>จำนวนนิสิต (Q)</label><div class="inp">0</div></div>
+              <div><label>งบเงินแผ่นดิน (บาท)</label><div class="inp">0</div></div>
+              <div><label>งบเงินรายได้ (บาท)</label><div class="inp">0</div></div>
+            </div>
+          </div>
+          <div class="box" style="margin-bottom:10px">
+            <span class="step">ขั้นตอนที่ 2 — ต้นทุนคงที่ (TFC)</span> <span class="tag">TFC</span>
+            <div class="bs">เลือกหมวดจากรายการ (100/210/…/900) หรือกรอกเอง · เพิ่มได้ไม่จำกัด</div>
+            <table><thead><tr><th>หมวด</th><th>รายการ</th><th class="n">จำนวน (บาท)</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><span class="inp sel">100 เงินเดือน</span></td><td><span class="inp">ระบุ…</span></td><td class="n"><span class="inp">0</span></td><td><span class="btn">✕</span></td></tr>
+                <tr><td><span class="inp sel">+ ค่าเสื่อมราคา</span></td><td><span class="inp">ระบุ…</span></td><td class="n"><span class="inp">0</span></td><td><span class="btn">✕</span></td></tr>
+              </tbody></table>
+            <div class="toolbar" style="border:0;padding:8px 0 0"><span class="btn">+ เพิ่มรายการ TFC</span>
+              <span class="spacer"></span><b>รวม TFC: <span class="ph">0</span> บาท</b></div>
+          </div>
+          <div class="box">
+            <span class="step">ขั้นตอนที่ 3 — ต้นทุนผันแปร (TVC)</span> <span class="tag">TVC</span>
+            <div class="bs">รายการ ×Q (GE, ค่าธรรมเนียมรายการหลัก, หักสมทบมหาวิทยาลัย) ให้กรอกเป็น "บาท/คน" แล้วระบบคูณ Q ให้</div>
+            <table><thead><tr><th>หมวด</th><th>รายการ</th><th>วิธีคิด</th><th class="n">จำนวน</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><span class="inp sel">410 ค่าสาธารณูปโภค</span></td><td><span class="inp">ระบุ…</span></td>
+                  <td><span class="inp sel">ยอดรวม</span></td><td class="n"><span class="inp">0</span></td><td><span class="btn">✕</span></td></tr>
+                <tr><td><span class="inp sel">×Q หักสมทบ มหาวิทยาลัย</span></td><td><span class="inp">ระบุ…</span></td>
+                  <td><span class="inp sel">บาท/คน</span></td><td class="n"><span class="inp">2,235</span></td><td><span class="btn">✕</span></td></tr>
+              </tbody></table>
+            <div class="toolbar" style="border:0;padding:8px 0 0"><span class="btn">+ เพิ่มรายการ TVC</span>
+              <span class="spacer"></span><b>รวม TVC: <span class="ph">0</span> บาท</b></div>
+          </div>
+        </div>
+        <div>
+          <div class="box" style="margin-bottom:10px">
+            <div class="bt">สรุปตัวเลขก่อนคำนวณ</div>
+            <table>
+              <tr><td>Q (นิสิต)</td><td class="n ph">0</td></tr>
+              <tr><td>TR รวม</td><td class="n ph">0</td></tr>
+              <tr><td>TC รวม</td><td class="n ph">0</td></tr>
+              <tr><td>TFC</td><td class="n ph">0</td></tr>
+              <tr><td>TVC</td><td class="n ph">0</td></tr>
+              <tr><td>AVC / หัว</td><td class="n ph">0</td></tr>
+              <tr><td>R/หัว — รวมแผ่นดิน</td><td class="n ph">0</td></tr>
+              <tr><td>R/หัว — ไม่รวมแผ่นดิน</td><td class="n ph">0</td></tr>
+            </table>
+            <div class="btn pri" style="text-align:center;margin-top:10px">▶ คำนวณจุดคุ้มทุน</div>
+          </div>
+          <div class="box" style="margin-bottom:10px">
+            <div class="bt">ผลการคำนวณ</div>
+            <div class="bs ph">กรอกข้อมูลครบแล้วกดคำนวณ<br><br>
+              Q* = … คน · π = … บาท<br>เทียบ Q จริง … คน</div>
+            <div class="toolbar" style="border:0;padding:6px 0 0">
+              <span class="btn">+ บันทึกลงรายการ</span><span class="btn">⬇ PDF</span></div>
+          </div>
+          <div class="box">
+            <div class="toolbar" style="border:0;padding:0;margin-bottom:6px">
+              <div class="bt" style="margin:0">รายการที่บันทึก</div><span class="spacer"></span><span class="btn">ล้างทั้งหมด</span></div>
+            <div class="bs">ตารางเทียบ scenario ที่บันทึกไว้ vs ข้อมูลจริงในระบบ (FR-17)</div>
+            <table><thead><tr><th>ชื่อ scenario</th><th class="n">Q*</th><th class="n">π</th><th></th></tr></thead>
+              <tbody><tr><td class="ph">ยังไม่มีรายการ</td><td class="n ph">—</td><td class="n ph">—</td><td></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>ต่างจาก prototype:</b> prototype เก็บ scenario ใน local state (หายเมื่อ refresh) — production ต้องบันทึกลง DB ผูก <code>SCENARIO_PLAN.created_by</code> · เพิ่มคอลัมน์ "วิธีคิด (ยอดรวม / บาทต่อคน)" ใน TVC ให้ตรงกับ <code>COST_ITEM.is_per_student_multiplier</code> ซึ่ง prototype ยังไม่แยกชัด · ตารางเทียบ scenario vs ข้อมูลจริง (FR-17) ต้องมี ไม่ใช่แค่ list scenario</div>
+</section>
+
+
+<!-- ===== W7 SCENARIO PROGRAM ===== -->
+<section class="screen">
+  <header><span class="sid">W7</span><span class="stitle">คำนวณจุดคุ้มทุนรายหลักสูตร (หลักสูตรเดิม / หลักสูตรใหม่)</span>
+    <span class="snote">FR-15 · โหมด existing = auto-fill แก้ได้ · โหมด new = กรอกเองทั้งหมด</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">คำนวณด้วยตนเอง</div>
+      <div class="navi">จุดคุ้มทุนรายคณะ</div>
+      <div class="navi on">จุดคุ้มทุนรายหลักสูตร</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">🎓 คำนวณจุดคุ้มทุนรายหลักสูตร</h2><span class="spacer"></span>
+        <span class="seg"><div class="on">หลักสูตรเดิม (Existing)</div><div>หลักสูตรใหม่ (New)</div></span></div>
+      <div class="row r12">
+        <div class="box">
+          <div class="bt">กรอกข้อมูลหลักสูตร</div>
+          <div class="bs">โหมดเดิม → เลือกจาก dropdown แล้วดึงข้อมูลอัตโนมัติ <span class="tag">✓ ดึงจากระบบ</span></div>
+          <div class="f">
+            <label>🏫 ระดับการศึกษา</label><div class="inp sel" style="width:100%;margin-bottom:8px">ปริญญาตรี</div>
+            <label>🏫 สังกัดคณะ / วิทยาลัย</label><div class="inp sel" style="width:100%;margin-bottom:8px">— เลือกคณะ —</div>
+            <label>📚 ชื่อหลักสูตร</label><div class="inp sel" style="width:100%;margin-bottom:8px">— เลือกหลักสูตร —</div>
+            <div class="bs" style="margin:10px 0 6px">โหมดใหม่ → ซ่อน dropdown ข้างบน แสดงช่องกรอกเองแทน</div>
+            <label>✎ ชื่อหลักสูตร (กรอกเอง)</label><div class="inp" style="width:100%;margin-bottom:8px">เช่น วิทยาการปัญญาประดิษฐ์</div>
+            <label>🏫 สังกัดคณะ (กรอกเอง)</label><div class="inp" style="width:100%">เช่น คณะวิทยาศาสตร์</div>
+          </div>
+        </div>
+        <div>
+          <div class="box" style="margin-bottom:10px">
+            <div class="bt">📊 ข้อมูลตัวเลข <span class="tag">✓ ดึงจากระบบ</span></div>
+            <div class="formrow f">
+              <div><label>จำนวนนิสิต (Q)</label><div class="inp">0</div></div>
+              <div><label>งบเงินแผ่นดิน</label><div class="inp">0</div></div>
+              <div><label>งบเงินรายได้</label><div class="inp">0</div></div>
+              <div><label>TFC รวม</label><div class="inp">0</div></div>
+              <div><label>TVC รวม</label><div class="inp">0</div></div>
+              <div><label>ฐานรายได้</label><div class="inp sel">รวมแผ่นดิน</div></div>
+            </div>
+            <div class="btn pri" style="text-align:center">▶ คำนวณจุดคุ้มทุน</div>
+          </div>
+          <div class="row r2" style="margin:0">
+            <div class="box"><div class="bt">กราฟจุดคุ้มทุน</div>
+              <div class="lines" style="height:90px"><svg viewBox="0 0 300 90" preserveAspectRatio="none">
+                <line x1="0" y1="58" x2="300" y2="58" stroke="#c9ced6" stroke-dasharray="4 3"/>
+                <line x1="0" y1="58" x2="300" y2="18" stroke="#6b7280"/>
+                <line x1="0" y1="86" x2="300" y2="6" stroke="#1f2328"/>
+                <circle cx="140" cy="40" r="4" fill="#fff" stroke="#1f2328" stroke-width="1.5"/>
+              </svg></div></div>
+            <div class="box"><div class="toolbar" style="border:0;padding:0;margin-bottom:6px">
+                <div class="bt" style="margin:0">ประวัติการคำนวณ</div><span class="spacer"></span><span class="btn">ล้าง</span></div>
+              <div class="bs ph">ยังไม่มีประวัติ</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>หมายเหตุ:</b> โหมด "หลักสูตรใหม่" → <code>SCENARIO_PLAN.based_on_program_id</code> เป็น null · โหมด "หลักสูตรเดิม" → ผูก program จริงแล้ว snapshot ค่าไว้ใน SCENARIO_PLAN เพื่อไม่ให้ผลลัพธ์เปลี่ยนตามเมื่อข้อมูลจริงถูกอัปเดตภายหลัง</div>
+</section>
+
+
+<!-- ===== W8 FEE APPROVAL ===== -->
+<section class="screen">
+  <header><span class="sid">W8</span><span class="stitle">จัดการค่าธรรมเนียม + Workflow อนุมัติ</span>
+    <span class="new">NEW</span>
+    <span class="snote">FR-1 · ไม่มีใน prototype เลย · ER: FEE_MASTER + FEE_APPROVAL_LOG</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">จัดการข้อมูล</div>
+      <div class="navi on">ค่าธรรมเนียม / อนุมัติ</div>
+      <div class="navi">ต้นทุน &amp; ค่าเสื่อม</div>
+      <div class="navi">งบประมาณ / Sync</div>
+      <div class="navi">อัตราเงินสมทบ</div>
+      <div class="navi">ผู้ใช้ &amp; สิทธิ์</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">ค่าธรรมเนียมหลักสูตร — ปีงบประมาณ 2568</h2><span class="spacer"></span>
+        <span class="inp sel">2568</span><span class="btn">⬆ นำเข้าจาก Excel</span><span class="btn pri">+ เพิ่มรายการ</span></div>
+      <div class="toolbar" style="border:0;padding:0;margin-bottom:10px">
+        <span class="inp" style="min-width:220px">ค้นหาหลักสูตร…</span>
+        <span class="seg"><div class="on">ทั้งหมด</div><div>ร่าง</div><div>รออนุมัติ</div><div>อนุมัติแล้ว</div><div>ตีกลับ</div></span>
+        <span class="spacer"></span><span class="btn">✓ อนุมัติที่เลือก</span>
+      </div>
+      <table>
+        <thead><tr><th>☐</th><th>หลักสูตร</th><th>ประเภทนิสิต</th><th>สัญชาติ</th>
+          <th class="n">อัตรา (บาท/เทอม)</th><th>สถานะ</th><th>ผู้อนุมัติ / เมื่อ</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>☐</td><td class="ph">บัญชีบัณฑิต</td><td class="ph">ภาคปกติ</td><td class="ph">ไทย</td>
+            <td class="n ph">18,000</td><td><span class="tag">✓ อนุมัติแล้ว</span></td><td class="ph">กองงบประมาณ · 2568-05-12</td><td><span class="btn">ดู log</span></td></tr>
+          <tr><td>☐</td><td class="ph">บัญชีบัณฑิต</td><td class="ph">ภาคพิเศษ</td><td class="ph">ไทย</td>
+            <td class="n ph">25,000</td><td><span class="tag">⏳ รออนุมัติ</span></td><td class="ph">— </td><td><span class="btn">อนุมัติ</span> <span class="btn">ตีกลับ</span></td></tr>
+          <tr><td>☐</td><td class="ph">ธุรกิจระหว่างประเทศ (นานาชาติ)</td><td class="ph">ภาคปกติ</td><td class="ph">ต่างชาติ</td>
+            <td class="n ph">45,000</td><td><span class="tag">✎ ร่าง</span></td><td class="ph">—</td><td><span class="btn">ส่งขออนุมัติ</span></td></tr>
+        </tbody>
+      </table>
+      <div class="box" style="margin-top:12px">
+        <div class="bt">ประวัติการอนุมัติ (FEE_APPROVAL_LOG) — รายการที่เลือก</div>
+        <table><thead><tr><th>เมื่อ</th><th>ผู้ทำรายการ</th><th>การกระทำ</th><th>หมายเหตุ</th></tr></thead>
+          <tbody>
+            <tr><td class="ph">2568-05-10</td><td class="ph">จ.คณะบัญชี</td><td><span class="tag">submit</span></td><td class="ph">ส่งขออนุมัติรอบแรก</td></tr>
+            <tr><td class="ph">2568-05-11</td><td class="ph">กองงบประมาณ</td><td><span class="tag">reject</span></td><td class="ph">อัตราไม่ตรงมติสภา</td></tr>
+            <tr><td class="ph">2568-05-12</td><td class="ph">กองงบประมาณ</td><td><span class="tag">approve</span></td><td class="ph">แก้ไขแล้ว อนุมัติ</td></tr>
+          </tbody></table>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>ต้องยืนยันก่อนสร้าง (คำถามเปิดข้อ 2):</b> workflow มีกี่ขั้น — wireframe นี้สมมติ 2 ขั้น (คณะส่ง → กองงบประมาณอนุมัติ) ถ้ามี 3 ขั้น (ภาควิชา → คณะ → กองงบ) ต้องเพิ่มคอลัมน์ "ขั้นปัจจุบัน" และ FEE_MASTER ต้องมี field ระดับขั้น · ปุ่มที่เห็นต่างกันตาม role (faculty_officer เห็น "ส่งขออนุมัติ" · budget_office เห็น "อนุมัติ/ตีกลับ")</div>
+</section>
+
+
+<!-- ===== W9 DATA MGMT ===== -->
+<section class="screen">
+  <header><span class="sid">W9</span><span class="stitle">จัดการต้นทุน / ค่าเสื่อม / งบประมาณ (Sync + Manual)</span>
+    <span class="new">NEW</span>
+    <span class="snote">FR-2,3,4 · ER: COST_ITEM, DEPRECIATION, BUDGET_ALLOCATION, STUDENT_COUNT</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">จัดการข้อมูล</div>
+      <div class="navi">ค่าธรรมเนียม / อนุมัติ</div>
+      <div class="navi on">ต้นทุน &amp; ค่าเสื่อม</div>
+      <div class="navi">งบประมาณ / Sync</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">รายการต้นทุน — ปี 2568</h2><span class="spacer"></span>
+        <span class="inp sel">คณะการบัญชีและการจัดการ</span><span class="btn">⬆ นำเข้า Excel</span><span class="btn pri">+ เพิ่มรายการ</span></div>
+      <div class="row r3" style="margin-bottom:12px">
+        <div class="box"><div class="l bs" style="margin:0">สถานะ Sync ข้อมูลนิสิต</div>
+          <div class="bt ph">สำเร็จ · 2568-06-01 03:00</div><span class="btn">↻ Sync ตอนนี้</span></div>
+        <div class="box"><div class="l bs" style="margin:0">สถานะ Sync งบประมาณ</div>
+          <div class="bt ph">สำเร็จ · 2568-06-01 03:05</div><span class="btn">↻ Sync ตอนนี้</span></div>
+        <div class="box"><div class="l bs" style="margin:0">รายการที่กรอกเอง (manual)</div>
+          <div class="bt ph">142 รายการ</div><span class="snote">ต้องตรวจทานก่อนคำนวณ</span></div>
+      </div>
+      <table>
+        <thead><tr><th>หมวดงบ</th><th>รายการ</th><th>ผูกกับ</th><th>ประเภท</th>
+          <th>วิธีปันส่วน</th><th>×Q?</th><th class="n">จำนวน (บาท)</th><th>ที่มา</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="ph">100</td><td class="ph">เงินเดือนอาจารย์</td><td class="ph">บัญชีบัณฑิต</td>
+            <td><span class="tag">TFC</span></td><td class="ph">รายหลักสูตร</td><td class="ph">—</td>
+            <td class="n ph">12,400,000</td><td><span class="tag">manual</span></td><td><span class="btn">✎</span></td></tr>
+          <tr><td class="ph">400</td><td class="ph">ปันส่วนสำนักงานเลขานุการ</td><td class="ph">คณะ (ก้อนรวม)</td>
+            <td><span class="tag">TFC</span></td><td class="ph">รายหัวนิสิต</td><td class="ph">—</td>
+            <td class="n ph">8,900,000</td><td><span class="tag">manual</span></td><td><span class="btn">✎</span></td></tr>
+          <tr><td class="ph">410</td><td class="ph">ค่าสาธารณูปโภค</td><td class="ph">คณะ (ก้อนรวม)</td>
+            <td><span class="tag">TVC</span></td><td class="ph">รายหัวนิสิต</td><td class="ph">—</td>
+            <td class="n ph">3,200,000</td><td><span class="tag">manual</span></td><td><span class="btn">✎</span></td></tr>
+          <tr><td class="ph">—</td><td class="ph">ค่าใช้จ่ายวิชาศึกษาทั่วไป (GE)</td><td class="ph">บัญชีบัณฑิต</td>
+            <td><span class="tag">TVC</span></td><td class="ph">รายหัวนิสิต</td><td><span class="tag">✓ ×Q</span></td>
+            <td class="n ph">1,850 /คน</td><td><span class="tag">api</span></td><td><span class="btn">✎</span></td></tr>
+          <tr><td class="ph">—</td><td class="ph">หักสมทบมหาวิทยาลัย</td><td class="ph">คณะ (ก้อนรวม)</td>
+            <td><span class="tag">TVC</span></td><td class="ph">รายหัวนิสิต</td><td><span class="tag">✓ ×Q</span></td>
+            <td class="n ph">2,235 /คน/เทอม</td><td><span class="tag">manual</span></td><td><span class="btn">✎</span></td></tr>
+          <tr><td class="ph">—</td><td class="ph">ค่าเสื่อมราคา (ก้อนรวมคณะ)</td><td class="ph">คณะ (ก้อนรวม)</td>
+            <td><span class="tag">TFC</span></td><td class="ph">ก้อนรวม</td><td class="ph">—</td>
+            <td class="n ph">15,100,000</td><td><span class="tag">manual</span></td><td><span class="btn">✎</span></td></tr>
+        </tbody>
+      </table>
+      <div class="box" style="margin-top:12px">
+        <div class="bt">⚠ ตรวจสอบความครบถ้วนก่อนคำนวณ (Validation)</div>
+        <div class="bs ph">• หลักสูตรที่ยังไม่มีค่าธรรมเนียมอนุมัติ: … รายการ<br>
+          • คณะที่ยังไม่กรอกค่าเสื่อมราคา: … คณะ<br>
+          • หลักสูตรที่ Q = 0 แต่มีต้นทุน: … รายการ (จะคำนวณ Q* ไม่ได้)</div>
+        <span class="btn pri">▶ คำนวณผลใหม่ทั้งระบบ (Recalculate)</span>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>จุดสำคัญ:</b> คอลัมน์ <b>ประเภท (TFC/TVC)</b> และ <b>×Q?</b> แก้ได้ที่ระดับรายการย่อย ไม่ผูกกับหมวดงบ (ตามหลักการใน ER 5.1) · ปุ่ม Recalculate เขียนผลลง <code>BREAK_EVEN_RESULT</code> ทั้ง 2 revenue_mode และทั้ง 3 scope_level — เป็น batch job ไม่ใช่คำนวณสดตอนเปิดหน้า</div>
+</section>
+
+
+<!-- ===== W10 FORMULA DOC ===== -->
+<section class="screen">
+  <header><span class="sid">W10</span><span class="stitle">สูตร &amp; หลักวิชาการ (หน้าเอกสารในระบบ)</span>
+    <span class="snote">ยกจาก prototype ได้เกือบทั้งหมด · เพิ่ม deep-link จากทุก KPI มาที่หน้านี้</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">การวิเคราะห์</div>
+      <div class="navi">Cross Analysis</div>
+      <div class="navi on">สูตร &amp; หลักวิชาการ</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">📐 สูตรและหลักวิชาการจุดคุ้มทุน</h2><span class="spacer"></span><span class="btn">⬇ PDF</span></div>
+      <div class="row r2">
+        <div class="box"><div class="bt">📌 สูตร 1 — จุดคุ้มทุน</div><div class="bs">Q* = TFC ÷ (R − AVC)</div></div>
+        <div class="box"><div class="bt">📌 สูตร 2 — ต้นทุนรวม</div><div class="bs">TC = TFC + (AVC × Q)</div></div>
+        <div class="box"><div class="bt">📌 สูตร 3 — กำไร/ขาดทุน</div><div class="bs">π = TR − TC = (R − AVC) × Q − TFC</div></div>
+        <div class="box"><div class="bt">📌 สูตร 4 — รายได้ ณ จุดคุ้มทุน</div><div class="bs">BE Revenue = Q* × R</div></div>
+        <div class="box"><div class="bt">📌 สูตร 5 — ฐานรายได้ 2 กรณี</div><div class="bs">R รวมแผ่นดิน / R ไม่รวมแผ่นดิน</div></div>
+        <div class="box"><div class="bt">📌 สูตร 6 — Q* ระดับคณะ (2 วิธี)</div><div class="bs">Σ Q*หลักสูตร (หลัก) vs pooled (เทียบ)</div></div>
+        <div class="box"><div class="bt">📌 สูตร 7 — กรณี CM ≤ 0</div><div class="bs">Q* = TC ÷ R (Full-Cost Recovery)</div></div>
+        <div class="box"><div class="bt">📖 คำนิยามตัวแปร + 🗂️ การจำแนกต้นทุน</div><div class="bs">ตาราง Q/Q*, TR, TC, TFC, TVC/AVC, R, π + หมวด TFC/TVC</div></div>
+      </div>
+      <div class="box" style="margin-top:10px"><div class="bt">📚 เอกสารอ้างอิง (APA 7th)</div>
+        <div class="bs ph">Horngren et al. (2015) · Drury (2018) · Garrison et al. (2021) · Johnes &amp; Johnes (2004) · กรมบัญชีกลาง (2566) · สกอ. (2565) · มมส. กองแผนงาน (2568) · Worthington &amp; Higgs (2011) · Vanderbei (2020)</div></div>
+    </div>
+  </div>
+  <div class="ann"><b>คุณค่าที่มองข้ามไม่ได้:</b> หน้านี้ทำให้ตัวเลขน่าเชื่อถือต่อผู้บริหาร — ควรทำ tooltip/ไอคอน "?" ที่ KPI ทุกตัวใน W1–W5 ให้ลิงก์มาที่สูตรที่เกี่ยวข้องโดยตรง (anchor link)</div>
+</section>
+
+<p class="sub" style="margin-top:26px">— จบ wireframe · ขั้นตอนต่อไปตาม SA.md หัวข้อ 9: ยืนยันคำถามเปิด → เลือก tech stack → วางแผน sprint</p>
+
+</div>
+</body>
+</html>

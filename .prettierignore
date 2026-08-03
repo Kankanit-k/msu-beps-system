@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+coverage/
+pnpm-lock.yaml
+
+# ไฟล์อ้างอิงจาก prototype เดิม — ห้าม format (ต้องคงต้นฉบับไว้เทียบสูตร)
+MSU-BEPS_*.html
+WIREFRAME.html
+
+# เอกสารที่ generate ขึ้น — ER.html ฝังไลบรารี Mermaid ไว้ 3.4 MB ห้าม format
+ER.html

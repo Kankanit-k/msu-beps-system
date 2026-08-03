@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# env — ห้าม commit ค่าจริง (ดู .env.example)
+.env
+.env.*
+!.env.example
+
+# test / coverage
+coverage/
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ─────────────────────────────────────────────────────────────────────
+# ข้อมูลการเงินภายในมหาวิทยาลัย — ห้ามขึ้น git
+#
+# ไฟล์เหล่านี้มีค่าธรรมเนียมทุกหลักสูตร งบประมาณ ค่าเสื่อมราคา และข้อมูลนิสิต
+# แยกรายคณะทั้ง 20 คณะ · เก็บไว้ในเครื่องและส่งต่อกันเองนอก git
+#
+# เหตุผล: git เก็บประวัติทุก commit — ถ้าวันหน้าเปลี่ยน repo เป็น public
+# ไฟล์ที่เคย commit ไว้จะดาวน์โหลดได้แม้จะลบออกไปแล้ว การไม่ commit ตั้งแต่แรก
+# จึงเป็นวิธีเดียวที่ปลอดภัยจริง
+# ─────────────────────────────────────────────────────────────────────
+*.xlsx
+*.docx
+MSU-BEPS_*.html
