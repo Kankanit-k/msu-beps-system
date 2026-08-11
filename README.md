@@ -47,17 +47,20 @@ beps-system/
 ├── packages/
 │   ├── calc-engine/     ★ สูตรคำนวณจุดคุ้มทุน — แกนความถูกต้องของระบบ (ดู TODO.md ข้างใน)
 │   └── shared-types/      Zod schema ที่ frontend/backend ใช้ร่วมกัน
-├── apps/                  ยังว่าง — api มาใน Sprint 2, web มาใน Sprint 5
+├── apps/                  ยังว่าง — api มาใน Sprint 2, web มาใน Sprint 6
 ├── docker-compose.yml     PostgreSQL 17 สำหรับ local dev
 ├── SA.md                  เอกสาร System Analysis ฉบับเต็ม (17 หัวข้อ)
-├── ER.html                โครงสร้างฐานข้อมูล 17 ตาราง — เปิดดู/ส่งต่อได้ (ดูด้านล่าง)
-├── WIREFRAME.html         Wireframe 11 หน้าจอ (W0–W10) — เปิดในเบราว์เซอร์ได้เลย
+├── ER.html                โครงสร้างฐานข้อมูล v2 30 ตาราง — เปิดดู/ส่งต่อได้ (ดูด้านล่าง)
+├── WIREFRAME.html         Wireframe 15 หน้าจอ (W0–W14) — เปิดในเบราว์เซอร์ได้เลย
+├── COMPARISON.md          บันทึกเปรียบเทียบ ER v1 กับข้อเสนอ MANUS
+├── MAPPING.md             การแมพข้อมูล ทะเบียน ↔ ERP
+├── db/                    schema + เครื่องปันส่วน ที่ทดสอบผ่านบน PostgreSQL 17
 └── ไฟล์อ้างอิง/            Excel, docx, prototype HTML เดิม (ดูด้านล่าง)
 ```
 
 ### เอกสารสำหรับนำไปประชุม
 
-`ER.html` เป็นไฟล์เดียวจบ **เปิดได้โดยไม่ต้องต่ออินเทอร์เน็ต** (ฝังไลบรารี Mermaid ไว้แล้ว จึงมีขนาด ~3.5 MB)
+`ER.html` (โครงสร้าง 30 ตาราง) และ `WIREFRAME.html` (15 หน้าจอ) เปิดได้โดย**ไม่ต้องต่ออินเทอร์เน็ต** — `ER.html` ฝังไลบรารี Mermaid ไว้จึงมีขนาด ~3.5 MB
 ส่งทางอีเมลหรือ USB ได้เลย ไม่ต้องส่งไฟล์อื่นไปด้วย — ใช้คุยกับกองแผนงาน/กองงบประมาณเพื่อทบทวนโครงสร้างข้อมูลก่อนสร้างจริง
 
 ไฟล์นี้เป็นเอกสารที่ generate ขึ้นจาก **SA.md หัวข้อ 5** ซึ่งถือเป็นต้นฉบับทางการ — ถ้าจะแก้ ER ให้แก้ SA.md ก่อน แล้วอัปเดต `ER.html` ตาม
@@ -79,8 +82,8 @@ beps-system/
 
 ## แผนถัดไป
 
-Sprint 1 คือ `packages/calc-engine` (สูตร 1–7 + golden test) ซึ่ง **ยังเริ่มไม่ได้**
-เพราะต้องได้คำตอบ 4 ข้อก่อน — รายละเอียดใน [`packages/calc-engine/TODO.md`](./packages/calc-engine/TODO.md)
-และ SA.md หัวข้อ 17
+Sprint 1 คือ `packages/calc-engine` (สูตร 1–7 + golden test) — **เริ่มได้แล้ว**
+โดย port จาก `db/02_functions.sql` ที่ทดสอบผ่านแล้ว · golden test ระดับคณะและมหาวิทยาลัยทำได้ทันที
+ส่วนระดับหลักสูตรรอคำตอบข้อ A — รายละเอียดใน [`packages/calc-engine/TODO.md`](./packages/calc-engine/TODO.md)
 
 แผน sprint ทั้งหมดอยู่ใน SA.md หัวข้อ 14

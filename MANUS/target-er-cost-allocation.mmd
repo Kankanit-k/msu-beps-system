@@ -1,0 +1,156 @@
+erDiagram
+    TIME_PERIOD ||--o{ REGISTRATION_SNAPSHOT : scopes
+    TIME_PERIOD ||--o{ ERP_COST_TRANSACTION : scopes
+    TIME_PERIOD ||--o{ FEE_TRANSACTION : scopes
+    ORG_UNIT ||--o{ ORG_UNIT_MAP : maps
+    ORG_UNIT ||--o{ PROGRAM_ORG_MAP : owns
+    PROGRAM ||--o{ PROGRAM_VERSION : has
+    PROGRAM_VERSION ||--o{ PROGRAM_ORG_MAP : assigned
+    PROGRAM_VERSION ||--o{ REGISTRATION_SNAPSHOT : counts
+    ERP_ACCOUNT_HIERARCHY ||--o{ BUDGET_CATEGORY_MAP : classifies
+    ERP_COST_TRANSACTION }o--|| ERP_ACCOUNT_HIERARCHY : uses
+    ERP_COST_TRANSACTION }o--|| ORG_UNIT : incurred_by
+    BUDGET_CATEGORY_MAP ||--o{ ALLOCATION_METHOD : uses
+    ALLOCATION_METHOD ||--o{ ALLOCATION_DRIVER : defines
+    ALLOCATION_METHOD ||--o{ ALLOCATION_RUN : executed_as
+    ALLOCATION_RUN ||--o{ ALLOCATION_RESULT : produces
+    ERP_COST_TRANSACTION ||--o{ ALLOCATION_RESULT : allocated_from
+    PROGRAM_VERSION ||--o{ ALLOCATION_RESULT : allocated_to
+    TIME_PERIOD ||--o{ ALLOCATION_RUN : runs_for
+    PROGRAM_VERSION ||--o{ PROGRAM_COST_SUMMARY : summarizes
+    ALLOCATION_RUN ||--o{ PROGRAM_COST_SUMMARY : feeds
+    PROGRAM_COST_SUMMARY ||--o{ BEP_SCENARIO : supports
+    BEP_SCENARIO ||--o{ BEP_RESULT : calculates
+
+    TIME_PERIOD {
+      bigint time_period_id PK
+      string academic_year
+      string semester
+      string fiscal_year
+      date start_date
+      date end_date
+    }
+    ORG_UNIT {
+      bigint org_unit_id PK
+      string source_system
+      string source_org_code
+      string org_name
+      string org_type
+    }
+    ORG_UNIT_MAP {
+      bigint org_unit_map_id PK
+      bigint org_unit_id FK
+      string source_system
+      string target_org_code
+      date effective_from
+      date effective_to
+      string status
+    }
+    PROGRAM {
+      bigint program_id PK
+      string source_program_code UK
+      string program_name
+      string degree_level
+    }
+    PROGRAM_VERSION {
+      bigint program_version_id PK
+      bigint program_id FK
+      string academic_year
+      string curriculum_version
+      date effective_from
+      date effective_to
+    }
+    PROGRAM_ORG_MAP {
+      bigint program_org_map_id PK
+      bigint program_version_id FK
+      bigint org_unit_id FK
+      string relationship_type
+    }
+    REGISTRATION_SNAPSHOT {
+      bigint snapshot_id PK
+      bigint program_version_id FK
+      bigint time_period_id FK
+      date snapshot_date
+      int student_count
+      string status_rule_version
+    }
+    ERP_ACCOUNT_HIERARCHY {
+      bigint account_hierarchy_id PK
+      string plan_code
+      string budget_category_code
+      string expense_category_code
+      string sub_expense_code
+    }
+    BUDGET_CATEGORY_MAP {
+      bigint budget_map_id PK
+      bigint account_hierarchy_id FK
+      string cost_classification
+      decimal fixed_ratio
+      decimal variable_ratio
+      string direct_indirect_flag
+      string rule_version
+    }
+    ERP_COST_TRANSACTION {
+      bigint cost_id PK
+      string source_record_id
+      bigint time_period_id FK
+      bigint org_unit_id FK
+      bigint account_hierarchy_id FK
+      decimal amount
+      string amount_basis
+      bigint import_batch_id FK
+    }
+    ALLOCATION_METHOD {
+      bigint allocation_method_id PK
+      string method_code
+      string method_name
+      string version
+      string approval_status
+    }
+    ALLOCATION_DRIVER {
+      bigint driver_id PK
+      bigint allocation_method_id FK
+      string driver_type
+      string denominator_scope
+      string formula
+    }
+    ALLOCATION_RUN {
+      bigint allocation_run_id PK
+      bigint allocation_method_id FK
+      bigint time_period_id FK
+      string run_status
+      datetime executed_at
+    }
+    ALLOCATION_RESULT {
+      bigint allocation_result_id PK
+      bigint allocation_run_id FK
+      bigint cost_id FK
+      bigint program_version_id FK
+      string cost_type
+      decimal allocated_amount
+      decimal driver_value
+      decimal denominator_value
+    }
+    PROGRAM_COST_SUMMARY {
+      bigint summary_id PK
+      bigint program_version_id FK
+      bigint allocation_run_id FK
+      decimal direct_fixed_cost
+      decimal allocated_fixed_cost
+      decimal direct_variable_cost
+      decimal allocated_variable_cost
+    }
+    BEP_SCENARIO {
+      bigint scenario_id PK
+      bigint summary_id FK
+      decimal revenue_per_unit
+      decimal variable_cost_per_unit
+      int target_period
+    }
+    BEP_RESULT {
+      bigint result_id PK
+      bigint scenario_id FK
+      decimal break_even_units
+      decimal break_even_revenue
+      decimal contribution_margin
+    }

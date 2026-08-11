@@ -41,3 +41,6 @@ pnpm-debug.log*
 *.xlsx
 *.docx
 MSU-BEPS_*.html
+
+# บทสนทนา export เป็น PDF — ไม่ใช่เอกสารออกแบบ
+*.pdf

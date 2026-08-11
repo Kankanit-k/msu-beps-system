@@ -122,10 +122,11 @@
 <div class="wrap">
 
 <h1>BEPS-SYSTEM — Wireframe (Low Fidelity)</h1>
-<p class="sub">ระบบวิเคราะห์จุดคุ้มทุนหลักสูตร · อ้างอิงจาก SA.md หัวข้อ 3 (FR), 5 (ER), 7 (prototype) · ยังไม่ใช่ visual design — เน้นโครงหน้าจอ ลำดับข้อมูล และจุดที่ต้องสร้างใหม่จาก prototype</p>
+<p class="sub">ระบบวิเคราะห์จุดคุ้มทุนหลักสูตร · อ้างอิงจาก SA.md หัวข้อ 3 (FR), 5 (ER v2), 7 (prototype), 9.2 (หน้าจอใหม่) · ยังไม่ใช่ visual design — เน้นโครงหน้าจอ ลำดับข้อมูล และจุดที่ต้องสร้างใหม่จาก prototype</p>
 
 <div class="legend">
   <span><b>W1–W5</b> = หน้าที่ prototype มีแล้ว (ยกโครงมาใช้)</span>
+  <span><b>W11–W14</b> = โดเมน Allocation ที่เพิ่มจาก ER v2</span>
   <span><b class="new">NEW</b> = ต้องสร้างใหม่ ไม่มีใน prototype</span>
   <span><b class="ph">ข้อความสีเทา</b> = placeholder / ข้อมูลจำลอง</span>
 </div>
@@ -763,7 +764,226 @@
   <div class="ann"><b>คุณค่าที่มองข้ามไม่ได้:</b> หน้านี้ทำให้ตัวเลขน่าเชื่อถือต่อผู้บริหาร — ควรทำ tooltip/ไอคอน "?" ที่ KPI ทุกตัวใน W1–W5 ให้ลิงก์มาที่สูตรที่เกี่ยวข้องโดยตรง (anchor link)</div>
 </section>
 
-<p class="sub" style="margin-top:26px">— จบ wireframe · ขั้นตอนต่อไปตาม SA.md หัวข้อ 9: ยืนยันคำถามเปิด → เลือก tech stack → วางแผน sprint</p>
+
+<!-- ══════════════ กลุ่มใหม่จาก ER v2 ══════════════ -->
+<h1 style="margin-top:48px;font-size:19px">หน้าจอที่เพิ่มจาก ER v2 — โดเมน Allocation</h1>
+<p class="sub">ER v2 เพิ่มการปันส่วนต้นทุนเป็นโดเมนเต็มรูป 4 หน้าจอนี้จึงจำเป็น — ถ้าไม่มี ผู้ใช้จะไม่รู้ว่าตัวเลขมาจากการปันส่วนแบบไหน ตรวจยอดผ่านหรือไม่ และมีอะไรค้างต้องแก้</p>
+
+<!-- ===== W11 ===== -->
+<section class="screen">
+  <header><span class="sid">W11</span><span class="stitle">คอนโซล Allocation Run</span>
+    <span class="new">NEW · ER v2</span>
+    <span class="snote">run เปลี่ยนแปลงไม่ได้ — แก้ผลต้องสร้าง run ใหม่</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">ปันส่วนต้นทุน <span class="new">NEW</span></div>
+      <div class="navi on">คอนโซล Run</div>
+      <div class="navi">ผลตรวจยอด</div>
+      <div class="navi">รายการค้างแก้</div>
+      <div class="navi">กติกาผังบัญชี</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">Allocation Run</h2><span class="spacer"></span>
+        <span class="inp sel">ปีงบ 2568</span><span class="inp sel">ทุกคณะ</span>
+        <span class="btn pri">+ สร้าง run ใหม่</span></div>
+
+      <div class="box" style="margin-bottom:10px">
+        <div class="bt">สร้าง run — ล็อกขอบเขตไว้ตลอดอายุ run</div>
+        <div class="bs">เปลี่ยนค่าเหล่านี้ระหว่างทางไม่ได้ ถ้าต้องเปลี่ยนต้องสร้าง run ใหม่</div>
+        <div class="formrow f">
+          <div><label>งวด (period)</label><div class="inp sel">2568 · ภาค 1</div></div>
+          <div><label>หน่วยงาน</label><div class="inp sel">คณะการบัญชีและการจัดการ</div></div>
+          <div><label>ฐานต้นทุน</label><div class="inp sel">เบิกจ่ายจริง (ACTUAL)</div></div>
+          <div><label>เวอร์ชันกติกา</label><div class="inp sel">v1</div></div>
+          <div><label>tolerance (บาท)</label><div class="inp">0.00</div></div>
+          <div><label>สืบทอดจาก run</label><div class="inp sel">— ไม่มี —</div></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="bt">ประวัติ run</div>
+        <div class="bs">สถานะ: DRAFT → RUNNING → CALCULATED → VALIDATED → APPROVED · หรือ FAILED</div>
+        <div class="scroll" style="border:0">
+        <table>
+          <thead><tr><th>#</th><th>งวด</th><th>หน่วยงาน</th><th>ฐาน</th><th>กติกา</th>
+            <th>สถานะ</th><th class="n">ตรวจยอด</th><th>ผู้สร้าง</th><th>ผู้อนุมัติ</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="ph">1042</td><td class="ph">2568/1</td><td class="ph">บัญชีฯ</td><td class="ph">ACTUAL</td><td class="ph">v1</td>
+              <td><span class="tag">✓ APPROVED</span></td><td class="n ph">ผ่าน</td><td class="ph">จ.วิเคราะห์</td><td class="ph">ผอ.กองแผน</td>
+              <td><span class="btn">ดูผล</span></td></tr>
+            <tr><td class="ph">1041</td><td class="ph">2568/1</td><td class="ph">บัญชีฯ</td><td class="ph">ACTUAL</td><td class="ph">v1</td>
+              <td><span class="tag">⏳ CALCULATED</span></td><td class="n ph">ผ่าน</td><td class="ph">จ.วิเคราะห์</td><td class="ph">—</td>
+              <td><span class="btn">ตรวจสอบ</span></td></tr>
+            <tr><td class="ph">1040</td><td class="ph">2568/1</td><td class="ph">บัญชีฯ</td><td class="ph">BUDGET</td><td class="ph">v1</td>
+              <td><span class="tag">✕ FAILED</span></td><td class="n ph">ต่าง 1,204.55</td><td class="ph">จ.วิเคราะห์</td><td class="ph">—</td>
+              <td><span class="btn">ดูสาเหตุ</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>กฎที่ต้องบังคับใน UI:</b> ปุ่ม "อนุมัติ" ต้อง<b>ซ่อนจากผู้สร้าง run นั้น</b> (maker-checker — ฐานข้อมูลมี CHECK บังคับอยู่แล้วว่า <code>approved_by &lt;&gt; created_by</code>) · run ที่ APPROVED แล้วแก้ไม่ได้ ทำได้แค่สร้าง run ใหม่ที่ชี้ <code>supersedes_run_id</code> · หน้า W1–W5 อ่านจาก run ที่ APPROVED ล่าสุดเท่านั้น</div>
+</section>
+
+<!-- ===== W12 ===== -->
+<section class="screen">
+  <header><span class="sid">W12</span><span class="stitle">ผลตรวจยอด &amp; direct เทียบ allocated</span>
+    <span class="new">NEW · ER v2</span>
+    <span class="snote">ตอบคำถาม "ตัวเลขนี้มาจากข้อมูลจริงกี่เปอร์เซ็นต์"</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">ปันส่วนต้นทุน</div>
+      <div class="navi">คอนโซล Run</div>
+      <div class="navi on">ผลตรวจยอด</div>
+      <div class="navi">รายการค้างแก้</div>
+      <div class="navi">กติกาผังบัญชี</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">ผลตรวจยอด — run #1042</h2><span class="spacer"></span>
+        <span class="tag">✓ APPROVED</span><span class="btn">⬇ Export</span></div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">ยอดต้นทางจาก ERP</div><div class="v ph">207,102,607.27</div><div class="u">บาท</div></div>
+        <div class="kpi"><div class="l">ยอดปันส่วนรวม</div><div class="v ph">207,102,607.27</div><div class="u">บาท</div></div>
+        <div class="kpi"><div class="l">ส่วนต่าง</div><div class="v ph">0.00</div><div class="u">บาท · ผ่าน</div></div>
+        <div class="kpi"><div class="l">ต้นทุนตรง (direct)</div><div class="v ph">61%</div><div class="u">ของต้นทุนรวม</div></div>
+        <div class="kpi"><div class="l">ปันส่วน (allocated)</div><div class="v ph">39%</div><div class="u">ของต้นทุนรวม</div></div>
+      </div>
+      <div class="row r21">
+        <div class="box"><div class="bt">สัดส่วน direct เทียบ allocated รายหลักสูตร</div>
+          <div class="bs">แถบยาว = ข้อมูลจริงเยอะ · แถบสั้น = พึ่งการปันส่วนมาก ต้องระวังการตีความ</div>
+          <div class="scroll" style="border:0">
+          <table><thead><tr><th>หลักสูตร</th><th style="width:180px">direct / allocated</th>
+            <th class="n">direct</th><th class="n">allocated</th><th>ความเชื่อมั่น</th></tr></thead>
+            <tbody>
+              <tr><td class="ph">บัญชีบัณฑิต</td>
+                <td><span class="stack" style="height:14px"><i style="flex:82">82%</i><i style="flex:18"></i></span></td>
+                <td class="n ph">12.4 ลบ.</td><td class="n ph">2.7 ลบ.</td><td><span class="tag">สูง</span></td></tr>
+              <tr><td class="ph">การตลาด</td>
+                <td><span class="stack" style="height:14px"><i style="flex:45">45%</i><i style="flex:55"></i></span></td>
+                <td class="n ph">3.1 ลบ.</td><td class="n ph">3.8 ลบ.</td><td><span class="tag">ปานกลาง</span></td></tr>
+              <tr><td class="ph">ธุรกิจดิจิทัล</td>
+                <td><span class="stack" style="height:14px"><i style="flex:12">12%</i><i style="flex:88"></i></span></td>
+                <td class="n ph">0.4 ลบ.</td><td class="n ph">2.9 ลบ.</td><td><span class="tag">⚠ ต่ำ</span></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div class="box"><div class="bt">วิธีปันส่วนที่ใช้จริง</div>
+          <div class="bs">ยิ่งใช้วิธีอันดับต้นมาก ยิ่งน่าเชื่อถือ</div>
+          <table>
+            <tr><td>1. ผูกหลักสูตรโดยตรง</td><td class="n ph">61%</td></tr>
+            <tr><td>2. ตามการใช้จริง</td><td class="n ph">4%</td></tr>
+            <tr><td>3. ตามจำนวนนิสิต</td><td class="n ph">33%</td></tr>
+            <tr><td>4. ตามสัดส่วนหลักสูตร</td><td class="n ph">2%</td></tr>
+          </table>
+          <div class="bs" style="margin-top:8px">รายการที่ยังไม่จำแนก: <span class="ph">0.8%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>เหตุผลที่ต้องมีหน้านี้:</b> ตัวเลขจุดคุ้มทุนรายหลักสูตรส่วนใหญ่มาจากการปันส่วน ไม่ใช่ต้นทุนจริง (prototype เดิมปันส่วนทั้ง 230 หลักสูตร) ถ้าไม่แสดงสัดส่วนนี้ ผู้บริหารจะเข้าใจว่าตัวเลขแม่นกว่าความเป็นจริง</div>
+</section>
+
+<!-- ===== W13 ===== -->
+<section class="screen">
+  <header><span class="sid">W13</span><span class="stitle">รายการค้างแก้ (Exception queue)</span>
+    <span class="new">NEW · ER v2</span>
+    <span class="snote">กันไม่ให้รายการที่ยังจำแนกไม่ได้ถูกรวมเงียบๆ</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">ปันส่วนต้นทุน</div>
+      <div class="navi">คอนโซล Run</div>
+      <div class="navi">ผลตรวจยอด</div>
+      <div class="navi on">รายการค้างแก้</div>
+      <div class="navi">กติกาผังบัญชี</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">รายการค้างแก้ — run #1042</h2><span class="spacer"></span>
+        <span class="seg"><div class="on">ทั้งหมด</div><div>ยังไม่แก้</div><div>แก้แล้ว</div></span></div>
+      <div class="row r3" style="margin-bottom:12px">
+        <div class="box"><div class="bs" style="margin:0">ยังจำแนกไม่ได้</div>
+          <div class="bt ph">6 รายการ · 1.6 ลบ.</div><span class="tag">ต้องแก้ที่ W14</span></div>
+        <div class="box"><div class="bs" style="margin:0">ไม่มี driver</div>
+          <div class="bt ph">2 รายการ · 0.3 ลบ.</div><span class="tag">ต้องเพิ่มข้อมูล driver</span></div>
+        <div class="box"><div class="bs" style="margin:0">ใช้ค่าประมาณ</div>
+          <div class="bt ph">14 รายการ · 4.1 ลบ.</div><span class="tag">ยอมรับได้แต่ต้องรู้</span></div>
+      </div>
+      <div class="scroll">
+      <table>
+        <thead><tr><th>ประเภท</th><th>ระดับ</th><th>รายการต้นทุน</th><th class="n">มูลค่าที่กระทบ</th>
+          <th>สาเหตุ</th><th>ผู้รับผิดชอบ</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag">UNCLASSIFIED</span></td><td class="ph">สูง</td>
+            <td class="ph">40010 ค่าจดลิขสิทธิ์</td><td class="n ph">248,000</td>
+            <td class="ph">ยังไม่มีกติกา TFC/TVC</td><td class="ph">กองคลัง</td><td><span class="btn">ตั้งกติกา</span></td></tr>
+          <tr><td><span class="tag">UNCLASSIFIED</span></td><td class="ph">สูง</td>
+            <td class="ph">40014 สมทบประกันสังคม</td><td class="n ph">1,120,400</td>
+            <td class="ph">ไม่มีกติกาในแผนงานพื้นฐาน</td><td class="ph">กองคลัง</td><td><span class="btn">ตั้งกติกา</span></td></tr>
+          <tr><td><span class="tag">MISSING_DRIVER</span></td><td class="ph">สูง</td>
+            <td class="ph">80001 เงินอุดหนุนทั่วไป</td><td class="n ph">305,000</td>
+            <td class="ph">ไม่มีข้อมูล driver ในงวดนี้</td><td class="ph">กองแผนงาน</td><td><span class="btn">เพิ่ม driver</span></td></tr>
+          <tr><td><span class="tag">ESTIMATED</span></td><td class="ph">กลาง</td>
+            <td class="ph">90001 รายจ่ายอื่น</td><td class="n ph">4,100,000</td>
+            <td class="ph">ใช้สัดส่วนหลักสูตร (วิธีอันดับ 4)</td><td class="ph">กองแผนงาน</td><td><span class="btn">รับทราบ</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>หมายเหตุ:</b> รายการ <code>UNCLASSIFIED</code> ยัง<b>ถูกนำไปคำนวณ</b>โดยนับเป็นต้นทุนคงที่ไว้ก่อน แต่ติดธงและแสดงที่นี่ — ไม่ใช่การทิ้งรายการ และไม่ใช่การเดาแบบเงียบๆ · ยอดรวมยังตรงกับ ERP เสมอ</div>
+</section>
+
+<!-- ===== W14 ===== -->
+<section class="screen">
+  <header><span class="sid">W14</span><span class="stitle">กติกาผังบัญชี — จำแนก TFC / TVC</span>
+    <span class="new">NEW · ER v2</span>
+    <span class="snote">จุดที่ถ้าตั้งผิดจะทำให้ตัวเลขทั้งระบบผิด</span></header>
+  <div class="body">
+    <nav class="side"><div class="logo">MSU-BEPS</div>
+      <div class="navg">ปันส่วนต้นทุน</div>
+      <div class="navi">คอนโซล Run</div>
+      <div class="navi">ผลตรวจยอด</div>
+      <div class="navi">รายการค้างแก้</div>
+      <div class="navi on">กติกาผังบัญชี</div></nav>
+    <div class="main">
+      <div class="toolbar"><h2 class="h2">กติกาจำแนกต้นทุน</h2><span class="spacer"></span>
+        <span class="inp sel">เวอร์ชัน v1</span><span class="btn">⬆ นำเข้าจาก Excel</span><span class="btn pri">+ เพิ่มกติกา</span></div>
+      <div class="toolbar" style="border:0;padding:0;margin-bottom:10px">
+        <span class="inp" style="min-width:240px">ค้นหารหัส / ชื่อรายการ…</span>
+        <span class="seg"><div class="on">ทั้งหมด</div><div>คงที่</div><div>ผันแปร</div><div>ผสม</div><div>⚠ ยังไม่จำแนก</div></span>
+        <span class="spacer"></span><span class="tag">94 รหัส · 114 กติกา</span>
+      </div>
+      <div class="scroll">
+      <table>
+        <thead><tr><th>แผนงาน</th><th>หมวดงบ</th><th>หมวดรายจ่าย</th><th>หมวดย่อย</th>
+          <th>ประเภท</th><th class="n">คงที่</th><th class="n">ผันแปร</th><th>วิธีปันส่วน</th><th>ช่วงเวลา</th><th>สถานะ</th></tr></thead>
+        <tbody>
+          <tr><td class="ph">1 บุคลากรภาครัฐ</td><td class="ph">1 งบบุคลากร</td><td class="ph">100</td><td class="ph">10001 เงินเดือน</td>
+            <td><span class="inp sel">คงที่</span></td><td class="n ph">1.00</td><td class="n ph">0.00</td>
+            <td><span class="inp sel">ตามจำนวนนิสิต</span></td><td class="ph">2568–</td><td><span class="tag">✓ อนุมัติ</span></td></tr>
+          <tr><td class="ph">2 พื้นฐาน</td><td class="ph">4 งบอุดหนุน</td><td class="ph">800</td><td class="ph">80001 เงินอุดหนุนทั่วไป</td>
+            <td><span class="inp sel">ผสม</span></td><td class="n"><span class="inp" style="min-width:56px">0.50</span></td>
+            <td class="n"><span class="inp" style="min-width:56px">0.50</span></td>
+            <td><span class="inp sel">ตามจำนวนนิสิต</span></td><td class="ph">2568–</td><td><span class="tag">✓ อนุมัติ</span></td></tr>
+          <tr><td class="ph">4 บูรณาการ</td><td class="ph">4 งบอุดหนุน</td><td class="ph">800</td><td class="ph">80001 เงินอุดหนุนทั่วไป</td>
+            <td><span class="inp sel">ผันแปร</span></td><td class="n ph">0.00</td><td class="n ph">1.00</td>
+            <td><span class="inp sel">ตามจำนวนนิสิต</span></td><td class="ph">2568–</td><td><span class="tag">✓ อนุมัติ</span></td></tr>
+          <tr><td class="ph">2 พื้นฐาน</td><td class="ph">2 งบดำเนินงาน</td><td class="ph">400</td><td class="ph">40010 ค่าจดลิขสิทธิ์</td>
+            <td><span class="inp sel">⚠ ยังไม่จำแนก</span></td><td class="n ph">—</td><td class="n ph">—</td>
+            <td><span class="inp sel">—</span></td><td class="ph">2568–</td><td><span class="tag">✎ ร่าง</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="box" style="margin-top:12px">
+        <div class="bt">⚠ กฎที่ระบบบังคับ</div>
+        <div class="bs">• รหัสเดียวกันมีกติกาต่างกันได้ตาม<b>แผนงาน</b> — ดู 80001 สองแถวข้างบนที่เป็นคนละประเภท<br>
+          • ประเภท "ผสม" ต้องกรอกสัดส่วน<b>รวมกันได้ 1.00 พอดี</b><br>
+          • กติกาที่อนุมัติแล้ว<b>ห้ามมีช่วงเวลาคาบเกี่ยวกัน</b>ในบริบทเดียวกัน — ระบบจะปฏิเสธ<br>
+          • แก้กติกาที่อนุมัติแล้วไม่ได้ ต้องสร้างเวอร์ชันใหม่ แล้ว run ปันส่วนใหม่</div>
+      </div>
+    </div>
+  </div>
+  <div class="ann"><b>ทำไมต้องมี 4 คอลัมน์แรก:</b> จากข้อมูลจริงพบว่าคีย์ที่แท้จริงคือคีย์ผสม 4 ระดับ ไม่ใช่รหัสย่อยเพียงตัวเดียว — รหัส <code>80001</code> เป็นต้นทุนคงที่ในแผนงานหนึ่ง แต่เป็นผันแปรในอีกแผนงานหนึ่ง (ดู MAPPING.md หัวข้อ 2) ถ้า UI ให้ตั้งค่าที่ระดับรหัสย่อยอย่างเดียวจะจำแนกผิดทันที</div>
+</section>
+
+<p class="sub" style="margin-top:26px">— จบ wireframe 15 หน้าจอ (W0–W14) · แผนพัฒนาอยู่ใน SA.md หัวข้อ 14 · โครงสร้างข้อมูลอยู่ในหัวข้อ 5 (ER v2)</p>
 
 </div>
 </body>

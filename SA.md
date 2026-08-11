@@ -64,6 +64,10 @@ BEPS-SYSTEM คือระบบคำนวณจุดคุ้มทุน (
 
 ## 4. แนวทางเชื่อมต่อข้อมูล (Integration)
 
+> รายละเอียดการแมพข้อมูลระหว่างฝั่งทะเบียนกับ ERP — โครงสร้างผังบัญชี 4 ระดับ, ปัญหา granularity,
+> ปัญหาคุณภาพข้อมูลที่พบจริง และคำถามสำหรับที่ประชุม — อยู่ในไฟล์แยก: [`MAPPING.md`](MAPPING.md)
+> **มี 2 ข้อที่กระทบ ER ในหัวข้อ 5 และยังไม่ได้แก้** (ดู MAPPING.md หัวข้อ 2)
+
 | ข้อมูล                                | วิธีได้มา                                | หมายเหตุ                                         |
 | ------------------------------------- | ---------------------------------------- | ------------------------------------------------ |
 | ข้อมูลนิสิต                           | API ระบบทะเบียน                          | real-time หรือ sync เป็นรอบ                      |
@@ -71,203 +75,235 @@ BEPS-SYSTEM คือระบบคำนวณจุดคุ้มทุน (
 | ค่าธรรมเนียม, ค่าเสื่อม, Master ต่างๆ | กรอก/อัปเดตในระบบเอง + workflow อนุมัติ  | ต้องออกแบบตารางใหม่                              |
 | มคอ. (เล่มหลักสูตร)                   | อนาคต — ปัจจุบันยังเป็นเอกสาร/กำลังพัฒนา | ยังไม่ implement ตอนนี้ ออกแบบให้เผื่อขยายได้    |
 
-## 5. ER Diagram แบบละเอียด
+## 5. ER Diagram (v2 — ฉบับรวม)
 
-ออกแบบตาม hierarchy 4 ระดับ (มหาวิทยาลัย → คณะ → ระดับการศึกษา → หลักสูตร) และสูตรคำนวณจริงจาก prototype (หัวข้อ 7.1)
-หลักการออกแบบ: **เก็บ "รายการย่อย" ของต้นทุนทุกตัว พร้อม flag TFC/TVC** (ไม่ผูกตายตัวกับหมวดงบ เพราะหมวดเดียวกันเป็นได้ทั้งสองแบบ) เพื่อให้คำนวณสูตร 1–7 ได้ตรงกับ prototype และรองรับ Scenario Simulation แยกจากข้อมูลจริงในระบบ
+> **v2 = รวม ER เดิมของโครงการ (17 ตาราง) เข้ากับข้อเสนอในโฟลเดอร์ `MANUS/` แล้วแก้ข้อบกพร่อง 6 จุด**
+> เหตุผลการรวมและตารางเปรียบเทียบทีละข้อ อยู่ใน [`COMPARISON.md`](COMPARISON.md)
+> v1 (17 ตาราง) ถูกแทนที่แล้ว — `ER.html` ที่ generate จาก v1 จึงล้าสมัย ต้องสร้างใหม่
+
+**สรุปการเปลี่ยนแปลงจาก v1**
+
+| เพิ่มเข้ามาจาก MANUS                                     | คงไว้จาก v1 (MANUS ไม่มี)                       |
+| -------------------------------------------------------- | ----------------------------------------------- |
+| ชั้น Allocation เต็มรูป (method → driver → run → result) | `revenue_mode` รวม/ไม่รวมเงินแผ่นดิน (FR-7)     |
+| Reconciliation บังคับกลับยอดต้นทาง                       | Q\* 2 วิธี (Σ รายหลักสูตร / pooled)             |
+| Immutable run — แก้ผลต้องสร้าง run ใหม่                  | เงินสมทบมหาวิทยาลัย + ค่าใช้จ่าย GE (คิดรายหัว) |
+| `MIXED` + `UNCLASSIFIED` พร้อมสัดส่วน fixed/variable     | ค่าเสื่อมราคา 2 ระดับ (หลักสูตร / ก้อนรวมคณะ)   |
+| Temporal versioning ทุก master (`valid_from`/`valid_to`) | Scenario simulation เต็มรูป (FR-15–17)          |
+| `program_version` รองรับปรับปรุงหลักสูตรรอบ มคอ.         | สูตร 7 กรณี CM ≤ 0 (Full-Cost Recovery)         |
+| `import_batch` + `audit_event` + quality flag            | workflow อนุมัติค่าธรรมเนียม 2 ขั้น             |
+
+### 5.1 สถาปัตยกรรม 6 ชั้น — 30 ตาราง
+
+หลักการ: **ห้ามเขียนผลคำนวณทับข้อมูลต้นทาง** และทุกตัวเลขต้องตอบได้ว่ามาจากไหน ใช้กติกาเวอร์ชันไหน ใครอนุมัติ
+
+| ชั้น                     | ตาราง                                                                                                                                                           | หน้าที่                                             |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **0. Governance**        | `import_batch` · `audit_event` · `data_quality_issue`                                                                                                           | ที่มาของข้อมูล ประวัติการแก้ และรายการที่ต้องตามแก้ |
+| **1. Master**            | `dim_period` · `org_unit` · `org_unit_map` · `program` · `program_version` · `student_type` · `erp_account` · `account_behavior_rule` · `allocation_method_def` | นิยามและกติกาที่อนุมัติแล้ว มีช่วงเวลามีผล          |
+| **2. Rates**             | `fee_schedule` · `fee_approval_log` · `per_student_charge` · `budget_allocation`                                                                                | อัตราค่าธรรมเนียม เงินสมทบ/GE รายหัว และงบที่ได้รับ |
+| **3. Source**            | `cost_source` · `registration_snapshot`                                                                                                                         | ข้อมูลต้นทางจาก ERP และทะเบียน — ไม่แก้ความหมาย     |
+| **4. Allocation**        | `allocation_driver_value` · `allocation_run` · `allocation_result` · `reconciliation_control`                                                                   | ปันส่วนต้นทุนลงหลักสูตร พร้อมตรวจยอดกลับ            |
+| **5. Analytics**         | `program_cost_summary` · `program_revenue_summary` · `break_even_result`                                                                                        | ผลรวมและจุดคุ้มทุน — หน้าจอทุกหน้าอ่านจากชั้นนี้    |
+| **6. Scenario / Access** | `scenario_plan` · `scenario_cost_item` · `scenario_result` · `app_user` · `app_role`                                                                            | จำลองแผน และสิทธิ์ผู้ใช้                            |
+
+### 5.2 แผนภาพความสัมพันธ์
 
 ```mermaid
 erDiagram
-    FACULTY ||--o{ EDUCATION_LEVEL : "มี"
-    EDUCATION_LEVEL ||--o{ PROGRAM : "มี"
-    PROGRAM ||--o{ STUDENT_COUNT : "มี"
-    PROGRAM ||--o{ FEE_MASTER : "มี"
-    PROGRAM ||--o{ COST_ITEM : "มี"
-    FACULTY ||--o{ COST_ITEM : "มี (ปันส่วนสำนักงาน)"
-    PROGRAM ||--o{ DEPRECIATION : "มี"
-    FACULTY ||--o{ DEPRECIATION : "มี (ก้อนรวมคณะ)"
-    PROGRAM ||--o{ BUDGET_ALLOCATION : "มี"
-    FACULTY ||--o{ CONTRIBUTION_RATE : "กำหนดอัตรา"
-    UNIVERSITY ||--o{ CONTRIBUTION_RATE : "กำหนดอัตรา"
-    PROGRAM ||--o{ BREAK_EVEN_RESULT : "คำนวณผล"
-    FACULTY ||--o{ BREAK_EVEN_RESULT : "คำนวณผล (rollup)"
-    USER ||--o{ SCENARIO_PLAN : "สร้าง"
-    ROLE ||--o{ USER : "กำหนดสิทธิ์"
-    PROGRAM ||--o{ SCENARIO_PLAN : "อ้างอิง (nullable, ถ้าเป็นหลักสูตรใหม่จะเป็น null)"
-    SCENARIO_PLAN ||--o{ SCENARIO_COST_ITEM : "มี"
-    SCENARIO_PLAN ||--|| SCENARIO_RESULT : "ให้ผล"
-    FEE_MASTER ||--o{ FEE_APPROVAL_LOG : "มีประวัติอนุมัติ"
+  IMPORT_BATCH ||--o{ COST_SOURCE : "นำเข้า"
+  IMPORT_BATCH ||--o{ REGISTRATION_SNAPSHOT : "นำเข้า"
 
-    FACULTY {
-        bigint id PK
-        string name
-        string type "คณะ/วิทยาลัย/สถาบัน"
-        int fiscal_year
-    }
-    EDUCATION_LEVEL {
-        bigint id PK
-        bigint faculty_id FK
-        string level_name "ปริญญาตรี/ป.บัณฑิต/โท/เอก"
-        int fiscal_year
-    }
-    PROGRAM {
-        bigint id PK
-        bigint education_level_id FK
-        bigint faculty_id FK
-        string name "ชื่อหลักสูตร"
-        string degree_name "ชื่อปริญญา"
-        enum program_status "existing/new"
-        int fiscal_year
-        bool is_international
-        timestamp created_at
-    }
-    STUDENT_COUNT {
-        bigint id PK
-        bigint program_id FK
-        int fiscal_year
-        enum student_group "ภาคปกติ/ภาคพิเศษ"
-        enum nationality "ไทย/ต่างชาติ"
-        int count
-        enum source "api/manual"
-        timestamp synced_at
-    }
-    FEE_MASTER {
-        bigint id PK
-        bigint program_id FK
-        int fiscal_year
-        enum student_group
-        enum nationality
-        decimal fee_rate "บาท/ภาคเรียน"
-        enum approval_status "draft/pending/approved/rejected"
-        bigint approved_by FK
-        timestamp approved_at
-    }
-    FEE_APPROVAL_LOG {
-        bigint id PK
-        bigint fee_master_id FK
-        bigint acted_by FK
-        enum action "submit/approve/reject"
-        string note
-        timestamp acted_at
-    }
-    COST_ITEM {
-        bigint id PK
-        bigint program_id FK "nullable ถ้าเป็นต้นทุนปันส่วนระดับคณะ"
-        bigint faculty_id FK "nullable ถ้าผูกกับ program"
-        int fiscal_year
-        string budget_code "100/210/220/230/300/400/410/500/600/800/900"
-        string label
-        enum cost_type "TFC/TVC"
-        decimal amount
-        enum allocation_method "รายหัวนิสิต/รายหลักสูตร/ก้อนรวม"
-        bool is_per_student_multiplier "true ถ้าคำนวณแบบ ×Q (เช่น GE, หักสมทบ)"
-    }
-    DEPRECIATION {
-        bigint id PK
-        bigint program_id FK "nullable"
-        bigint faculty_id FK "nullable — ก้อนรวมคณะถ้า program_id เป็น null"
-        int fiscal_year
-        decimal amount
-    }
-    BUDGET_ALLOCATION {
-        bigint id PK
-        bigint program_id FK
-        int fiscal_year
-        enum budget_category "10_งบแผ่นดิน/20_เงินรายได้"
-        decimal approved_amount
-        enum source "api/manual"
-        timestamp synced_at
-    }
-    CONTRIBUTION_RATE {
-        bigint id PK
-        enum scope_level "faculty/university"
-        bigint scope_id FK "nullable ถ้า scope_level=university"
-        int fiscal_year
-        enum rate_type "หักสมทบรายการหลัก/หักสมทบมหาวิทยาลัย"
-        decimal rate_value "บาท/คน/เทอม"
-    }
-    BREAK_EVEN_RESULT {
-        bigint id PK
-        enum scope_level "program/faculty/university"
-        bigint scope_id FK "nullable ถ้า university"
-        int fiscal_year
-        enum revenue_mode "รวมแผ่นดิน/ไม่รวมแผ่นดิน"
-        int q_actual
-        decimal tr
-        decimal tc
-        decimal tfc
-        decimal tvc
-        decimal avc
-        decimal r_per_head
-        decimal q_star "null ถ้า CM<=0 ให้ fallback เป็น full-cost-recovery"
-        decimal profit_loss
-        enum qstar_method "sum_of_programs/pooled — ใช้เฉพาะ scope_level=faculty"
-        timestamp computed_at
-    }
-    SCENARIO_PLAN {
-        bigint id PK
-        bigint created_by FK
-        bigint based_on_program_id FK "nullable — null ถ้าเป็นหลักสูตรใหม่ทั้งหมด"
-        string name
-        enum plan_type "existing/new"
-        int fiscal_year
-        enum revenue_mode "รวมแผ่นดิน/ไม่รวมแผ่นดิน"
-        int q_input
-        decimal budget_land_input "งบแผ่นดินที่กรอก/ดึงมา"
-        decimal budget_income_input "งบเงินรายได้ที่กรอก/ดึงมา"
-        timestamp created_at
-    }
-    SCENARIO_COST_ITEM {
-        bigint id PK
-        bigint scenario_plan_id FK
-        enum cost_type "TFC/TVC"
-        string label
-        decimal amount
-    }
-    SCENARIO_RESULT {
-        bigint id PK
-        bigint scenario_plan_id FK
-        decimal tr
-        decimal tc
-        decimal tfc
-        decimal tvc
-        decimal avc
-        decimal r_per_head
-        decimal q_star
-        decimal profit_loss
-        timestamp computed_at
-    }
-    USER {
-        bigint id PK
-        bigint role_id FK
-        bigint faculty_id FK "nullable — ผูก scope การเข้าถึงถ้าเป็นเจ้าหน้าที่คณะ"
-        string name
-        string email
-    }
-    ROLE {
-        bigint id PK
-        string name "admin/budget_office/faculty_officer/viewer"
-    }
-    UNIVERSITY {
-        bigint id PK
-        string name
-    }
+  ORG_UNIT ||--o{ ORG_UNIT : "หน่วยแม่-ลูก"
+  ORG_UNIT ||--o{ ORG_UNIT_MAP : "จับคู่รหัส ERP"
+  ORG_UNIT ||--o{ PROGRAM : "สังกัด"
+  PROGRAM ||--o{ PROGRAM_VERSION : "รุ่นหลักสูตร"
+
+  DIM_PERIOD ||--o{ COST_SOURCE : "งวด"
+  DIM_PERIOD ||--o{ REGISTRATION_SNAPSHOT : "งวด"
+  DIM_PERIOD ||--o{ BUDGET_ALLOCATION : "งวด"
+  DIM_PERIOD ||--o{ ALLOCATION_RUN : "งวด"
+
+  ERP_ACCOUNT ||--o{ ACCOUNT_BEHAVIOR_RULE : "กติกา TFC/TVC"
+  ERP_ACCOUNT ||--o{ COST_SOURCE : "ผังบัญชี"
+  ALLOCATION_METHOD_DEF ||--o{ ACCOUNT_BEHAVIOR_RULE : "วิธีปันส่วน"
+
+  ORG_UNIT ||--o{ COST_SOURCE : "หน่วยที่เกิดต้นทุน"
+  PROGRAM_VERSION ||--o{ COST_SOURCE : "ถ้า ERP ผูกหลักสูตรได้"
+
+  PROGRAM_VERSION ||--o{ REGISTRATION_SNAPSHOT : "จำนวนนิสิต"
+  STUDENT_TYPE ||--o{ REGISTRATION_SNAPSHOT : "ประเภทนิสิต"
+  STUDENT_TYPE ||--o{ FEE_SCHEDULE : "อัตราตามประเภท"
+  PROGRAM_VERSION ||--o{ FEE_SCHEDULE : "ค่าธรรมเนียม"
+  FEE_SCHEDULE ||--o{ FEE_APPROVAL_LOG : "ประวัติอนุมัติ"
+  ORG_UNIT ||--o{ PER_STUDENT_CHARGE : "เงินสมทบ/GE รายหัว"
+  PROGRAM_VERSION ||--o{ BUDGET_ALLOCATION : "งบหมวด 10/20"
+
+  ALLOCATION_RUN ||--o{ ALLOCATION_RESULT : "ผลปันส่วน"
+  ALLOCATION_RUN ||--|| RECONCILIATION_CONTROL : "ตรวจยอด"
+  COST_SOURCE ||--o{ ALLOCATION_RESULT : "ต้นทางของยอด"
+  PROGRAM_VERSION ||--o{ ALLOCATION_RESULT : "ปลายทาง"
+  ALLOCATION_DRIVER_VALUE ||--o{ ALLOCATION_RESULT : "ตัวขับ"
+
+  ALLOCATION_RUN ||--o{ PROGRAM_COST_SUMMARY : "สรุปต้นทุน"
+  PROGRAM_VERSION ||--o{ PROGRAM_COST_SUMMARY : "รายหลักสูตร"
+  PROGRAM_VERSION ||--o{ PROGRAM_REVENUE_SUMMARY : "รายได้"
+  PROGRAM_COST_SUMMARY ||--o{ BREAK_EVEN_RESULT : "ต้นทุน"
+  PROGRAM_REVENUE_SUMMARY ||--o{ BREAK_EVEN_RESULT : "รายได้"
+
+  APP_ROLE ||--o{ APP_USER : "สิทธิ์"
+  APP_USER ||--o{ SCENARIO_PLAN : "สร้าง"
+  APP_USER ||--o{ FEE_APPROVAL_LOG : "ผู้ทำรายการ"
+  PROGRAM_VERSION ||--o{ SCENARIO_PLAN : "ต้นแบบ"
+  SCENARIO_PLAN ||--o{ SCENARIO_COST_ITEM : "รายการต้นทุน"
+  SCENARIO_PLAN ||--|| SCENARIO_RESULT : "ผลจำลอง"
+
+  ALLOCATION_RUN ||--o{ DATA_QUALITY_ISSUE : "ข้อยกเว้น"
 ```
 
-### 5.1 คำอธิบายการออกแบบที่สำคัญ
+### 5.3 ตารางสำคัญ — คอลัมน์และเหตุผล
 
-- **COST_ITEM เป็นตารางกลางที่รองรับทั้งค่าใช้จ่ายจริงและปันส่วน** — เก็บ `budget_code` ตามหมวดงบจริง (100–900) แต่ flag `cost_type` (TFC/TVC) และ `is_per_student_multiplier` ที่ระดับ **รายการย่อย** ไม่ใช่ระดับหมวด เพราะข้อเท็จจริงจาก prototype คือหมวด 300/400/500/800/900 ปรากฏได้ทั้งสองฝั่ง (ดูหัวข้อ 7.1)
-- **DEPRECIATION แยก FK program_id / faculty_id แบบ nullable คู่กัน** — รองรับทั้งค่าเสื่อมรายหลักสูตร และแบบก้อนรวมระดับคณะตามที่เอกสารต้นฉบับระบุ (ข้อ 1 ในหัวข้อ 3.1)
-- **BREAK_EVEN_RESULT ใช้ scope_level แบบ polymorphic (program/faculty/university)** เก็บ `qstar_method` เพื่อบันทึกว่าใช้วิธีไหนตอนคำนวณ Q* ระดับคณะ (สูตร 6a เป็นค่าหลัก, 6b ไว้เทียบ) — สำคัญเพราะ prototype ยืนยันว่าให้ค่าต่างกัน
-- **revenue_mode ปรากฏทั้งใน BREAK_EVEN_RESULT และ SCENARIO_PLAN** เพื่อรองรับ toggle "รวม/ไม่รวมเงินแผ่นดิน" ที่ต้องคำนวณคู่กันตลอด (สูตร 5a/5b)
-- **FEE_MASTER แยกจาก FEE_APPROVAL_LOG** เพื่อรองรับ workflow อนุมัติหลายขั้น (ยังต้องยืนยันจำนวนขั้นตอนกับผู้เกี่ยวข้อง — คำถามเปิดข้อ 2)
-- **SCENARIO_PLAN / SCENARIO_COST_ITEM / SCENARIO_RESULT แยกจากข้อมูลจริงโดยสมบูรณ์** ไม่แก้ทับ COST_ITEM/BREAK_EVEN_RESULT จริง — ตรงกับที่ prototype ทำ (บันทึกลงรายการแยก, มีประวัติการคำนวณ) แต่เพิ่มการผูกกับ `created_by` (USER) เพื่อบันทึกลง DB จริงแทน local state
-- **USER.faculty_id (nullable)** ใช้จำกัด scope การมองเห็น/แก้ไขข้อมูลของเจ้าหน้าที่คณะ ตอบคำถามเปิดข้อ 3 (Role) เบื้องต้น — ต้องยืนยันรายละเอียดสิทธิ์แต่ละ role อีกครั้ง
+#### `org_unit` — โครงสร้างองค์กรแบบต้นไม้เดียว
 
-### 5.2 Field เพิ่มเติมที่ยังไม่ฟันธง (รอคำตอบจากคำถามเปิด)
+รวม `UNIVERSITY` + `FACULTY` + `EDUCATION_LEVEL` ของ v1 เข้าเป็นตารางเดียวที่อ้างอิงตัวเอง ทำให้เพิ่ม "ภาควิชา" ภายหลังได้โดยไม่ต้องแก้โครงสร้าง
 
-- CONTRIBUTION_RATE ควรเก็บ effective_date/history เต็มรูปแบบหรือ overwrite ต่อปีงบประมาณพอ (คำถามเปิดข้อ 4)
-- STUDENT_COUNT.source / BUDGET_ALLOCATION.source เป็น enum `api/manual` ไว้ก่อน — เมื่อ API จริงพร้อม (คำถามเปิดข้อ 1) อาจต้องเพิ่มตาราง sync log แยก
+| คอลัมน์                   | ชนิด           | คำอธิบาย                                                                                 |
+| ------------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| `org_unit_id`             | bigint PK      |                                                                                          |
+| `parent_org_unit_id`      | bigint FK NULL | อ้างอิงตัวเอง — `NULL` เฉพาะระดับมหาวิทยาลัย                                             |
+| `org_code`                | string         | รหัสหน่วยงานฝั่งทะเบียน                                                                  |
+| `org_name`                | string         |                                                                                          |
+| `org_level`               | enum           | `UNIVERSITY` / `FACULTY` / `EDUCATION_LEVEL` / `DEPARTMENT` / `COST_CENTER`              |
+| `is_academic`             | bool           | `false` = หน่วยสนับสนุนที่ไม่มีนิสิต (สำนักงานเลขานุการ, สถาบันวิจัย) → ต้องปันส่วนออกไป |
+| `valid_from` / `valid_to` | date           | รองรับการปรับโครงสร้างองค์กร                                                             |
+
+#### `org_unit_map` — จับคู่หน่วยงานทะเบียน ↔ หน่วยเบิกจ่าย ERP
+
+แยกตารางเพราะฝั่ง ERP มีหน่วยที่ฝั่งทะเบียนไม่มี และความสัมพันธ์อาจเป็น 1:N — คอลัมน์: `org_unit_id`, `erp_org_code`, `valid_from`, `valid_to`, `mapping_status`, `source_reference`, `approved_by`, `approved_at`
+
+#### `program` / `program_version` — ตัวตนหลักสูตรกับรุ่นหลักสูตร
+
+**แก้จุดอ่อนใหญ่ที่สุดของข้อมูลเดิม** — ปัจจุบันคีย์เชื่อมคือข้อความไทยต่อกัน (`"คณะเทคโนโลยีปริญญาตรีเกษตรศาสตร์"`) ซึ่งพังทันทีที่เปลี่ยนชื่อหรือมีเว้นวรรคเกิน
+
+| ตาราง             | คอลัมน์สำคัญ                                                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `program`         | `program_id` PK · `program_code` **UK (รหัสจริงจากทะเบียน)** · `program_name` · `org_unit_id` FK (ระดับ EDUCATION_LEVEL) · `degree_level` · `degree_name` · `is_international` |
+| `program_version` | `program_version_id` PK · `program_id` FK · `curriculum_version` (รอบปรับปรุง มคอ.) · `academic_year_from` · `valid_from` / `valid_to`                                         |
+
+ทุกตารางที่อ้างถึงหลักสูตรจะอ้าง `program_version_id` ไม่ใช่ `program_id` เพื่อไม่ให้ข้อมูลคนละรุ่นถูกรวมกันโดยไม่ตั้งใจ
+
+#### `dim_period` — สะพานเชื่อมปีการศึกษากับปีงบประมาณ
+
+แก้ปัญหาที่พบจริงว่าไฟล์ต้นฉบับใช้ `งบประมาณ68` คู่กับ `ค่าเสื่อมราคารวม67`
+
+`period_id` PK · `fiscal_year` · `academic_year` · `semester` · `period_start` · `period_end` · `q_snapshot_date` (วันนับจำนวนนิสิตที่อนุมัติ) · `student_status_rule` (สถานะที่นับเป็น Q)
+
+#### `erp_account` + `account_behavior_rule` — ★ หัวใจของการจำแนกต้นทุน
+
+**แทน `COST_ITEM.budget_code` รหัสเดียวใน v1** เพราะพิสูจน์แล้วว่าประเภทต้นทุนขึ้นกับคีย์ผสม 4 ระดับ ไม่ใช่รหัสย่อย
+
+`erp_account`: `erp_account_id` PK · `plan_code` (แผนงาน) · `budget_category_code` (หมวดงบประมาณ) · `expenditure_category_code` (หมวดรายจ่าย) · `subcategory_code` (หมวดย่อย) · `account_name` · `valid_from`/`valid_to`
+→ **UNIQUE (4 รหัส + valid_from)**
+
+`account_behavior_rule`:
+
+| คอลัมน์                                                                               | คำอธิบาย                                                   |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `erp_account_id` FK                                                                   | ผังบัญชีที่กติกานี้ใช้กับ                                  |
+| `org_unit_id` FK NULL                                                                 | ถ้าไม่ระบุ = ใช้ทุกหน่วยงาน                                |
+| `behavior`                                                                            | `FIXED` / `VARIABLE` / `MIXED` / `UNCLASSIFIED`            |
+| `fixed_ratio` / `variable_ratio`                                                      | ใช้เมื่อ `MIXED` เช่น 0.5 / 0.5 — กรณี `80001` และ `90001` |
+| `allocation_method_code`                                                              | วิธีปันส่วนที่กติกานี้บังคับ                               |
+| `direct_indirect_flag`                                                                | ทางตรง / ทางอ้อม                                           |
+| `priority`                                                                            | ใช้เลือกกติกาเมื่อมีหลายข้อเข้าเงื่อนไข                    |
+| `rule_version` · `status` · `approved_by` · `approved_at` · `valid_from` / `valid_to` | ธรรมาภิบาล                                                 |
+
+#### `cost_source` — ต้นทุนต้นทางทั้งหมด (ERP + ค่าเสื่อม)
+
+รวมค่าเสื่อมราคาเข้ามาเป็น `source_type` แทนที่จะแยกตาราง เพื่อให้เครื่องปันส่วนตัวเดียวจัดการได้ทั้งหมด
+
+| คอลัมน์                                                         | คำอธิบาย                                                          |
+| --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `cost_source_id` PK · `import_batch_id` FK · `source_record_id` | **UNIQUE (batch, source_record_id)** กันนำเข้าซ้ำ                 |
+| `source_type`                                                   | `ERP` / `DEPRECIATION`                                            |
+| `period_id` FK · `org_unit_id` FK                               | งวดและหน่วยที่เกิดต้นทุน                                          |
+| `erp_account_id` FK NULL                                        | `NULL` เมื่อเป็นค่าเสื่อม                                         |
+| `program_version_id` FK NULL                                    | **มีค่าเฉพาะเมื่อ ERP ผูกหลักสูตรได้จริง** → กลายเป็น direct cost |
+| `amount`                                                        | `numeric(20,2)` — **อนุญาตค่าติดลบ** (รายการคืนเงิน/ปรับปรุง)     |
+| `amount_basis`                                                  | `ACTUAL` / `COMMITTED` / `BUDGET` — ต้องเลือกใช้อย่างเดียวต่อ run |
+
+#### `per_student_charge` — เงินสมทบและ GE ที่คิดรายหัว
+
+รวม `CONTRIBUTION_RATE` ของ v1 กับค่าใช้จ่าย GE (FR-10) เข้าด้วยกัน เพราะทั้งคู่คือ **อัตรา × จำนวนนิสิต** ไม่ต้องผ่านการปันส่วน — เป็น direct variable cost ทันที
+
+`charge_type` (`หักสมทบมหาวิทยาลัย` / `หักสมทบรายการหลัก` / `ค่าใช้จ่าย GE`) · `scope_level` (`UNIVERSITY`/`FACULTY`) · `org_unit_id` FK NULL · `period_id` FK · `rate_per_student` · `basis` (ต่อเทอม/ต่อปี) · `student_type_id` FK NULL
+
+> ตัวอย่างจริง: หักสมทบมหาวิทยาลัย 2,235 บาท/คน/เทอม — เป็นสาเหตุที่ TVC ของ v8 สูงกว่าเวอร์ชันเก่า 3.5 เท่า
+
+#### `budget_allocation` — งบที่ได้รับ แยกหมวด 10/20
+
+`program_version_id` FK · `period_id` FK · `budget_category` (`10_งบแผ่นดิน` / `20_เงินรายได้`) · `approved_amount` · `source` · `synced_at`
+
+**คอลัมน์นี้คือที่มาของ `revenue_mode`** — โหมด "ไม่รวมเงินแผ่นดิน" คือการไม่นับหมวด 10
+
+#### `allocation_run` / `allocation_result` — เครื่องปันส่วน
+
+`allocation_run`: `allocation_run_id` PK · `period_id` FK · `org_unit_id` FK · `amount_basis` · `rule_version` · `status` (`DRAFT`→`RUNNING`→`CALCULATED`→`VALIDATED`→`APPROVED`→`POSTED`, หรือ `FAILED`/`CANCELLED`) · `supersedes_run_id` FK NULL · `created_by` · `approved_by` · timestamps
+
+**Run เป็น immutable** — แก้ผลลัพธ์โดยตรงไม่ได้ ต้องสร้าง run ใหม่แล้วชี้ `supersedes_run_id`
+
+`allocation_result`: `allocation_run_id` FK · `cost_source_id` FK · `program_version_id` FK · `behavior` (`FIXED`/`VARIABLE` เท่านั้น — MIXED ถูกแตกเป็น 2 แถวแล้ว) · `allocation_method` · `driver_value` · `driver_total` · `allocation_ratio` · `allocated_amount` · `quality_flag` (`PASS`/`ESTIMATED`/`UNCLASSIFIED`/`MISSING_DRIVER`/`ROUNDING_ADJUSTMENT`/`MANUAL_OVERRIDE`)
+→ **UNIQUE (run, cost_source, program_version, behavior)**
+
+#### `program_revenue_summary` — ★ ฝั่งรายได้ที่ MANUS ไม่มี
+
+เก็บองค์ประกอบรายได้แยกกัน เพื่อให้สลับโหมดฐานรายได้ได้โดยไม่ต้องคำนวณใหม่
+
+`program_version_id` FK · `period_id` FK · `q_actual` · `fee_revenue` (ค่าธรรมเนียม = Σ นิสิต × อัตราตามประเภท) · `government_budget` (หมวด 10) · `income_budget` (หมวด 20) · `computed_at`
+
+#### `break_even_result` — ผลจุดคุ้มทุน
+
+`scope_level` (`program`/`education_level`/`faculty`/`university`) · `scope_id` · `period_id` FK · **`revenue_mode`** (`with_government`/`without_government`) · `allocation_run_id` FK · `q_actual` · `tr` · `tc` · `tfc` · `tvc` · `direct_cost` · `allocated_cost` · `avc` · `r_per_head` · `atc` · `cm` · `q_star` · **`q_star_status`** (`normal`/`full_cost_recovery`/`not_computable`) · **`q_star_method`** (`sum_of_programs`/`pooled`) · `be_revenue` · `margin_of_safety` · `profit_loss` · `quality_score` · `computed_at`
+
+> หนึ่งหน่วยวิเคราะห์จะมี **2 แถว** (ตาม revenue_mode) และระดับคณะขึ้นไปเก็บทั้ง 2 วิธีคำนวณ Q\*
+> `direct_cost` กับ `allocated_cost` แยกกันเพื่อให้ผู้บริหารรู้ว่าตัวเลขมาจากข้อมูลจริงแค่ไหน
+
+#### Scenario (3 ตาราง) — คงจาก v1 เพิ่ม 1 คอลัมน์
+
+`scenario_plan` เพิ่ม `based_on_run_id` FK เพื่อ snapshot ว่าอ้างอิงผลปันส่วน run ไหน ทำให้ผลจำลองที่บันทึกไว้ไม่เปลี่ยนเมื่อข้อมูลจริงถูกคำนวณใหม่
+
+### 5.4 การตัดสินใจออกแบบที่สำคัญ
+
+1. **แยก direct cost ออกจาก allocated cost เสมอ** — `cost_source.program_version_id` มีค่า = direct, `NULL` = ต้องปันส่วน และรายงานต้องแสดงแยกกันพร้อม quality flag
+2. **หน่วยสนับสนุน (`is_academic = false`) ต้องถูกกระจายออกทั้งหมด** — สำนักงานเลขานุการและสถาบันวิจัยไม่มีนิสิต จึงเป็น cost pool ที่ต้องปันไปหลักสูตร
+3. **กติกาปันส่วนอยู่ใน master ที่มีเวอร์ชัน** ไม่ฝังในโค้ด — เปลี่ยนกติกาแล้วคำนวณย้อนหลังได้โดยผลเดิมไม่หาย
+4. **ผลปันส่วนต้อง reconcile กลับยอดต้นทาง** ทุก run ถ้าไม่ผ่าน tolerance run จะ `FAILED`
+5. **`MIXED` ถูกแตกเป็น 2 แถวผลลัพธ์ก่อนปันส่วน** — `allocation_result.behavior` จึงมีแค่ `FIXED`/`VARIABLE`
+6. **`UNCLASSIFIED` ไม่ถูกเดา** — คงสถานะไว้ ปันส่วนตามปกติ แต่ติดธงและเข้า exception queue
+7. **`revenue_mode` ไม่เก็บซ้ำในฝั่งต้นทุน** — ต้นทุนเหมือนกันทั้ง 2 โหมด เปลี่ยนเฉพาะฝั่งรายได้ (สูตร 5a/5b)
+8. **Q\* ระดับคณะเก็บทั้ง 2 วิธี** — `sum_of_programs` เป็นค่าหลัก `pooled` ไว้เทียบ
+9. **จำนวนเงินใช้ `numeric` ไม่ใช้ float** และอนุญาตค่าติดลบ
+10. **Master ใช้ soft delete / versioning** ไม่ลบจริง
+
+### 5.5 ข้อบกพร่องใน `MANUS/*.sql` ที่แก้แล้วใน v2
+
+| #   | ปัญหาเดิม                                                                                                 | วิธีแก้ใน v2                                                                             |
+| --- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1   | `CHECK (fixed_ratio + variable_ratio = 1)` บังคับทุกแถว ทำให้แทรก `UNCLASSIFIED` (ค่า default 0/0) ไม่ได้ | เปลี่ยนเป็น CHECK แบบมีเงื่อนไขตาม `behavior` — `UNCLASSIFIED` ใช้ 0/0 ได้               |
+| 2   | `fixed_ratio`/`variable_ratio` ถูกนิยามแต่ไม่เคยถูกใช้ — MIXED ไม่ถูกแยกจริง                              | เครื่องปันส่วนแตก MIXED เป็น 2 pool ก่อน แล้วสร้างผลลัพธ์ 2 แถว                          |
+| 3   | ปัดเศษทีละแถวแล้วบังคับผลรวมต่างไม่เกิน 0.01 → run จะ FAIL แทบทุกครั้ง                                    | ใช้ largest-remainder แล้วโยนเศษที่เหลือเข้าแถว `ROUNDING_ADJUSTMENT` → ผลรวมตรงพอดีเสมอ |
+| 4   | INNER JOIN กับตาราง driver ทำให้ต้นทุนที่ไม่มี driver **หายเงียบ**                                        | LEFT JOIN แล้วสร้างแถว `MISSING_DRIVER` ที่ยังไม่ผูกหลักสูตร — ยอดไม่หาย และเห็นปัญหาชัด |
+| 5   | unique index กันได้แค่ `valid_from` ซ้ำ ไม่ได้กันช่วงเวลาคาบเกี่ยว                                        | ใช้ `EXCLUDE USING gist` กับ `daterange`                                                 |
+| 6   | `CHECK (amount >= 0)` ปฏิเสธรายการคืนเงิน/ปรับปรุงติดลบ                                                   | ตัดข้อจำกัดออก และเพิ่มการตรวจที่ระดับ reconciliation แทน                                |
+
+**เพิ่มเติม:** DDL ของ MANUS ไม่มีการคำนวณ BEP เลย (`BEP_SCENARIO`/`BEP_RESULT` อยู่ใน .mmd แต่ไม่มีใน .sql) — v2 เพิ่ม `program_revenue_summary` และ `break_even_result` เข้ามาเต็มรูป
+
+### 5.6 สิ่งที่ยังไม่ฟันธง
+
+- **ต้องเก็บผลระดับ `education_level` ลงตารางไหม** หรือคำนวณสดตอนเปิดหน้า — ปัจจุบันใส่ไว้ใน enum แล้ว
+- **การปันส่วนหลายขั้น** (หน่วยสนับสนุนให้บริการกันเอง) จะใช้ sequential หรือ reciprocal — เริ่มด้วย sequential ก่อนเพื่ออธิบายง่าย
+- **`amount_basis`** จะใช้ `ACTUAL` หรือ `BUDGET` เป็นฐานต้นทุนหลัก — รอมติผู้บริหาร
+- **tolerance ของ reconciliation** ควรเป็นเท่าไหร่ (แนะนำ 1 บาทต่อ run ไม่ใช่ 0.01)
 
 ## 6. คำถามเปิด / สิ่งที่ต้องยืนยันกับผู้เกี่ยวข้องก่อนออกแบบต่อ
 
@@ -347,19 +383,23 @@ erDiagram
 
 ไฟล์: [`WIREFRAME.html`](WIREFRAME.html) — เปิดในเบราว์เซอร์ได้เลย (low-fidelity, ไม่มี JS, ไม่ต้อง build)
 
-| ID  | หน้าจอ                                                    | สถานะ                           | FR ที่รองรับ            |
-| --- | --------------------------------------------------------- | ------------------------------- | ----------------------- |
-| W0  | เข้าสู่ระบบ + mapping role → สิ่งที่เห็น                  | **ใหม่** (prototype ไม่มี auth) | สิทธิ์ (ER: USER, ROLE) |
-| W1  | ภาพรวมมหาวิทยาลัย (Dashboard)                             | มีใน prototype                  | FR-5,6,7,13,14          |
-| W2  | เจาะลึกจุดคุ้มทุน 3 ระดับ (drill-down + filter)           | มีใน prototype                  | FR-18                   |
-| W3  | กราฟจุดคุ้มทุน (เลือกหน่วยวิเคราะห์ 4 ระดับ)              | มีใน prototype                  | FR-19                   |
-| W4  | รายได้ vs ต้นทุน/หัว &amp; โครงสร้างต้นทุน                | มีใน prototype                  | FR-8,9                  |
-| W5  | Cross Analysis (heatmap/scatter/quadrant/ranking)         | มีใน prototype                  | FR-20                   |
-| W6  | คำนวณจุดคุ้มทุนรายคณะ (Scenario)                          | มีใน prototype                  | FR-15,16,17             |
-| W7  | คำนวณจุดคุ้มทุนรายหลักสูตร (เดิม/ใหม่)                    | มีใน prototype                  | FR-15,16                |
-| W8  | จัดการค่าธรรมเนียม + workflow อนุมัติ + log               | **ใหม่**                        | FR-1                    |
-| W9  | จัดการต้นทุน/ค่าเสื่อม/งบประมาณ + สถานะ Sync + Validation | **ใหม่**                        | FR-2,3,4                |
-| W10 | สูตร &amp; หลักวิชาการ (หน้าเอกสารในระบบ)                 | มีใน prototype                  | FR-21 (PDF)             |
+| ID  | หน้าจอ                                                    | สถานะ                           | FR ที่รองรับ             |
+| --- | --------------------------------------------------------- | ------------------------------- | ------------------------ |
+| W0  | เข้าสู่ระบบ + mapping role → สิ่งที่เห็น                  | **ใหม่** (prototype ไม่มี auth) | สิทธิ์ (ER: USER, ROLE)  |
+| W1  | ภาพรวมมหาวิทยาลัย (Dashboard)                             | มีใน prototype                  | FR-5,6,7,13,14           |
+| W2  | เจาะลึกจุดคุ้มทุน 3 ระดับ (drill-down + filter)           | มีใน prototype                  | FR-18                    |
+| W3  | กราฟจุดคุ้มทุน (เลือกหน่วยวิเคราะห์ 4 ระดับ)              | มีใน prototype                  | FR-19                    |
+| W4  | รายได้ vs ต้นทุน/หัว &amp; โครงสร้างต้นทุน                | มีใน prototype                  | FR-8,9                   |
+| W5  | Cross Analysis (heatmap/scatter/quadrant/ranking)         | มีใน prototype                  | FR-20                    |
+| W6  | คำนวณจุดคุ้มทุนรายคณะ (Scenario)                          | มีใน prototype                  | FR-15,16,17              |
+| W7  | คำนวณจุดคุ้มทุนรายหลักสูตร (เดิม/ใหม่)                    | มีใน prototype                  | FR-15,16                 |
+| W8  | จัดการค่าธรรมเนียม + workflow อนุมัติ + log               | **ใหม่**                        | FR-1                     |
+| W9  | จัดการต้นทุน/ค่าเสื่อม/งบประมาณ + สถานะ Sync + Validation | **ใหม่**                        | FR-2,3,4                 |
+| W10 | สูตร &amp; หลักวิชาการ (หน้าเอกสารในระบบ)                 | มีใน prototype                  | FR-21 (PDF)              |
+| W11 | คอนโซล Allocation Run (สร้าง · ติดตาม · อนุมัติ)          | **ใหม่ — ER v2**                | ปันส่วนต้นทุน            |
+| W12 | ผลตรวจยอด Reconciliation + direct เทียบ allocated         | **ใหม่ — ER v2**                | ความน่าเชื่อถือของตัวเลข |
+| W13 | Exception queue (UNCLASSIFIED · MISSING_DRIVER)           | **ใหม่ — ER v2**                | คุณภาพข้อมูล             |
+| W14 | จัดการกติกาผังบัญชี 4 ระดับ + สัดส่วน MIXED               | **ใหม่ — ER v2**                | จำแนก TFC/TVC            |
 
 ### 9.1 การตัดสินใจด้าน UX ที่ฝังอยู่ใน wireframe
 
@@ -371,6 +411,25 @@ erDiagram
 6. **Recalculate เป็น batch job** เขียนผลลง `BREAK_EVEN_RESULT` ทั้ง 2 revenue_mode × 3 scope_level ไม่ใช่คำนวณสดตอนเปิดหน้า (230 หลักสูตร × 2 โหมด = คำนวณหนัก)
 7. **W6/W7 บันทึก scenario ลง DB ผูกผู้ใช้** — prototype เก็บ local state หายเมื่อ refresh
 8. **W2 ติดป้ายชัดเจนสำหรับแถวที่ R ≤ AVC** ว่าเป็น "เป้าหมายขั้นต่ำ (Full-Cost Recovery)" ไม่ใช่จุดคุ้มทุนจริง (สูตร 7)
+
+### 9.2 หน้าจอที่เพิ่มจาก ER v2 (W11–W14)
+
+ER v2 เพิ่มโดเมน **Allocation** ซึ่ง wireframe ชุดแรกไม่ได้ครอบคลุมเลย — 4 หน้าจอนี้จำเป็นเพราะ
+ถ้าไม่มี ผู้ใช้จะไม่มีทางรู้ว่าตัวเลขที่เห็นมาจากการปันส่วนแบบไหน ตรวจยอดผ่านหรือไม่ และมีอะไรค้างต้องแก้
+
+| หน้า    | ทำอะไร                                                                                                                                                       | ทำไมขาดไม่ได้                                                                 |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **W11** | สร้าง run (ล็อกงวด/หน่วยงาน/ฐานต้นทุน/เวอร์ชันกติกา) · ดูสถานะ `DRAFT → RUNNING → CALCULATED → VALIDATED → APPROVED` · ปุ่มอนุมัติที่**ผู้สร้างกดเองไม่ได้** | run เป็น immutable — ต้องมีที่ให้สร้างใหม่และเทียบกับ run เก่า                |
+| **W12** | ยอดต้นทาง เทียบ ยอดปันส่วน · ส่วนต่าง · แถบสัดส่วน direct เทียบ allocated รายคณะ/หลักสูตร                                                                    | ผู้บริหารต้องเห็นว่าตัวเลขมาจากข้อมูลจริงกี่ % ไม่ใช่เห็นแค่ยอดสุดท้าย        |
+| **W13** | รายการที่ต้องตามแก้ แยกตามประเภทธง พร้อมผู้รับผิดชอบและมูลค่าที่กระทบ                                                                                        | ถ้าไม่มีหน้านี้ รายการ UNCLASSIFIED จะถูกรวมเงียบๆ โดยไม่มีใครรู้             |
+| **W14** | ตารางกติกา `account_behavior_rule` — เลือก FIXED/VARIABLE/MIXED/UNCLASSIFIED ต่อคีย์ผสม 4 ระดับ · กรอกสัดส่วน MIXED · workflow อนุมัติ · ช่วงเวลามีผล        | เป็นจุดที่ถ้าตั้งผิดจะทำให้ตัวเลขทั้งระบบผิด (`80001` เปลี่ยนประเภทตามแผนงาน) |
+
+**หน้าจอเดิมที่ต้องแก้ตาม ER v2**
+
+9. **W1–W5 ต้องแสดงว่าดูผลของ run ไหน** และวันที่คำนวณ ไม่ใช่แค่ปีงบประมาณ เพราะ run ใหม่ไม่ทับ run เก่า
+10. **W1–W5 ต้องแยก direct เทียบ allocated** อย่างน้อยที่ระดับ KPI และมีไอคอนเตือนเมื่อสัดส่วน allocated สูง
+11. **W9 เปลี่ยนขอบเขต** — เดิมรวมการตั้งค่า TFC/TVC ไว้ด้วย ตอนนี้ย้ายไป W14 เหลือเฉพาะการนำเข้าข้อมูลต้นทางและสถานะ sync
+12. **ปุ่ม "คำนวณผลใหม่ทั้งระบบ" ใน W9 ย้ายไป W11** เพราะการคำนวณคือการสร้าง run ที่ต้องมีผู้อนุมัติ ไม่ใช่ปุ่มกดเล่นได้
 
 ## 10. Tech Stack (ตัดสินใจแล้ว)
 
@@ -451,12 +510,17 @@ beps-system/
 
 Endpoint `POST /breakeven/recalculate` (สิทธิ์ admin/budget_office) → รัน job:
 
-1. อ่าน `STUDENT_COUNT`, `FEE_MASTER` (เฉพาะ `approval_status = approved`), `COST_ITEM`, `DEPRECIATION`, `BUDGET_ALLOCATION`, `CONTRIBUTION_RATE` ของปีงบประมาณที่เลือก
-2. คำนวณระดับหลักสูตรทุกหลักสูตร × 2 revenue_mode
-3. rollup ขึ้นระดับ `education_level` → `faculty` → `university` (Q* ใช้สูตร 6a เป็นค่าหลัก และเก็บ 6b ไว้เทียบ)
-4. เขียนลง `BREAK_EVEN_RESULT` ใน transaction เดียว (ลบผลเดิมของปี+mode นั้นแล้วเขียนใหม่)
+**หมายเหตุ (ปรับตาม ER v2):** ขั้นตอนนี้เปลี่ยนจาก "ลบผลเดิมแล้วเขียนใหม่" เป็น **run ที่เปลี่ยนแปลงไม่ได้ (immutable)** — ผลเดิมไม่ถูกลบ การคำนวณใหม่สร้าง run ใหม่ที่ชี้ `supersedes_run_id` กลับไปยัง run เก่า เพราะข้อมูลการเงินต้องตรวจสอบย้อนหลังได้ว่าตัวเลขที่ผู้บริหารเห็นเมื่อเดือนก่อนมาจากอะไร
 
-หน้า W1–W5 **อ่านจาก `BREAK_EVEN_RESULT` เท่านั้น** ไม่คำนวณสดตอนเปิดหน้า — ทำให้ dashboard เร็วและตัวเลขนิ่ง (ผู้บริหารเปิดพร้อมกันได้ตัวเลขเดียวกัน)
+1. สร้าง `allocation_run` ใหม่ (`status = DRAFT`) ล็อกขอบเขต: `period_id`, `org_unit_id`, `amount_basis`, `rule_version`
+2. อ่าน `cost_source` (ERP + ค่าเสื่อม), `registration_snapshot`, `fee_schedule` (เฉพาะ `APPROVED`), `per_student_charge`, `budget_allocation` ของงวดนั้น
+3. **ปันส่วนต้นทุน** — direct ก่อน แล้วจึงปันส่วน pool ตามลำดับ driver (direct → actual usage → headcount → program share) พร้อมแตก `MIXED` เป็น 2 pool
+4. **Reconcile** ยอด `allocation_result` รวม เทียบยอด `cost_source` ต้นทาง — ไม่ผ่าน tolerance ⇒ `status = FAILED` และหยุด
+5. สรุปลง `program_cost_summary` + `program_revenue_summary`
+6. คำนวณ `break_even_result` ทุกหลักสูตร × 2 `revenue_mode` แล้ว rollup `education_level` → `faculty` → `university` (Q\* เก็บทั้ง `sum_of_programs` และ `pooled`)
+7. ผู้ตรวจสอบ (คนละคนกับผู้สร้าง) เปลี่ยน `CALCULATED` → `VALIDATED` → `APPROVED` ก่อนขึ้น dashboard
+
+หน้า W1–W5 **อ่านจาก `break_even_result` ของ run ที่ `APPROVED` ล่าสุดเท่านั้น** ไม่คำนวณสดตอนเปิดหน้า — dashboard เร็ว ตัวเลขนิ่ง และย้อนดู run เก่าได้
 
 ### 11.3 Auth & RBAC
 
@@ -503,35 +567,44 @@ FR ต้นทางข้อมูลยังเป็น Excel จริง�
 
 ## 14. แผนพัฒนา (Sprint Plan)
 
-สมมติ sprint ละ 2 สัปดาห์ · ทีม 1–2 คน · **MVP = Sprint 0–7 (~16 สัปดาห์)**
+> **ปรับใหม่หลัง ER v2** — แผนเดิมไม่มีโดเมน Allocation เลย และตารางเพิ่มจาก 17 → 30
+> sprint ละ 2 สัปดาห์ · ทีม 1–2 คน · **MVP = Sprint 0–8 (~18 สัปดาห์)** (เดิม 0–7)
 
 ### MVP
 
-| Sprint | เป้าหมาย                       | ส่งมอบ                                                                                                                                         |
-| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0**  | เตรียมพื้นฐาน                  | monorepo + TypeScript strict + ESLint/Prettier + docker-compose (postgres) + CI ว่างๆ ที่รัน lint/test ได้ · ขอไฟล์ prototype ต้นฉบับ (ข้อ 7)  |
-| **1**  | ★ Calc engine                  | `packages/calc-engine` สูตร 1–7 ครบ + golden test เทียบตัวเลข Excel/prototype ผ่าน 100% — **ทำก่อน UI ทั้งหมด** เพราะเป็นแกนความถูกต้องของระบบ |
-| **2**  | Schema + ข้อมูลจริงเข้าระบบ    | Prisma schema ตาม ER หัวข้อ 5 + migration + Excel import (W9 ส่วน import) + seed ข้อมูลปี 2568 จากไฟล์จริง                                     |
-| **3**  | Auth + RBAC                    | W0 login, 4 role, scope ตามคณะ, middleware, audit log กลาง                                                                                     |
-| **4**  | Batch recalculate + API อ่านผล | job recalculate ทั้ง 2 mode × 3 scope + endpoint query `BREAK_EVEN_RESULT` + ตรวจว่าผลตรง golden test                                          |
-| **5**  | Dashboard                      | W1 ภาพรวม + W4 (รายได้รายคณะ / โครงสร้างต้นทุน / ต่อหัว) + toggle ฐานรายได้ + dropdown ปีงบประมาณ                                              |
-| **6**  | เจาะลึก                        | W2 drill-down 3 ระดับ + filter + W3 กราฟจุดคุ้มทุน 4 ระดับ + W10 หน้าสูตร                                                                      |
-| **7**  | Scenario                       | W6 รายคณะ + W7 รายหลักสูตร (เดิม/ใหม่) + บันทึกลง DB + ตารางเทียบ scenario vs ข้อมูลจริง (FR-17) + export PDF (FR-21)                          |
+| Sprint | เป้าหมาย                | ส่งมอบ                                                                                                                                    | สถานะ    |
+| ------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **0**  | เตรียมพื้นฐาน           | monorepo + TypeScript strict + ESLint/Prettier + docker-compose (PostgreSQL + ICU th-TH) + CI                                             | ✅ เสร็จ |
+| **1**  | ★ Calc engine           | `packages/calc-engine` สูตร 1–7 + golden test **ระดับคณะและมหาวิทยาลัย** เทียบตัวเลข v8 · port จาก `db/02_functions.sql` ที่ทดสอบผ่านแล้ว | เริ่มได้ |
+| **2**  | Schema + ข้อมูลเข้าระบบ | Prisma schema 30 ตารางตาม ER v2 + migration + Excel import + seed ปี 2568                                                                 |          |
+| **3**  | Auth + RBAC             | W0 login · 4 role · scope ตามคณะ (บังคับที่ backend) · audit log                                                                          |          |
+| **4**  | ★ **Allocation engine** | port `run_cost_allocation` เป็น service · driver 4 ระดับ · แตก MIXED · largest-remainder · reconciliation · quality flag · immutable run  | **ใหม่** |
+| **5**  | คำนวณ BEP + API         | `compute_break_even` ทุก scope × 2 revenue_mode × 2 วิธี Q\* + endpoint อ่านผล + ตรวจตรง golden test                                      |          |
+| **6**  | Dashboard               | W1 ภาพรวม + W4 · toggle ฐานรายได้ · dropdown ปีงบประมาณ · **แสดง run ที่กำลังดูและสัดส่วน direct/allocated**                              |          |
+| **7**  | เจาะลึก                 | W2 drill-down 3 ระดับ + filter · W3 กราฟจุดคุ้มทุน 4 ระดับ · W10 หน้าสูตร                                                                 |          |
+| **8**  | Scenario                | W6 รายคณะ + W7 รายหลักสูตร · บันทึกลง DB · ตารางเทียบจริง vs ปรับแต่ง (FR-17) · export PDF (FR-21)                                        |          |
 
 ### Phase 2
 
-| Sprint | เป้าหมาย                                                                                                       |
-| ------ | -------------------------------------------------------------------------------------------------------------- |
-| **8**  | W8 จัดการค่าธรรมเนียม + workflow อนุมัติเต็มรูปแบบ + W9 หน้าจัดการต้นทุน/ค่าเสื่อม + validation ก่อนคำนวณ      |
-| **9**  | W5 Cross Analysis (heatmap, scatter, quadrant, ranking)                                                        |
-| **10** | เชื่อม API จริง (ข้อมูลนิสิต + งบประมาณ) แทน Excel import + sync job + monitoring                              |
-| **11** | Hardening: e2e test, performance tuning, backup/restore drill, เอกสารผู้ใช้ · เตรียมช่องทางเชื่อม มคอ. ในอนาคต |
+| Sprint | เป้าหมาย                                                                                                    |
+| ------ | ----------------------------------------------------------------------------------------------------------- |
+| **9**  | หน้าจัดการฝั่งปันส่วน — W11 คอนโซล run · W12 ผลตรวจยอด · W13 exception queue · W14 กติกาผังบัญชี            |
+| **10** | W8 ค่าธรรมเนียม + workflow อนุมัติ · W9 นำเข้าข้อมูลต้นทาง + สถานะ sync                                     |
+| **11** | W5 Cross Analysis (heatmap · scatter · quadrant · ranking)                                                  |
+| **12** | เชื่อม API จริง (ทะเบียน + ERP) แทน Excel import · sync job · monitoring                                    |
+| **13** | Hardening — RLS ตามคณะ · hash chain ของ audit · ปันส่วนหลายขั้น · e2e · backup/restore drill · คู่มือผู้ใช้ |
 
 ### ลำดับที่ห้ามสลับ
 
-1. **Calc engine (Sprint 1) ต้องมาก่อน UI** — ถ้าทำ UI ก่อนแล้วสูตรเพี้ยน ต้องรื้อทั้งหน้าจอ
-2. **Schema (Sprint 2) ต้องมาก่อน batch recalculate (Sprint 4)** — recalculate อ่านจากทุกตาราง
-3. **Auth (Sprint 3) ต้องมาก่อนหน้าจัดการข้อมูล (Sprint 8)** — ไม่ควรมีหน้าที่แก้ข้อมูลการเงินได้โดยไม่มีสิทธิ์/ไม่มี log
+1. **Calc engine (1) ก่อน UI ทั้งหมด** — ถ้าสูตรเพี้ยนแล้วทำ UI ไปก่อน ต้องรื้อทั้งหน้าจอ
+2. **Schema (2) ก่อน Allocation engine (4)** — เครื่องปันส่วนอ่านจากเกือบทุกตาราง
+3. **Allocation engine (4) ก่อนคำนวณ BEP (5)** — BEP อ่านจาก `program_cost_summary` ที่เกิดจากการปันส่วน
+4. **Auth (3) ก่อนหน้าจัดการข้อมูลทุกหน้า (9, 10)** — ห้ามมีหน้าที่แก้ข้อมูลการเงินได้โดยไม่มีสิทธิ์และไม่มี log
+
+### สิ่งที่ลดความเสี่ยงไปแล้ว
+
+`db/` มี schema และเครื่องปันส่วนที่**รันผ่านและทดสอบแล้วบน PostgreSQL 17** จึงใช้เป็นต้นแบบให้ Sprint 2, 4, 5
+ได้โดยตรง — ไม่ต้องออกแบบ logic ใหม่ แค่ port เป็น TypeScript/Prisma แล้วเทียบผลกับ SQL ว่าตรงกัน
 
 ## 15. Definition of Done ก่อนขึ้น production
 
@@ -612,7 +685,7 @@ const isOk = !Qs || Q >= Qs; // ← CM<=0 ถือว่า "ผ่าน"
 
 ### 16.4 สิ่งที่ยืนยันแล้วว่าออกแบบไว้ถูก
 
-- โครงสร้าง `tfc_items` / `tvc_items` ใน `FAC_DATA` เป็น array ของ `{label, val}` ซึ่งตรงกับ `COST_ITEM` ที่ออกแบบให้ flag TFC/TVC ระดับรายการย่อย (หัวข้อ 5.1) ✓
+- โครงสร้าง `tfc_items` / `tvc_items` ใน `FAC_DATA` เป็น array ของ `{label, val}` ซึ่งตรงกับแนวคิด flag TFC/TVC ที่ระดับรายการย่อย — ใน v2 พัฒนาเป็น `account_behavior_rule` ที่ผูกกับคีย์ผสม 4 ระดับ (หัวข้อ 5.3) ✓
 - หมวดรายการที่พบจริงในไฟล์: `งบประมาณเงินแผ่นดิน (TFC/TVC)`, `งบประมาณเงินรายได้ (TFC/TVC)`, `ค่าธรรมเนียมรายการหลัก`, `ค่าสาธารณูปโภค` — ยืนยันว่าหมวดเดียวกันปรากฏได้ทั้งฝั่ง TFC และ TVC ✓
 - scenario history เก็บใน array ในหน่วยความจำ (`pgHist.unshift(...)`, `inpList.push(...)`) หายเมื่อ refresh — ตรงกับที่ SA ระบุว่าต้องย้ายลง DB ✓
 
@@ -623,7 +696,7 @@ const isOk = !Qs || Q >= Qs; // ← CM<=0 ถือว่า "ผ่าน"
 - [x] Overview, stakeholders, แหล่งข้อมูล (หัวข้อ 1–2)
 - [x] Functional Requirements FR-1 ถึง FR-21 (หัวข้อ 3, 7.3)
 - [x] แนวทางเชื่อมต่อข้อมูล / Integration (หัวข้อ 4)
-- [x] ER Diagram แบบละเอียด 17 ตาราง + เหตุผลการออกแบบ (หัวข้อ 5)
+- [x] ER Diagram v2 (ฉบับรวมกับข้อเสนอ MANUS) 30 ตาราง 6 ชั้น + แก้ข้อบกพร่อง 6 จุด (หัวข้อ 5)
 - [x] วิเคราะห์ prototype จริง — สูตร 1–7, การจำแนกต้นทุน, hierarchy, ข้อจำกัด (หัวข้อ 7)
 - [x] Wireframe 11 หน้าจอ W0–W10 → `WIREFRAME.html` (หัวข้อ 9)
 - [x] Tech stack + เหตุผล + ทางเลือกที่ไม่เลือก (หัวข้อ 10)
