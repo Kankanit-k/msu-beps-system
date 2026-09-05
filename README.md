@@ -3,7 +3,7 @@
 ระบบวิเคราะห์จุดคุ้มทุนหลักสูตร (Break-Even Point System) มหาวิทยาลัยมหาสารคาม
 
 > **สถานะ: Sprint 0 เสร็จ** — ตั้งโครง monorepo + tooling เรียบร้อย ยังไม่มีแอปจริง
-> เอกสารออกแบบทั้งหมดอยู่ใน [`SA.md`](./SA.md) · wireframe อยู่ใน [`WIREFRAME.html`](./WIREFRAME.html)
+> เอกสารออกแบบทั้งหมดอยู่ใน [`SA.md`](./SA.md) · mockup หน้าจอครบทุกหน้าอยู่ใน [`mockup/`](./mockup/)
 
 ## ต้องมีอะไรก่อน
 
@@ -50,8 +50,12 @@ beps-system/
 ├── apps/                  ยังว่าง — api มาใน Sprint 2, web มาใน Sprint 6
 ├── docker-compose.yml     PostgreSQL 17 สำหรับ local dev
 ├── SA.md                  เอกสาร System Analysis ฉบับเต็ม (17 หัวข้อ)
-├── ER.html                โครงสร้างฐานข้อมูล v2 30 ตาราง — เปิดดู/ส่งต่อได้ (ดูด้านล่าง)
-├── WIREFRAME.html         Wireframe 15 หน้าจอ (W0–W14) — เปิดในเบราว์เซอร์ได้เลย
+├── ER.html                โครงสร้างฐานข้อมูล v2 32 ตาราง — เปิดดู/ส่งต่อได้ (ดูด้านล่าง)
+├── mockup/                ★ Mockup high-fidelity ครบ 20 หน้าจอ W0–W19 — หนึ่งหน้าจอ = หนึ่งไฟล์ (ดู mockup/README.md)
+├── WIREFRAME.html         Wireframe 15 หน้าจอ (W0–W14) — โครงหน้าจอ low-fidelity (ยังไม่มี W15)
+├── MOCKUP.html            Mockup รุ่นแรก 4 หน้าจอ — แทนที่ด้วย mockup/ แล้ว เก็บไว้อ้างอิง
+├── MOCKUP-MASTER.html     Mockup รุ่นแรก หน้าจอ Master & Config — แทนที่ด้วย mockup/ แล้ว เก็บไว้อ้างอิง
+├── MSU-BEPS-V9.html       ★ ต้นแบบใช้งานได้จริง 13 หน้าจอ ข้อมูลจริงครบ 4 ชั้น + หน้า Master/Config — เปิดออฟไลน์ได้
 ├── COMPARISON.md          บันทึกเปรียบเทียบ ER v1 กับข้อเสนอ MANUS
 ├── MAPPING.md             การแมพข้อมูล ทะเบียน ↔ ERP
 ├── db/                    schema + เครื่องปันส่วน ที่ทดสอบผ่านบน PostgreSQL 17
@@ -60,8 +64,17 @@ beps-system/
 
 ### เอกสารสำหรับนำไปประชุม
 
-`ER.html` (โครงสร้าง 30 ตาราง) และ `WIREFRAME.html` (15 หน้าจอ) เปิดได้โดย**ไม่ต้องต่ออินเทอร์เน็ต** — `ER.html` ฝังไลบรารี Mermaid ไว้จึงมีขนาด ~3.5 MB
-ส่งทางอีเมลหรือ USB ได้เลย ไม่ต้องส่งไฟล์อื่นไปด้วย — ใช้คุยกับกองแผนงาน/กองงบประมาณเพื่อทบทวนโครงสร้างข้อมูลก่อนสร้างจริง
+**[`mockup/`](./mockup/)** — ต้นแบบหน้าจอครบทั้งระบบ 20 หน้า (W0–W19) คลิกได้จริง ใช้สูตรและข้อมูลจริงปี 2568
+เริ่มที่ [`mockup/index.html`](./mockup/index.html) · ใช้เสนอผู้บริหารและส่งต่อ dev ได้ทีละหน้า
+ทั้งโฟลเดอร์ต้องส่งไปด้วยกัน (มีไฟล์ CSS/ข้อมูลร่วมอยู่ใน `mockup/assets/`)
+
+> **หมายเหตุเรื่องข้อมูล** — repo นี้เก็บเฉพาะ `mockup/assets/data.sample.js` ที่ตัวเลขถูกสุ่มรบกวนแล้ว
+> ข้อมูลจริง (`mockup/assets/data.js`) ถูก `.gitignore` กันไว้ ส่งต่อกันเองนอก git
+> วางไฟล์จริงลงใน `mockup/assets/` แล้วหน้าจอจะแสดงตัวเลขจริงเองโดยอัตโนมัติ
+
+`ER.html` (โครงสร้าง 32 ตาราง) และ `WIREFRAME.html` (15 หน้าจอ low-fidelity) เปิดได้โดย**ไม่ต้องต่ออินเทอร์เน็ต**
+— `ER.html` ฝังไลบรารี Mermaid ไว้จึงมีขนาด ~3.5 MB ส่งทางอีเมลหรือ USB ได้เลย
+ใช้คุยกับกองแผนงาน/กองงบประมาณเพื่อทบทวนโครงสร้างข้อมูลก่อนสร้างจริง
 
 ไฟล์นี้เป็นเอกสารที่ generate ขึ้นจาก **SA.md หัวข้อ 5** ซึ่งถือเป็นต้นฉบับทางการ — ถ้าจะแก้ ER ให้แก้ SA.md ก่อน แล้วอัปเดต `ER.html` ตาม
 
@@ -82,8 +95,13 @@ beps-system/
 
 ## แผนถัดไป
 
-Sprint 1 คือ `packages/calc-engine` (สูตร 1–7 + golden test) — **เริ่มได้แล้ว**
-โดย port จาก `db/02_functions.sql` ที่ทดสอบผ่านแล้ว · golden test ระดับคณะและมหาวิทยาลัยทำได้ทันที
-ส่วนระดับหลักสูตรรอคำตอบข้อ A — รายละเอียดใน [`packages/calc-engine/TODO.md`](./packages/calc-engine/TODO.md)
+**Sprint 1 เสร็จแล้ว** — `packages/calc-engine` มีสูตร 1–7 ครบ พร้อม golden test เทียบ prototype v8
+(67 เทสต์ · `pnpm verify` ผ่านทั้งหมด) port จาก `db/02_functions.sql` ที่ทดสอบผ่านบน PostgreSQL แล้ว
+
+นโยบายการคำนวณไม่ฝังในโค้ด — ทุกฟังก์ชันรับ `CalcPolicy` ที่ตรงกับตาราง `system_setting` หนึ่งต่อหนึ่ง
+เหลืองานค้าง: golden test ระดับหลักสูตรครบ 230 รายการ (รอคำตอบข้อ A) และโปรซีเยอร์ `scenario_result`
+— รายละเอียดใน [`packages/calc-engine/TODO.md`](./packages/calc-engine/TODO.md)
+
+Sprint 2 คือ Prisma schema 32 ตาราง + import ข้อมูลจริง
 
 แผน sprint ทั้งหมดอยู่ใน SA.md หัวข้อ 14
