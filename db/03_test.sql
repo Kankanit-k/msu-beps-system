@@ -59,8 +59,9 @@ INSERT INTO erp_account (plan_code, budget_category_code, expenditure_category_c
   ('3','2','400','40099','รายการที่ยังไม่มีกติกา',      '2500-01-01');  -- A5  ไม่มี rule
 
 INSERT INTO account_behavior_rule
-  (erp_account_id, behavior, fixed_ratio, variable_ratio, allocation_method_code, rule_version, status, approved_by, approved_at, valid_from)
-SELECT a.erp_account_id, v.beh, v.fr, v.vr, v.m, 'v1', 'APPROVED', 'budget_office', now(), '2500-01-01'
+  (erp_account_id, behavior, fixed_ratio, variable_ratio, allocation_method_code, rule_version,
+   status, approved_by, approved_at, year_basis, effective_from_year)
+SELECT a.erp_account_id, v.beh, v.fr, v.vr, v.m, 'v1', 'APPROVED', 'budget_office', now(), 'ACADEMIC', 2500
   FROM erp_account a
   JOIN (VALUES
     ('10001','FIXED'::cost_behavior,        1.0, 0.0, 'STUDENT_HEADCOUNT'::alloc_method),
@@ -227,16 +228,123 @@ SELECT CASE WHEN count(*) = 1 THEN 'PASS  แทรก UNCLASSIFIED สำเร
   FROM account_behavior_rule WHERE behavior = 'UNCLASSIFIED';
 
 \echo ''
-\echo '--- #5 กติกาที่อนุมัติแล้วห้ามซ้อนช่วงเวลา (คาดว่าต้อง error) ---'
+\echo '--- #5 กติกาที่อนุมัติแล้วห้ามซ้อนช่วงปี (คาดว่าต้อง error) ---'
 DO $$
 BEGIN
   INSERT INTO account_behavior_rule
-    (erp_account_id, behavior, fixed_ratio, variable_ratio, rule_version, status, approved_by, approved_at, valid_from, valid_to)
-  SELECT erp_account_id, 'VARIABLE', 0, 1, 'v2', 'APPROVED', 'other', now(), '2560-01-01', '2600-01-01'
+    (erp_account_id, behavior, fixed_ratio, variable_ratio, rule_version, status, approved_by, approved_at,
+     year_basis, effective_from_year, effective_to_year)
+  SELECT erp_account_id, 'VARIABLE', 0, 1, 'v2', 'APPROVED', 'other', now(), 'ACADEMIC', 2560, 2600
     FROM erp_account WHERE subcategory_code = '10001';
-  RAISE EXCEPTION 'FAIL #5: แทรกกติกาที่ซ้อนช่วงเวลาได้ ทั้งที่ควรถูกปฏิเสธ';
+  RAISE EXCEPTION 'FAIL #5: แทรกกติกาที่ซ้อนช่วงปีได้ ทั้งที่ควรถูกปฏิเสธ';
 EXCEPTION WHEN exclusion_violation THEN
-  RAISE NOTICE 'PASS  #5 ระบบปฏิเสธกติกาที่ช่วงเวลาคาบเกี่ยวกันถูกต้อง';
+  RAISE NOTICE 'PASS  #5 ระบบปฏิเสธกติกาที่ช่วงปีคาบเกี่ยวกันถูกต้อง';
+END $$;
+
+-- ─────────── #8 กติกาเปลี่ยนตามปี — ตัวอย่างที่ผู้บริหารยกมาเอง ───────────
+-- "ปีนี้เป็นต้นทุนคงที่ ปีหน้าเป็นผันแปร ปีถัดไปแบ่งคนละครึ่ง"
+\echo ''
+\echo '--- #8 กติกาเดียวกัน เปลี่ยนประเภทต้นทุนได้ตามปีการศึกษา ---'
+DO $$
+DECLARE v_acct bigint; n int;
+BEGIN
+  SELECT erp_account_id INTO v_acct FROM erp_account WHERE subcategory_code = '40010';
+
+  -- กติกาเดิมของบัญชีนี้คือ UNCLASSIFIED ตั้งแต่ปี 2500 → ปิดท้ายที่ 2568 ก่อน
+  UPDATE account_behavior_rule SET effective_to_year = 2568
+   WHERE erp_account_id = v_acct AND effective_to_year IS NULL;
+
+  INSERT INTO account_behavior_rule
+    (erp_account_id, behavior, fixed_ratio, variable_ratio, allocation_method_code, rule_version,
+     status, approved_by, approved_at, year_basis, effective_from_year, effective_to_year, note)
+  VALUES
+    (v_acct,'FIXED',   1.0,0.0,'STUDENT_HEADCOUNT','v2569','APPROVED','budget_office',now(),'ACADEMIC',2569,2569,'ปี 2569 ตีเป็นต้นทุนคงที่'),
+    (v_acct,'VARIABLE',0.0,1.0,'STUDENT_HEADCOUNT','v2570','APPROVED','budget_office',now(),'ACADEMIC',2570,2570,'ปี 2570 ตีเป็นต้นทุนผันแปร'),
+    (v_acct,'MIXED',   0.5,0.5,'STUDENT_HEADCOUNT','v2571','APPROVED','budget_office',now(),'ACADEMIC',2571,NULL,'ปี 2571 เป็นต้นไป แบ่งคนละครึ่ง');
+
+  SELECT count(*) INTO n FROM account_behavior_rule WHERE erp_account_id = v_acct;
+  IF n <> 4 THEN RAISE EXCEPTION 'FAIL #8: คาดกติกา 4 ช่วงปี ได้ %', n; END IF;
+
+  -- ต้องเลือกได้ถูกช่วงทีละปี ไม่กำกวม
+  IF (SELECT behavior FROM account_behavior_rule
+       WHERE erp_account_id=v_acct AND int4range(effective_from_year,effective_to_year,'[]') @> 2570)
+     <> 'VARIABLE' THEN
+    RAISE EXCEPTION 'FAIL #8: ปี 2570 ควรได้ VARIABLE';
+  END IF;
+  IF (SELECT behavior FROM account_behavior_rule
+       WHERE erp_account_id=v_acct AND int4range(effective_from_year,effective_to_year,'[]') @> 2575)
+     <> 'MIXED' THEN
+    RAISE EXCEPTION 'FAIL #8: ปี 2575 ควรได้ MIXED (ช่วงปลายเปิด)';
+  END IF;
+  RAISE NOTICE 'PASS  #8 บัญชีเดียวเปลี่ยนประเภทต้นทุนได้ 4 ช่วงปี (UNCLASSIFIED→FIXED→VARIABLE→MIXED 50/50)';
+END $$;
+
+-- ─────────────────── #9 ค่าตั้งระบบแทนค่าที่เคยฝังในโค้ด ───────────────────
+\echo ''
+\echo '--- #9 ค่าตั้งระบบ: default · ตั้งทับรายปี · ค่าที่ไม่ถูกต้องต้องถูกปฏิเสธ ---'
+DO $$
+DECLARE v_period bigint := (SELECT period_id FROM dim_period LIMIT 1); v text; a numeric;
+BEGIN
+  -- ยังไม่ตั้งค่า → ต้องได้ default จาก catalog
+  v := get_setting('cm_le_zero_policy', v_period);
+  IF v <> 'full_cost_recovery' THEN RAISE EXCEPTION 'FAIL #9: default = % (คาด full_cost_recovery)', v; END IF;
+  RAISE NOTICE 'PASS  #9 ยังไม่ตั้งค่า → ใช้ default จาก catalog (%)', v;
+
+  -- ตั้งทับเฉพาะปีการศึกษา 2568 เป็นต้นไป
+  INSERT INTO system_setting (setting_key, effective_from_year, setting_value, status, approved_by, approved_at, note)
+  VALUES ('cm_le_zero_policy', 2568, 'not_computable', 'APPROVED', 'budget_office', now(),
+          'มติที่ประชุม: ให้รายงานว่าไม่มีจุดคุ้มทุน แทนการแสดงเป้าหมายขั้นต่ำ');
+
+  v := get_setting('cm_le_zero_policy', v_period);
+  IF v <> 'not_computable' THEN RAISE EXCEPTION 'FAIL #9: ตั้งทับแล้วได้ % (คาด not_computable)', v; END IF;
+  RAISE NOTICE 'PASS  #9 ตั้งทับรายปีแล้วมีผลกับงวดปีการศึกษา 2568 (%)', v;
+
+  -- นโยบายต้องเปลี่ยนผลคำนวณจริง ไม่ใช่เก็บไว้เฉยๆ
+  SELECT q_star INTO a FROM calc_qstar(100000, 500000, 20000, 30000, 'full_cost_recovery', 'ceil');
+  IF a <> 25 THEN RAISE EXCEPTION 'FAIL #9: full_cost_recovery ควรได้ 25 ได้ %', a; END IF;
+  SELECT q_star INTO a FROM calc_qstar(100000, 500000, 20000, 30000, 'not_computable', 'ceil');
+  IF a IS NOT NULL THEN RAISE EXCEPTION 'FAIL #9: not_computable ควรได้ NULL ได้ %', a; END IF;
+  RAISE NOTICE 'PASS  #9 นโยบาย CM ≤ 0 เปลี่ยนผลจริง (full_cost_recovery=25 · not_computable=NULL)';
+
+  -- การปัดเศษก็เป็นค่าตั้ง (ข้อตัดสินใจ B ที่ค้างอยู่)
+  SELECT q_star INTO a FROM calc_qstar(100000, 500000, 30000, 25800, 'full_cost_recovery', 'ceil');
+  IF a <> 24 THEN RAISE EXCEPTION 'FAIL #9: ceil ควรได้ 24 ได้ %', a; END IF;
+  SELECT q_star INTO a FROM calc_qstar(100000, 500000, 30000, 25800, 'full_cost_recovery', 'round');
+  IF a <> 24 THEN RAISE EXCEPTION 'FAIL #9: round ควรได้ 24 ได้ %', a; END IF;
+  SELECT q_star INTO a FROM calc_qstar(100000, 500000, 30000, 26000, 'full_cost_recovery', 'ceil');
+  IF a <> 25 THEN RAISE EXCEPTION 'FAIL #9: ceil(25.0) ควรได้ 25 ได้ %', a; END IF;
+  RAISE NOTICE 'PASS  #9 การปัดเศษ Q* เป็นค่าตั้ง เปลี่ยนได้โดยไม่ต้องแก้โค้ด';
+END $$;
+
+\echo ''
+\echo '--- #9 ค่าตั้งที่ไม่อยู่ในชุดค่าที่ยอมรับ / key ที่ไม่รู้จัก (คาดว่าต้อง error) ---'
+DO $$
+BEGIN
+  PERFORM get_setting('ไม่มี key นี้', (SELECT period_id FROM dim_period LIMIT 1));
+  RAISE EXCEPTION 'FAIL #9: อ่าน key ที่ไม่มีในนิยามได้ ทั้งที่ควร error';
+EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM LIKE 'FAIL #9%' THEN RAISE; END IF;
+  RAISE NOTICE 'PASS  #9 key ที่ไม่ได้นิยามไว้ถูกปฏิเสธ ไม่เดาค่าให้เงียบๆ';
+END $$;
+
+DO $$
+BEGIN
+  INSERT INTO system_setting_def (setting_key, setting_group, display_name, description,
+                                  value_type, allowed_values, default_value, year_basis)
+  VALUES ('ทดสอบ','calculation','x','x','enum', ARRAY['a','b'], 'c', 'ACADEMIC');
+  RAISE EXCEPTION 'FAIL #9: ตั้ง default ที่ไม่อยู่ใน allowed_values ได้';
+EXCEPTION WHEN check_violation THEN
+  RAISE NOTICE 'PASS  #9 default ที่ไม่อยู่ในชุดค่าที่ยอมรับถูกปฏิเสธ';
+END $$;
+
+DO $$
+BEGIN
+  INSERT INTO system_setting (setting_key, effective_from_year, effective_to_year, setting_value,
+                              status, approved_by, approved_at)
+  VALUES ('cm_le_zero_policy', 2570, 2575, 'full_cost_recovery', 'APPROVED', 'other', now());
+  RAISE EXCEPTION 'FAIL #9: ตั้งค่าซ้อนช่วงปีได้ ทั้งที่ควรถูกปฏิเสธ';
+EXCEPTION WHEN exclusion_violation THEN
+  RAISE NOTICE 'PASS  #9 ค่าตั้งที่ช่วงปีคาบเกี่ยวกันถูกปฏิเสธ';
 END $$;
 
 \echo ''

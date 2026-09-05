@@ -11,29 +11,74 @@
 SET search_path TO beps, public;
 
 -- ────────────────────────────────────────────────────────────────────────────
+-- อ่านค่าตั้งระบบที่มีผลกับงวดหนึ่ง (แก้ #9)
+--   ลำดับความสำคัญ: ค่าที่ตั้งเจาะจงหน่วยงาน > ค่าระดับมหาวิทยาลัย > ค่า default ใน catalog
+--   ปีที่ใช้เทียบมาจาก system_setting_def.year_basis (ปีการศึกษา หรือ ปีงบประมาณ)
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION get_setting(
+  p_key varchar, p_period_id bigint, p_org_unit_id bigint DEFAULT NULL
+) RETURNS text
+LANGUAGE plpgsql STABLE AS $$
+DECLARE v_val text; v_basis year_basis; v_year integer; v_default text;
+BEGIN
+  SELECT year_basis, default_value INTO v_basis, v_default
+    FROM system_setting_def WHERE setting_key = p_key;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'ไม่รู้จักค่าตั้งระบบ "%" — ต้องนิยามใน system_setting_def ก่อน', p_key;
+  END IF;
+
+  SELECT CASE v_basis WHEN 'ACADEMIC' THEN academic_year ELSE fiscal_year END
+    INTO v_year FROM dim_period WHERE period_id = p_period_id;
+  IF v_year IS NULL THEN RETURN v_default; END IF;
+
+  SELECT s.setting_value INTO v_val
+    FROM system_setting s
+   WHERE s.setting_key = p_key
+     AND s.status = 'APPROVED'
+     AND (s.org_unit_id IS NULL OR s.org_unit_id = p_org_unit_id)
+     AND int4range(s.effective_from_year, s.effective_to_year, '[]') @> v_year
+   ORDER BY s.org_unit_id NULLS LAST, s.effective_from_year DESC
+   LIMIT 1;
+
+  RETURN COALESCE(v_val, v_default);
+END; $$;
+
+-- ────────────────────────────────────────────────────────────────────────────
 -- คำนวณจุดคุ้มทุนจากตัวเลขสรุป — สูตร 1 และสูตร 7 (SA.md หัวข้อ 7.1)
 --   คืน (q_star, q_star_status)
---   ปัดขึ้นเสมอ เพราะรับนิสิต 238.4 คนไม่ได้ ต้องรับ 239 คนจึงคุ้ม
---   (ยังเป็นข้อตัดสินใจ B ที่รอยืนยัน — prototype เดิมใช้ round)
+--   นโยบาย 2 ข้อไม่ฝังในโค้ดแล้ว ผู้เรียกต้องส่งมาจาก get_setting() (แก้ #9):
+--     p_cm_policy  — CM ≤ 0 จะใช้ full_cost_recovery หรือรายงาน not_computable
+--     p_rounding   — ปัด Q* แบบ ceil หรือ round
+--   default ของพารามิเตอร์ตรงกับ default_value ใน catalog เพื่อให้เรียกมือได้
 -- ────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION calc_qstar(
-  p_tfc numeric, p_tc numeric, p_r numeric, p_avc numeric
+  p_tfc numeric, p_tc numeric, p_r numeric, p_avc numeric,
+  p_cm_policy text DEFAULT 'full_cost_recovery',
+  p_rounding  text DEFAULT 'ceil'
 ) RETURNS TABLE (q_star numeric, q_star_status qstar_status)
 LANGUAGE plpgsql IMMUTABLE AS $$
-DECLARE v_cm numeric;
+DECLARE v_cm numeric; v_raw numeric;
 BEGIN
   IF p_r IS NULL OR p_avc IS NULL THEN
     RETURN QUERY SELECT NULL::numeric, 'not_computable'::qstar_status; RETURN;
   END IF;
   v_cm := p_r - p_avc;
+
   IF v_cm > 0 THEN
-    RETURN QUERY SELECT ceil(p_tfc / v_cm)::numeric, 'normal'::qstar_status;
-  ELSIF p_r > 0 THEN
+    v_raw := p_tfc / v_cm;
+  ELSIF p_r > 0 AND p_cm_policy = 'full_cost_recovery' THEN
     -- สูตร 7: AVC สูงกว่า R → ไม่มีจุดคุ้มทุนจริง ใช้เป้าหมายขั้นต่ำแบบ Full-Cost Recovery
-    RETURN QUERY SELECT ceil(p_tc / p_r)::numeric, 'full_cost_recovery'::qstar_status;
+    RETURN QUERY SELECT
+      CASE p_rounding WHEN 'round' THEN round(p_tc / p_r) ELSE ceil(p_tc / p_r) END::numeric,
+      'full_cost_recovery'::qstar_status;
+    RETURN;
   ELSE
-    RETURN QUERY SELECT NULL::numeric, 'not_computable'::qstar_status;
+    RETURN QUERY SELECT NULL::numeric, 'not_computable'::qstar_status; RETURN;
   END IF;
+
+  RETURN QUERY SELECT
+    CASE p_rounding WHEN 'round' THEN round(v_raw) ELSE ceil(v_raw) END::numeric,
+    'normal'::qstar_status;
 END; $$;
 
 -- ────────────────────────────────────────────────────────────────────────────
@@ -50,6 +95,8 @@ DECLARE
   v_src_total   numeric(20,2);
   v_alloc_total numeric(20,2);
   v_diff        numeric(20,2);
+  v_default_method alloc_method;
+  v_dep_behavior   cost_behavior;
 BEGIN
   SELECT period_id, org_unit_id, basis, tolerance, status
     INTO v_period, v_org, v_basis, v_tol, v_status
@@ -71,15 +118,24 @@ BEGIN
   DELETE FROM program_cost_summary    WHERE allocation_run_id = p_run_id;
 
   -- ── ขั้น 1: หากติกา behavior ของแต่ละรายการต้นทุน ─────────────────────────
+  --    แก้ #8: เทียบด้วย "ปี" ของงวดตาม year_basis ของกติกา ไม่ใช่ period_start
+  --    แก้ #9: วิธีปันส่วนตั้งต้นและประเภทของค่าเสื่อมราคาอ่านจากค่าตั้งระบบ
+  v_default_method := get_setting('default_allocation_method', v_period, v_org)::alloc_method;
+  v_dep_behavior   := get_setting('depreciation_behavior',     v_period, v_org)::cost_behavior;
+
   CREATE TEMP TABLE _cost ON COMMIT DROP AS
   SELECT c.cost_source_id,
          c.program_version_id,
          c.amount,
-         COALESCE(r.behavior, CASE WHEN c.source_type='DEPRECIATION' THEN 'FIXED'::cost_behavior
+         COALESCE(r.behavior, CASE WHEN c.source_type='DEPRECIATION' THEN v_dep_behavior
                                    ELSE 'UNCLASSIFIED'::cost_behavior END)              AS behavior,
-         COALESCE(r.fixed_ratio,    CASE WHEN c.source_type='DEPRECIATION' THEN 1 ELSE 0 END) AS fixed_ratio,
-         COALESCE(r.variable_ratio, 0)                                                   AS variable_ratio,
-         COALESCE(r.allocation_method_code, 'STUDENT_HEADCOUNT'::alloc_method)           AS method,
+         COALESCE(r.fixed_ratio,
+                  CASE WHEN c.source_type='DEPRECIATION' AND v_dep_behavior='FIXED' THEN 1
+                       ELSE 0 END)                                                       AS fixed_ratio,
+         COALESCE(r.variable_ratio,
+                  CASE WHEN c.source_type='DEPRECIATION' AND v_dep_behavior='VARIABLE' THEN 1
+                       ELSE 0 END)                                                       AS variable_ratio,
+         COALESCE(r.allocation_method_code, v_default_method)                            AS method,
          (r.behavior IS NULL AND c.source_type <> 'DEPRECIATION')                        AS is_unclassified
     FROM cost_source c
     JOIN dim_period p ON p.period_id = c.period_id
@@ -89,8 +145,12 @@ BEGIN
        WHERE abr.erp_account_id = c.erp_account_id
          AND abr.status = 'APPROVED'
          AND (abr.org_unit_id IS NULL OR abr.org_unit_id = c.org_unit_id)
-         AND daterange(abr.valid_from, abr.valid_to, '[]') @> p.period_start
-       ORDER BY abr.priority ASC, abr.org_unit_id NULLS LAST, abr.valid_from DESC
+         AND int4range(abr.effective_from_year, abr.effective_to_year, '[]')
+             @> (CASE abr.year_basis WHEN 'ACADEMIC' THEN p.academic_year ELSE p.fiscal_year END)
+       -- ลำดับตัดสินเมื่อมีหลายกติกาเข้าเงื่อนไข: เจาะจงหน่วยงานก่อน แล้ว priority
+       -- แล้วปีที่เริ่มมีผลล่าสุด สุดท้ายกันเสมอกันด้วย year_basis (ACADEMIC มาก่อน)
+       ORDER BY abr.priority ASC, abr.org_unit_id NULLS LAST,
+                abr.effective_from_year DESC, abr.year_basis ASC
        LIMIT 1
     ) r ON TRUE
    WHERE c.period_id = v_period AND c.org_unit_id = v_org AND c.basis = v_basis;
@@ -266,10 +326,19 @@ END; $$;
 -- ────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE PROCEDURE compute_break_even(p_run_id bigint)
 LANGUAGE plpgsql AS $$
-DECLARE v_period bigint;
+DECLARE
+  v_period    bigint;
+  v_org       bigint;
+  v_cm_policy text;
+  v_rounding  text;
 BEGIN
-  SELECT period_id INTO v_period FROM allocation_run WHERE allocation_run_id = p_run_id;
+  SELECT period_id, org_unit_id INTO v_period, v_org
+    FROM allocation_run WHERE allocation_run_id = p_run_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'ไม่พบ run %', p_run_id; END IF;
+
+  -- แก้ #9: นโยบายการคำนวณมาจากค่าตั้งระบบของงวดนั้น ไม่ใช่ค่าฝังในโค้ด
+  v_cm_policy := get_setting('cm_le_zero_policy', v_period, v_org);
+  v_rounding  := get_setting('qstar_rounding',    v_period, v_org);
 
   DELETE FROM break_even_result       WHERE allocation_run_id = p_run_id;
   DELETE FROM program_revenue_summary WHERE allocation_run_id = p_run_id;
@@ -340,7 +409,7 @@ BEGIN
         CROSS JOIN (VALUES ('with_government'::revenue_mode),('without_government'::revenue_mode)) m(mode)
        WHERE s.allocation_run_id = p_run_id
     ) b
-    CROSS JOIN LATERAL calc_qstar(b.tfc, b.tc, b.r, b.avc) k;
+    CROSS JOIN LATERAL calc_qstar(b.tfc, b.tc, b.r, b.avc, v_cm_policy, v_rounding) k;
 
   -- ── ระดับคณะ และมหาวิทยาลัย × 2 วิธีคำนวณ Q* (สูตร 6a / 6b) ───────────────
   --    sum_of_programs = ผลรวม Q* รายหลักสูตร (ค่าหลัก) · pooled = คำนวณจากยอดรวม (ค่าเทียบ)
@@ -387,5 +456,5 @@ BEGIN
        GROUP BY sc.scope, sc.scope_id, r.revenue_mode
     ) g
     CROSS JOIN (VALUES ('sum_of_programs'::qstar_method),('pooled'::qstar_method)) meth(m)
-    CROSS JOIN LATERAL calc_qstar(g.tfc, g.tc, g.r, g.avc) k;
+    CROSS JOIN LATERAL calc_qstar(g.tfc, g.tc, g.r, g.avc, v_cm_policy, v_rounding) k;
 END; $$;

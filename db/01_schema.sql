@@ -31,6 +31,11 @@ CREATE TYPE cost_source_type  AS ENUM ('ERP','DEPRECIATION');
 CREATE TYPE budget_category   AS ENUM ('10_govt','20_income');
 CREATE TYPE charge_type       AS ENUM ('university_contribution','main_fee_contribution','ge_cost');
 CREATE TYPE approval_action   AS ENUM ('submit','approve','reject');
+-- กติกาและค่าตั้งระบบมีผลเป็น "รายปี" ไม่ใช่รายวัน — แต่ปีมี 2 แบบ
+--   ACADEMIC = ปีการศึกษา (ค่าธรรมเนียม จำนวนนิสิต การรายงาน BEP)
+--   FISCAL   = ปีงบประมาณ (งบประมาณ ผังบัญชี ค่าเสื่อมราคา)
+CREATE TYPE year_basis        AS ENUM ('ACADEMIC','FISCAL');
+CREATE TYPE setting_value_type AS ENUM ('string','integer','numeric','boolean','enum');
 
 -- ════════════════ ชั้น 0 — Governance ════════════════
 CREATE TABLE import_batch (
@@ -68,7 +73,9 @@ CREATE TABLE app_role (
 CREATE TABLE dim_period (
   period_id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   fiscal_year          integer NOT NULL CHECK (fiscal_year BETWEEN 2500 AND 2700),
-  academic_year        integer          CHECK (academic_year BETWEEN 2500 AND 2700),
+  -- บังคับ NOT NULL: ทั้งระบบรายงานเป็น "ปีการศึกษา" และกติกา/ค่าตั้งที่ผูกกับ ACADEMIC
+  -- ต้องหาปีของงวดได้เสมอ ถ้าปล่อยว่างจะมีงวดที่หากติกาไม่เจอแบบเงียบๆ
+  academic_year        integer NOT NULL CHECK (academic_year BETWEEN 2500 AND 2700),
   semester             varchar(20),
   period_start         date NOT NULL,
   period_end           date NOT NULL,
@@ -176,9 +183,15 @@ CREATE TABLE account_behavior_rule (
   status                 master_status NOT NULL DEFAULT 'DRAFT',
   approved_by            varchar(100),
   approved_at            timestamptz,
-  valid_from             date NOT NULL,
-  valid_to               date,
-  CHECK (valid_to IS NULL OR valid_to >= valid_from),
+  -- แก้ #8: เดิมกติกาผูกกับ "ช่วงวันที่" แต่ข้อมูลต้นทุนผูกกับ "งวด" (period_id)
+  --         การหากติกาจึงต้องเดาวันจากงวด (ใช้ period_start) ทำให้กติกาที่เปลี่ยนกลางงวด
+  --         ถูกมองข้ามเงียบๆ และผู้ใช้ที่คิดเป็น "ปีการศึกษา" ตั้งค่าผิดได้ง่าย
+  --         → เปลี่ยนมาผูกกับช่วง "ปี" ตรงๆ พร้อมระบุว่าเป็นปีการศึกษาหรือปีงบประมาณ
+  year_basis             year_basis NOT NULL DEFAULT 'ACADEMIC',
+  effective_from_year    integer NOT NULL CHECK (effective_from_year BETWEEN 2500 AND 2700),
+  effective_to_year      integer          CHECK (effective_to_year   BETWEEN 2500 AND 2700),
+  note                   text,
+  CHECK (effective_to_year IS NULL OR effective_to_year >= effective_from_year),
   CHECK (status <> 'APPROVED' OR (approved_by IS NOT NULL AND approved_at IS NOT NULL)),
   -- แก้ #1: CHECK ผูกกับ behavior ทำให้ UNCLASSIFIED (0/0) แทรกได้
   --         เดิม MANUS บังคับ fixed+variable = 1 กับทุกแถว → แทรก UNCLASSIFIED ไม่ได้เลย
@@ -192,12 +205,64 @@ CREATE TABLE account_behavior_rule (
 );
 
 -- แก้ #5: กันกติกาที่อนุมัติแล้วซ้อนช่วงเวลากันในบริบทเดียวกัน
+--         (แก้ #8: เปลี่ยนจาก daterange เป็น int4range ของปี)
 ALTER TABLE account_behavior_rule ADD CONSTRAINT behavior_rule_no_overlap
   EXCLUDE USING gist (
     erp_account_id WITH =,
     COALESCE(org_unit_id, -1) WITH =,
     priority WITH =,
-    daterange(valid_from, valid_to, '[]') WITH &&
+    year_basis WITH =,
+    int4range(effective_from_year, effective_to_year, '[]') WITH &&
+  ) WHERE (status = 'APPROVED');
+
+-- ── ค่าตั้งระบบ (นโยบายการคำนวณ) ────────────────────────────────────────────
+-- แก้ #9: เดิมนโยบายการคำนวณถูกฝังในโค้ด (prototype ฝังไว้ทั้งหมด) ทำให้
+--   ก) กองแผนงานเปลี่ยนเองไม่ได้ ต้องแก้โค้ด
+--   ข) ไม่มีหลักฐานว่าตัวเลขปีไหนคำนวณด้วยนโยบายใด — เทียบข้ามปีไม่ได้
+--   ค) เกิดกรณีที่หน้าจอหนึ่งใช้กติกาหนึ่ง อีกหน้าใช้อีกกติกา (พบจริงใน prototype v8:
+--      ตารางรายงานว่า "ไม่มีจุดคุ้มทุน" แต่เครื่องคำนวณตอบ Q* = 24 สำหรับหลักสูตรเดียวกัน)
+-- จึงยกขึ้นมาเป็น master ที่มีเวอร์ชันและต้องอนุมัติ เหมือน account_behavior_rule
+
+-- catalog: นิยามว่ามีค่าตั้งอะไรบ้าง ชนิดอะไร ค่าที่ยอมรับได้คืออะไร
+CREATE TABLE system_setting_def (
+  setting_key     varchar(60) PRIMARY KEY,
+  setting_group   varchar(40) NOT NULL
+                  CHECK (setting_group IN ('calculation','allocation','presentation')),
+  display_name    text NOT NULL,
+  description     text NOT NULL,
+  value_type      setting_value_type NOT NULL,
+  allowed_values  text[],                 -- NULL = ไม่จำกัดชุดค่า
+  default_value   text NOT NULL,
+  -- ปีแบบไหนเป็นตัวตัดสินว่าค่าไหนมีผล — กำหนดที่ระดับ key ไม่ใช่ระดับแถวค่า
+  -- เพื่อไม่ให้ค่าสองแถวคนละฐานปีมีผลพร้อมกันแล้วเลือกไม่ถูก
+  year_basis      year_basis NOT NULL,
+  -- true = เปลี่ยนแล้วตัวเลขในรายงานเปลี่ยน ต้องคำนวณใหม่และแจ้งผู้ใช้
+  affects_numbers boolean NOT NULL DEFAULT true,
+  CHECK (value_type <> 'enum' OR allowed_values IS NOT NULL),
+  CHECK (allowed_values IS NULL OR default_value = ANY (allowed_values))
+);
+
+-- ค่าที่ตั้งจริง แยกตามช่วงปีและหน่วยงาน + ต้องอนุมัติเหมือนกติกาอื่น
+CREATE TABLE system_setting (
+  system_setting_id   bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  setting_key         varchar(60) NOT NULL REFERENCES system_setting_def(setting_key),
+  org_unit_id         bigint REFERENCES org_unit(org_unit_id),  -- NULL = ใช้ทั้งมหาวิทยาลัย
+  effective_from_year integer NOT NULL CHECK (effective_from_year BETWEEN 2500 AND 2700),
+  effective_to_year   integer          CHECK (effective_to_year   BETWEEN 2500 AND 2700),
+  setting_value       text NOT NULL,
+  status              master_status NOT NULL DEFAULT 'DRAFT',
+  approved_by         varchar(100),
+  approved_at         timestamptz,
+  note                text,
+  CHECK (effective_to_year IS NULL OR effective_to_year >= effective_from_year),
+  CHECK (status <> 'APPROVED' OR (approved_by IS NOT NULL AND approved_at IS NOT NULL))
+);
+
+ALTER TABLE system_setting ADD CONSTRAINT system_setting_no_overlap
+  EXCLUDE USING gist (
+    setting_key WITH =,
+    COALESCE(org_unit_id, -1) WITH =,
+    int4range(effective_from_year, effective_to_year, '[]') WITH &&
   ) WHERE (status = 'APPROVED');
 
 -- ════════════════ ชั้น 2 — Rates ════════════════
@@ -465,3 +530,57 @@ INSERT INTO allocation_method_def (allocation_method_code, method_name, reliabil
   ('PROGRAM_SHARE',     'ตามสัดส่วนหลักสูตร (ประมาณการ)', 4, 'ESTIMATED');
 
 INSERT INTO app_role (role_name) VALUES ('admin'),('budget_office'),('faculty_officer'),('viewer');
+
+-- ─────────────────── seed: catalog ค่าตั้งระบบ (แก้ #9) ───────────────────
+-- ทุก key ที่นี่คือค่าที่ prototype เคยฝังไว้ในโค้ด
+INSERT INTO system_setting_def
+  (setting_key, setting_group, display_name, description, value_type, allowed_values, default_value, year_basis, affects_numbers) VALUES
+  ('qstar_primary_method','calculation',
+   'วิธีคำนวณ Q* ระดับคณะ/มหาวิทยาลัย',
+   'sum_of_programs = รวม Q* รายหลักสูตร (เข้มงวด ชดเชยข้ามหลักสูตรไม่ได้) · pooled = คำนวณจากยอดรวมครั้งเดียว. ระบบเก็บผลทั้งสองวิธีเสมอ ค่านี้เลือกว่าค่าไหนเป็นตัวหลักที่แสดงในรายงาน',
+   'enum', ARRAY['sum_of_programs','pooled'], 'sum_of_programs', 'ACADEMIC', true),
+
+  ('cm_le_zero_policy','calculation',
+   'เมื่อ CM ≤ 0 (AVC สูงกว่า R)',
+   'full_cost_recovery = รายงานเป้าหมายขั้นต่ำ Q* = TC ÷ R (สูตร 7) · not_computable = รายงานว่าไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน. ต้องเลือกอย่างใดอย่างหนึ่งให้ทั้งระบบใช้ตรงกัน',
+   'enum', ARRAY['full_cost_recovery','not_computable'], 'full_cost_recovery', 'ACADEMIC', true),
+
+  ('qstar_rounding','calculation',
+   'การปัดเศษ Q*',
+   'ceil = ปัดขึ้นเสมอ (รับนิสิต 238.4 คนไม่ได้ ต้องรับ 239) · round = ปัดตามหลักคณิตศาสตร์ (ตรงกับ prototype เดิม)',
+   'enum', ARRAY['ceil','round'], 'ceil', 'ACADEMIC', true),
+
+  ('profit_pct_basis','calculation',
+   'ตัวหารของ "กำไร %"',
+   'TC = π ÷ ต้นทุนรวม (โค้ด prototype ส่วนใหญ่ใช้แบบนี้) · TR = π ÷ รายได้รวม. v8 ใช้ทั้งสองแบบปนกัน — หน้าภาพรวมใช้ TR แต่ Cross Analysis และเครื่องคำนวณใช้ TC ทำให้ผู้ใช้เห็นกำไร % ไม่ตรงกันระหว่างหน้า',
+   'enum', ARRAY['TC','TR'], 'TC', 'ACADEMIC', true),
+
+  ('default_revenue_mode','calculation',
+   'ฐานรายได้ตั้งต้นของรายงาน',
+   'ระบบคำนวณทั้งสองฐานเสมอ ค่านี้กำหนดว่าเปิดหน้าจอมาแล้วเห็นฐานไหนก่อน',
+   'enum', ARRAY['with_government','without_government'], 'with_government', 'ACADEMIC', false),
+
+  ('default_allocation_method','allocation',
+   'วิธีปันส่วนเมื่อกติกาไม่ได้ระบุ',
+   'ใช้เมื่อ account_behavior_rule ไม่ได้กำหนด allocation_method_code ไว้',
+   'enum', ARRAY['DIRECT','ACTUAL_USAGE','STUDENT_HEADCOUNT','PROGRAM_SHARE'], 'STUDENT_HEADCOUNT', 'FISCAL', true),
+
+  ('depreciation_behavior','allocation',
+   'ประเภทต้นทุนของค่าเสื่อมราคา',
+   'ค่าเสื่อมราคาไม่มีรหัสผังบัญชี จึงหากติกาปกติไม่เจอ ต้องกำหนดแยก',
+   'enum', ARRAY['FIXED','VARIABLE'], 'FIXED', 'FISCAL', true),
+
+  ('reconciliation_tolerance','allocation',
+   'ส่วนต่างที่ยอมรับได้ในการตรวจยอด (บาท)',
+   'ยอดปันส่วนรวมต่างจากยอดต้นทางเกินค่านี้ → run จะเป็น FAILED. ตั้ง 0 = ต้องตรงพอดี',
+   'numeric', NULL, '0.00', 'FISCAL', false),
+
+  ('outlier_min_q','presentation',
+   'จำนวนนิสิตขั้นต่ำที่นำขึ้นกราฟ',
+   'หน่วยที่มีนิสิตน้อยกว่านี้จะมีต้นทุน/หัวสูงจนบิดเบือนแกนกราฟ จึงกันออกจากกราฟแต่ยังคงอยู่ในตารางและยอดรวม',
+   'integer', NULL, '30', 'ACADEMIC', false),
+
+  ('non_academic_unit_in_total','presentation',
+   'นับหน่วยที่ไม่ผลิตบัณฑิตในยอดรวมหรือไม่',
+   'หน่วยที่ is_academic = false (เช่น สถาบันวิจัย) มีต้นทุนแต่แทบไม่มีนิสิต — เลือกว่าจะรวมในยอดมหาวิทยาลัยหรือรายงานแยก',
+   'boolean', NULL, 'true', 'ACADEMIC', true);
