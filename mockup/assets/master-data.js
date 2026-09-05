@@ -39,11 +39,12 @@ const FEE_LOG = [
 ];
 
 /* ---------- แหล่งข้อมูลต้นทาง + สถานะ sync (W9) ---------- */
+const _allocTot = RAW.FACS.reduce((a, f) => a + (f.tfcOffice || 0), 0);
 const SOURCES = [
-  { name: 'งบประมาณรายจ่าย (ERP กองคลัง)', key: 'erp_budget', rows: 18432, amount: 2415837519.44, at: '11 ก.ค. 2569 03:00', state: 'OK', mode: 'API รายวัน 03:00 น.', note: 'ครบทั้ง 20 หน่วยงาน' },
-  { name: 'จำนวนนิสิตลงทะเบียน (ระบบทะเบียน)', key: 'reg_headcount', rows: 48695, amount: null, at: '11 ก.ค. 2569 03:12', state: 'OK', mode: 'API รายวัน 03:00 น.', note: 'ตัดยอด ณ วันที่ 30 มิ.ย. 2569' },
-  { name: 'ค่าธรรมเนียมการศึกษา (W8)', key: 'fee', rows: 230, amount: 1758648800.0, at: '02 เม.ย. 2568 09:14', state: 'PARTIAL', mode: 'กรอกในระบบ', note: '4 หลักสูตรยังไม่มีอัตราที่อนุมัติ' },
-  { name: 'ค่าเสื่อมราคาครุภัณฑ์ (ระบบสินทรัพย์)', key: 'dep_equip', rows: 9841, amount: 302528495.94, at: '11 ก.ค. 2569 03:20', state: 'OK', mode: 'API รายเดือน', note: 'เฉพาะครุภัณฑ์' },
+  { name: 'งบประมาณรายจ่าย (ERP กองคลัง)', key: 'erp_budget', rows: 18432, amount: RAW.UNI.TC, at: '11 ก.ค. 2569 03:00', state: 'OK', mode: 'API รายวัน 03:00 น.', note: 'ครบทั้ง 20 หน่วยงาน' },
+  { name: 'จำนวนนิสิตลงทะเบียน (ระบบทะเบียน)', key: 'reg_headcount', rows: RAW.UNI.Q, amount: null, at: '11 ก.ค. 2569 03:12', state: 'OK', mode: 'API รายวัน 03:00 น.', note: 'ตัดยอด ณ วันที่ 30 มิ.ย. 2569' },
+  { name: 'ค่าธรรมเนียมการศึกษา (W8)', key: 'fee', rows: RAW.PROGS.length, amount: RAW.UNI.own, at: '02 เม.ย. 2568 09:14', state: 'PARTIAL', mode: 'กรอกในระบบ', note: '4 หลักสูตรยังไม่มีอัตราที่อนุมัติ' },
+  { name: 'ค่าเสื่อมราคาครุภัณฑ์ (ระบบสินทรัพย์)', key: 'dep_equip', rows: 9841, amount: RAW.UNI.dep, at: '11 ก.ค. 2569 03:20', state: 'OK', mode: 'API รายเดือน', note: 'เฉพาะครุภัณฑ์' },
   { name: 'ค่าเสื่อมราคาอาคาร (ระบบสินทรัพย์)', key: 'dep_building', rows: 0, amount: 0, at: null, state: 'MISSING', mode: 'ยังไม่เชื่อมต่อ', note: 'ยังไม่มีข้อมูล — กระทบ TFC และ Q* ทั้งระบบ' },
   { name: 'ผังบัญชี 4 ระดับ (Master)', key: 'coa', rows: 412, amount: null, at: '20 พ.ค. 2569 11:47', state: 'OK', mode: 'นำเข้า Excel', note: 'สอดคล้องกับกติกาใน W14' },
 ];
@@ -63,12 +64,14 @@ const VALIDATIONS = [
   { sev: 'info', title: 'หลักสูตรที่มีนิสิตน้อยกว่า 30 คน', n: 41, unit: 'หลักสูตร', impact: 'ต้นทุน/หัวสูงผิดปกติ · กันออกจากกราฟแต่ยังอยู่ในยอดรวม', owner: '—', go: 'W15-settings.html' },
 ];
 
-/* ---------- allocation_run (W11) ---------- */
+/* ---------- allocation_run (W11) ----------
+   ยอดต้นทุนของแต่ละ run อ้างจาก RAW เพื่อให้ตรงกับชุดข้อมูลที่โหลดอยู่
+   #1041 ใช้ฐาน BUDGET จึงสูงกว่า ACTUAL · #1039 เป็นปีงบ 2567 จึงต่ำกว่า */
 const RUNS = [
-  { id: 1042, year: 2568, basis: 'ACTUAL', rule: 'v3', scope: 'ทั้งมหาวิทยาลัย', state: 'APPROVED', by: 'นางสาวสิริมา ศรีสุภาพ', at: '11 ก.ค. 2569 14:32', appr: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', dur: '4 น. 12 วิ.', tc: 2415837519.44, diff: 0, exc: 8 },
-  { id: 1041, year: 2568, basis: 'BUDGET', rule: 'v3', scope: 'ทั้งมหาวิทยาลัย', state: 'CALCULATED', by: 'นางสาวสิริมา ศรีสุภาพ', at: '11 ก.ค. 2569 11:08', appr: null, dur: '4 น. 05 วิ.', tc: 2502140000.0, diff: 0, exc: 8 },
-  { id: 1040, year: 2568, basis: 'ACTUAL', rule: 'v2', scope: 'ทั้งมหาวิทยาลัย', state: 'FAILED', by: 'นายอัครินทร์ บุพผา', at: '09 ก.ค. 2569 22:41', appr: null, dur: '3 น. 51 วิ.', tc: 2415831402.1, diff: 6117.34, exc: 14 },
-  { id: 1039, year: 2567, basis: 'ACTUAL', rule: 'v2', scope: 'ทั้งมหาวิทยาลัย', state: 'APPROVED', by: 'นางสาวสิริมา ศรีสุภาพ', at: '14 ส.ค. 2568 09:20', appr: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', dur: '3 น. 44 วิ.', tc: 2288904115.0, diff: 0, exc: 5 },
+  { id: 1042, year: 2568, basis: 'ACTUAL', rule: 'v3', scope: 'ทั้งมหาวิทยาลัย', state: 'APPROVED', by: 'นางสาวสิริมา ศรีสุภาพ', at: '11 ก.ค. 2569 14:32', appr: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', dur: '4 น. 12 วิ.', tc: RAW.UNI.TC, diff: 0, exc: 8 },
+  { id: 1041, year: 2568, basis: 'BUDGET', rule: 'v3', scope: 'ทั้งมหาวิทยาลัย', state: 'CALCULATED', by: 'นางสาวสิริมา ศรีสุภาพ', at: '11 ก.ค. 2569 11:08', appr: null, dur: '4 น. 05 วิ.', tc: RAW.UNI.TC * 1.0357, diff: 0, exc: 8 },
+  { id: 1040, year: 2568, basis: 'ACTUAL', rule: 'v2', scope: 'ทั้งมหาวิทยาลัย', state: 'FAILED', by: 'นายอัครินทร์ บุพผา', at: '09 ก.ค. 2569 22:41', appr: null, dur: '3 น. 51 วิ.', tc: RAW.UNI.TC - 6117.34, diff: 6117.34, exc: 14 },
+  { id: 1039, year: 2567, basis: 'ACTUAL', rule: 'v2', scope: 'ทั้งมหาวิทยาลัย', state: 'APPROVED', by: 'นางสาวสิริมา ศรีสุภาพ', at: '14 ส.ค. 2568 09:20', appr: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', dur: '3 น. 44 วิ.', tc: RAW.UNI.TC * 0.9475, diff: 0, exc: 5 },
 ];
 
 const RUN_STATE = {
@@ -90,11 +93,13 @@ const RUN_LOG = [
 ];
 
 /* ---------- reconciliation (W12) ---------- */
+/* ยอดที่ปันส่วนยึดจากผลรวม tfcOffice รายคณะ เพื่อให้การ์ดบนกับตารางรายคณะใน W12 ตรงกันเสมอ
+   ส่วน DIRECT คือส่วนที่เหลือของต้นทุนรวม — สูตรนี้จึงถูกต้องกับทั้งข้อมูลจริงและชุดตัวอย่าง */
 const RECON_METHODS = [
-  { l: 'ผูกหลักสูตรโดยตรง (DIRECT)', v: 1292141475.24, c: '#0ca678', alloc: false, note: 'ต้นทุนที่ระบุหลักสูตรได้จากเอกสารต้นทาง' },
-  { l: 'ตามการใช้จริง (ACTUAL_USAGE)', v: 96600000, c: '#6d4cff', alloc: true, note: 'มีมิเตอร์/ทะเบียนการใช้แยก เช่น ค่าสาธารณูปโภค' },
-  { l: 'ตามจำนวนนิสิต (STUDENT_HEADCOUNT)', v: 978758525, c: '#f59f00', alloc: true, note: 'ตัวขับหลักของต้นทุนสำนักงานเลขานุการ' },
-  { l: 'ตามสัดส่วนหลักสูตร (PROGRAM_SHARE)', v: 48337519.2, c: '#e64980', alloc: true, note: 'ประมาณการ — หลักสูตรเล็กรับภาระสูงผิดปกติ ต้องระวังการตีความ' },
+  { l: 'ผูกหลักสูตรโดยตรง (DIRECT)', v: RAW.UNI.TC - _allocTot, c: '#0ca678', alloc: false, note: 'ต้นทุนที่ระบุหลักสูตรได้จากเอกสารต้นทาง' },
+  { l: 'ตามการใช้จริง (ACTUAL_USAGE)', v: _allocTot * 0.086, c: '#6d4cff', alloc: true, note: 'มีมิเตอร์/ทะเบียนการใช้แยก เช่น ค่าสาธารณูปโภค' },
+  { l: 'ตามจำนวนนิสิต (STUDENT_HEADCOUNT)', v: _allocTot * 0.871, c: '#f59f00', alloc: true, note: 'ตัวขับหลักของต้นทุนสำนักงานเลขานุการ' },
+  { l: 'ตามสัดส่วนหลักสูตร (PROGRAM_SHARE)', v: _allocTot * 0.043, c: '#e64980', alloc: true, note: 'ประมาณการ — หลักสูตรเล็กรับภาระสูงผิดปกติ ต้องระวังการตีความ' },
 ];
 
 /* ---------- exception queue (W13) ---------- */
@@ -442,9 +447,23 @@ const PERIODS = [
 ];
 
 /* ---------- student_type (W17) ---------- */
-const STUDENT_TYPES = [
-  { code: 'REG-TH', grp: 'ภาคปกติ', nat: 'ไทย', n: 44210, note: 'ประเภทหลัก' },
-  { code: 'REG-INT', grp: 'ภาคปกติ', nat: 'ต่างชาติ', n: 612, note: 'ค่าธรรมเนียมคนละอัตรากับนิสิตไทย' },
-  { code: 'SPC-TH', grp: 'ภาคพิเศษ', nat: 'ไทย', n: 3798, note: 'ส่วนใหญ่เป็นบัณฑิตศึกษา' },
-  { code: 'SPC-INT', grp: 'ภาคพิเศษ', nat: 'ต่างชาติ', n: 75, note: '' },
-];
+/* เก็บ "สัดส่วน" ไม่ใช่จำนวนดิบ แล้วกระจายจาก RAW.UNI.Q ด้วย largest-remainder
+   ยอดรวมจึงตรงกับจำนวนนิสิตของงวดเสมอ ไม่ว่าจะโหลดข้อมูลจริงหรือชุดตัวอย่าง */
+const STUDENT_TYPES = (() => {
+  const defs = [
+    { code: 'REG-TH', grp: 'ภาคปกติ', nat: 'ไทย', share: 0.9078, note: 'ประเภทหลัก' },
+    { code: 'REG-INT', grp: 'ภาคปกติ', nat: 'ต่างชาติ', share: 0.0126, note: 'ค่าธรรมเนียมคนละอัตรากับนิสิตไทย' },
+    { code: 'SPC-TH', grp: 'ภาคพิเศษ', nat: 'ไทย', share: 0.078, note: 'ส่วนใหญ่เป็นบัณฑิตศึกษา' },
+    { code: 'SPC-INT', grp: 'ภาคพิเศษ', nat: 'ต่างชาติ', share: 0.0016, note: '' },
+  ];
+  const total = RAW.UNI.Q;
+  const raw = defs.map(d => ({ ...d, exact: total * d.share }));
+  raw.forEach(d => (d.n = Math.floor(d.exact)));
+  let left = total - raw.reduce((a, d) => a + d.n, 0);
+  [...raw]
+    .sort((a, b) => b.exact - b.n - (a.exact - a.n))
+    .forEach(d => {
+      if (left-- > 0) d.n++;
+    });
+  return raw;
+})();
