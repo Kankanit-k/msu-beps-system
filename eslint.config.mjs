@@ -12,6 +12,10 @@ export default tseslint.config(
       // ไฟล์อ้างอิงจาก prototype เดิม — ไม่ lint (ดู SA.md หัวข้อ 16)
       'MSU-BEPS_*.html',
       'WIREFRAME.html',
+      // mockup/ — vanilla JS ฝั่งเบราว์เซอร์ ไม่อยู่ใน tsconfig ของ package ใด
+      // สูตรยกมาจาก prototype v8-1 ต้องคงต้นฉบับไว้เทียบ จึงไม่ lint เช่นเดียวกับที่ไม่ format
+      // (ดู .prettierignore และ SA.md หัวข้อ 9)
+      'mockup/**',
     ],
   },
   js.configs.recommended,
