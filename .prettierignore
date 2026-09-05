@@ -6,6 +6,8 @@ pnpm-lock.yaml
 
 # ไฟล์อ้างอิงจาก prototype เดิม — ห้าม format (ต้องคงต้นฉบับไว้เทียบสูตร)
 MSU-BEPS_*.html
+MSU-BEPS*.html
+จุดคุ้มทุน_*.html
 WIREFRAME.html
 
 # เอกสารที่ generate ขึ้น — ER.html ฝังไลบรารี Mermaid ไว้ 3.4 MB ห้าม format
@@ -13,3 +15,12 @@ ER.html
 
 # เอกสารจากภายนอก — ห้าม format เพื่อคงต้นฉบับไว้เทียบ
 MANUS/
+
+# mockup — เอกสารนำเสนอ ห้าม format
+MOCKUP.html
+MOCKUP-MASTER.html
+
+# mockup/ — หน้าจอ W0–W17 · markup และสูตรยกมาจาก prototype v8-1 ต้องคงต้นฉบับไว้เทียบ
+# (mockup/README.md ไม่อยู่ในข้อยกเว้น — format ตามปกติ)
+mockup/*.html
+mockup/assets/

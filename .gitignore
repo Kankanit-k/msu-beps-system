@@ -40,7 +40,15 @@ pnpm-debug.log*
 # ─────────────────────────────────────────────────────────────────────
 *.xlsx
 *.docx
-MSU-BEPS_*.html
+MSU-BEPS*.html
+จุดคุ้มทุน_*.html
+MOCKUP.html
+MOCKUP-MASTER.html
+
+# ชุดข้อมูลจริงที่ mockup ใช้ — ดึงมาจากไฟล์ prototype ข้างบน จึงเป็นข้อมูลชุดเดียวกัน
+# repo เก็บเฉพาะ mockup/assets/data.sample.js ที่สุ่มรบกวนตัวเลขแล้ว
+# สร้างใหม่ได้ด้วย: node mockup/make-data-sample.mjs
+mockup/assets/data.js
 
 # บทสนทนา export เป็น PDF — ไม่ใช่เอกสารออกแบบ
 *.pdf

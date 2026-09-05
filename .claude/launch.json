@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mockup",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "mockup", "-p", "8765", "-c-1", "--silent"],
+      "port": 8765
+    }
+  ]
+}
