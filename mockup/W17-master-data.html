@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W17 ทะเบียนหน่วยงาน · งวด · ประเภทนิสิต</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>ข้อมูลหลักที่เหลืออีก 3 ชุด — <b>โครงสร้างหน่วยงาน</b> · <b>งวดปีงบประมาณ</b> · <b>ประเภทนิสิต</b>
+      ทั้งสามชุดถูกอ้างโดยทุกตารางที่เก็บตัวเลข ถ้าตั้งผิดหรือเปลี่ยนย้อนหลัง ตัวเลขทั้งระบบจะเปลี่ยนตาม
+      · ส่วนหลักสูตรอยู่ที่ <a href="W16-programs.html" style="color:var(--navy)">W16</a></span>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="tabs">
+      <button class="on" data-t="org">🏛 โครงสร้างหน่วยงาน</button>
+      <button data-t="period">📅 งวดปีงบประมาณ</button>
+      <button data-t="stype">👥 ประเภทนิสิต</button>
+    </div>
+    <span class="grow"></span>
+    <button class="btn primary" id="btn-add">+ เพิ่มรายการ</button>
+  </div>
+
+  <!-- ══════════ หน่วยงาน ══════════ -->
+  <div id="t-org">
+    <div class="kpis">
+      <div class="kpi cn"><div class="kpi-label">หน่วยงานทั้งหมด</div><div class="kpi-val num" style="color:var(--navy2)" id="o-all">—</div><div class="kpi-unit">รายการในทะเบียน</div></div>
+      <div class="kpi cg"><div class="kpi-label">หน่วยที่ผลิตบัณฑิต</div><div class="kpi-val num" style="color:var(--green2)" id="o-aca">—</div><div class="kpi-unit">is_academic = true</div></div>
+      <div class="kpi co"><div class="kpi-label">หน่วยสนับสนุน</div><div class="kpi-val num" style="color:var(--gold)" id="o-sup">—</div><div class="kpi-unit">ต้องปันส่วนต้นทุนออกทั้งหมด</div></div>
+      <div class="kpi cr"><div class="kpi-label">ยังไม่ผูกรหัส ERP</div><div class="kpi-val num" style="color:var(--red2)" id="o-noerp">—</div><div class="kpi-unit">รับต้นทุนจากระบบต้นทางไม่ได้</div></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1.6fr 1fr">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+          <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ทะเบียนหน่วยงาน 3 ระดับ</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">org_unit</code>
+            + <code style="font-family:'Manrope',monospace;font-size:10.5px">org_unit_map</code>
+            · ตัวอย่าง 10 รายการจากทั้งหมด 58 รายการ</div>
+        </div>
+        <table class="tbl dense">
+          <thead><tr>
+            <th style="width:88px">รหัส</th><th>ชื่อหน่วยงาน</th><th style="width:120px">ระดับ</th>
+            <th style="width:90px">รหัส ERP</th><th style="width:96px">ประเภท</th><th style="width:78px">สถานะ</th>
+          </tr></thead>
+          <tbody id="org-tb"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ทำไมโครงสร้างต้องมี 3 ระดับ</div>
+          <div class="card-sub">มหาวิทยาลัย → คณะ → ระดับการศึกษา</div></div></div>
+        <div class="sub-note" style="margin:0 0 12px">
+          ชุดข้อมูลต้นฉบับ<b>ไม่มีคอลัมน์ภาควิชา</b> ระบบจึงใช้ <b>ระดับการศึกษา</b> (ปริญญาตรี / บัณฑิตศึกษา)
+          เป็นชั้นกลางแทน ซึ่งตรงกับวิธีที่ Excel ปันส่วนต้นทุนสำนักงานเลขานุการอยู่แล้ว
+          — ถ้าภายหลังมีตารางจับคู่หลักสูตร → ภาควิชาจริง สลับชั้นกลางได้ทันทีโดยไม่ต้องแก้สูตร
+        </div>
+        <div class="rule-row"><div><div class="rule-name">หลักสูตรผูกที่ระดับการศึกษา</div>
+          <div class="rule-desc"><code style="font-family:'Manrope',monospace">program.org_unit_id</code> ชี้ที่ <code style="font-family:'Manrope',monospace">EDUCATION_LEVEL</code> ไม่ใช่ระดับคณะ</div></div>
+          <span class="chip chip-n">บังคับ</span></div>
+        <div class="rule-row"><div><div class="rule-name">หน่วยสนับสนุนต้องปันออกให้หมด</div>
+          <div class="rule-desc">สำนักงานเลขานุการและสถาบันวิจัยไม่มีนิสิต เป็น cost pool ที่ต้องกระจายลงหลักสูตร ไม่งั้นต้นทุนจะค้าง</div></div>
+          <span class="chip chip-o">is_academic = false</span></div>
+        <div class="rule-row"><div><div class="rule-name">การจับคู่รหัส ERP มีช่วงเวลา</div>
+          <div class="rule-desc">รหัส ERP เดียวกันเปลี่ยนหน่วยงานปลายทางตามปีได้ ระบบกันช่วงเวลาคาบเกี่ยวไว้แล้ว</div></div>
+          <span class="chip chip-g">ตรวจอัตโนมัติ</span></div>
+        <div class="caveat" style="margin:14px 0 0">
+          <span>⚠️</span>
+          <span><b>วิทยาลัยนวัตกรรมดิจิทัล</b> ตั้งใหม่ปี 2570 แต่ยังไม่ผูกรหัส ERP —
+            ต้นทุนที่ส่งมาจากระบบต้นทางจะจับคู่ไม่ได้ และไปโผล่เป็นธง
+            <code>MISSING_DRIVER</code> ที่ <a href="W13-exceptions.html">W13</a></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ งวด ══════════ -->
+  <div id="t-period" style="display:none">
+    <div class="grid" style="grid-template-columns:1.5fr 1fr">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+          <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>งวดปีงบประมาณ</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">dim_period</code>
+            · ทุกตัวเลขในระบบผูกกับ <code style="font-family:'Manrope',monospace;font-size:10.5px">period_id</code></div>
+        </div>
+        <div class="tbl-scroll">
+          <table class="tbl dense">
+            <thead><tr>
+              <th style="width:74px">ปีงบ</th><th style="width:82px">ปีการศึกษา</th><th>ช่วงงวด</th>
+              <th style="width:104px">วันตัดยอดนิสิต</th><th>สถานะนิสิตที่นับ</th><th style="width:86px">สถานะ</th>
+            </tr></thead>
+            <tbody id="per-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--red2)"></span>สองอย่างที่ต้องกำหนดให้ชัด</div>
+          <div class="card-sub">ถ้าไม่ตั้ง จะได้ตัวเลขที่เทียบข้ามปีไม่ได้</div></div></div>
+
+        <div style="border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:11px">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:5px">1. ปีงบประมาณ ไม่เท่ากับ ปีการศึกษา</div>
+          <div style="font-size:11.5px;color:var(--text2);line-height:1.7">
+            ต้นทุนมาเป็น<b>ปีงบประมาณ</b> (ต.ค.–ก.ย.) แต่จำนวนนิสิตและค่าธรรมเนียมเป็น<b>ปีการศึกษา</b>
+            ระบบจึงบังคับให้ทุกงวดระบุทั้งสองค่า — ถ้าปล่อยว่าง กติกาที่ผูกกับปีการศึกษา
+            (W14, W15) จะหาปีไม่เจอแบบเงียบๆ
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:11px">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:5px">2. วันตัดยอดนิสิต และสถานะที่นับเป็น Q</div>
+          <div style="font-size:11.5px;color:var(--text2);line-height:1.7">
+            Q เป็นตัวหารของทั้ง R และ AVC — ตัดยอดคนละวันหรือนับนิสิตลาพักต่างกัน
+            ทำให้ Q\* เปลี่ยนทั้งระบบ · ค่าที่ตั้งไว้จะถูกล็อกติดไปกับรอบคำนวณ
+            (<a href="W11-allocation-run.html" style="color:var(--navy2)">W11</a>) เพื่อให้คำนวณซ้ำได้ผลเดิม
+          </div>
+        </div>
+
+        <div class="caveat" style="margin:0">
+          <span>⚠️</span>
+          <span>ยังค้างอยู่ใน <code>MAPPING.md</code> — ไฟล์ต้นฉบับใช้ <b>งบประมาณ 2568</b>
+            คู่กับ <b>ค่าเสื่อมราคารวม 2567</b> ซึ่งเป็นคนละปี
+            ต้องยืนยันว่างวด 2568 ใช้ค่าเสื่อมของปีไหน ก่อนปิดงวด</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ประเภทนิสิต ══════════ -->
+  <div id="t-stype" style="display:none">
+    <div class="grid" style="grid-template-columns:1.3fr 1fr">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+          <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ประเภทนิสิต</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">student_type</code>
+            · ค่าธรรมเนียมและเงินสมทบคิดแยกตามประเภท (FR-11)</div>
+        </div>
+        <table class="tbl dense">
+          <thead><tr>
+            <th style="width:96px">รหัส</th><th style="width:96px">ภาค</th><th style="width:88px">สัญชาติ</th>
+            <th class="num" style="width:96px">นิสิต 2568</th><th>หมายเหตุ</th>
+          </tr></thead>
+          <tbody id="st-tb"></tbody>
+          <tfoot><tr><td colspan="3">รวม</td><td class="num" id="st-sum">—</td><td class="muted" id="st-chk"></td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ประเภทนิสิตกระทบอะไรบ้าง</div></div></div>
+        <div class="rule-row"><div><div class="rule-name">อัตราค่าธรรมเนียม (W8)</div>
+          <div class="rule-desc">หลักสูตรเดียวกันมีได้หลายอัตรา — ธุรกิจระหว่างประเทศ (นานาชาติ) คิดนิสิตไทย 90,000 และต่างชาติ 110,000 บาท/ปี</div></div>
+          <span class="chip chip-n">TR</span></div>
+        <div class="rule-row"><div><div class="rule-name">เงินสมทบรายการหลัก (FR-11)</div>
+          <div class="rule-desc">หักตาม master ค่าธรรมเนียม × จำนวนนิสิตแยกตามประเภท ไม่ใช่ยอดรวม</div></div>
+          <span class="chip chip-o">TVC</span></div>
+        <div class="rule-row"><div><div class="rule-name">เงินสมทบมหาวิทยาลัย (FR-12)</div>
+          <div class="rule-desc">2,235 บาท/คน/เทอม · อัตราเปลี่ยนได้ทุกปี จึงเก็บเป็นค่าตั้งรายปีไม่ใช่ค่าคงที่ในโค้ด</div></div>
+          <span class="chip chip-o">TVC</span></div>
+        <div class="sub-note" style="margin:14px 0 0">
+          <b>ห้ามเพิ่มประเภทนิสิตย้อนหลังในงวดที่ปิดแล้ว</b> — ยอดรวมนิสิตของงวดจะไม่ตรงกับที่เคยคำนวณ
+          และตรวจยอดกลับต้นทางที่ <a href="W12-reconciliation.html" style="color:var(--navy2)">W12</a> จะไม่ผ่าน
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>ทำไมข้อมูลหลักต้องมีช่วงเวลามีผล ไม่ใช่แก้ทับ</h3>
+    <ul>
+      <li class="crit">คณะเปลี่ยนชื่อ ควบรวม หรือแยกออก เกิดขึ้นจริงทุกไม่กี่ปี — ถ้าแก้ทับ รายงานปีเก่าจะแสดงชื่อใหม่ทั้งที่ตอนนั้นยังไม่มีหน่วยงานนี้</li>
+      <li class="warn">รหัส ERP เดียวกันถูกย้ายไปหน่วยงานอื่นได้ ระบบจึงกันช่วงเวลาคาบเกี่ยวไว้ที่ระดับฐานข้อมูล ไม่ใช่แค่เตือนบนหน้าจอ</li>
+      <li class="info">ทุกตารางที่เก็บตัวเลขอ้าง <code style="font-family:'Manrope',monospace">period_id</code> · <code style="font-family:'Manrope',monospace">org_unit_id</code> · <code style="font-family:'Manrope',monospace">program_version_id</code> ครบทั้งสามเสมอ</li>
+      <li class="ok">ผลที่ได้คือตอบได้ว่า "ตัวเลขปี 2567 คำนวณด้วยโครงสร้างหน่วยงานแบบไหน กติกาเวอร์ชันใด และนับนิสิต ณ วันไหน"</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W17', title: 'ทะเบียนหน่วยงาน · งวด · ประเภทนิสิต', f: 'W17-master-data.html', bm: false, run: false });
+
+/* ---- แท็บ ---- */
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['org', 'period', 'stype'].forEach(t =>
+    document.getElementById('t-' + t).style.display = t === b.dataset.t ? '' : 'none');
+});
+
+/* ---- หน่วยงาน ---- */
+document.getElementById('o-all').textContent = ORG_UNITS.length;
+document.getElementById('o-aca').textContent = ORG_UNITS.filter(o => o.academic).length;
+document.getElementById('o-sup').textContent = ORG_UNITS.filter(o => !o.academic).length;
+document.getElementById('o-noerp').textContent = ORG_UNITS.filter(o => !o.erp).length;
+
+const INDENT = { UNIVERSITY: 0, FACULTY: 1, EDUCATION_LEVEL: 2 };
+document.getElementById('org-tb').innerHTML = ORG_UNITS.map(o => `
+  <tr>
+    <td><code style="font-family:'Manrope',monospace;font-size:10.5px;color:var(--navy)">${o.code}</code></td>
+    <td class="wrap" style="padding-left:${10 + INDENT[o.level] * 16}px">
+      <b>${o.name}</b>${o.note ? `<div class="muted">${o.note}</div>` : ''}</td>
+    <td class="muted">${ORG_LEVEL_LABEL[o.level]}</td>
+    <td>${o.erp
+      ? `<code style="font-family:'Manrope',monospace;font-size:10.5px">${o.erp}</code>`
+      : '<span class="flag flag-drv">ยังไม่ผูก</span>'}</td>
+    <td><span class="chip ${o.academic ? 'chip-g' : 'chip-o'}">${o.academic ? 'ผลิตบัณฑิต' : 'หน่วยสนับสนุน'}</span></td>
+    <td><span class="st ${o.status === 'APPROVED' ? 'st-appr' : 'st-draft'}"><span class="st-dot"></span>${o.status === 'APPROVED' ? 'อนุมัติ' : 'ร่าง'}</span></td>
+  </tr>`).join('');
+
+/* ---- งวด ---- */
+document.getElementById('per-tb').innerHTML = PERIODS.map(p => `
+  <tr>
+    <td class="num" style="font-weight:700;color:var(--navy)">${p.fy}</td>
+    <td class="num">${p.ay}</td>
+    <td class="muted">${p.start} – ${p.end}</td>
+    <td class="muted">${p.snap || '<span style="color:var(--red)">ยังไม่กำหนด</span>'}</td>
+    <td class="wrap muted">${p.rule}</td>
+    <td><span class="st ${p.state === 'ปิดงวดแล้ว' ? 'st-appr' : 'st-run'}"><span class="st-dot"></span>${p.state}</span></td>
+  </tr>`).join('');
+
+/* ---- ประเภทนิสิต ---- */
+document.getElementById('st-tb').innerHTML = STUDENT_TYPES.map(s => `
+  <tr>
+    <td><code style="font-family:'Manrope',monospace;font-size:10.5px;color:var(--navy)">${s.code}</code></td>
+    <td>${s.grp}</td>
+    <td><span class="chip ${s.nat === 'ไทย' ? 'chip-n' : 'chip-g'}">${s.nat}</span></td>
+    <td class="num" style="font-weight:700">${fmtN(s.n)}</td>
+    <td class="wrap muted">${s.note || '—'}</td>
+  </tr>`).join('');
+
+const stSum = STUDENT_TYPES.reduce((a, s) => a + s.n, 0);
+document.getElementById('st-sum').textContent = fmtN(stSum);
+document.getElementById('st-chk').innerHTML = stSum === RAW.UNI.Q
+  ? `<span style="color:var(--green)">✓ ตรงกับยอดนิสิตรวมของงวด (${fmtN(RAW.UNI.Q)} คน)</span>`
+  : `<span style="color:var(--red)">✕ ต่างจากยอดนิสิตรวมของงวด ${fmtN(Math.abs(stSum - RAW.UNI.Q))} คน — ตรวจยอดจะไม่ผ่าน</span>`;
+
+document.getElementById('btn-add').onclick = () => {
+  const on = document.querySelector('#tabs button.on').textContent.trim();
+  alert('Mockup — ปุ่มนี้จะเปิดฟอร์มเพิ่ม' + on.replace(/^[^\s]+\s/, ''));
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W15 นโยบายการคำนวณ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>ค่าเหล่านี้เคย<b>ฝังอยู่ในโค้ด</b>ของ prototype ทำให้กองแผนงานเปลี่ยนเองไม่ได้
+      และหน้าจอคนละหน้าใช้กติกาต่างกันจนได้ตัวเลขไม่ตรงกัน · ตอนนี้เป็นค่าตั้งที่<b>มีเวอร์ชันรายปีและต้องอนุมัติ</b>
+      ทุกส่วนของระบบอ่านจากค่าเดียวกัน</span>
+  </div>
+
+  <div class="caveat">
+    <span>📌</span>
+    <span><b>ปีการศึกษา 2568 ยังไม่มีมติกำหนดค่าใดเลย</b> — ทุกค่ายังใช้ค่าเริ่มต้นจากนิยามระบบ
+      รายการที่ยังรอมติที่ประชุม: <code>cm_le_zero_policy</code> · <code>qstar_primary_method</code> ·
+      <code>qstar_rounding</code> · <code>amount_basis</code>
+      ตัวเลขที่นำเสนออยู่ตอนนี้จึงเป็นผลของ<b>ค่าเริ่มต้น</b> ไม่ใช่นโยบายที่ผ่านการรับรอง</span>
+  </div>
+
+  <div class="toolbar">
+    <span class="bm-lbl">มีผลตั้งแต่ปีการศึกษา:</span>
+    <select class="inp" style="width:auto" id="f-year"><option>2568</option><option>2569</option><option>2570</option></select>
+    <div class="seg" id="f-grp">
+      <button class="on" data-g="all">ทั้งหมด</button>
+      <button data-g="calculation">การคำนวณ</button>
+      <button data-g="allocation">การปันส่วน</button>
+      <button data-g="presentation">การแสดงผล</button>
+    </div>
+    <span class="grow"></span>
+    <span class="chip chip-o">⚡ กระทบตัวเลข = เปลี่ยนแล้วต้องสั่งคำนวณใหม่</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.55fr 1fr">
+
+    <div class="card">
+      <div class="card-head"><div>
+        <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>รายการค่าตั้ง</div>
+        <div class="card-sub">คลิกชื่อค่าตั้งเพื่อดูผลกระทบ · ค่าที่ไม่ได้ตั้งทับจะใช้ค่าเริ่มต้นจากนิยามระบบ</div></div></div>
+      <div id="set-list"></div>
+
+      <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+        <button class="btn primary off" id="btn-submit" disabled>📤 เสนออนุมัติการเปลี่ยนแปลง</button>
+        <button class="btn off" id="btn-reset" disabled>↺ ย้อนกลับ</button>
+        <span class="grow"></span>
+        <span class="sub-note" style="margin:0" id="dirty">ยังไม่มีการเปลี่ยนแปลง</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card" id="impact"></div>
+
+      <div class="card">
+        <div class="card-head"><div>
+          <div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ประวัติการเปลี่ยนค่าตั้ง</div>
+          <div class="card-sub">ตอบได้ว่าตัวเลขปีไหนคำนวณด้วยกติกาใด</div></div></div>
+        <div class="log" id="set-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>ทำไมค่าตั้งต้องมีเวอร์ชันรายปี</h3>
+    <ul>
+      <li class="crit">ถ้าไม่มีหน้านี้ นโยบายจะกลับไป<b>ฝังในโค้ด</b> และ<b>เทียบตัวเลขข้ามปีไม่ได้</b> เพราะไม่รู้ว่าแต่ละปีคำนวณด้วยกติกาใด</li>
+      <li class="warn">ค่าที่ติดป้าย <b>กระทบตัวเลข</b> เปลี่ยนแล้วต้องสร้างรอบคำนวณใหม่ที่ <a href="W11-allocation-run.html">W11</a> — ตัวเลขเก่าจะไม่เปลี่ยนตามเอง</li>
+      <li class="info"><code style="font-family:'Manrope',monospace">qstar_primary_method</code> ต่างกันถึง <b>5,441 คน</b> ในระดับมหาวิทยาลัย — ไม่ใช่รายละเอียดปลีกย่อย แต่เป็นเรื่องที่ต้องมีมติ</li>
+      <li class="ok">ระบบ<b>คำนวณเก็บไว้ทั้ง 2 วิธีเสมอ</b> ค่าตั้งนี้เลือกแค่ว่าตัวไหนเป็นตัวหลักในรายงาน จึงสลับได้โดยไม่ต้องคำนวณใหม่</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W15', title: 'นโยบายการคำนวณ (ค่าตั้งระบบ)', f: 'W15-settings.html', bm: false, run: false });
+
+const draft = {};                                   // key → ค่าที่แก้แต่ยังไม่เสนออนุมัติ
+const valOf = s => draft[s.key] ?? s.cur ?? s.def;  // ค่าที่ใช้อยู่จริง
+let sel = SETTINGS[0].key, fGrp = 'all';
+
+function renderList() {
+  const groups = ['calculation', 'allocation', 'presentation']
+    .filter(g => fGrp === 'all' || fGrp === g);
+
+  document.getElementById('set-list').innerHTML = groups.map(g => {
+    const items = SETTINGS.filter(s => s.grp === g);
+    if (!items.length) return '';
+    return `<div class="hub-grp" style="margin:14px 0 6px">${GRP_LABEL[g]}</div>` + items.map(s => {
+      const v = valOf(s);
+      const dirty = draft[s.key] !== undefined && draft[s.key] !== (s.cur ?? s.def);
+      const ctrl = s.type === 'enum'
+        ? `<select class="inp" style="width:auto;min-width:190px" data-k="${s.key}">
+             ${s.opts.map(o => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`
+        : `<input class="inp" style="width:110px;text-align:right" data-k="${s.key}" value="${v}">`;
+      return `<div class="rule-row ${s.key === sel ? '' : ''}" data-sel="${s.key}"
+          style="cursor:pointer;${s.key === sel ? 'background:var(--navy4);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px' : ''}">
+        <div>
+          <div class="rule-name">${s.name}
+            <span class="rule-key">${s.key}</span>
+            ${s.affects ? '<span class="chip chip-o" style="margin-left:6px">⚡ กระทบตัวเลข</span>' : ''}
+            ${dirty ? '<span class="chip chip-g" style="margin-left:6px">แก้แล้ว</span>' : ''}</div>
+          <div class="rule-desc">${s.desc}</div>
+          <div class="rule-desc" style="margin-top:5px">
+            ${s.cur == null
+              ? `<span class="muted">ยังไม่ตั้งทับ · ใช้ค่าเริ่มต้น <b class="num" style="color:var(--navy)">${s.def}</b></span>`
+              : `<span class="diff"><span class="from">${s.def}</span> → <span class="to">${s.cur}</span></span>`}
+            ${dirty ? `<span class="diff" style="margin-left:10px">แก้เป็น <span class="to">${draft[s.key]}</span></span>` : ''}
+          </div>
+        </div>
+        <div onclick="event.stopPropagation()">${ctrl}</div>
+      </div>`;
+    }).join('');
+  }).join('');
+
+  document.querySelectorAll('[data-sel]').forEach(r => r.onclick = () => { sel = r.dataset.sel; renderList(); renderImpact(); });
+  document.querySelectorAll('#set-list [data-k]').forEach(inp => {
+    inp.onchange = () => {
+      const s = SETTINGS.find(x => x.key === inp.dataset.k);
+      draft[s.key] = inp.value;
+      sel = s.key;
+      renderList(); renderImpact(); renderDirty();
+    };
+  });
+}
+
+function renderImpact() {
+  const s = SETTINGS.find(x => x.key === sel);
+  const v = valOf(s);
+  const rows = s.type === 'enum'
+    ? s.opts.map(o => [o, s.impact[o]])
+    : [[v, s.impact['*']]];
+
+  document.getElementById('impact').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ผลกระทบถ้าเปลี่ยนค่านี้</div>
+      <div class="card-sub">${s.name} · ประเมินจากข้อมูลปีการศึกษา 2568 · 230 หลักสูตร</div></div>
+      ${s.affects ? '<span class="chip chip-o">⚡ ต้องคำนวณใหม่</span>' : '<span class="chip chip-g">ไม่ต้องคำนวณใหม่</span>'}</div>
+    ${rows.map(([o, txt]) => `
+      <div style="border:1px solid ${o === v ? 'rgba(109,76,255,.28)' : 'var(--border)'};
+          background:${o === v ? 'var(--navy4)' : 'var(--bg2)'};
+          border-radius:9px;padding:11px 14px;margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <code style="font-family:'Manrope',monospace;font-size:11px;font-weight:700;color:var(--navy)">${o}</code>
+          ${o === v ? '<span class="st st-appr" style="font-size:9px">ค่าที่ใช้อยู่</span>' : ''}
+        </div>
+        <div style="font-size:11.5px;color:var(--text2);line-height:1.7">${txt}</div>
+      </div>`).join('')}
+    ${s.affects ? `<div class="sub-note" style="margin:4px 0 0;color:var(--gold)">
+      ⚡ เปลี่ยนค่านี้แล้ว ตัวเลขในหน้า W1–W5 <b>จะยังไม่เปลี่ยน</b> จนกว่าจะสร้างและอนุมัติรอบคำนวณใหม่ที่
+      <a href="W11-allocation-run.html" style="color:var(--gold);font-weight:700">W11</a></div>` : ''}`;
+}
+
+function renderDirty() {
+  const n = Object.keys(draft).filter(k => {
+    const s = SETTINGS.find(x => x.key === k);
+    return draft[k] !== (s.cur ?? s.def);
+  }).length;
+  const d = document.getElementById('dirty');
+  const bs = document.getElementById('btn-submit'), br = document.getElementById('btn-reset');
+  if (n) {
+    d.innerHTML = `<b style="color:var(--navy2)">แก้ไข ${n} ค่า</b> — ยังไม่มีผลจนกว่าจะผ่านการอนุมัติ`;
+    bs.classList.remove('off'); bs.disabled = false;
+    br.classList.remove('off'); br.disabled = false;
+  } else {
+    d.textContent = 'ยังไม่มีการเปลี่ยนแปลง';
+    bs.classList.add('off'); bs.disabled = true;
+    br.classList.add('off'); br.disabled = true;
+  }
+}
+
+document.getElementById('btn-reset').onclick = () => {
+  Object.keys(draft).forEach(k => delete draft[k]);
+  renderList(); renderImpact(); renderDirty();
+};
+
+document.querySelectorAll('#f-grp button').forEach(b => b.onclick = () => {
+  fGrp = b.dataset.g;
+  document.querySelectorAll('#f-grp button').forEach(x => x.classList.toggle('on', x === b));
+  renderList();
+});
+
+document.getElementById('set-log').innerHTML = SETTING_LOG.map(l =>
+  `<div class="log-item"><div class="log-time">${l.t}</div>
+     <div class="log-ic">${l.ic}</div><div class="log-body">${l.h}</div></div>`).join('');
+
+renderList(); renderImpact(); renderDirty();
+</script>
+</body>
+</html>

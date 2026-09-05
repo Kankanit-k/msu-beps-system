@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W16 ทะเบียนหลักสูตร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span><b>ปรับปรุงหลักสูตร = สร้างรุ่นใหม่ ไม่ใช่แก้ทับของเดิม</b> —
+      ทุกตารางในระบบอ้าง <code style="font-family:'Manrope',monospace">program_version_id</code> ไม่ใช่
+      <code style="font-family:'Manrope',monospace">program_id</code>
+      ถ้าแก้ทับ ตัวเลขจุดคุ้มทุนของปีเก่าจะเปลี่ยนตามไปด้วยโดยไม่มีใครรู้</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi cg"><div class="kpi-label">หลักสูตรที่เปิดสอน</div><div class="kpi-val num" style="color:var(--green2)" id="k-active">—</div><div class="kpi-unit">เข้าสู่การคำนวณจุดคุ้มทุน</div></div>
+    <div class="kpi co"><div class="kpi-label">รออนุมัติ / ร่างข้อเสนอ</div><div class="kpi-val num" style="color:var(--gold)" id="k-pend">—</div><div class="kpi-unit">ยังไม่เข้าสู่การคำนวณ</div></div>
+    <div class="kpi cn"><div class="kpi-label">กำลังปรับปรุงรอบ มคอ.</div><div class="kpi-val num" style="color:var(--navy2)" id="k-rev">—</div><div class="kpi-unit">มีรุ่นใหม่รอมีผล</div></div>
+    <div class="kpi cr"><div class="kpi-label">งดรับ / ปิดหลักสูตร</div><div class="kpi-val num" style="color:var(--red2)" id="k-off">—</div><div class="kpi-unit">ยังเก็บไว้เทียบข้ามปี</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;background:var(--bg2)">
+    <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>วงจรชีวิตหลักสูตรในระบบ</div>
+      <div class="card-sub">สถานะกำหนดว่าหลักสูตรนั้นเข้าสู่การคำนวณจุดคุ้มทุนหรือไม่</div></div></div>
+    <div class="flow" id="flow"></div>
+    <div class="sub-note" style="margin:12px 0 0">
+      หลักสูตรที่ยังไม่ถึงสถานะ <b>เปิดสอน</b> จะยังไม่มีนิสิตและไม่มีต้นทุนจริง จึงประเมินได้เฉพาะแบบจำลองที่
+      <a href="W7-scenario-program.html" style="color:var(--navy2)">W7 คำนวณจุดคุ้มทุนรายหลักสูตร</a>
+      — ตัวเลขจากที่นั่นเป็น <code style="font-family:'Manrope',monospace">scenario_plan</code> ไม่ปนกับผลจริง
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="f-state">
+      <button class="on" data-f="all">ทั้งหมด</button>
+      <button data-f="ACTIVE">เปิดสอน</button>
+      <button data-f="PENDING_APPROVAL">รออนุมัติ</button>
+      <button data-f="DRAFT">ร่าง</button>
+      <button data-f="REVISING">ปรับปรุง</button>
+      <button data-f="SUSPENDED">งดรับ</button>
+      <button data-f="CLOSED">ปิด</button>
+    </div>
+    <div class="be-search-wrap" style="max-width:260px">
+      <span class="be-search-ic">🔍</span>
+      <input type="text" id="f-q" class="be-search" placeholder="ค้นหารหัส / ชื่อหลักสูตร / คณะ...">
+    </div>
+    <span class="grow"></span>
+    <span class="pill" id="cnt">—</span>
+    <button class="btn">⬆ นำเข้าจากระบบทะเบียน</button>
+    <button class="btn primary" id="btn-new">+ เปิดหลักสูตรใหม่</button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.65fr 1fr">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+        <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ทะเบียนหลักสูตร</div>
+        <div class="card-sub">คลิกแถวเพื่อดูรุ่นหลักสูตรและการดำเนินการ · ตาราง
+          <code style="font-family:'Manrope',monospace;font-size:10.5px">program</code></div>
+      </div>
+      <div style="max-height:560px;overflow:auto">
+        <table class="tbl dense">
+          <thead><tr>
+            <th style="width:104px">รหัสหลักสูตร</th><th>ชื่อหลักสูตร / คณะ</th>
+            <th style="width:82px">ระดับ</th>
+            <th class="num" style="width:74px">นิสิต (Q)</th>
+            <th class="num" style="width:64px">รุ่น มคอ.</th>
+            <th style="width:96px">สถานะ</th><th style="width:60px">คำนวณ</th>
+          </tr></thead>
+          <tbody id="prog-tb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card" id="detail"></div>
+      <div class="card" id="versions"></div>
+    </div>
+  </div>
+
+  <div class="grid g-2e" style="margin-top:16px">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--red2)"></span>ตรวจก่อนเปลี่ยนสถานะเป็น "เปิดสอน"</div>
+        <div class="card-sub">หลักสูตรจะเข้าสู่การคำนวณได้ก็ต่อเมื่อข้อมูลที่จำเป็นครบ</div></div></div>
+      <div id="ready"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>บันทึกการเปลี่ยนแปลงทะเบียน</div>
+        <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">audit_event</code></div></div></div>
+      <div class="log" id="prog-log"></div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>จุดที่ต้องระวังในหน้านี้</h3>
+    <ul>
+      <li class="crit"><b>ห้ามแก้ชื่อ/คณะของหลักสูตรที่คำนวณไปแล้วโดยไม่สร้างรุ่นใหม่</b> — รายงานปีเก่าจะเปลี่ยนตาม และตอบไม่ได้ว่าตัวเลขที่เคยเสนอผู้บริหารมาจากอะไร</li>
+      <li class="warn"><b>งดรับนิสิต ≠ ปิดหลักสูตร</b> — หลักสูตรที่งดรับยังมีนิสิตคงค้างและยังมีต้นทุน ต้องคำนวณต่อ ถ้าตัดออกจากยอดรวมจะทำให้ต้นทุนหายไปทั้งก้อน</li>
+      <li class="warn"><b>หลักสูตรเปิดใหม่ที่ยังไม่มีค่าธรรมเนียมอนุมัติ</b> จะติดธง <code style="font-family:'Manrope',monospace">NO_FEE</code> ที่ <a href="W13-exceptions.html">W13</a> และถูกกันออกจากยอดรวม ไม่ใช่คำนวณด้วยค่า 0</li>
+      <li class="info"><b>รหัสหลักสูตรต้องมาจากระบบทะเบียน</b> (<code style="font-family:'Manrope',monospace">program_code</code> เป็น UNIQUE) ห้ามตั้งเองด้วยชื่อไทย ไม่งั้นจับคู่ข้ามระบบไม่ได้</li>
+      <li class="ok">การประเมินว่าหลักสูตรใหม่ควรเปิดหรือไม่ ทำที่ <a href="W7-scenario-program.html">W7</a> แล้วแนบผลมากับข้อเสนอ — หน้านี้เก็บเฉพาะทะเบียน ไม่คำนวณเอง</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W16', title: 'ทะเบียนหลักสูตร', f: 'W16-programs.html', bm: false, run: false });
+
+let fState = 'all', fQ = '', sel = 0;
+
+/* จับคู่กับข้อมูลจริงใน RAW.PROGS เพื่อดึง Q · TR · Q* ของหลักสูตรที่เปิดสอนอยู่ */
+function actualOf(p) {
+  return RAW.PROGS.find(x => x.prog === p.prog && x.fac === p.fac && x.lvl === p.lvl) || null;
+}
+/* รุ่นที่มีผลอยู่ (ไม่ใช่ร่าง) */
+const liveVer = p => [...p.vers].reverse().find(v => !v.draft) || p.vers[0];
+const draftVer = p => p.vers.find(v => v.draft) || null;
+
+/* ---- วงจรชีวิต ---- */
+document.getElementById('flow').innerHTML = PROG_FLOW.map((s, i) =>
+  (i ? '<span class="flow-arrow">→</span>' : '') +
+  `<span class="flow-step ${s.k === 'ACTIVE' ? 'now' : ''}" title="${s.d}">
+     ${PROG_STATE[s.k].calc ? '📈' : '○'} ${s.l}</span>`).join('');
+
+/* ---- KPI ---- */
+const cnt = f => PROGRAM_REG.filter(f).length;
+document.getElementById('k-active').textContent = cnt(p => p.state === 'ACTIVE');
+document.getElementById('k-pend').textContent = cnt(p => p.state === 'PENDING_APPROVAL' || p.state === 'DRAFT');
+document.getElementById('k-rev').textContent = cnt(p => p.state === 'REVISING');
+document.getElementById('k-off').textContent = cnt(p => p.state === 'SUSPENDED' || p.state === 'CLOSED');
+
+/* ---- ตาราง ---- */
+function visible() {
+  return PROGRAM_REG.map((p, i) => ({ p, i }))
+    .filter(x => fState === 'all' || x.p.state === fState)
+    .filter(x => !fQ || (x.p.code + x.p.prog + x.p.fac + x.p.deg).toLowerCase().includes(fQ));
+}
+
+function renderTable() {
+  const rows = visible();
+  document.getElementById('prog-tb').innerHTML = rows.map(({ p, i }) => {
+    const st = PROG_STATE[p.state], a = actualOf(p), v = liveVer(p), d = draftVer(p);
+    return `<tr data-i="${i}" class="${i === sel ? 'sel' : ''}" style="cursor:pointer">
+      <td><code style="font-family:'Manrope',monospace;font-size:10.5px;color:var(--navy)">${p.code}</code></td>
+      <td class="wrap"><b>${p.prog}</b>${p.intl ? ' <span class="chip chip-n" style="font-size:9px">นานาชาติ</span>' : ''}
+        <div class="muted">${p.fac}</div></td>
+      <td class="muted">${p.lvl}</td>
+      <td class="num">${a ? fmtN(a.Q) : (p.proposedQ ? `<span class="muted">~${fmtN(p.proposedQ)}*</span>` : '<span class="muted">—</span>')}</td>
+      <td class="num"><code style="font-family:'Manrope',monospace;font-size:10.5px">${v.v}</code>${d ? `<div class="muted" style="font-size:9.5px">+${d.v} ร่าง</div>` : ''}</td>
+      <td><span class="st ${st.c}"><span class="st-dot"></span>${st.l}</span></td>
+      <td style="text-align:center">${st.calc
+        ? '<span title="เข้าสู่การคำนวณ" style="color:var(--green2);font-weight:700">✓</span>'
+        : '<span title="ไม่เข้าสู่การคำนวณ" style="color:var(--text4)">−</span>'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text4);padding:26px">— ไม่พบหลักสูตรที่ตรงกับตัวกรอง —</td></tr>`;
+
+  document.getElementById('cnt').textContent = `${rows.length} จาก ${PROGRAM_REG.length} หลักสูตร`;
+  document.querySelectorAll('#prog-tb tr[data-i]').forEach(tr => {
+    tr.onclick = () => { sel = +tr.dataset.i; renderTable(); renderDetail(); renderVersions(); renderReady(); };
+  });
+}
+
+/* ---- รายละเอียดหลักสูตรที่เลือก ---- */
+function renderDetail() {
+  const p = PROGRAM_REG[sel], st = PROG_STATE[p.state], a = actualOf(p);
+  const canRevise = ['ACTIVE', 'SUSPENDED'].includes(p.state);
+  const revising = p.state === 'REVISING';
+  const canSubmit = p.state === 'DRAFT';
+  const canApprove = p.state === 'PENDING_APPROVAL';
+
+  document.getElementById('detail').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>${p.prog}</div>
+      <div class="card-sub"><code style="font-family:'Manrope',monospace">${p.code}</code> · ${p.fac} · ${p.lvl}</div>
+    </div><span class="st ${st.c}"><span class="st-dot"></span>${st.l}</span></div>
+
+    <div class="sub-note" style="margin:0 0 14px;background:${st.calc ? 'var(--green3)' : 'var(--bg3)'};
+        color:${st.calc ? 'var(--green)' : 'var(--text3)'};padding:9px 13px;border-radius:8px">
+      ${st.calc ? '📈' : '○'} ${st.why}
+    </div>
+
+    <div class="mini-stats" style="margin-bottom:14px">
+      <div class="mini-stat"><div class="l">นิสิตปัจจุบัน</div>
+        <div class="v" style="color:var(--navy)">${a ? fmtN(a.Q) : (p.proposedQ ? '~' + fmtN(p.proposedQ) : '—')}</div>
+        <div class="s">${a ? 'คน · จากระบบทะเบียน' : (p.proposedQ ? 'คน · ประมาณการในข้อเสนอ' : 'ยังไม่มีข้อมูล')}</div></div>
+      <div class="mini-stat"><div class="l">จุดคุ้มทุน Q*</div>
+        <div class="v" style="color:var(--gold)">${a && Qs(a) ? fmtN(Qs(a)) : '—'}</div>
+        <div class="s">${a ? (Qs(a) ? 'คน · จากรอบคำนวณ #' + RUN.id : 'R ≤ AVC') : 'ยังคำนวณไม่ได้'}</div></div>
+      <div class="mini-stat"><div class="l">ชื่อปริญญา</div>
+        <div class="v" style="font-size:12px;line-height:1.4">${p.deg}</div><div class="s">degree_name</div></div>
+    </div>
+
+    <div class="rule-row"><div><div class="rule-name">รหัสจากระบบทะเบียน</div>
+      <div class="rule-desc"><code style="font-family:'Manrope',monospace">program_code</code> เป็น UNIQUE — ใช้จับคู่ข้ามระบบ</div></div>
+      <code style="font-family:'Manrope',monospace;font-size:11px;font-weight:700;color:var(--navy)">${p.code}</code></div>
+    <div class="rule-row"><div><div class="rule-name">หน่วยงานที่สังกัด</div>
+      <div class="rule-desc">ผูกที่ระดับ <code style="font-family:'Manrope',monospace">EDUCATION_LEVEL</code> ไม่ใช่ระดับคณะ เพราะต้นทุนสำนักงานปันแยกตรี/บัณฑิต</div></div>
+      <span class="chip chip-n">${p.lvl === 'ปริญญาตรี' ? 'ปริญญาตรี' : 'บัณฑิตศึกษา'}</span></div>
+    <div class="rule-row"><div><div class="rule-name">หลักสูตรนานาชาติ</div>
+      <div class="rule-desc">กระทบอัตราค่าธรรมเนียมและประเภทนิสิตที่ใช้คำนวณ</div></div>
+      <span class="chip ${p.intl ? 'chip-g' : 'chip-n'}">${p.intl ? 'ใช่' : 'ไม่ใช่'}</span></div>
+
+    <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn">✎ แก้ไขข้อมูลทะเบียน</button>
+      ${revising
+        ? `<button class="btn primary" title="รุ่นใหม่ยังเป็นร่าง — เสนอสภาวิชาการเพื่อให้มีผล">📤 เสนออนุมัติรุ่น ${draftVer(p) ? draftVer(p).v : ''}</button>`
+        : `<button class="btn ${canRevise ? '' : 'off'}" ${canRevise ? '' : 'disabled'}
+             title="${canRevise ? 'สร้าง program_version ใหม่ ไม่ทับรุ่นเดิม' : 'สร้างรุ่นใหม่ได้เมื่อหลักสูตรเปิดสอนหรืองดรับแล้วเท่านั้น'}">🔄 ปรับปรุงหลักสูตร (สร้างรุ่นใหม่)</button>`}
+      ${canSubmit ? '<button class="btn primary">📤 เสนอสภาวิชาการ</button>' : ''}
+      ${canApprove ? '<button class="btn ok">✓ อนุมัติเปิดหลักสูตร</button>' : ''}
+      ${p.state === 'ACTIVE' ? '<button class="btn">⏸ งดรับนิสิต</button>' : ''}
+      ${['SUSPENDED'].includes(p.state) ? '<button class="btn danger">⏹ ปิดหลักสูตร</button>' : ''}
+    </div>`;
+}
+
+/* ---- รุ่นหลักสูตร (program_version) ---- */
+function renderVersions() {
+  const p = PROGRAM_REG[sel];
+  document.getElementById('versions').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--gold2)"></span>รุ่นหลักสูตร (รอบ มคอ.)</div>
+      <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">program_version</code>
+        · ทุกตัวเลขในระบบผูกกับรุ่น ไม่ใช่ผูกกับหลักสูตร</div>
+    </div></div>
+    ${p.vers.map(v => {
+      const live = !v.draft && (v.to === null);
+      return `<div style="display:grid;grid-template-columns:8px 1fr;gap:12px;padding:11px 0;
+          border-bottom:1px solid var(--border);${v.draft ? 'opacity:.75' : ''}">
+        <div style="width:8px;border-radius:4px;background:${live ? 'var(--navy2)' : v.draft ? 'var(--gold2)' : 'var(--border2)'}"></div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <code style="font-family:'Manrope',monospace;font-size:11.5px;font-weight:700;color:var(--navy)">รุ่น ${v.v}</code>
+            <span class="num" style="font-size:11px;color:var(--text3)">${v.from} – ${v.to === null ? 'ปัจจุบัน' : v.to}</span>
+            ${live ? '<span class="st st-appr" style="font-size:9px">รุ่นที่ใช้คำนวณ</span>' : ''}
+            ${v.draft ? '<span class="st st-valid" style="font-size:9px">ร่าง · ยังไม่มีผล</span>' : ''}
+          </div>
+          <div class="rule-desc">${v.note || 'ไม่มีหมายเหตุ'}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div class="sub-note" style="margin:12px 0 0">
+      ${p.vers.length > 1
+        ? 'หลักสูตรนี้มีมากกว่าหนึ่งรุ่น — รายงานปีเก่ายังอ้างรุ่นเดิมและ<b>ไม่เปลี่ยนตาม</b>รุ่นใหม่'
+        : 'หลักสูตรนี้ยังมีรุ่นเดียว — ยังไม่เคยผ่านการปรับปรุงรอบ มคอ. ในระบบ'}
+    </div>
+    <button class="btn" style="width:100%;justify-content:center;margin-top:12px">+ เพิ่มรุ่นหลักสูตร</button>`;
+}
+
+/* ---- ตรวจความพร้อมก่อนเปิดสอน ---- */
+function renderReady() {
+  const p = PROGRAM_REG[sel], a = actualOf(p);
+  const fee = FEES.find(f => f.prog === p.prog && f.lvl === p.lvl);
+  const checks = [
+    { ok: !!p.code, l: 'มีรหัสหลักสูตรจากระบบทะเบียน', d: `program_code = ${p.code}`, go: null },
+    { ok: true, l: 'ผูกหน่วยงานระดับการศึกษาแล้ว', d: `${p.fac} — ${p.lvl}`, go: 'W17-master-data.html' },
+    { ok: !!liveVer(p), l: 'มีรุ่นหลักสูตรที่มีผล', d: `รุ่น ${liveVer(p).v} · มีผล ${liveVer(p).from}`, go: null },
+    { ok: !!(fee && fee.status === 'APPROVED'),
+      l: 'มีอัตราค่าธรรมเนียมที่อนุมัติแล้ว',
+      d: fee ? (fee.status === 'APPROVED' ? `${fmtN(fee.rate)} บาท/ปี` : `มีอยู่แต่สถานะ ${FEE_STATUS[fee.status].l}`) : 'ยังไม่มีรายการค่าธรรมเนียม',
+      go: 'W8-tuition.html' },
+    { ok: !!(a && a.Q > 0), l: 'มีจำนวนนิสิตจากระบบทะเบียน',
+      d: a ? (a.Q > 0 ? `${fmtN(a.Q)} คน ณ วันตัดยอด` : 'Q = 0 — คำนวณ R และ AVC ไม่ได้') : 'ยังไม่มีนิสิตลงทะเบียน',
+      go: 'W9-cost-data.html' },
+  ];
+  const pass = checks.filter(c => c.ok).length;
+
+  document.getElementById('ready').innerHTML =
+    `<div class="sub-note" style="margin:0 0 10px">
+       <b>${p.prog}</b> (${p.lvl}) — ผ่าน <b class="num" style="color:${pass === checks.length ? 'var(--green)' : 'var(--gold)'}">${pass}/${checks.length}</b> ข้อ
+     </div>` +
+    checks.map(c => `<div style="display:grid;grid-template-columns:22px 1fr auto;gap:11px;align-items:start;
+        padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;color:${c.ok ? 'var(--green2)' : 'var(--red2)'}">${c.ok ? '✓' : '✕'}</div>
+      <div><div style="font-size:12px;font-weight:600;color:${c.ok ? 'var(--text)' : 'var(--red)'}">${c.l}</div>
+        <div class="rule-desc">${c.d}</div></div>
+      ${!c.ok && c.go ? `<a class="btn btn-sm" href="${c.go}">ไปแก้ →</a>` : ''}
+    </div>`).join('');
+}
+
+/* ---- ตัวกรอง ---- */
+document.querySelectorAll('#f-state button').forEach(b => b.onclick = () => {
+  fState = b.dataset.f;
+  document.querySelectorAll('#f-state button').forEach(x => x.classList.toggle('on', x === b));
+  renderTable();
+});
+document.getElementById('f-q').oninput = e => { fQ = e.target.value.trim().toLowerCase(); renderTable(); };
+document.getElementById('btn-new').onclick = () => {
+  sel = PROGRAM_REG.findIndex(p => p.state === 'DRAFT');
+  fState = 'DRAFT';
+  document.querySelectorAll('#f-state button').forEach(x => x.classList.toggle('on', x.dataset.f === 'DRAFT'));
+  renderTable(); renderDetail(); renderVersions(); renderReady();
+};
+
+document.getElementById('prog-log').innerHTML = PROGRAM_LOG.map(l =>
+  `<div class="log-item"><div class="log-time">${l.t}</div>
+     <div class="log-ic">${l.ic}</div><div class="log-body">${l.h}</div></div>`).join('');
+
+renderTable(); renderDetail(); renderVersions(); renderReady();
+</script>
+</body>
+</html>

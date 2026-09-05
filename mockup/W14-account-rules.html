@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W14 กติกาผังบัญชี TFC / TVC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>กติกาผูกกับ <b>คีย์ผสม 4 ระดับ</b> (แผนงาน · หมวดงบ · หมวดรายจ่าย · หมวดย่อย) ไม่ใช่รหัสหมวดรายจ่ายอย่างเดียว
+      เพราะรหัสเดียวกันเป็นคนละประเภทได้เมื่ออยู่คนละแผนงาน — ดู <code style="font-family:'Manrope',monospace">800:เงินอุดหนุน</code> สองแถวในตาราง
+      · ทุกกติกามี<b>ช่วงปีที่มีผล</b> เปลี่ยนปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi cn"><div class="kpi-label">ต้นทุนคงที่ (TFC)</div><div class="kpi-val num" style="color:var(--navy2)" id="k-f">—</div><div class="kpi-unit" id="k-f-s">ล้านบาท</div></div>
+    <div class="kpi co"><div class="kpi-label">ต้นทุนผันแปร (TVC)</div><div class="kpi-val num" style="color:var(--gold)" id="k-v">—</div><div class="kpi-unit" id="k-v-s">ล้านบาท</div></div>
+    <div class="kpi cg"><div class="kpi-label">กติกาที่มีผลในปีที่เลือก</div><div class="kpi-val num" style="color:var(--green2)" id="k-n">—</div><div class="kpi-unit">คีย์ผสม · จากผังบัญชี 412 รายการ</div></div>
+    <div class="kpi cr"><div class="kpi-label">ยังไม่จำแนก</div><div class="kpi-val num" style="color:var(--red2)" id="k-u">—</div><div class="kpi-unit" id="k-u-s">รายการ</div></div>
+  </div>
+
+  <div class="toolbar">
+    <span class="bm-lbl">ปีการศึกษาที่ดู:</span>
+    <select class="inp" style="width:auto" id="f-year">
+      <option>2568</option><option>2569</option><option>2570</option><option>2571</option><option>2572</option>
+    </select>
+    <div class="seg" id="f-beh">
+      <button class="on" data-f="all">ทั้งหมด</button>
+      <button data-f="MIXED">แบ่งสัดส่วน</button>
+      <button data-f="UNCLASSIFIED">ยังไม่จำแนก</button>
+    </div>
+    <span class="grow"></span>
+    <button class="btn">+ เพิ่มกติกา</button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.7fr 1fr">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+        <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>กติกาที่มีผลในปีการศึกษา <span class="num" id="yr-lbl">2568</span></div>
+        <div class="card-sub">คลิกแถวเพื่อดูไทม์ไลน์รายปีของบัญชีเดียวกัน · <span id="cnt"></span></div>
+      </div>
+      <div style="max-height:560px;overflow:auto">
+        <table class="tbl dense">
+          <thead><tr>
+            <th style="width:132px">คีย์ผสม 4 ระดับ</th><th>ชื่อบัญชี</th>
+            <th class="num" style="width:92px">ยอด (ลบ.)</th>
+            <th style="width:110px">ประเภท</th><th class="num" style="width:80px">F : V</th>
+            <th style="width:120px">วิธีปันส่วน</th>
+          </tr></thead>
+          <tbody id="rule-tb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card" id="detail"></div>
+      <div class="card" id="timeline"></div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>จุดที่ถ้าตั้งผิดจะทำให้ตัวเลขทั้งระบบผิด</h3>
+    <ul>
+      <li class="crit"><b>คีย์ผสม 4 ระดับ ไม่ใช่รหัสหมวดเดียว</b> — <code style="font-family:'Manrope',monospace">80001 เงินอุดหนุน</code> ในแผนงานจัดการศึกษาเป็นคนละประเภทกับในแผนงานวิจัย ถ้าตั้งด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน</li>
+      <li class="warn"><b>กติกาเจาะจงหน่วยงานมาก่อนกติกากลางเสมอ</b> — ค่าวัสดุการศึกษาของคณะแพทยศาสตร์ตั้ง 15:85 ทับกติกากลาง 35:65</li>
+      <li class="warn"><b>UNCLASSIFIED ไม่ใช่ค่าว่าง</b> — เป็นสถานะที่ตั้งใจ ระบบจะพักเงินไว้ที่หน่วยงานและติดธงไปที่ <a href="W13-exceptions.html">รายการค้างตรวจ</a> ไม่เดาแทน</li>
+      <li class="info"><b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงหากติกาปกติไม่เจอ — กำหนดผ่านค่าตั้ง <code style="font-family:'Manrope',monospace">depreciation_behavior</code> ที่ <a href="W15-settings.html">W15</a> แทน</li>
+      <li class="ok">การแก้กติกาต้องผ่านการอนุมัติ และ run ที่คำนวณไปแล้วจะ<b>ล็อกเวอร์ชันกติกาไว้</b> คำนวณซ้ำได้ตัวเลขเดิมเป๊ะ</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W14', title: 'กติกาจำแนกต้นทุนคงที่ / ผันแปร', f: 'W14-account-rules.html', bm: false, run: false });
+
+let year = 2568, fBeh = 'all', sel = 0;
+
+/* กติกาที่มีผลในปีที่เลือก */
+const ruleAt = (a, y) => a.rules.find(r => y >= r.from && (r.to === null || y <= r.to)) || null;
+
+function visible() {
+  return ACCOUNTS.map((a, i) => ({ a, i, r: ruleAt(a, year) }))
+    .filter(x => x.r)
+    .filter(x => fBeh === 'all' || x.r.beh === fBeh);
+}
+
+function renderKPI() {
+  document.getElementById('k-f').textContent = fmtM(RAW.UNI.TFC);
+  document.getElementById('k-f-s').textContent = 'ล้านบาท · ' + (RAW.UNI.TFC / RAW.UNI.TC * 100).toFixed(1) + '% ของต้นทุนรวม';
+  document.getElementById('k-v').textContent = fmtM(RAW.UNI.TVC);
+  document.getElementById('k-v-s').textContent = 'ล้านบาท · ' + (RAW.UNI.TVC / RAW.UNI.TC * 100).toFixed(1) + '% ของต้นทุนรวม';
+
+  const withRule = ACCOUNTS.filter(a => ruleAt(a, year));
+  const unc = withRule.filter(a => ruleAt(a, year).beh === 'UNCLASSIFIED');
+  document.getElementById('k-n').textContent = fmtN(withRule.length);
+  document.getElementById('k-u').textContent = fmtN(unc.length);
+  document.getElementById('k-u-s').textContent =
+    'รายการ · ' + fmtM(unc.reduce((s, a) => s + a.amount, 0)) + ' ลบ. พักไว้ที่หน่วยงาน';
+}
+
+function renderTable() {
+  const rows = visible();
+  document.getElementById('yr-lbl').textContent = year;
+  document.getElementById('rule-tb').innerHTML = rows.map(({ a, i, r }) => {
+    const b = BEH[r.beh];
+    return `<tr data-i="${i}" class="${i === sel ? 'sel' : ''}" style="cursor:pointer">
+      <td><code style="font-family:'Manrope',monospace;font-size:10.5px;color:var(--navy)">${a.key}</code></td>
+      <td class="wrap"><b>${a.name}</b>${a.org ? `<div class="muted">ตั้งเจาะจง: ${a.org}</div>` : ''}</td>
+      <td class="num">${fmtM(a.amount)}</td>
+      <td><span class="chip ${b.c}">${b.l}</span></td>
+      <td class="num">${r.beh === 'MIXED' ? `${(r.f * 100).toFixed(0)}:${(r.v * 100).toFixed(0)}` : '<span class="muted">—</span>'}</td>
+      <td class="muted">${METHOD[r.m]}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text4);padding:26px">— ไม่มีกติกาที่ตรงกับตัวกรอง —</td></tr>`;
+
+  document.getElementById('cnt').textContent = `แสดง ${rows.length} จาก ${ACCOUNTS.length} คีย์`;
+  document.querySelectorAll('#rule-tb tr[data-i]').forEach(tr => {
+    tr.onclick = () => { sel = +tr.dataset.i; renderTable(); renderDetail(); renderTimeline(); };
+  });
+}
+
+function renderDetail() {
+  const a = ACCOUNTS[sel], r = ruleAt(a, year);
+  if (!r) { document.getElementById('detail').innerHTML = '<div class="be-empty">ไม่มีกติกาที่มีผลในปีนี้</div>'; return; }
+  const b = BEH[r.beh];
+
+  const seg = ['FIXED', 'VARIABLE', 'MIXED', 'UNCLASSIFIED'].map(v =>
+    `<button data-v="${v}" class="${v === r.beh ? 'on' : ''}">${BEH[v].l}</button>`).join('');
+
+  document.getElementById('detail').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>${a.name}</div>
+      <div class="card-sub"><code style="font-family:'Manrope',monospace">${a.key}</code>
+        ${a.org ? ' · ตั้งเจาะจง ' + a.org : ' · กติกากลางทั้งมหาวิทยาลัย'}</div>
+    </div><span class="chip ${b.c}">${b.l}</span></div>
+
+    <div class="field" style="margin-bottom:14px">
+      <label>ประเภทต้นทุนในปีการศึกษา ${year}</label>
+      <div class="seg" style="width:100%">${seg}</div>
+    </div>
+
+    ${r.beh === 'MIXED' ? `
+    <div class="field" style="margin-bottom:14px">
+      <label>สัดส่วนคงที่ : ผันแปร</label>
+      <div class="split" style="height:22px;border-radius:7px">
+        <i style="flex:${r.f * 100};background:var(--navy2);color:#fff;font-size:10px;font-weight:700;
+           display:flex;align-items:center;justify-content:center">คงที่ ${(r.f * 100).toFixed(0)}%</i>
+        <i style="flex:${r.v * 100};background:var(--gold2);color:#6b3d00;font-size:10px;font-weight:700;
+           display:flex;align-items:center;justify-content:center">ผันแปร ${(r.v * 100).toFixed(0)}%</i>
+      </div>
+      <div class="hint">ยอด ${fmtM(a.amount)} ลบ. → TFC ${fmtM(a.amount * r.f)} ลบ. · TVC ${fmtM(a.amount * r.v)} ลบ.</div>
+    </div>` : ''}
+
+    <div class="field" style="margin-bottom:14px">
+      <label>วิธีปันส่วนลงหลักสูตร</label>
+      <select class="inp">${Object.entries(METHOD).map(([k, v]) =>
+        `<option ${k === r.m ? 'selected' : ''}>${v}</option>`).join('')}</select>
+    </div>
+
+    ${r.note ? `<div class="sub-note" style="margin:0 0 14px;background:var(--bg2);padding:10px 13px;border-radius:8px">
+      <b>เหตุผล:</b> ${r.note}</div>` : ''}
+
+    <div class="toolbar" style="margin:0;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn">✎ แก้ไข</button>
+      <button class="btn">📅 เพิ่มช่วงปีใหม่</button>
+      <button class="btn primary">📤 เสนออนุมัติ</button>
+    </div>`;
+}
+
+function renderTimeline() {
+  const a = ACCOUNTS[sel];
+  document.getElementById('timeline').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ไทม์ไลน์รายปีของบัญชีนี้</div>
+      <div class="card-sub">บัญชีเดียวกันเปลี่ยนประเภทตามปีได้ · ปีที่คำนวณไปแล้วไม่เปลี่ยนตาม</div>
+    </div></div>
+    ${a.rules.map(r => {
+      const b = BEH[r.beh], on = year >= r.from && (r.to === null || year <= r.to);
+      const span = (r.from <= 2500 ? 'ตั้งแต่เริ่มระบบ' : r.from) + ' – ' + (r.to === null ? 'ปัจจุบัน' : r.to);
+      return `<div style="display:grid;grid-template-columns:8px 1fr;gap:12px;padding:11px 0;
+          border-bottom:1px solid var(--border);${on ? '' : 'opacity:.55'}">
+        <div style="width:8px;border-radius:4px;background:${on ? 'var(--navy2)' : 'var(--border2)'}"></div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="num" style="font-size:11.5px;font-weight:700">${span}</span>
+            <span class="chip ${b.c}">${b.l}</span>
+            ${r.beh === 'MIXED' ? `<span class="pill num">${(r.f * 100).toFixed(0)}:${(r.v * 100).toFixed(0)}</span>` : ''}
+            ${on ? '<span class="st st-appr" style="font-size:9px">มีผลอยู่</span>' : ''}
+          </div>
+          <div class="rule-desc">${r.note || 'ไม่มีหมายเหตุ'} · ปันส่วน${METHOD[r.m]}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    ${a.rules.length === 1 ? `<div class="sub-note" style="margin:12px 0 0">
+      บัญชีนี้ใช้กติกาเดียวมาตลอด — ยังไม่เคยมีมติให้เปลี่ยนประเภท</div>` : ''}`;
+}
+
+function renderAllW14() { renderKPI(); renderTable(); renderDetail(); renderTimeline(); }
+
+document.getElementById('f-year').onchange = e => { year = +e.target.value; renderAllW14(); };
+document.querySelectorAll('#f-beh button').forEach(b => b.onclick = () => {
+  fBeh = b.dataset.f;
+  document.querySelectorAll('#f-beh button').forEach(x => x.classList.toggle('on', x === b));
+  renderTable();
+});
+
+renderAllW14();
+</script>
+</body>
+</html>

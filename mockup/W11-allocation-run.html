@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W11 รอบคำนวณ (Allocation Run)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>รอบคำนวณเป็น <b>immutable</b> — คำนวณใหม่คือสร้าง run ใหม่ ไม่ทับของเก่า
+      ทุกหน้าวิเคราะห์จึงต้องบอกได้ว่ากำลังดูผลของ run ไหน · run หนึ่งล็อกไว้ทั้ง งวด · ขอบเขต · ฐานต้นทุน · เวอร์ชันกติกา
+      เพื่อให้ย้อนกลับไปอธิบายตัวเลขเก่าได้เสมอ</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.55fr 1fr">
+
+    <!-- ซ้าย: run ปัจจุบัน -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <div class="card" style="border-left:3px solid var(--green2)">
+        <div class="card-head">
+          <div><div class="card-title"><span class="dot" style="background:var(--green2)"></span>รอบคำนวณ #1042 <span class="chip chip-g" style="margin-left:6px">รอบที่ใช้อ้างอิงอยู่</span></div>
+            <div class="card-sub">ปีงบประมาณ 2568 · ทั้งมหาวิทยาลัย · ฐานต้นทุน ACTUAL · กติกาผังบัญชี v3</div></div>
+        </div>
+
+        <div class="flow" id="flow"></div>
+
+        <div class="mini-stats" style="margin:16px 0 0">
+          <div class="mini-stat"><div class="l">ต้นทุนรวมที่ปันส่วน</div><div class="v" style="color:var(--navy)" id="s-tc">—</div><div class="s">ล้านบาท</div></div>
+          <div class="mini-stat"><div class="l">ส่วนต่างตรวจยอด</div><div class="v" style="color:var(--green2)">0.00</div><div class="s">บาท · เกณฑ์ยอมรับ 0.00</div></div>
+          <div class="mini-stat"><div class="l">หน่วยที่คำนวณ</div><div class="v">230</div><div class="s">หลักสูตร × 2 ฐานรายได้ × 3 ระดับ</div></div>
+          <div class="mini-stat"><div class="l">เวลาที่ใช้</div><div class="v">4:12</div><div class="s">นาที · เป็น batch job</div></div>
+          <div class="mini-stat"><div class="l">รายการค้างตรวจ</div><div class="v" style="color:var(--gold)" id="s-exc">—</div><div class="s" id="s-exc-s">รายการ</div></div>
+        </div>
+
+        <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+          <a class="btn" href="W12-reconciliation.html">🧾 ดูผลตรวจยอด</a>
+          <a class="btn" href="W13-exceptions.html">🚩 ดูรายการค้างตรวจ</a>
+          <button class="btn">⇄ เทียบกับรอบก่อน</button>
+          <span class="grow"></span>
+          <button class="btn off" disabled title="รอบนี้อนุมัติแล้ว">✓ อนุมัติแล้ว</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ประวัติรอบคำนวณ</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">allocation_run</code> · run เก่าไม่เคยถูกลบ</div></div></div>
+        <div class="tbl-scroll">
+          <table class="tbl dense">
+            <thead><tr>
+              <th class="num">Run</th><th>ปีงบ</th><th>ฐานต้นทุน</th><th>กติกา</th>
+              <th class="num">ต้นทุนรวม (ลบ.)</th><th class="num">ส่วนต่าง</th><th>ผู้สั่ง / เวลา</th><th>สถานะ</th><th></th>
+            </tr></thead>
+            <tbody id="run-tb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>บันทึกเหตุการณ์ของรอบ #1042</div>
+          <div class="card-sub">ตอบได้ว่าใครสั่ง ใครอนุมัติ และเกิดอะไรระหว่างคำนวณ</div></div></div>
+        <div class="log" id="run-log"></div>
+      </div>
+    </div>
+
+    <!-- ขวา: สร้าง run ใหม่ -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>สร้างรอบคำนวณใหม่</div>
+          <div class="card-sub">ค่าที่เลือกจะถูกล็อกติดไปกับ run ตลอดไป</div></div></div>
+
+        <div style="display:grid;gap:13px">
+          <div class="field"><label>ปีงบประมาณ</label>
+            <select class="inp"><option>2568</option><option>2569</option></select></div>
+          <div class="field"><label>ขอบเขต</label>
+            <select class="inp"><option>ทั้งมหาวิทยาลัย (20 หน่วยงาน)</option><option>เลือกเฉพาะบางคณะ…</option></select>
+            <div class="hint">คำนวณเฉพาะบางคณะได้ แต่ยอดรวมมหาวิทยาลัยจะยังอ้างอิง run เต็มรอบล่าสุด</div></div>
+          <div class="field"><label>ฐานจำนวนเงิน</label>
+            <select class="inp"><option>ACTUAL — ยอดใช้จ่ายจริง</option><option>BUDGET — ยอดงบที่ได้รับจัดสรร</option></select>
+            <div class="hint">ยังรอมติผู้บริหารว่าจะใช้ฐานไหนเป็นตัวหลัก · ตั้งค่าเริ่มต้นได้ที่ <a href="W15-settings.html" style="color:var(--navy2)">W15</a></div></div>
+          <div class="field"><label>เวอร์ชันกติกาผังบัญชี</label>
+            <select class="inp"><option>v3 — มีผลปีการศึกษา 2568 (ปัจจุบัน)</option><option>v2 — มีผลปีการศึกษา 2567</option></select>
+            <div class="hint">ล็อกไว้เพื่อให้คำนวณซ้ำแล้วได้ตัวเลขเดิมเป๊ะ แม้กติกาจะถูกแก้ไปแล้ว</div></div>
+        </div>
+
+        <div style="background:var(--red3);border:1px solid rgba(194,24,91,.2);border-radius:8px;
+            padding:11px 14px;margin-top:14px;font-size:11.5px;color:var(--red);line-height:1.7">
+          ⛔ <b>สร้าง run ไม่ได้ตอนนี้</b> — มี 2 ปัญหาที่ปิดกั้นอยู่ที่
+          <a href="W9-cost-data.html" style="color:var(--red);font-weight:700">หน้าข้อมูลต้นทุน</a>
+          (ค่าเสื่อมราคาอาคารยังไม่มีข้อมูล · 4 หลักสูตรยังไม่มีค่าธรรมเนียมที่อนุมัติ)
+        </div>
+
+        <button class="btn off" disabled style="width:100%;justify-content:center;margin-top:12px;padding:11px">
+          ▶ เริ่มคำนวณ
+        </button>
+      </div>
+
+      <div class="card" style="background:var(--bg2)">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--text3)"></span>กติกาการอนุมัติ</div></div>
+        <div class="rule-row"><div><div class="rule-name">ผู้สร้างอนุมัติเองไม่ได้</div>
+          <div class="rule-desc">ปุ่มอนุมัติจะถูกปิดสำหรับผู้ใช้ที่เป็นคนสั่งคำนวณ run นั้น</div></div>
+          <span class="chip chip-r">บังคับ</span></div>
+        <div class="rule-row"><div><div class="rule-name">อนุมัติได้เฉพาะเมื่อตรวจยอดผ่าน</div>
+          <div class="rule-desc">run ที่สถานะ FAILED ต้องแก้ต้นเหตุแล้วสร้างใหม่ ไม่มีทางข้าม</div></div>
+          <span class="chip chip-r">บังคับ</span></div>
+        <div class="rule-row"><div><div class="rule-name">รอบที่อนุมัติแล้วแก้ไม่ได้</div>
+          <div class="rule-desc">ผลถูกเขียนลง <code style="font-family:'Manrope',monospace;font-size:10.5px">break_even_result</code> แบบอ่านอย่างเดียว</div></div>
+          <span class="chip chip-n">immutable</span></div>
+        <div class="rule-row"><div><div class="rule-name">มีได้ครั้งละหนึ่งรอบอ้างอิง</div>
+          <div class="rule-desc">อนุมัติรอบใหม่ = รอบเก่ากลายเป็นประวัติ ยังเปิดดูและเทียบได้</div></div>
+          <span class="chip chip-g">อัตโนมัติ</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W11', title: 'รอบคำนวณ (Allocation Run)', f: 'W11-allocation-run.html', bm: false, run: false });
+
+document.getElementById('s-tc').textContent = fmtM(RAW.UNI.TC);
+
+const excAmt = EXCEPTIONS.reduce((a, e) => a + (e.amount || 0), 0);
+document.getElementById('s-exc').textContent = EXCEPTIONS.length;
+document.getElementById('s-exc-s').textContent =
+  'รายการ · ' + fmtM(excAmt) + ' ลบ. (' + (excAmt / RAW.UNI.TC * 100).toFixed(2) + '%)';
+
+/* ไทม์ไลน์สถานะของ run ปัจจุบัน */
+const cur = RUNS[0];
+const at = RUN_FLOW.indexOf(cur.state);
+document.getElementById('flow').innerHTML = RUN_FLOW.map((s, i) => {
+  const cls = i < at ? 'done' : i === at ? 'now' : '';
+  const mark = i < at ? '✓' : i === at ? '●' : '○';
+  return (i ? '<span class="flow-arrow">→</span>' : '') +
+    `<span class="flow-step ${cls}">${mark} ${RUN_STATE[s].l}</span>`;
+}).join('');
+
+/* ตารางประวัติ run */
+document.getElementById('run-tb').innerHTML = RUNS.map(r => {
+  const s = RUN_STATE[r.state];
+  return `<tr class="${r.id === cur.id ? 'sel' : ''}">
+    <td class="num" style="font-weight:700;color:var(--navy)">#${r.id}</td>
+    <td class="muted">${r.year}</td>
+    <td class="muted">${r.basis}</td>
+    <td class="muted">${r.rule}</td>
+    <td class="num">${fmtM(r.tc)}</td>
+    <td class="num ${r.diff ? 'neg' : 'pos'}" style="font-weight:700">${r.diff ? fmtN(r.diff) : '0.00'}</td>
+    <td class="wrap"><div style="font-size:11.5px">${r.by}</div><div class="muted">${r.at}</div></td>
+    <td><span class="st ${s.c}"><span class="st-dot"></span>${s.l}</span></td>
+    <td style="text-align:right">${r.state === 'CALCULATED'
+      ? '<button class="btn btn-sm ok">✓ อนุมัติ</button>'
+      : r.state === 'FAILED'
+        ? '<button class="btn btn-sm danger">ดูสาเหตุ</button>'
+        : '<button class="btn btn-sm">เปิดดู</button>'}</td>
+  </tr>`;
+}).join('');
+
+document.getElementById('run-log').innerHTML = RUN_LOG.map(l =>
+  `<div class="log-item"><div class="log-time">${l.t}</div>
+     <div class="log-ic">${l.ic}</div><div class="log-body">${l.h}</div></div>`).join('');
+</script>
+</body>
+</html>

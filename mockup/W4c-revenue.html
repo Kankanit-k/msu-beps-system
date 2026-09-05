@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W4 รายได้รายคณะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-revenue">
+    <div class="bm-note"><span>ℹ️</span><span id="rev-note"></span></div>
+    <div class="kpis">
+      <div class="kpi cn"><div class="kpi-label" id="rk1l">รายได้รวม (TR)</div><div class="kpi-val num" style="color:var(--navy2)" id="rk1">—</div><div class="kpi-unit">ล้านบาท</div></div>
+      <div class="kpi"><div class="kpi-label">งบประมาณเงินแผ่นดิน</div><div class="kpi-val num" id="rk2">—</div><div class="kpi-unit">ล้านบาท</div></div>
+      <div class="kpi co"><div class="kpi-label">งบประมาณเงินรายได้</div><div class="kpi-val num" style="color:var(--gold)" id="rk3">—</div><div class="kpi-unit">ล้านบาท</div></div>
+      <div class="kpi cg"><div class="kpi-label">รายได้เฉลี่ยต่อหัว (R)</div><div class="kpi-val num" style="color:var(--green2)" id="rk4">—</div><div class="kpi-unit">บาท/คน</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>องค์ประกอบรายได้รายคณะ</div><div class="card-sub">เงินแผ่นดิน + เงินรายได้ (ล้านบาท)</div></div>
+      <div class="leg-row"><div class="leg"><span class="leg-sq" style="background:#6d4cff"></span>เงินรายได้ (ค่าธรรมเนียม)</div><div class="leg"><span class="leg-sq" style="background:#fcc419"></span>เงินแผ่นดิน</div></div>
+      <div class="ch" style="height:420px"><canvas id="rev-main"></canvas></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--green2)"></span>ตารางรายได้ · ต้นทุน · ส่วนเกิน รายคณะ</div></div>
+      <div style="max-height:460px;overflow:auto"><table class="tbl"><thead><tr><th>#</th><th>คณะ</th><th class="num">นิสิต</th><th class="num" id="rth-tr">TR</th><th class="num">TC</th><th class="num">ส่วนเกิน</th><th class="num">R/หัว</th><th class="num">Q*</th></tr></thead><tbody id="rev-tbl"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- COST -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W4', title: 'รายได้รายคณะ', f: 'W4c-revenue.html', bm: true });
+document.querySelector('.page').insertAdjacentHTML('afterbegin', dataCaveat());
+</script>
+<script src="assets/page-revenue.js"></script>
+</body>
+</html>

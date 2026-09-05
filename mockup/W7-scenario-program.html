@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W7 คำนวณจุดคุ้มทุนรายหลักสูตร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-program">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div class="sec-title" style="margin-bottom:0">🎓 คำนวณจุดคุ้มทุนรายหลักสูตร (กรอกเอง)</div>
+      <button id="btn-pdf-report" onclick="openPdfReport()" disabled title="คำนวณก่อนเพื่อเปิดใช้งาน" style="display:flex;align-items:center;gap:7px;padding:9px 20px;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:not-allowed;background:#e2e8f2;color:#94a3b8;letter-spacing:.02em">🖨 ออกรายงาน PDF</button>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>กรอกข้อมูลหลักสูตร</div><div class="card-sub">เลือกประเภท — หลักสูตรเดิมดึงข้อมูลจากระบบอัตโนมัติ · หลักสูตรใหม่กรอกเอง</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div><label class="inp-label">📚 ประเภทหลักสูตร</label><select id="pg-type" class="inp" onchange="onPgTypeChange()"><option value="old">หลักสูตรเดิม (Existing)</option><option value="new">หลักสูตรใหม่ (New)</option></select></div>
+        <div><label class="inp-label">🏫 ระดับการศึกษา</label><select id="pg-level" class="inp"><option>ปริญญาตรี</option><option>ป.บัณฑิต</option><option>ปริญญาโท</option><option>ปริญญาเอก</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div id="pg-old-fac-wrap"><label class="inp-label">🏫 สังกัดคณะ / วิทยาลัย</label><select id="pg-fac" class="inp" onchange="onFacChange()"><option value="">-- เลือกคณะ --</option></select></div>
+        <div id="pg-old-prog-wrap"><label class="inp-label">📚 ชื่อหลักสูตร</label><select id="pg-name-sel" class="inp" onchange="onProgChange()"><option value="">-- เลือกหลักสูตร --</option></select></div>
+        <div id="pg-new-name-wrap" style="display:none"><label class="inp-label">✎ ชื่อหลักสูตร (กรอกเอง)</label><input id="pg-name-new" class="inp" type="text" placeholder="เช่น วิทยาการปัญญาประดิษฐ์"></div>
+        <div id="pg-new-fac-wrap" style="display:none"><label class="inp-label">🏫 สังกัดคณะ (กรอกเอง)</label><input id="pg-fac-new" class="inp" type="text" placeholder="เช่น คณะวิทยาศาสตร์"></div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--navy2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">📊 ข้อมูลตัวเลข <span id="pg-autofill-badge" style="display:none;font-size:9px;padding:2px 8px;border-radius:12px;background:var(--green3);color:var(--green);margin-left:8px;font-weight:700">✓ ดึงจากระบบ</span></div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+          <div><label class="inp-label">จำนวนนิสิต (Q)</label><input id="pg-q" class="inp" type="number" placeholder="0" min="0"></div>
+          <div><label class="inp-label">งบเงินแผ่นดิน</label><input id="pg-st" class="inp" type="number" placeholder="0" min="0"></div>
+          <div><label class="inp-label">งบเงินรายได้</label><input id="pg-own" class="inp" type="number" placeholder="0" min="0"></div>
+          <div><label class="inp-label">TFC รวม</label><input id="pg-tfc" class="inp" type="number" placeholder="0" min="0"></div>
+          <div><label class="inp-label">TVC รวม</label><input id="pg-tvc" class="inp" type="number" placeholder="0" min="0"></div>
+        </div>
+        <input id="pg-tr" type="hidden" value="">
+        <div id="pg-ref-note" style="display:none;margin-top:10px;font-size:11px;color:var(--text3);background:#fff;padding:8px 12px;border-radius:8px;border:1px solid var(--border);line-height:1.8"></div>
+      </div>
+      <button class="btn-primary" onclick="calcPg()" style="max-width:240px">▶ คำนวณจุดคุ้มทุน</button>
+    </div>
+    <div id="pg-result" style="display:none">
+      <div class="g2" style="margin-bottom:16px">
+        <div class="card" id="pg-result-card"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>กราฟจุดคุ้มทุน</div></div>
+          <div class="leg-row"><div class="leg"><span class="leg-sq" style="background:#6d4cff"></span>TR</div><div class="leg"><span class="leg-sq" style="background:#e64980"></span>TC</div><div class="leg"><span class="leg-sq" style="background:#f59f00"></span>TFC</div></div>
+          <div class="ch" style="height:280px"><canvas id="pg-chart"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:#f59f00"></span>ประวัติการคำนวณ</div><button onclick="pgHist=[];renderPgHist()" style="font-size:10px;padding:4px 12px;border:1px solid var(--red3);background:var(--red3);color:var(--red2);border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600">ล้าง</button></div>
+        <div id="pg-hist-body"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+  <!-- PDF Overlay -->
+  <div id="pdf-overlay" onclick="if(event.target===this)closePdfReport()">
+    <button onclick="closePdfReport()" style="position:fixed;top:16px;right:24px;z-index:10002;background:rgba(255,255,255,.9);color:#334155;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-weight:700" title="ปิด">×</button>
+    <div id="pdf-report"></div>
+    <div style="position:fixed;bottom:24px;right:24px;z-index:10001;display:flex;gap:10px">
+      <button class="pdf-print-btn" id="btn-dl-pdf" onclick="downloadReport()" style="background:#0ca678">⬇ ดาวน์โหลด PDF</button>
+      <button class="pdf-print-btn" onclick="printPdfReport()" style="background:#6d4cff">🖨 พิมพ์ / บันทึก PDF</button>
+      <button class="pdf-print-btn" onclick="closePdfReport()" style="background:#64748b;padding:11px 18px;box-shadow:none">× ปิด</button>
+    </div>
+  </div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W7', title: 'คำนวณจุดคุ้มทุนรายหลักสูตร', f: 'W7-scenario-program.html', bm: true });
+
+</script>
+<script src="assets/page-scenario-program.js"></script>
+</body>
+</html>

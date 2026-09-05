@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W18 ผู้ใช้และสิทธิ์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>ผู้ใช้หนึ่งคนมี <b>หนึ่งบทบาท</b> และ <b>หนึ่งขอบเขต</b> ตามตาราง
+      <code style="font-family:'Manrope',monospace">app_user</code> —
+      <code style="font-family:'Manrope',monospace">app_role_id</code> บอกว่าทำอะไรได้
+      · <code style="font-family:'Manrope',monospace">org_unit_id</code> บอกว่าเห็นข้อมูลของใคร (NULL = ทุกหน่วยงาน)</span>
+  </div>
+
+  <div class="kpis" id="role-kpis"></div>
+
+  <div class="caveat">
+    <span>⚠️</span>
+    <span><b>ต้องตัดสินใจก่อนเริ่มเขียนโค้ด</b> — <code>app_role</code> มี CHECK constraint ล็อกไว้ 4 ค่า
+      (<code>admin</code> · <code>budget_office</code> · <code>faculty_officer</code> · <code>viewer</code>)
+      และ<b>ไม่มีบทบาท "ผู้อนุมัติ" แยก</b> ทั้งที่ SA กำหนดว่าผู้เสนอกดอนุมัติเรื่องของตัวเองไม่ได้
+      · ตอนนี้จึงตกเป็นภาระของ <code>admin</code> ซึ่งแปลว่า<b>ผู้ดูแลระบบมีอำนาจอนุมัติเชิงนโยบายด้วย</b>
+      — ถ้าไม่ต้องการแบบนี้ ต้องเพิ่ม role <code>approver</code> ใน schema ก่อน</span>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="f-role"></div>
+    <div class="be-search-wrap" style="max-width:250px">
+      <span class="be-search-ic">🔍</span>
+      <input type="text" id="f-q" class="be-search" placeholder="ค้นหาชื่อ / อีเมล / หน่วยงาน...">
+    </div>
+    <span class="grow"></span>
+    <span class="pill" id="cnt">—</span>
+    <button class="btn">🔗 ซิงก์จาก MSU Account</button>
+    <button class="btn primary">+ เชิญผู้ใช้</button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.55fr 1fr">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+        <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>รายชื่อผู้ใช้</div>
+        <div class="card-sub">คลิกแถวเพื่อดูสิทธิ์ที่ได้จริง · ตาราง
+          <code style="font-family:'Manrope',monospace;font-size:10.5px">app_user</code></div>
+      </div>
+      <div style="max-height:520px;overflow:auto">
+        <table class="tbl dense">
+          <thead><tr>
+            <th>ชื่อ / อีเมล</th><th style="width:126px">บทบาท</th>
+            <th style="width:150px">ขอบเขตที่เห็น</th>
+            <th style="width:118px">เข้าใช้ล่าสุด</th><th style="width:82px">สถานะ</th>
+          </tr></thead>
+          <tbody id="user-tb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card" id="detail"></div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>บันทึกการเปลี่ยนสิทธิ์</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">audit_event</code>
+            — การให้และเพิกถอนสิทธิ์ต้องตรวจย้อนหลังได้เสมอ</div></div></div>
+        <div class="log" id="user-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ตารางสิทธิ์เต็ม</div>
+      <div class="card-sub">✓ = ทำได้ · ◑ = ได้เฉพาะหน่วยงานที่ผูกไว้ · − = ไม่เห็นเมนูเลย ·
+        คลิกหัวคอลัมน์เพื่อเน้นบทบาทนั้น</div></div></div>
+    <div class="tbl-scroll">
+      <table class="rbac" style="min-width:640px">
+        <thead><tr id="rbac-head"></tr></thead>
+        <tbody id="rbac-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>กติกาสิทธิ์ที่ระบบต้องบังคับ</h3>
+    <ul>
+      <li class="crit"><b>ผู้เสนอกดอนุมัติเรื่องของตัวเองไม่ได้</b> — บังคับที่ระดับหลังบ้าน ไม่ใช่แค่ซ่อนปุ่ม เพราะเรียก API ตรงได้</li>
+      <li class="warn"><b>ขอบเขตต้องกรองที่ query ไม่ใช่ที่หน้าจอ</b> — <code style="font-family:'Manrope',monospace">faculty_officer</code> ที่ผูกกับคณะวิศวฯ ต้องดึงข้อมูลคณะอื่นไม่ได้แม้จะแก้ URL เอง</li>
+      <li class="warn"><b>เปลี่ยนสิทธิ์ไม่ย้อนหลัง</b> — รายการที่เคยอนุมัติไปแล้วยังคงชื่อผู้อนุมัติเดิม แม้คนนั้นจะถูกถอนสิทธิ์ภายหลัง</li>
+      <li class="info"><b>ระบบไม่เก็บรหัสผ่านเอง</b> — ยืนยันตัวตนผ่าน MSU Account (SSO) ตารางนี้เก็บแค่บทบาทและขอบเขต</li>
+      <li class="ok"><b>บัญชีที่ไม่เข้าใช้เกิน 180 วันถูกระงับอัตโนมัติ</b> — ปลดล็อกได้โดยผู้ดูแลระบบ ไม่ลบทิ้งเพราะยังต้องอ้างในประวัติการอนุมัติ</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W18', title: 'ผู้ใช้และสิทธิ์', f: 'W18-users.html', bm: false, run: false });
+
+let fRole = 'all', fQ = '', sel = 0, hi = -1;
+const roleOf = k => ROLES.find(r => r.k === k);
+const ROLE_CHIP = { admin: 'chip-r', budget_office: 'chip-n', faculty_officer: 'chip-g', viewer: 'chip-o' };
+
+/* ---- KPI รายบทบาท ---- */
+document.getElementById('role-kpis').innerHTML = ROLES.map((r, i) => `
+  <div class="kpi ${['co', 'cg', 'cn', 'cr'][i]}">
+    <div class="kpi-label">${r.l}</div>
+    <div class="kpi-val num">${USERS.filter(u => u.role === r.k).length}</div>
+    <div class="kpi-unit"><code style="font-family:'Manrope',monospace">${r.k}</code>
+      · ${r.scoped ? 'จำกัดขอบเขต' : 'เห็นทุกหน่วยงาน'}</div>
+  </div>`).join('');
+
+/* ---- ตัวกรองบทบาท ---- */
+document.getElementById('f-role').innerHTML =
+  '<button class="on" data-r="all">ทั้งหมด</button>' +
+  ROLES.map(r => `<button data-r="${r.k}">${r.l}</button>`).join('');
+
+/* ---- ตารางผู้ใช้ ---- */
+function visible() {
+  return USERS.map((u, i) => ({ u, i }))
+    .filter(x => fRole === 'all' || x.u.role === fRole)
+    .filter(x => !fQ || (x.u.name + x.u.email + (x.u.org || '')).toLowerCase().includes(fQ));
+}
+
+function renderTable() {
+  const rows = visible();
+  document.getElementById('user-tb').innerHTML = rows.map(({ u, i }) => {
+    const r = roleOf(u.role);
+    return `<tr data-i="${i}" class="${i === sel ? 'sel' : ''}" style="cursor:pointer;${u.active ? '' : 'opacity:.6'}">
+      <td class="wrap"><b>${u.name}</b><div class="muted">${u.email}</div></td>
+      <td><span class="chip ${ROLE_CHIP[u.role]}">${r.l}</span></td>
+      <td class="wrap muted">${u.org
+        ? '◑ ' + u.org
+        : '<span style="color:var(--text2)">ทุกหน่วยงาน</span>'}</td>
+      <td class="muted">${u.last}</td>
+      <td>${u.invited
+        ? '<span class="st st-valid"><span class="st-dot"></span>รอตอบรับ</span>'
+        : u.active
+          ? '<span class="st st-appr"><span class="st-dot"></span>ใช้งาน</span>'
+          : '<span class="st st-fail"><span class="st-dot"></span>ระงับ</span>'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--text4);padding:26px">— ไม่พบผู้ใช้ที่ตรงกับตัวกรอง —</td></tr>`;
+
+  document.getElementById('cnt').textContent = `${rows.length} จาก ${USERS.length} คน`;
+  document.querySelectorAll('#user-tb tr[data-i]').forEach(tr => {
+    tr.onclick = () => { sel = +tr.dataset.i; renderTable(); renderDetail(); };
+  });
+}
+
+/* ---- สิทธิ์ที่ผู้ใช้คนนี้ได้จริง ---- */
+function renderDetail() {
+  const u = USERS[sel], r = roleOf(u.role);
+  const col = ROLES.findIndex(x => x.k === u.role);
+  /* W8 · W11 · W16 มีสองแถว (แก้/เสนอ กับ อนุมัติ) จึงต้องติดชื่อการกระทำกำกับ ไม่งั้นเลข W ซ้ำสองฝั่ง */
+  const lbl = x => x.w + (x.a ? ` <span style="color:var(--text4)">${x.a}</span>` : '');
+  const can = RBAC.filter(x => x.v[col] !== 'n');
+  const cannot = RBAC.filter(x => x.v[col] === 'n');
+
+  document.getElementById('detail').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>${u.name}</div>
+      <div class="card-sub">${u.email}</div>
+    </div><span class="chip ${ROLE_CHIP[u.role]}">${r.l}</span></div>
+
+    <div class="field" style="margin-bottom:12px">
+      <label>บทบาท (app_role_id)</label>
+      <select class="inp">${ROLES.map(x =>
+        `<option ${x.k === u.role ? 'selected' : ''}>${x.l} — ${x.k}</option>`).join('')}</select>
+      <div class="hint">${r.d}</div>
+    </div>
+
+    <div class="field" style="margin-bottom:14px">
+      <label>ขอบเขตหน่วยงาน (org_unit_id)</label>
+      <select class="inp" ${r.scoped ? '' : 'disabled'}>
+        <option ${u.org ? '' : 'selected'}>— ทุกหน่วยงาน (NULL) —</option>
+        ${RAW.FACS.map(f => `<option ${f.name === u.org ? 'selected' : ''}>${f.name}</option>`).join('')}
+      </select>
+      <div class="hint">${r.scoped
+        ? 'บทบาทนี้ต้องผูกหน่วยงาน — ระบบกรองข้อมูลที่ระดับ query ทุกครั้ง'
+        : 'บทบาทนี้เห็นทุกหน่วยงานเสมอ จึงตั้งขอบเขตไม่ได้'}</div>
+    </div>
+
+    <div class="rule-row" style="border-top:1px solid var(--border);padding-top:12px">
+      <div><div class="rule-name">สิทธิ์ที่ได้</div>
+        <div class="rule-desc">${can.map(x => lbl(x) + (x.v[col] === 'p' ? ' ◑' : '')).join(' · ')}</div></div>
+      <span class="chip chip-g num">${can.length}</span></div>
+    <div class="rule-row">
+      <div><div class="rule-name">ไม่เห็นเมนู</div>
+        <div class="rule-desc">${cannot.length ? cannot.map(lbl).join(' · ') : '— เห็นทุกหน้าจอ —'}</div></div>
+      <span class="chip chip-r num">${cannot.length}</span></div>
+    <div class="rule-row">
+      <div><div class="rule-name">อนุมัติได้หรือไม่</div>
+        <div class="rule-desc">${u.role === 'admin'
+          ? 'อนุมัติได้ทุกเรื่อง — แต่กดอนุมัติเรื่องที่ตัวเองเสนอไม่ได้'
+          : 'อนุมัติไม่ได้ · เสนอเรื่องเข้าสู่การอนุมัติได้เท่านั้น'}</div></div>
+      <span class="chip ${u.role === 'admin' ? 'chip-g' : 'chip-n'}">${u.role === 'admin' ? 'ได้' : 'ไม่ได้'}</span></div>
+
+    <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn">💾 บันทึกการเปลี่ยนสิทธิ์</button>
+      ${u.active
+        ? '<button class="btn danger">⏸ ระงับบัญชี</button>'
+        : '<button class="btn ok">▶ ปลดระงับ</button>'}
+      <button class="btn off" disabled title="ลบไม่ได้ — ยังถูกอ้างในประวัติการอนุมัติ">🗑 ลบผู้ใช้</button>
+    </div>`;
+}
+
+/* ---- ตารางสิทธิ์เต็ม ---- */
+const MARK = { y: '<span class="y">✓</span>', p: '<span class="p">◑</span>', n: '<span class="n">−</span>' };
+
+function renderRbac() {
+  document.getElementById('rbac-head').innerHTML =
+    '<th>หน้าจอ / การกระทำ</th>' + ROLES.map((r, i) =>
+      `<th data-c="${i}" style="cursor:pointer;${i === hi ? 'background:var(--navy2);color:#fff' : ''}">
+         ${r.l}<br><span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:8.5px;opacity:.75">${r.k}</span></th>`).join('');
+
+  document.getElementById('rbac-body').innerHTML = RBAC.map(row =>
+    `<tr><td><b style="font-family:'Manrope',sans-serif;font-size:10px;color:var(--navy2)">${row.w}</b>
+       &nbsp;${row.t}</td>${row.v.map((v, i) =>
+        `<td style="${i === hi ? 'background:var(--navy4)' : ''}">${MARK[v]}</td>`).join('')}</tr>`).join('');
+
+  document.querySelectorAll('#rbac-head th[data-c]').forEach(th => {
+    th.onclick = () => { hi = hi === +th.dataset.c ? -1 : +th.dataset.c; renderRbac(); };
+  });
+}
+
+/* ---- ตัวกรอง ---- */
+document.querySelectorAll('#f-role button').forEach(b => b.onclick = () => {
+  fRole = b.dataset.r;
+  document.querySelectorAll('#f-role button').forEach(x => x.classList.toggle('on', x === b));
+  renderTable();
+});
+document.getElementById('f-q').oninput = e => { fQ = e.target.value.trim().toLowerCase(); renderTable(); };
+
+document.getElementById('user-log').innerHTML = USER_LOG.map(l =>
+  `<div class="log-item"><div class="log-time">${l.t}</div>
+     <div class="log-ic">${l.ic}</div><div class="log-body">${l.h}</div></div>`).join('');
+
+renderTable(); renderDetail(); renderRbac();
+</script>
+</body>
+</html>

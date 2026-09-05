@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W8 ค่าธรรมเนียมการศึกษา</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>ค่าธรรมเนียมเป็น<b>ต้นทางของ TR ทั้งระบบ</b> — อัตราที่ยัง<b>ไม่ผ่านอนุมัติ</b> จะไม่ถูกนำไปคำนวณ
+      รอบคำนวณจะข้ามหลักสูตรนั้นและติดธงไว้ที่ <a href="W13-exceptions.html" style="color:var(--navy)">รายการค้างตรวจ</a>
+      · แต่ละอัตรามีช่วงปีที่มีผล เปลี่ยนอัตราปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi cg"><div class="kpi-label">อัตราที่อนุมัติแล้ว</div><div class="kpi-val num" id="k-appr">—</div><div class="kpi-unit">รายการ · พร้อมใช้คำนวณ</div></div>
+    <div class="kpi co"><div class="kpi-label">รออนุมัติ</div><div class="kpi-val num" style="color:var(--gold)" id="k-pend">—</div><div class="kpi-unit">รายการ · เสนอแล้วรอผู้อนุมัติ</div></div>
+    <div class="kpi"><div class="kpi-label">ร่าง (ยังไม่เสนอ)</div><div class="kpi-val num" id="k-draft">—</div><div class="kpi-unit">รายการ</div></div>
+    <div class="kpi cr"><div class="kpi-label">หลักสูตรที่ยังไม่มีอัตราอนุมัติ</div><div class="kpi-val num" style="color:var(--red2)" id="k-missing">4</div><div class="kpi-unit">หลักสูตร · TR คำนวณไม่ได้</div></div>
+  </div>
+
+  <div class="toolbar">
+    <select class="inp" style="width:auto" id="f-year">
+      <option>ปีการศึกษา 2568</option><option>ปีการศึกษา 2569</option><option>ปีการศึกษา 2570</option>
+    </select>
+    <div class="seg" id="f-status">
+      <button class="on" data-s="all">ทั้งหมด</button>
+      <button data-s="PENDING_APPROVAL">รออนุมัติ</button>
+      <button data-s="DRAFT">ร่าง</button>
+      <button data-s="REJECTED">ไม่อนุมัติ</button>
+    </div>
+    <div class="be-search-wrap" style="max-width:280px">
+      <span class="be-search-ic">🔍</span>
+      <input type="text" id="f-q" class="be-search" placeholder="ค้นหาคณะ / หลักสูตร...">
+    </div>
+    <span class="grow"></span>
+    <button class="btn">⬆ นำเข้าจาก Excel</button>
+    <button class="btn primary">+ เพิ่มอัตราใหม่</button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.75fr 1fr">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+        <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ตารางอัตราค่าธรรมเนียม</div>
+        <div class="card-sub">คลิกแถวเพื่อดูประวัติการเสนอและอนุมัติ · <span id="row-count"></span></div>
+      </div>
+      <div style="max-height:560px;overflow:auto">
+        <table class="tbl dense">
+          <thead><tr>
+            <th>คณะ / หลักสูตร</th><th>ระดับ</th><th>ภาค · สัญชาติ</th>
+            <th class="num">อัตรา (บ./ปี)</th><th class="num">เทียบปีก่อน</th><th>สถานะ</th>
+          </tr></thead>
+          <tbody id="fee-tb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card" id="detail"></div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ประวัติการเสนอ / อนุมัติ</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">fee_approval_log</code></div></div></div>
+        <div class="log" id="fee-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>ทำไมหน้านี้ถึงต้องมี</h3>
+    <ul>
+      <li class="crit"><b>prototype เดิมไม่มีหน้านี้</b> เพราะค่าธรรมเนียมถูก fix มาในไฟล์ Excel แล้ว ระบบจริงต้องมีที่ให้กรอกและอนุมัติ</li>
+      <li class="warn">อัตราที่ยังไม่อนุมัติ <b>ห้ามเข้าไปในการคำนวณ</b> — ถ้าปล่อยผ่านจะได้ TR ที่ยังไม่มีใครรับรอง แล้วผู้บริหารเอาไปตัดสินใจ</li>
+      <li class="info">คนที่เสนออัตราและคนที่อนุมัติ<b>ต้องเป็นคนละคน</b> ปุ่มอนุมัติจะถูกปิดถ้าผู้ใช้ปัจจุบันเป็นผู้เสนอเอง</li>
+      <li class="ok">ทุกอัตรามี<b>ช่วงปีที่มีผล</b> — ขึ้นค่าเทอมปี 2569 แล้วรายงานปี 2568 ต้องไม่เปลี่ยนตาม</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W8', title: 'ค่าธรรมเนียมการศึกษา', f: 'W8-tuition.html', bm: false });
+
+let sel = 0, fStatus = 'all', fQ = '';
+
+function visible() {
+  return FEES.map((f, i) => ({ ...f, i }))
+    .filter(f => fStatus === 'all' || f.status === fStatus)
+    .filter(f => !fQ || (f.fac + f.prog + f.lvl).toLowerCase().includes(fQ));
+}
+
+function renderTable() {
+  const rows = visible();
+  document.getElementById('fee-tb').innerHTML = rows.map(f => {
+    const s = FEE_STATUS[f.status];
+    const d = f.prev == null ? null : f.rate - f.prev;
+    const delta = d === null ? '<span class="muted">ใหม่</span>'
+      : d === 0 ? '<span class="muted">เท่าเดิม</span>'
+      : `<span class="${d > 0 ? 'neg' : 'pos'}" style="font-weight:700">${d > 0 ? '+' : '−'}${fmtN(Math.abs(d))}</span>
+         <span class="muted">(${d > 0 ? '+' : '−'}${(Math.abs(d) / f.prev * 100).toFixed(1)}%)</span>`;
+    return `<tr data-i="${f.i}" class="${f.i === sel ? 'sel' : ''}" style="cursor:pointer">
+      <td class="wrap"><b>${f.prog}</b><div class="muted">${f.fac}</div></td>
+      <td class="muted">${f.lvl}</td>
+      <td class="muted">${f.st}</td>
+      <td class="num" style="font-weight:700">${fmtN(f.rate)}</td>
+      <td class="num">${delta}</td>
+      <td><span class="st ${s.c}"><span class="st-dot"></span>${s.l}</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text4);padding:26px">— ไม่พบรายการที่ตรงกับตัวกรอง —</td></tr>`;
+
+  document.getElementById('row-count').textContent = `แสดง ${rows.length} จาก ${FEES.length} รายการ`;
+  document.querySelectorAll('#fee-tb tr[data-i]').forEach(tr => {
+    tr.onclick = () => { sel = +tr.dataset.i; renderTable(); renderDetail(); };
+  });
+}
+
+function renderDetail() {
+  const f = FEES[sel], s = FEE_STATUS[f.status];
+  const pending = f.status === 'PENDING_APPROVAL';
+  document.getElementById('detail').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>${f.prog}</div>
+      <div class="card-sub">${f.fac} · ${f.lvl} · ${f.st}</div>
+    </div><span class="st ${s.c}"><span class="st-dot"></span>${s.l}</span></div>
+
+    <div class="mini-stats" style="margin-bottom:14px">
+      <div class="mini-stat"><div class="l">อัตราที่เสนอ</div>
+        <div class="v" style="color:var(--navy)">${fmtN(f.rate)}</div><div class="s">บาท/ปี</div></div>
+      <div class="mini-stat"><div class="l">อัตราปีก่อน</div>
+        <div class="v" style="color:var(--text3)">${f.prev == null ? '—' : fmtN(f.prev)}</div>
+        <div class="s">${f.prev == null ? 'หลักสูตรใหม่' : 'บาท/ปี'}</div></div>
+    </div>
+
+    <div class="rule-row" style="border-top:1px solid var(--border);padding-top:12px">
+      <div><div class="rule-name">ช่วงปีที่มีผล</div>
+        <div class="rule-desc">ปีการศึกษา 2568 เป็นต้นไป · ตัวเลขปี 2567 ไม่เปลี่ยนตาม</div></div>
+      <span class="chip chip-n num">2568 →</span>
+    </div>
+    <div class="rule-row">
+      <div><div class="rule-name">ผู้อนุมัติ</div>
+        <div class="rule-desc">${f.by ? f.by + ' · ' + f.at : 'ยังไม่มีผู้อนุมัติ'}</div></div>
+      <span class="chip ${f.by ? 'chip-g' : 'chip-o'}">${f.by ? 'ครบ' : 'รอ'}</span>
+    </div>
+    <div class="rule-row">
+      <div><div class="rule-name">ผลต่อการคำนวณ</div>
+        <div class="rule-desc">${f.status === 'APPROVED'
+          ? 'ถูกนำไปคำนวณ TR ของหลักสูตรนี้ในรอบคำนวณถัดไป'
+          : 'ยังไม่ถูกนำไปคำนวณ — หลักสูตรนี้จะติดธง NO_FEE'}</div></div>
+      <span class="chip ${f.status === 'APPROVED' ? 'chip-g' : 'chip-r'}">${f.status === 'APPROVED' ? 'ใช้งาน' : 'ยังไม่ใช้'}</span>
+    </div>
+
+    <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn">✎ แก้ไขร่าง</button>
+      <button class="btn ${pending ? '' : 'off'}" ${pending ? '' : 'disabled'}>📤 เสนออนุมัติ</button>
+      <button class="btn ${pending ? 'ok' : 'off'}" ${pending ? '' : 'disabled'}
+        title="${pending ? 'ผู้อนุมัติต้องไม่ใช่ผู้เสนอ' : 'ต้องอยู่ที่สถานะรออนุมัติก่อน'}">✓ อนุมัติ</button>
+    </div>
+    ${pending ? `<div class="sub-note" style="margin:10px 0 0;color:var(--gold)">
+      ⚠ ผู้ใช้ปัจจุบันมีสิทธิ์ผู้อนุมัติ และไม่ใช่ผู้เสนอรายการนี้ จึงกดอนุมัติได้</div>` : ''}`;
+}
+
+function renderLog() {
+  document.getElementById('fee-log').innerHTML = FEE_LOG.map(l =>
+    `<div class="log-item"><div class="log-time">${l.t}</div>
+       <div class="log-ic">${l.ic}</div><div class="log-body">${l.h}</div></div>`).join('');
+}
+
+/* KPI */
+const cnt = s => FEES.filter(f => f.status === s).length;
+document.getElementById('k-appr').textContent = fmtN(cnt('APPROVED'));
+document.getElementById('k-pend').textContent = fmtN(cnt('PENDING_APPROVAL'));
+document.getElementById('k-draft').textContent = fmtN(cnt('DRAFT'));
+
+/* ตัวกรอง */
+document.querySelectorAll('#f-status button').forEach(b => b.onclick = () => {
+  fStatus = b.dataset.s;
+  document.querySelectorAll('#f-status button').forEach(x => x.classList.toggle('on', x === b));
+  renderTable();
+});
+document.getElementById('f-q').oninput = e => { fQ = e.target.value.trim().toLowerCase(); renderTable(); };
+
+renderTable(); renderDetail(); renderLog();
+</script>
+</body>
+</html>

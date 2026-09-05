@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W13 รายการค้างตรวจ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>รายการที่ระบบ<b>คำนวณต่อไปได้แต่ไม่มั่นใจ</b> จะถูกติดธงไว้ที่นี่แทนที่จะรวมเงียบๆ
+      · ทุกธงมีผู้รับผิดชอบและมูลค่าที่กระทบ เพื่อให้ตามแก้ได้จริง ไม่ใช่รู้ว่ามีปัญหาแต่ไม่รู้ว่าของใคร</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi cr"><div class="kpi-label">ยังไม่แก้</div><div class="kpi-val num" style="color:var(--red2)" id="k-open">—</div><div class="kpi-unit">รายการ</div></div>
+    <div class="kpi co"><div class="kpi-label">กำลังตาม</div><div class="kpi-val num" style="color:var(--gold)" id="k-prog">—</div><div class="kpi-unit">รายการ</div></div>
+    <div class="kpi"><div class="kpi-label">ยอมรับแล้ว</div><div class="kpi-val num" id="k-acc">—</div><div class="kpi-unit">รายการ · รับทราบข้อจำกัด</div></div>
+    <div class="kpi cn"><div class="kpi-label">มูลค่าที่กระทบรวม</div><div class="kpi-val num" style="color:var(--navy2)" id="k-amt">—</div><div class="kpi-unit" id="k-amt-s">ล้านบาท</div></div>
+  </div>
+
+  <div class="caveat">
+    <span>⚠️</span>
+    <span><b>รายการที่ร้ายแรงที่สุดไม่ได้วัดเป็นบาทได้</b> — ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว
+      ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ ส่วนเกิน <b>+32.8 ลบ.</b> ที่รายงานอยู่จึง<b>สูงเกินจริง</b>
+      และ Q* ทุกระดับ<b>ต่ำกว่าที่ควรเป็น</b> — ต้องกำกับข้อจำกัดนี้ทุกครั้งที่นำเสนอตัวเลขชุดปี 2568</span>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="f-flag">
+      <button class="on" data-f="all">ทั้งหมด</button>
+      <button data-f="MISSING_SOURCE">ไม่มีข้อมูลต้นทาง</button>
+      <button data-f="UNCLASSIFIED">ยังไม่จำแนก</button>
+      <button data-f="MISSING_DRIVER">ไม่มีตัวขับ</button>
+      <button data-f="NO_FEE">ไม่มีค่าธรรมเนียม</button>
+      <button data-f="Q_ZERO">Q = 0</button>
+    </div>
+    <span class="grow"></span>
+    <span class="pill" id="count">—</span>
+    <button class="btn">⬇ ส่งออกเป็น Excel</button>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="max-height:640px;overflow:auto">
+      <table class="tbl dense">
+        <thead><tr>
+          <th style="width:132px">ธง</th><th>รายการ</th><th style="width:130px">หน่วยงาน</th>
+          <th class="num" style="width:110px">มูลค่าที่กระทบ</th>
+          <th style="width:170px">ผู้รับผิดชอบ</th><th style="width:96px">สถานะ</th><th style="width:92px"></th>
+        </tr></thead>
+        <tbody id="exc-tb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid g-2e" style="margin-top:16px">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ธงแต่ละประเภทหมายความว่าอะไร</div>
+        <div class="card-sub">ระบบทำอะไรต่อกับรายการที่ติดธงนั้น</div></div></div>
+      <table class="tbl dense">
+        <tbody>
+          <tr><td style="width:132px"><span class="flag flag-unc">MISSING_SOURCE</span></td>
+            <td class="wrap">ไม่มีข้อมูลจากระบบต้นทางเลย — ระบบ<b>คำนวณโดยไม่มีตัวเลขนี้</b> ผลลัพธ์จึงต่ำกว่าความจริง</td></tr>
+          <tr><td><span class="flag flag-unc">UNCLASSIFIED</span></td>
+            <td class="wrap">มีเงินแต่ยังไม่รู้ว่าเป็น TFC หรือ TVC — <b>พักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร</b></td></tr>
+          <tr><td><span class="flag flag-drv">MISSING_DRIVER</span></td>
+            <td class="wrap">กติกาสั่งให้ปันตามการใช้จริง แต่ไม่มีข้อมูลการใช้ — <b>ตกไปใช้วิธีสำรอง</b> และติดธง ESTIMATED</td></tr>
+          <tr><td><span class="flag flag-fee">NO_FEE</span></td>
+            <td class="wrap">ยังไม่มีอัตราค่าธรรมเนียมที่อนุมัติ — <b>TR คำนวณไม่ได้ กันหลักสูตรออกจากยอดรวม</b></td></tr>
+          <tr><td><span class="flag flag-q0">Q_ZERO</span></td>
+            <td class="wrap">หลักสูตรเปิดแต่ไม่มีนิสิต — <b>R และ AVC เป็น null</b> หา Q* ไม่ได้ แต่ต้นทุนยังเกิดขึ้นจริง</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>สัดส่วนเทียบต้นทุนรวม</div>
+        <div class="card-sub">ประเมินว่าปัญหาคุณภาพข้อมูลใหญ่แค่ไหนเมื่อเทียบกับตัวเลขทั้งหมด</div></div></div>
+
+      <div class="mini-stats" style="margin-bottom:16px">
+        <div class="mini-stat"><div class="l">มูลค่าที่ติดธง</div><div class="v" style="color:var(--gold)" id="m1">—</div><div class="s">ล้านบาท</div></div>
+        <div class="mini-stat"><div class="l">คิดเป็นสัดส่วน</div><div class="v" style="color:var(--gold)" id="m2">—</div><div class="s">ของต้นทุนรวม 2,415.8 ลบ.</div></div>
+        <div class="mini-stat"><div class="l">เกณฑ์ที่ยอมรับ</div><div class="v" style="color:var(--green2)">≤ 1.0%</div><div class="s">ตั้งไว้ในนโยบายคุณภาพข้อมูล</div></div>
+      </div>
+
+      <div class="split" style="height:16px;margin-bottom:8px">
+        <i id="bar-flag" style="background:linear-gradient(135deg,#f59f00,#ffc453)"></i>
+        <i id="bar-ok" style="background:linear-gradient(135deg,#0ca678,#2fbd91)"></i>
+      </div>
+      <div class="split-lbl" style="font-size:11px">
+        <span><b style="color:var(--gold)">ติดธง</b> <span id="lbl-flag"></span></span>
+        <span><b style="color:var(--green)">ผ่านโดยไม่มีข้อสังเกต</b> <span id="lbl-ok"></span></span>
+      </div>
+
+      <div class="bm-note" style="margin-top:16px">
+        <span>⚠️</span>
+        <span>ตัวเลข <b id="note-pct">—</b> ดูน้อย แต่<b>ไม่ได้นับค่าเสื่อมราคาอาคารที่หายไปทั้งก้อน</b>
+          เพราะวัดเป็นบาทไม่ได้จนกว่าจะมีข้อมูล — สัดส่วนที่แท้จริงจึงสูงกว่านี้</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W13', title: 'รายการค้างตรวจ (Exception Queue)', f: 'W13-exceptions.html', bm: false });
+
+let fFlag = 'all';
+
+const cntState = s => EXCEPTIONS.filter(e => e.state === s).length;
+document.getElementById('k-open').textContent = cntState('OPEN');
+document.getElementById('k-prog').textContent = cntState('IN_PROGRESS');
+document.getElementById('k-acc').textContent = cntState('ACCEPTED');
+
+const totalAmt = EXCEPTIONS.reduce((s, e) => s + (e.amount || 0), 0);
+document.getElementById('k-amt').textContent = fmtM(totalAmt);
+document.getElementById('k-amt-s').textContent =
+  'ล้านบาท · ' + (totalAmt / RAW.UNI.TC * 100).toFixed(2) + '% ของต้นทุนรวม';
+
+document.getElementById('m1').textContent = fmtM(totalAmt);
+const pct = totalAmt / RAW.UNI.TC * 100;
+document.getElementById('m2').textContent = pct.toFixed(2) + '%';
+document.getElementById('bar-flag').style.flex = Math.max(pct, 1.2);
+document.getElementById('bar-ok').style.flex = 100 - pct;
+document.getElementById('lbl-flag').textContent = fmtM(totalAmt) + ' ลบ. (' + pct.toFixed(2) + '%)';
+document.getElementById('lbl-ok').textContent = fmtM(RAW.UNI.TC - totalAmt) + ' ลบ.';
+document.getElementById('note-pct').textContent = pct.toFixed(2) + '%';
+
+function render() {
+  const rows = EXCEPTIONS.filter(e => fFlag === 'all' || e.flag === fFlag);
+  document.getElementById('exc-tb').innerHTML = rows.map(e => {
+    const s = EXC_STATE[e.state];
+    return `<tr>
+      <td><span class="flag ${e.cls}">${e.flag}</span></td>
+      <td class="wrap"><b>${e.item}</b><div class="muted" style="margin-top:2px">${e.note}</div></td>
+      <td class="muted">${e.org}</td>
+      <td class="num" style="font-weight:700">${e.amount ? fmtM(e.amount) : '<span class="muted">วัดไม่ได้</span>'}</td>
+      <td class="wrap"><div style="font-size:11.5px">${e.owner}</div><div class="muted">ตั้งแต่ ${e.since}</div></td>
+      <td><span class="st ${s.c}"><span class="st-dot"></span>${s.l}</span></td>
+      <td style="text-align:right"><button class="btn btn-sm">มอบหมาย</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text4);padding:28px">— ไม่มีรายการในธงนี้ —</td></tr>`;
+  document.getElementById('count').textContent = `${rows.length} จาก ${EXCEPTIONS.length} รายการ`;
+}
+
+document.querySelectorAll('#f-flag button').forEach(b => b.onclick = () => {
+  fFlag = b.dataset.f;
+  document.querySelectorAll('#f-flag button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

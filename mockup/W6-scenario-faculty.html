@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W6 คำนวณจุดคุ้มทุนรายคณะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-input">
+    <div class="sec-title">✏️ คำนวณจุดคุ้มทุนรายคณะ / หน่วยงาน (กรอกเอง)</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ขั้นตอนที่ 1 — เลือกคณะ / หน่วยงาน</div><div class="card-sub">เลือกจากระบบเพื่อดึงข้อมูลอัตโนมัติ หรือกรอกเอง แล้วปรับแก้ได้</div></div><div class="chip chip-n">ข้อมูลอัพเดท</div></div>
+      <div style="display:grid;grid-template-columns:1.6fr 1fr 1.15fr 1.15fr;gap:12px;align-items:end">
+        <div><label class="inp-label">📋 เลือกคณะจากระบบ</label><select id="inp-fac-sel" class="inp"><option value="">-- เลือกคณะ --</option></select></div>
+        <div><label class="inp-label">จำนวนนิสิต (Q)</label><input id="inp-q" class="inp" type="number" placeholder="0" min="0"></div>
+        <div><label class="inp-label">งบเงินแผ่นดิน (บาท)</label><input id="inp-st" class="inp" type="number" placeholder="0" min="0"></div>
+        <div><label class="inp-label">งบเงินรายได้ (บาท)</label><input id="inp-own" class="inp" type="number" placeholder="0" min="0"></div>
+      </div>
+      <input id="inp-name" type="hidden" value=""><input id="inp-tr" type="hidden" value="">
+      <div id="inp-fac-badge" style="display:none;margin-top:10px;padding:8px 14px;background:var(--navy4);border:1px solid rgba(109,76,255,.20);border-radius:8px;font-size:11px;color:var(--navy);font-weight:500;line-height:1.7"></div>
+    </div>
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ขั้นตอนที่ 2 — ต้นทุนคงที่ (TFC)</div><div class="card-sub">เลือกหมวดจากรายการ หรือกรอกเอง</div></div><div class="chip chip-n">TFC</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--navy2)">รายการต้นทุนคงที่</div><div style="font-size:12px;color:var(--text3)">รวม TFC: <span id="tfc-sum" class="num" style="font-weight:700;color:var(--navy2)">0</span> บาท</div></div>
+        <div id="tfc-items" style="max-height:260px;overflow-y:auto"></div>
+        <button class="btn-add-row" onclick="addRow('tfc-items','TFC')">+ เพิ่มรายการ TFC</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--green2)"></span>ขั้นตอนที่ 3 — ต้นทุนผันแปร (TVC)</div><div class="card-sub">เลือกหมวดจากรายการ หรือกรอกเอง</div></div><div class="chip chip-g">TVC</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--green2)">รายการต้นทุนผันแปร</div><div style="font-size:12px;color:var(--text3)">รวม TVC: <span id="tvc-sum" class="num" style="font-weight:700;color:var(--green2)">0</span> บาท</div></div>
+        <div id="tvc-items" style="max-height:260px;overflow-y:auto"></div>
+        <button class="btn-add-row" style="border-color:rgba(12,166,120,.35);color:var(--green2)" onclick="addRow('tvc-items','TVC')">+ เพิ่มรายการ TVC</button>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card" style="background:var(--bg2)">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--text3)"></span>สรุปตัวเลขก่อนคำนวณ</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:9px">
+          <div class="stat-box"><div class="stat-lbl">Q (นิสิต)</div><div class="stat-val" id="pre-q" style="color:var(--navy2)">—</div></div>
+          <div class="stat-box"><div class="stat-lbl">TR รวม</div><div class="stat-val" id="pre-tr" style="color:var(--navy2);font-size:11px">—</div></div>
+          <div class="stat-box"><div class="stat-lbl">TC รวม</div><div class="stat-val" id="pre-tc" style="font-size:11px">—</div></div>
+          <div class="stat-box"><div class="stat-lbl">TFC</div><div class="stat-val" id="pre-tfc" style="color:var(--navy2);font-size:11px">—</div></div>
+          <div class="stat-box"><div class="stat-lbl">TVC</div><div class="stat-val" id="pre-tvc" style="color:var(--gold);font-size:11px">—</div></div>
+          <div class="stat-box"><div class="stat-lbl">AVC/หัว</div><div class="stat-val" id="pre-avc" style="color:var(--gold);font-size:11px">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px">
+          <div class="stat-box" style="background:var(--navy4)"><div class="stat-lbl" style="color:var(--navy2)">R/หัว — รวมแผ่นดิน</div><div class="stat-val" id="pre-rin" style="color:var(--navy2);font-size:12px">—</div></div>
+          <div class="stat-box" style="background:var(--gold4)"><div class="stat-lbl" style="color:var(--gold)">R/หัว — ไม่รวมแผ่นดิน</div><div class="stat-val" id="pre-rex" style="color:var(--gold);font-size:12px">—</div></div>
+        </div>
+        <button class="btn-primary" onclick="calcInp()">▶ คำนวณจุดคุ้มทุน</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--red2)"></span>ผลการคำนวณ</div></div>
+        <div id="inp-result"><div style="padding:20px;text-align:center;color:var(--text4);font-size:13px">กรอกข้อมูลครบแล้วกดคำนวณ</div></div>
+        <button id="btn-save" class="btn-primary" style="display:none;margin-top:8px;background:var(--green2)" onclick="saveInp()">+ บันทึกลงรายการ</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>รายการที่บันทึก</div><button onclick="inpList=[];renderInpList()" style="font-size:10px;padding:4px 12px;border:1px solid var(--red3);background:var(--red3);color:var(--red2);border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600">ล้างทั้งหมด</button></div>
+      <div id="inp-saved"><div style="padding:16px;text-align:center;color:var(--text4);font-size:12px">ยังไม่มีรายการ</div></div>
+    </div>
+  </div>
+
+  <!-- SELF-CALC: PROGRAM -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W6', title: 'คำนวณจุดคุ้มทุนรายคณะ', f: 'W6-scenario-faculty.html', bm: true });
+
+</script>
+<script src="assets/page-scenario-faculty.js"></script>
+</body>
+</html>

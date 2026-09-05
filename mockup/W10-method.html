@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W10 สูตร &amp; หลักวิชาการ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+  <div class="page method" id="p-method">
+    <div class="sec-title">📐 สูตรและหลักวิชาการจุดคุ้มทุน (Break-Even Analysis)</div>
+    <div class="fm-grid2">
+      <div class="fm-card"><h4>📌 สูตรที่ 1 — จุดคุ้มทุน</h4>
+        <div class="fm-eq">Q* = TFC ÷ ( R − AVC )</div>
+        <p>จุดคุ้มทุน (BEP) คือจำนวนนิสิตขั้นต่ำ Q* ที่ทำให้ TR = TC พอดี (π = 0) ส่วนต่าง (R − AVC) คือ <b>Contribution Margin (CM)</b> — รายได้ส่วนที่นำไปชดเชย TFC ยิ่ง CM สูง จุดคุ้มทุนยิ่งต่ำ</p>
+      </div>
+      <div class="fm-card"><h4>📌 สูตรที่ 2 — ต้นทุนรวม</h4>
+        <div class="fm-eq">TC = TFC + ( AVC × Q )</div>
+        <p>ต้นทุนรวมมี 2 ส่วน คือ TFC (ไม่เปลี่ยนตาม Q) และ TVC = AVC × Q (แปรผันตาม Q) มมส. มีสัดส่วน TFC สูงถึง <b>61.6%</b> ทำให้ ATC ลดลงเมื่อ Q เพิ่ม (<b>Economies of Scale</b>)</p>
+      </div>
+      <div class="fm-card"><h4>📌 สูตรที่ 3 — กำไร / ขาดทุน</h4>
+        <div class="fm-eq">π = TR − TC = (R − AVC) × Q − TFC</div>
+        <p>ส่วนเกิน/ขาดทุน (π): เมื่อ Q &gt; Q* กำไรเพิ่มในอัตรา CM ต่อหน่วย · เมื่อ Q &lt; Q* จะขาดทุน</p>
+      </div>
+      <div class="fm-card"><h4>📌 สูตรที่ 4 — รายได้ ณ จุดคุ้มทุน</h4>
+        <div class="fm-eq">BE Revenue = Q* × R</div>
+        <p>รายได้ขั้นต่ำเพื่อไม่ขาดทุน ใช้วางแผนงบประมาณและกำหนดเป้ารับนิสิต · <b>Margin of Safety</b> = TR จริง − BE Rev — ยิ่งกว้างยิ่งมั่นคง</p>
+      </div>
+    </div>
+    <div class="fm-card"><h4>📌 สูตรที่ 5 — ฐานรายได้ 2 กรณี (ตามไฟล์ต้นฉบับ)</h4>
+      <div class="fm-grid2">
+        <div class="fm-eq">R รวมแผ่นดิน = (งบแผ่นดิน + งบเงินรายได้) ÷ Q</div>
+        <div class="fm-eq gold">R ไม่รวมแผ่นดิน = งบเงินรายได้ ÷ Q</div>
+      </div>
+      <p style="margin-top:8px">แยกวิเคราะห์ 2 กรณีเพราะงบประมาณเงินแผ่นดินเป็น<b>เงินอุดหนุนจากรัฐ</b> ไม่ใช่รายได้ที่มหาวิทยาลัยหามาเอง</p>
+      <p><b>รวมเงินแผ่นดิน</b> — สะท้อนสถานะการเงินตามจริง (งบที่ได้รับทั้งหมด) &nbsp;·&nbsp; <b>ไม่รวมเงินแผ่นดิน</b> — สะท้อนความสามารถพึ่งพาตนเอง หากถูกตัดงบอุดหนุนจะอยู่รอดหรือไม่</p>
+      <p>ต้นทุน (TFC, TVC, AVC) เท่ากันทั้ง 2 กรณี — เปลี่ยนเฉพาะฝั่งรายได้ ทำให้ CM และ Q* ต่างกัน</p>
+    </div>
+    <div class="fm-grid2">
+      <div class="fm-card"><h4>📌 สูตรที่ 6 — จุดคุ้มทุนระดับคณะ (2 วิธี)</h4>
+        <div class="fm-eq">วิธีหลัก: Q*คณะ = Σ Q*หลักสูตร i</div>
+        <p><b>วิธีผลรวมรายหลักสูตร (ค่าหลัก)</b> — หา Q* ของแต่ละหลักสูตรก่อน แล้วนำมาบวกกัน แต่ละหลักสูตรต้องคุ้มต้นทุนคงที่ของตัวเอง ชดเชยข้ามหลักสูตรไม่ได้ → เข้มงวดและตรงกับการบริหารจริง</p>
+        <p style="color:var(--text3)"><b>วิธีเทียบ</b> Q* = TFCคณะ ÷ (R − AVC) ใช้ยอดรวมทั้งคณะ ยอมให้หลักสูตรกำไรอุ้มหลักสูตรขาดทุน → ได้ Q* ต่ำกว่าจริง</p>
+      </div>
+      <div class="fm-card"><h4>📌 สูตรที่ 7 — กรณี CM ≤ 0</h4>
+        <div class="fm-eq gold">ถ้า (R − AVC) ≤ 0 → Q* = TC ÷ R</div>
+        <p>เมื่อ AVC &gt; R (ต้นทุนผันแปรต่อหัวสูงกว่าค่าเทอมต่อหัว) ตัวส่วนของสูตรมาตรฐานจะติดลบ ได้ Q* ติดลบซึ่งไม่มีความหมาย จึงใช้หลัก <b>Full-Cost Recovery</b> — หาว่าต้องรับนิสิตกี่คนค่าเทอมรวมจึงครอบคลุมต้นทุนทั้งหมด</p>
+        <p><b>ตัวอย่าง</b> — เคมี (คณะวิทยาศาสตร์): TC ≈ 2.16 ล้านบาท · ค่าเทอม ≈ 93,000 บ./คน → Q* = 2,163,604 ÷ 93,311 ≈ <b>23 คน</b></p>
+        <p style="color:var(--red)">⚠ ค่าที่ได้เป็นเป้าหมายขั้นต่ำ ไม่ใช่จุดคุ้มทุนจริง — ทางแก้ที่ยั่งยืนคือลด AVC หรือขึ้นค่าธรรมเนียม</p>
+      </div>
+    </div>
+    <div class="fm-card"><h4>📖 คำนิยามตัวแปรในสูตร</h4>
+      <table class="vartbl"><thead><tr><th>สัญลักษณ์</th><th>ชื่อและความหมาย</th><th>หน่วย</th><th>มมส. (ข้อมูลอัพเดท)</th></tr></thead><tbody>
+        <tr><td>Q / Q*</td><td>จำนวนนิสิตจริง / ณ จุดคุ้มทุน · Q = ลงทะเบียนจริง, Q* = TFC ÷ (R − AVC)</td><td>คน</td><td>รวม 48,695 คน</td></tr>
+        <tr><td>TR</td><td>รายได้รวม (Total Revenue = R × Q) · งบแผ่นดิน + งบเงินรายได้ (ค่าธรรมเนียม)</td><td>บาท</td><td>2,448.7 ล้านบาท</td></tr>
+        <tr><td>TC</td><td>ต้นทุนรวม (Total Cost = TFC + TVC) · ต้นทุนทางตรงและทางอ้อมที่ปันส่วนมา</td><td>บาท</td><td>2,415.8 ล้านบาท</td></tr>
+        <tr><td>TFC</td><td>ต้นทุนคงที่รวม · เงินเดือน ค่าเสื่อมราคา ปันส่วนสำนักงานเลขานุการ</td><td>บาท</td><td>1,488.6 ล้าน (61.6%)</td></tr>
+        <tr><td>TVC / AVC</td><td>ต้นทุนผันแปร / ต่อหน่วย · AVC = TVC ÷ Q</td><td>บาท / บาท/คน</td><td>927.2 ล้าน (38.4%)</td></tr>
+        <tr><td>R</td><td>รายได้ต่อหน่วย (Revenue per Student = TR ÷ Q)</td><td>บาท/คน</td><td>50,286 บ. (เฉลี่ย)</td></tr>
+        <tr><td>π</td><td>กำไร/ขาดทุน · π &gt; 0 = ส่วนเกิน, π = 0 = BEP, π &lt; 0 = ขาดทุน</td><td>บาท</td><td>+32.8 ล้านบาท</td></tr>
+      </tbody></table>
+    </div>
+    <div class="fm-card"><h4>🗂️ การจำแนกประเภทต้นทุน (Cost Classification)</h4>
+      <p style="margin-bottom:10px">ตามหมวดรายจ่ายในไฟล์ต้นฉบับ · สัดส่วนจริง TFC : TVC = <b>61.6 : 38.4</b></p>
+      <div class="fm-grid2">
+        <div class="classbox"><div style="font-weight:700;color:var(--navy);font-size:12px;margin-bottom:8px">ต้นทุนคงที่ (TFC) — ไม่แปรผันตามนิสิต</div>
+          <span class="tag">100 เงินเดือน</span><span class="tag">210 ค่าจ้างประจำ</span><span class="tag">220 ค่าจ้างชั่วคราว</span><span class="tag">230 ค่าตอบแทน พรก.</span><span class="tag">300 ค่าตอบแทน</span><span class="tag">400 ค่าใช้สอย</span><span class="tag">500 ค่าวัสดุ</span><span class="tag">600 ค่าครุภัณฑ์</span><span class="tag">800 เงินอุดหนุน</span><span class="tag">900 รายจ่ายอื่น</span><span class="tag">+ ค่าเสื่อมราคา</span></div>
+        <div class="classbox"><div style="font-weight:700;color:var(--gold);font-size:12px;margin-bottom:8px">ต้นทุนผันแปร (TVC) — แปรผันตามนิสิต</div>
+          <span class="tag">300 ค่าตอบแทน</span><span class="tag">400 ค่าใช้สอย</span><span class="tag">410 ค่าสาธารณูปโภค</span><span class="tag">500 ค่าวัสดุ</span><span class="tag">800 เงินอุดหนุน</span><span class="tag">900 รายจ่ายอื่น</span><span class="tag">×Q ศึกษาทั่วไป</span><span class="tag">×Q ค่าธรรมเนียมรายการหลัก</span><span class="tag">×Q หักสมทบมหาวิทยาลัย</span></div>
+      </div>
+      <div class="bm-note" style="margin-top:12px"><span>⚠️</span><span>TVC ในไฟล์ใหม่รวม <b>ค่าธรรมเนียมรายการหลัก</b> และ <b>หักสมทบมหาวิทยาลัย (2,235 บ./คน/เทอม)</b> ซึ่งคิดตามรายหัวนิสิต จึงทำให้สัดส่วน TVC สูงกว่าการคำนวณแบบเดิม</span></div>
+    </div>
+    <div class="fm-card"><h4>📌 หมายเหตุ: ลำดับชั้นการวิเคราะห์ & "ภาควิชา"</h4>
+      <p>ระบบรวมข้อมูลจากล่างขึ้นบน: <b>หลักสูตร (230)</b> → <b>ระดับการศึกษาในแต่ละคณะ (ปริญญาตรี / บัณฑิตศึกษา)</b> → <b>คณะ (20)</b> → <b>มหาวิทยาลัย</b> ทุกตัวเลขระดับบนคือผลรวมของหน่วยย่อย ส่วน R, AVC, Q* คำนวณใหม่จากยอดรวมของหน่วยนั้น</p>
+      <p>ชุดข้อมูลนี้ไม่มีคอลัมน์ "ภาควิชา" โดยตรง ระบบจึงใช้ <b>ระดับการศึกษา</b> เป็นชั้นกลางแทน ซึ่งตรงกับวิธีที่ Excel ปันส่วนต้นทุนสำนักงานเลขานุการ (แยกระดับปริญญาตรี / บัณฑิตศึกษา) — หากมีตารางจับคู่หลักสูตร→ภาควิชาจริง สามารถสลับชั้นกลางได้ทันที</p>
+    </div>
+    <div class="fm-card"><h4>📚 เอกสารอ้างอิง (APA 7th Edition)</h4>
+      <div class="refs">
+        <div>[1] Horngren, C. T., Datar, S. M., &amp; Rajan, M. V. (2015). <i>Cost accounting: A managerial emphasis</i> (15th ed.). Pearson Education.</div>
+        <div>[2] Drury, C. (2018). <i>Management and cost accounting</i> (10th ed.). Cengage Learning EMEA.</div>
+        <div>[3] Garrison, R. H., Noreen, E. W., &amp; Brewer, P. C. (2021). <i>Managerial accounting</i> (17th ed.). McGraw-Hill Education.</div>
+        <div>[4] Johnes, G., &amp; Johnes, J. (Eds.). (2004). <i>International handbook on the economics of education</i>. Edward Elgar Publishing.</div>
+        <div>[5] กรมบัญชีกลาง. (2566). <i>หลักเกณฑ์การคำนวณต้นทุนต่อหน่วยผลผลิตของส่วนราชการ</i>. กระทรวงการคลัง.</div>
+        <div>[6] สำนักงานคณะกรรมการการอุดมศึกษา. (2565). <i>แนวทางการวิเคราะห์ต้นทุนและการจัดทำงบประมาณของสถาบันอุดมศึกษา</i>. กระทรวง อว.</div>
+        <div>[7] มหาวิทยาลัยมหาสารคาม. (2568). <i>รายงานต้นทุนต่อหน่วยผลผลิตและการวิเคราะห์จุดคุ้มทุน</i>. กองแผนงาน มมส.</div>
+        <div>[8] Worthington, A. C., &amp; Higgs, H. (2011). Economies of scale and scope in Australian higher education. <i>Higher Education, 61</i>(4), 387–414.</div>
+        <div>[9] Vanderbei, R. J. (2020). <i>Linear programming: Foundations and extensions</i> (5th ed.). Springer.</div>
+      </div>
+      <p style="color:var(--text3);font-size:11px;margin-top:14px">แหล่งข้อมูล: ไฟล์ "20260711_จุดคุ้มทุน update.xlsx" — ชีต 1.รายได้ และ 2.ค่าใช้จ่าย · ปรับปรุงจากแอป breakeven_app v7</p>
+    </div>
+  </div>
+
+  <!-- SELF-CALC: FACULTY -->
+
+</div>
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W10', title: 'สูตร & หลักวิชาการ', f: 'W10-method.html', bm: false });
+</script>
+</body>
+</html>

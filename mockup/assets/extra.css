@@ -1,0 +1,282 @@
+/* ==========================================================================
+   MSU-BEPS — extra.css
+   ส่วนต่อขยายจาก beps.css (ชุดเดิมของ prototype v8-1)
+   1) ปรับเปลือกหน้าจอให้ทำงานแบบ "หนึ่งไฟล์ = หนึ่งหน้า"
+   2) คอมโพเนนต์ใหม่สำหรับหน้าจอที่ prototype ยังไม่มี (W0, W8, W9, W11–W15)
+   ========================================================================== */
+
+/* ---------- 1) เปลือกหน้าจอ ---------- */
+
+/* เดิม .page ถูกซ่อนไว้เพราะทุกหน้าอยู่ในไฟล์เดียว — ตอนนี้แยกไฟล์แล้วจึงแสดงเสมอ */
+.page { display: block; }
+
+.sb-item { text-decoration: none; }
+.sb-w {
+  margin-left: auto; font-family: 'Manrope', sans-serif; font-size: 9px; font-weight: 700;
+  color: var(--text4); background: var(--bg3); padding: 1px 5px; border-radius: 5px; letter-spacing: 0;
+}
+.sb-item.active .sb-w { background: var(--navy2); color: #fff; }
+.sb-role { font-size: 10px; opacity: .5; }
+.sb-back {
+  display: block; margin-top: 8px; font-size: 10px; color: var(--navy2);
+  text-decoration: none; font-weight: 600;
+}
+.sb-back:hover { text-decoration: underline; }
+
+.tb-wid {
+  font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 800; margin-left: 9px;
+  color: var(--navy2); background: var(--navy4); padding: 2px 7px; border-radius: 6px;
+  vertical-align: middle;
+}
+.tb-year { font-size: 11.5px; padding: 6px 10px; font-weight: 600; }
+.tb-run {
+  display: flex; align-items: center; gap: 8px; text-decoration: none;
+  background: var(--card); border: 1px solid var(--border2); border-radius: 9px;
+  padding: 5px 11px; transition: .15s;
+}
+.tb-run:hover { border-color: var(--navy2); background: var(--navy4); }
+.tb-run-id { font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 800; color: var(--navy); }
+.tb-run-meta { font-size: 9.5px; color: var(--text3); line-height: 1.35; max-width: 190px; }
+.tb-user { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text2); line-height: 1.45; }
+.tb-user b { font-size: 11px; color: var(--text); }
+.tb-role { color: var(--text4); }
+.tb-avatar {
+  width: 30px; height: 30px; border-radius: 50%; background: var(--navy4); color: var(--navy);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;
+}
+
+/* แถบเตือนข้อจำกัดของข้อมูล */
+.caveat {
+  display: flex; gap: 9px; align-items: flex-start; font-size: 11.5px; line-height: 1.65;
+  color: var(--gold); background: var(--gold4); border: 1px solid rgba(180, 83, 9, .2);
+  border-left: 4px solid var(--gold2); border-radius: var(--radius2);
+  padding: 10px 14px; margin-bottom: 16px;
+}
+.caveat b { color: #92400e; }
+.caveat a { color: var(--gold); font-weight: 700; }
+.caveat code {
+  font-family: 'Manrope', monospace; background: rgba(180, 83, 9, .12);
+  padding: 0 4px; border-radius: 3px; font-size: 11px;
+}
+
+/* ---------- 2) คอมโพเนนต์ที่ใช้ร่วมในหน้าจอใหม่ ---------- */
+
+/* หัวข้อย่อยในหน้า */
+.sub-note { font-size: 11.5px; color: var(--text3); line-height: 1.7; margin-bottom: 14px; }
+.sub-note b { color: var(--text2); }
+
+/* แถวปุ่ม / เครื่องมือเหนือการ์ด */
+.toolbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 14px; }
+.toolbar .grow { flex: 1; }
+
+.btn {
+  font-family: inherit; font-size: 12px; font-weight: 600; padding: 8px 14px;
+  border-radius: 8px; border: 1px solid var(--border2); background: var(--card);
+  color: var(--text2); cursor: pointer; transition: .15s; display: inline-flex;
+  align-items: center; gap: 6px; text-decoration: none;
+}
+.btn:hover { background: var(--bg3); border-color: var(--text4); }
+.btn.primary { background: var(--navy2); border-color: var(--navy2); color: #fff; }
+.btn.primary:hover { background: var(--navy3); box-shadow: 0 4px 12px rgba(109, 76, 255, .3); }
+.btn.ok { background: var(--green2); border-color: var(--green2); color: #fff; }
+.btn.ok:hover { background: var(--green); }
+.btn.danger { background: var(--red3); border-color: var(--red3); color: var(--red); }
+.btn.ghost { background: transparent; }
+.btn[disabled], .btn.off {
+  background: var(--bg3); border-color: var(--border); color: var(--text4);
+  cursor: not-allowed; box-shadow: none;
+}
+.btn-sm { font-size: 10.5px; padding: 5px 10px; }
+
+/* ป้ายสถานะ */
+.st {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 6px; white-space: nowrap; letter-spacing: .01em;
+}
+.st-draft   { background: #f1f3f5; color: var(--text3); }
+.st-run     { background: var(--navy4); color: var(--navy); }
+.st-calc    { background: #e0f2fe; color: #0369a1; }
+.st-valid   { background: var(--gold4); color: var(--gold); }
+.st-appr    { background: var(--green3); color: var(--green); }
+.st-fail    { background: var(--red3); color: var(--red); }
+.st-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* ตารางข้อมูล — ต่อยอดจาก .tbl เดิม */
+.tbl.dense td { padding: 7px 10px; }
+.tbl td.wrap { white-space: normal; line-height: 1.5; }
+.tbl .muted { color: var(--text3); font-size: 11px; }
+.tbl-scroll { overflow-x: auto; }
+.tbl-scroll table { min-width: 780px; }
+.tbl tr.sel { background: var(--navy4) !important; }
+.tbl tfoot td {
+  background: var(--bg2); font-weight: 700; border-top: 2px solid var(--border2);
+  border-bottom: none;
+}
+
+/* แถบสัดส่วน direct เทียบ allocated */
+.split { display: flex; height: 9px; border-radius: 5px; overflow: hidden; background: var(--bg3); }
+.split i { display: block; height: 100%; }
+.split-lbl { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+/* ไทม์ไลน์สถานะ (W11) */
+.flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 4px 0 2px; }
+.flow-step {
+  display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600;
+  color: var(--text4); padding: 7px 13px; border-radius: 8px; background: var(--bg3);
+}
+.flow-step.done { background: var(--green3); color: var(--green); }
+.flow-step.now { background: var(--navy2); color: #fff; box-shadow: 0 3px 10px rgba(109, 76, 255, .3); }
+.flow-arrow { color: var(--text4); font-size: 12px; padding: 0 7px; }
+
+/* กล่องบันทึกเหตุการณ์ / audit log */
+.log { display: flex; flex-direction: column; gap: 0; }
+.log-item {
+  display: grid; grid-template-columns: 106px 26px 1fr; gap: 10px; align-items: start;
+  padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 11.5px;
+}
+.log-item:last-child { border-bottom: none; }
+.log-time { color: var(--text4); font-size: 10px; font-family: 'Manrope', sans-serif; line-height: 1.6; }
+.log-ic {
+  width: 24px; height: 24px; border-radius: 7px; background: var(--bg3);
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.log-body { color: var(--text2); line-height: 1.65; }
+.log-body b { color: var(--text); }
+
+/* ฟอร์ม 2 คอลัมน์ */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 13px; }
+.field label { font-size: 11px; font-weight: 700; color: var(--navy2); display: block; margin-bottom: 4px; }
+.field .hint { font-size: 10px; color: var(--text4); margin-top: 4px; line-height: 1.5; }
+
+/* กล่องกฎ / นโยบาย (W14, W15) */
+.rule-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.rule-row:last-child { border-bottom: none; }
+.rule-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.rule-key {
+  font-family: 'Manrope', monospace; font-size: 10.5px; color: var(--text3);
+  background: var(--bg3); padding: 1px 6px; border-radius: 4px; margin-left: 7px;
+}
+.rule-desc { font-size: 11px; color: var(--text3); margin-top: 3px; line-height: 1.6; }
+
+/* กลุ่มปุ่มเลือกประเภทต้นทุน */
+.seg { display: inline-flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.seg button {
+  border: none; background: none; font-family: inherit; font-size: 10.5px; font-weight: 700;
+  padding: 5px 11px; border-radius: 6px; color: var(--text3); cursor: pointer; transition: .15s;
+}
+.seg button.on { background: var(--card); box-shadow: var(--shadow); }
+.seg button.on[data-v="FIXED"] { color: var(--navy); }
+.seg button.on[data-v="VARIABLE"] { color: var(--gold); }
+.seg button.on[data-v="MIXED"] { color: var(--green); }
+.seg button.on[data-v="UNCLASSIFIED"] { color: var(--red); }
+
+/* สวิตช์เปิด/ปิด */
+.sw { position: relative; width: 38px; height: 21px; flex-shrink: 0; cursor: pointer; }
+.sw input { opacity: 0; width: 0; height: 0; }
+.sw span {
+  position: absolute; inset: 0; background: var(--border2); border-radius: 21px; transition: .2s;
+}
+.sw span::before {
+  content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px;
+  background: #fff; border-radius: 50%; transition: .2s; box-shadow: var(--shadow);
+}
+.sw input:checked + span { background: var(--navy2); }
+.sw input:checked + span::before { transform: translateX(17px); }
+
+/* การ์ดตัวเลขแบบกะทัดรัด */
+.mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.mini-stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
+.mini-stat .l { font-size: 9.5px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; }
+.mini-stat .v { font-size: 17px; font-weight: 700; font-family: 'Manrope', 'Prompt', sans-serif; margin-top: 4px; letter-spacing: -.4px; }
+.mini-stat .s { font-size: 10px; color: var(--text4); margin-top: 2px; }
+
+/* แถบผลตรวจยอด (W12) */
+.recon-row {
+  display: grid; grid-template-columns: 1fr 130px 130px 110px 92px; gap: 12px; align-items: center;
+  padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.recon-row.head {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--text3);
+  font-weight: 700; border-bottom: 2px solid var(--border2); background: var(--card);
+  position: sticky; top: 0; z-index: 2;
+}
+.recon-row .num { text-align: right; font-family: 'Manrope', 'Prompt', sans-serif; font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .recon-row { grid-template-columns: 1fr 1fr; } }
+
+/* หน้าเข้าสู่ระบบ (W0) */
+.login-wrap {
+  min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
+  background: linear-gradient(135deg, #f5f7fb, #eef1f8);
+}
+@media (max-width: 900px) { .login-wrap { grid-template-columns: 1fr; } }
+.login-brand {
+  background: linear-gradient(160deg, #3730a3, #6d4cff 60%, #7c5cff);
+  color: #fff; padding: 52px 48px; display: flex; flex-direction: column; justify-content: center; gap: 22px;
+}
+.login-brand h1 { font-size: 30px; font-weight: 800; font-family: 'Manrope', 'Prompt', sans-serif; letter-spacing: -.02em; }
+.login-brand p { font-size: 13px; line-height: 1.85; color: rgba(255, 255, 255, .8); max-width: 430px; }
+.login-form { display: flex; align-items: center; justify-content: center; padding: 40px 32px; }
+.login-card {
+  width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 30px 28px; box-shadow: var(--shadow2);
+}
+
+/* ตารางสิทธิ์ role → สิ่งที่เห็น (W0) */
+.rbac { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.rbac th {
+  background: var(--navy4); color: var(--navy); padding: 8px 10px; text-align: left;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+}
+.rbac th:not(:first-child), .rbac td:not(:first-child) { text-align: center; width: 52px; }
+.rbac th { line-height: 1.35; }
+.rbac td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.rbac .y { color: var(--green2); font-weight: 700; }
+.rbac .n { color: var(--text4); }
+.rbac .p { color: var(--gold2); font-weight: 700; }
+
+/* ป้ายธงคุณภาพข้อมูล (W13) */
+.flag {
+  display: inline-flex; align-items: center; gap: 5px; font-family: 'Manrope', monospace;
+  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
+}
+.flag-unc { background: var(--red3); color: var(--red); }
+.flag-drv { background: var(--gold4); color: var(--gold); }
+.flag-fee { background: var(--navy4); color: var(--navy); }
+.flag-q0 { background: #f1f3f5; color: var(--text3); }
+
+/* กล่อง diff ค่าเดิม → ค่าใหม่ (W15) */
+.diff { display: inline-flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-size: 11.5px; }
+.diff .from { color: var(--text4); text-decoration: line-through; }
+.diff .to { color: var(--navy); font-weight: 700; }
+
+/* หน้าสารบัญ (index.html) */
+.hub { max-width: 1180px; margin: 0 auto; padding: 36px 26px 70px; }
+.hub-h { font-size: 26px; font-weight: 800; font-family: 'Manrope', 'Prompt', sans-serif; letter-spacing: -.02em; }
+.hub-sub { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.75; max-width: 780px; }
+.hub-grp { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--navy2); margin: 30px 0 12px; }
+.hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 13px; }
+.hub-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 15px 17px; box-shadow: var(--shadow); text-decoration: none; color: inherit;
+  display: flex; gap: 12px; transition: .16s; border-left: 3px solid var(--navy2);
+}
+.hub-card:hover { box-shadow: var(--shadow2); transform: translateY(-2px); border-left-color: var(--gold2); }
+.hub-card.isnew { border-left-color: var(--green2); }
+.hub-ic { font-size: 21px; flex-shrink: 0; }
+.hub-w { font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 800; color: var(--navy2); }
+.hub-t { font-size: 13.5px; font-weight: 700; margin: 2px 0 4px; }
+.hub-d { font-size: 11px; color: var(--text3); line-height: 1.6; }
+.hub-tag {
+  display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px;
+  border-radius: 4px; margin-top: 7px;
+}
+.hub-tag.proto { background: var(--navy4); color: var(--navy); }
+.hub-tag.brandnew { background: var(--green3); color: var(--green); }
+
+@media print {
+  #sidebar, #topbar, .sb-back { display: none !important; }
+  #main { margin-left: 0 !important; }
+}

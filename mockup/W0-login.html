@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W0 เข้าสู่ระบบ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+
+<div class="login-wrap">
+
+  <!-- ซ้าย: แบรนด์ + เหตุผลที่ต้องมี auth -->
+  <div class="login-brand">
+    <div style="display:flex;align-items:center;gap:14px">
+      <img id="brand-logo" alt="ตราสัญลักษณ์มหาวิทยาลัยมหาสารคาม"
+           style="width:60px;height:60px;border-radius:10px;background:#fff;padding:4px;object-fit:contain">
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.75;font-weight:700">Mahasarakham University</div>
+        <h1>MSU-BEPS</h1>
+        <div style="font-size:12.5px;opacity:.8;margin-top:2px">ระบบวิเคราะห์จุดคุ้มทุน · Break-Even Point System</div>
+      </div>
+    </div>
+
+    <p>
+      ระบบนี้แสดงต้นทุนและจุดคุ้มทุนรายหลักสูตรของทั้งมหาวิทยาลัย ซึ่งเป็นข้อมูลที่กระทบการตัดสินใจ
+      เรื่องงบประมาณและการเปิด/ปิดหลักสูตรโดยตรง จึงต้องระบุตัวตนก่อนเข้าใช้เสมอ
+      และ<b style="color:#fff">สิ่งที่แต่ละคนเห็นขึ้นอยู่กับสิทธิ์</b> — prototype เดิมไม่มีชั้นนี้เลย
+    </p>
+
+    <div style="display:grid;gap:11px;max-width:430px">
+      <div style="display:flex;gap:11px;align-items:flex-start;font-size:12px;line-height:1.7">
+        <span style="font-size:16px">🔐</span>
+        <span>เข้าสู่ระบบด้วยบัญชี <b style="color:#fff">MSU Account</b> เดียวกับระบบอื่นของมหาวิทยาลัย (SSO)
+          ระบบไม่เก็บรหัสผ่านของตัวเอง</span>
+      </div>
+      <div style="display:flex;gap:11px;align-items:flex-start;font-size:12px;line-height:1.7">
+        <span style="font-size:16px">👁</span>
+        <span>ผู้รับผิดชอบหลักสูตรเห็นเฉพาะคณะที่สังกัด · ผู้บริหารเห็นทุกคณะ ·
+          เมนูจัดการข้อมูลและตั้งค่าระบบ<b style="color:#fff">ไม่ปรากฏเลย</b>สำหรับผู้ที่ไม่มีสิทธิ์</span>
+      </div>
+      <div style="display:flex;gap:11px;align-items:flex-start;font-size:12px;line-height:1.7">
+        <span style="font-size:16px">📜</span>
+        <span>ทุกการแก้ข้อมูลหลัก การอนุมัติ และการสั่งคำนวณใหม่ ถูกบันทึกพร้อมชื่อผู้ทำและเวลา
+          เพื่อให้ตอบได้ว่าตัวเลขแต่ละชุดมาจากใครและกติกาปีไหน</span>
+      </div>
+    </div>
+
+    <div style="font-size:10.5px;opacity:.6;margin-top:8px;line-height:1.7">
+      หน้าจอ W0 · อ้างอิง SA.md §9 — ตาราง <code style="background:rgba(255,255,255,.15);padding:1px 5px;border-radius:4px">app_user</code>,
+      <code style="background:rgba(255,255,255,.15);padding:1px 5px;border-radius:4px">role</code>,
+      <code style="background:rgba(255,255,255,.15);padding:1px 5px;border-radius:4px">user_role_scope</code>
+    </div>
+  </div>
+
+  <!-- ขวา: ฟอร์ม + ตารางสิทธิ์ -->
+  <div class="login-form">
+    <div style="width:100%;max-width:650px;display:flex;flex-direction:column;gap:18px">
+
+      <div class="login-card">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">เข้าสู่ระบบ</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:20px">ใช้บัญชี MSU Account ของท่าน</div>
+
+        <button class="btn primary" style="width:100%;justify-content:center;padding:12px;font-size:13px;margin-bottom:16px">
+          <span>🎓</span> เข้าสู่ระบบด้วย MSU Account (SSO)
+        </button>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="flex:1;height:1px;background:var(--border2)"></div>
+          <span style="font-size:10.5px;color:var(--text4)">หรือเข้าด้วยบัญชีภายในระบบ</span>
+          <div style="flex:1;height:1px;background:var(--border2)"></div>
+        </div>
+
+        <div class="field" style="margin-bottom:12px">
+          <label>ชื่อผู้ใช้ / อีเมล</label>
+          <input class="inp" type="text" value="piyapat.b@msu.ac.th" autocomplete="username">
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>รหัสผ่าน</label>
+          <input class="inp" type="password" value="••••••••••" autocomplete="current-password">
+          <div class="hint">ลืมรหัสผ่าน ติดต่อสำนักคอมพิวเตอร์ · ระบบไม่รับสมัครสมาชิกเอง</div>
+        </div>
+
+        <div class="field" style="margin-bottom:18px">
+          <label>เข้าใช้ในบทบาท (สำหรับผู้ที่มีหลายสิทธิ์)</label>
+          <select class="inp" id="role-pick"></select>
+          <div class="hint" id="role-hint"></div>
+        </div>
+
+        <a class="btn primary" href="W1-overview.html"
+           style="width:100%;justify-content:center;padding:12px;font-size:13px">เข้าสู่ระบบ →</a>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>สิทธิ์แต่ละบทบาทเห็นอะไรบ้าง</div>
+            <div class="card-sub">✓ = ทำได้ · ◑ = ได้เฉพาะหน่วยงานที่ผูกไว้ใน <code style="font-family:'Manrope',monospace;font-size:10px">org_unit_id</code> · − = ไม่เห็นเมนูเลย<br>4 บทบาทตรงกับ CHECK constraint ของตาราง <code style="font-family:'Manrope',monospace;font-size:10px">app_role</code></div>
+          </div>
+        </div>
+        <div class="tbl-scroll">
+          <table class="rbac" style="min-width:560px">
+            <thead><tr id="rbac-head"></tr></thead>
+            <tbody id="rbac-body"></tbody>
+          </table>
+        </div>
+        <div class="sub-note" style="margin:14px 0 0">
+          <b>จุดที่ตั้งใจออกแบบ</b> — การอนุมัติแยกจากการแก้ไขเสมอ ผู้ที่เสนอเรื่องกดอนุมัติเรื่องของตัวเองไม่ได้
+          ทั้งค่าธรรมเนียม (W8) หลักสูตร (W16) กติกาผังบัญชี (W14) นโยบาย (W15) และรอบคำนวณ (W11)
+        </div>
+        <div class="caveat" style="margin:12px 0 0">
+          <span>⚠️</span>
+          <span><b>ยังไม่ฟันธง</b> — schema มี 4 บทบาทและ<b>ไม่มีบทบาท "ผู้อนุมัติ" แยกต่างหาก</b>
+            ตารางนี้จึงให้ <code>admin</code> เป็นผู้อนุมัติทุกเรื่อง ซึ่งแปลว่าผู้ดูแลระบบมีอำนาจอนุมัติเชิงนโยบายด้วย
+            — ถ้าไม่ต้องการแบบนั้นต้องเพิ่ม role <code>approver</code> ใน
+            <code>app_role</code> ก่อนเริ่มเขียนโค้ด · จัดการผู้ใช้จริงที่
+            <a href="W18-users.html">W18</a></span>
+        </div>
+      </div>
+
+      <div style="text-align:center">
+        <a class="btn ghost btn-sm" href="index.html">← สารบัญหน้าจอทั้งหมด</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/logo.js"></script>
+<script src="assets/master-data.js"></script>
+<script>
+document.getElementById('brand-logo').src = MSU_LOGO;
+
+/* ตัวเลือกบทบาท */
+const pick = document.getElementById('role-pick');
+pick.innerHTML = ROLES.map(r => `<option value="${r.k}">${r.l} (${r.k})</option>`).join('');
+const hint = document.getElementById('role-hint');
+const showHint = () => {
+  const r = ROLES.find(x => x.k === pick.value);
+  hint.innerHTML = r.d + (r.scoped
+    ? ' · <b style="color:var(--gold)">ขอบเขตถูกจำกัดด้วยหน่วยงานที่ผูกไว้กับบัญชี</b>'
+    : ' · เห็นทุกหน่วยงาน');
+};
+pick.onchange = showHint;
+showHint();
+
+/* ตารางสิทธิ์ */
+document.getElementById('rbac-head').innerHTML =
+  '<th>หน้าจอ / การกระทำ</th>' + ROLES.map(r =>
+    `<th>${r.l}<br><span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:8.5px;opacity:.75">${r.k}</span></th>`).join('');
+
+const MARK = { y: '<span class="y">✓</span>', p: '<span class="p">◑</span>', n: '<span class="n">−</span>' };
+document.getElementById('rbac-body').innerHTML = RBAC.map(row =>
+  `<tr><td><b style="font-family:'Manrope',sans-serif;font-size:10px;color:var(--navy2)">${row.w}</b>
+     &nbsp;${row.t}</td>${row.v.map(v => `<td>${MARK[v]}</td>`).join('')}</tr>`
+).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W9 ข้อมูลต้นทุน &amp; การนำเข้า</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>หน้านี้ดูแล<b>ข้อมูลต้นทางอย่างเดียว</b> — การกำหนดว่ารายการไหนเป็น TFC หรือ TVC อยู่ที่
+      <a href="W14-account-rules.html" style="color:var(--navy)">กติกาผังบัญชี (W14)</a> และปุ่มสั่งคำนวณย้ายไปที่
+      <a href="W11-allocation-run.html" style="color:var(--navy)">รอบคำนวณ (W11)</a>
+      เพราะการคำนวณคือการสร้าง run ที่ต้องมีผู้อนุมัติ ไม่ใช่ปุ่มกดเล่นได้</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi cn"><div class="kpi-label">ต้นทุนรวมที่นำเข้าแล้ว</div><div class="kpi-val num" style="color:var(--navy2)" id="k-tc">—</div><div class="kpi-unit">ล้านบาท · ปีงบประมาณ 2568</div></div>
+    <div class="kpi cg"><div class="kpi-label">แหล่งข้อมูลที่ครบถ้วน</div><div class="kpi-val num" style="color:var(--green2)" id="k-ok">—</div><div class="kpi-unit" id="k-ok-s">จาก 6 แหล่ง</div></div>
+    <div class="kpi cr"><div class="kpi-label">ปัญหาที่ปิดกั้นการคำนวณ</div><div class="kpi-val num" style="color:var(--red2)" id="k-block">—</div><div class="kpi-unit">รายการ · ต้องแก้ก่อนสร้าง run</div></div>
+    <div class="kpi co"><div class="kpi-label">ซิงก์ล่าสุด</div><div class="kpi-val num" style="color:var(--gold);font-size:17px">11 ก.ค. 69</div><div class="kpi-unit">03:20 น. · อัตโนมัติทุกวัน</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>สถานะแหล่งข้อมูลต้นทาง</div>
+        <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">source_dataset</code> · ทุกรอบคำนวณล็อกยอดของแหล่งเหล่านี้ ณ เวลาที่สั่งคำนวณ</div></div>
+      <button class="btn btn-sm">↻ ซิงก์ใหม่ทันที</button>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl dense">
+        <thead><tr>
+          <th>แหล่งข้อมูล</th><th>วิธีรับข้อมูล</th><th class="num">จำนวนแถว</th>
+          <th class="num">ยอดเงิน (ลบ.)</th><th>ซิงก์ล่าสุด</th><th>สถานะ</th><th></th>
+        </tr></thead>
+        <tbody id="src-tb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.4fr 1fr">
+
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title"><span class="dot" style="background:var(--red2)"></span>ตรวจความพร้อมก่อนสั่งคำนวณ</div>
+          <div class="card-sub">ระบบจริงข้อมูลไม่ครบได้ตลอด — ต้องเห็นก่อนคำนวณ ไม่ใช่รู้ตอนตัวเลขออกมาแล้วผิด</div></div>
+      </div>
+      <div id="val-list"></div>
+      <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+        <a class="btn off" style="pointer-events:none">▶ สร้างรอบคำนวณใหม่</a>
+        <span class="sub-note" style="margin:0;color:var(--red)">มี 2 ปัญหาที่ปิดกั้นอยู่ — แก้ให้ครบก่อนจึงจะสร้าง run ได้</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>นำเข้าด้วยไฟล์ Excel</div>
+          <div class="card-sub">สำรองไว้สำหรับแหล่งที่ยังไม่มี API</div></div></div>
+        <div style="border:2px dashed var(--border2);border-radius:10px;padding:26px 18px;text-align:center;background:var(--bg2)">
+          <div style="font-size:30px;margin-bottom:8px">📄</div>
+          <div style="font-size:12.5px;font-weight:600;margin-bottom:4px">ลากไฟล์มาวาง หรือกดเลือกไฟล์</div>
+          <div style="font-size:10.5px;color:var(--text4);line-height:1.7">รองรับ .xlsx ตามแม่แบบ "20260711_จุดคุ้มทุน update.xlsx"<br>
+            ชีต 1.รายได้ และ 2.ค่าใช้จ่าย</div>
+          <button class="btn primary btn-sm" style="margin-top:12px">เลือกไฟล์</button>
+        </div>
+        <div class="sub-note" style="margin:12px 0 0">
+          ระบบจะ<b>ตรวจก่อนบันทึกเสมอ</b> — ตรวจหัวคอลัมน์ ตรวจว่าหน่วยงานมีอยู่จริง
+          ตรวจว่ายอดรวมตรงกับหน้าสรุปของไฟล์ ถ้าไม่ผ่านจะไม่เขียนลงฐานข้อมูลแม้แต่แถวเดียว
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ประวัติการนำเข้า</div>
+          <div class="card-sub">ตาราง <code style="font-family:'Manrope',monospace;font-size:10.5px">import_batch</code></div></div></div>
+        <div class="log">
+          <div class="log-item"><div class="log-time">11 ก.ค. 2569<br>03:20</div><div class="log-ic">✅</div>
+            <div class="log-body">ซิงก์อัตโนมัติ — งบประมาณ 18,432 แถว · ค่าเสื่อมครุภัณฑ์ 9,841 แถว · <b>ผ่านการตรวจทั้งหมด</b></div></div>
+          <div class="log-item"><div class="log-time">20 พ.ค. 2569<br>11:47</div><div class="log-ic">📄</div>
+            <div class="log-body"><b>นายอัครินทร์ บุพผา</b> นำเข้าผังบัญชี 4 ระดับ 412 แถว จากไฟล์ <code style="font-family:'Manrope',monospace">coa_2568.xlsx</code></div></div>
+          <div class="log-item"><div class="log-time">18 พ.ค. 2569<br>16:02</div><div class="log-ic">❌</div>
+            <div class="log-body">นำเข้าไม่สำเร็จ — พบหน่วยงาน 3 ชื่อที่ไม่ตรงกับทะเบียนหน่วยงาน <b>ไม่บันทึกทั้งไฟล์</b></div></div>
+          <div class="log-item"><div class="log-time">14 ส.ค. 2568<br>09:20</div><div class="log-ic">📦</div>
+            <div class="log-body">นำเข้าชุดข้อมูลปีงบ 2567 ครบทุกแหล่ง — ใช้เป็นฐานเทียบข้ามปี</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>สิ่งที่เปลี่ยนจากแบบร่างเดิม</h3>
+    <ul>
+      <li class="info">เดิม W9 รวมการตั้งค่า TFC/TVC ไว้ด้วย — <b>ย้ายไป W14</b> เพราะกติกาต้องมีช่วงปีที่มีผลและต้องอนุมัติ ไม่ใช่ช่องติ๊กในหน้านำเข้า</li>
+      <li class="info">ปุ่ม "คำนวณผลใหม่ทั้งระบบ" <b>ย้ายไป W11</b> — การคำนวณสร้าง run ที่ทับของเก่าไม่ได้ และต้องมีผู้อนุมัติ</li>
+      <li class="crit">บล็อกตรวจความพร้อมเป็นของใหม่ทั้งหมด prototype ไม่มีเพราะข้อมูลถูก fix มาแล้ว — <b>ค่าเสื่อมราคาอาคารที่ยังไม่มีข้อมูล เป็นตัวอย่างจริงที่กระทบตัวเลขทั้งระบบอยู่ตอนนี้</b></li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W9', title: 'ข้อมูลต้นทุน & การนำเข้า', f: 'W9-cost-data.html', bm: false });
+
+document.getElementById('k-tc').textContent = fmtM(RAW.UNI.TC);
+const nOk = SOURCES.filter(s => s.state === 'OK').length;
+document.getElementById('k-ok').textContent = nOk;
+document.getElementById('k-ok-s').textContent = `จาก ${SOURCES.length} แหล่ง`;
+document.getElementById('k-block').textContent = VALIDATIONS.filter(v => v.sev === 'block').length;
+
+document.getElementById('src-tb').innerHTML = SOURCES.map(s => {
+  const st = SRC_STATE[s.state];
+  return `<tr>
+    <td class="wrap"><b>${s.name}</b><div class="muted">${s.note}</div></td>
+    <td class="muted">${s.mode}</td>
+    <td class="num">${s.rows ? fmtN(s.rows) : '<span class="muted">—</span>'}</td>
+    <td class="num">${s.amount ? fmtM(s.amount) : '<span class="muted">—</span>'}</td>
+    <td class="muted">${s.at || '<span style="color:var(--red)">ยังไม่เคยซิงก์</span>'}</td>
+    <td><span class="st ${st.c}"><span class="st-dot"></span>${st.l}</span></td>
+    <td style="text-align:right"><button class="btn btn-sm">ดูรายละเอียด</button></td>
+  </tr>`;
+}).join('');
+
+const SEV = {
+  block: { ic: '⛔', c: 'var(--red)', bg: 'var(--red3)', l: 'ปิดกั้นการคำนวณ' },
+  warn: { ic: '⚠️', c: 'var(--gold)', bg: 'var(--gold4)', l: 'เตือน' },
+  info: { ic: 'ℹ️', c: 'var(--navy)', bg: 'var(--navy4)', l: 'ทราบไว้' },
+};
+document.getElementById('val-list').innerHTML = VALIDATIONS.map(v => {
+  const s = SEV[v.sev];
+  return `<div style="display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:start;
+      padding:12px 0;border-bottom:1px solid var(--border)">
+    <div style="width:24px;height:24px;border-radius:7px;background:${s.bg};display:flex;
+      align-items:center;justify-content:center;font-size:12px">${s.ic}</div>
+    <div>
+      <div style="font-size:12.5px;font-weight:600">${v.title}
+        <span class="num" style="color:${s.c};font-weight:800;margin-left:6px">${fmtN(v.n)}</span>
+        <span class="muted" style="font-size:10.5px">${v.unit}</span></div>
+      <div class="rule-desc">ผลกระทบ: ${v.impact} · ผู้รับผิดชอบ: <b>${v.owner}</b></div>
+    </div>
+    <a class="btn btn-sm" href="${v.go}">ไปแก้ →</a>
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>

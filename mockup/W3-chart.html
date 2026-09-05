@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W3 กราฟจุดคุ้มทุน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-chart">
+    <div class="bm-note"><span>ℹ️</span><span>กราฟแสดงเส้นรายได้รวม (TR) และต้นทุนรวม (TC) ตามจำนวนนิสิต จุดตัดคือจุดคุ้มทุน (Q*)</span></div>
+    <div class="selrow">
+      <span class="bm-lbl">หน่วยวิเคราะห์:</span>
+      <select id="ch-level"><option value="uni">มหาวิทยาลัย (รวม)</option><option value="fac">รายคณะ</option><option value="dep">คณะ × ระดับการศึกษา</option><option value="prog" selected>รายหลักสูตร</option></select>
+      <select id="ch-fac" title="เลือกคณะ"></select>
+      <select id="ch-lvl" title="เลือกระดับการศึกษา"></select>
+      <select id="ch-prog" title="เลือกหลักสูตร"></select>
+    </div>
+    <div class="kpis" id="ch-kpis"></div>
+    <div class="grid g-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>แผนภาพจุดคุ้มทุน (Break-Even Chart)</div></div>
+        <div class="leg-row">
+          <div class="leg"><span class="leg-sq" style="background:#6d4cff"></span>รายได้รวม (TR)</div>
+          <div class="leg"><span class="leg-sq" style="background:#e64980"></span>ต้นทุนรวม (TC)</div>
+          <div class="leg"><span class="leg-sq" style="background:#f59f00"></span>ต้นทุนคงที่ (TFC)</div>
+        </div>
+        <div class="ch" style="height:360px"><canvas id="ch-be"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--green2)"></span>สรุปการวิเคราะห์</div></div>
+        <div id="ch-summary"></div>
+      </div>
+    </div>
+    <div class="grid g-2e">
+      <div class="ins" style="border-left-color:var(--gold2);margin-top:0">
+        <h3 style="color:var(--gold)">🎓 ข้อเสนอแนะ — ผู้บริหารหลักสูตร</h3>
+        <span class="ins-sub" style="font-size:10.5px;color:var(--text3)">เชิงปฏิบัติการ ระดับหลักสูตร/หน่วยที่เลือก</span>
+        <ul id="ch-rec-prog" style="margin-top:8px"></ul>
+      </div>
+      <div class="ins" style="border-left-color:var(--navy2);margin-top:0">
+        <h3>🏛️ ข้อเสนอแนะ — ผู้บริหารคณะ / มหาวิทยาลัย</h3>
+        <span class="ins-sub" style="font-size:10.5px;color:var(--text3)">เชิงกลยุทธ์ ระดับพอร์ตหลักสูตรและงบประมาณ</span>
+        <ul id="ch-rec-exec" style="margin-top:8px"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVENUE -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W3', title: 'กราฟจุดคุ้มทุน', f: 'W3-chart.html', bm: true });
+document.querySelector('.page').insertAdjacentHTML('afterbegin', dataCaveat());
+</script>
+<script src="assets/page-chart.js"></script>
+</body>
+</html>

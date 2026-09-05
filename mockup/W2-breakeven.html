@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W2 จุดคุ้มทุน: คณะ · ระดับ · หลักสูตร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-breakeven">
+    <div class="bm-note"><span>ℹ️</span><span id="be-note"></span></div>
+    <div class="kpis">
+      <div class="kpi cn"><div class="kpi-label">หลักสูตรคุ้มทุน (Q ≥ Q*)</div><div class="kpi-val num" id="be-ok">—</div><div class="kpi-unit">จาก 230 หลักสูตร</div></div>
+      <div class="kpi cr"><div class="kpi-label">หลักสูตรยังไม่คุ้มทุน</div><div class="kpi-val num" id="be-loss">—</div><div class="kpi-unit">Q &lt; Q* หรือ R ≤ AVC</div></div>
+      <div class="kpi co"><div class="kpi-label">หลักสูตร R ≤ AVC</div><div class="kpi-val num" id="be-no">—</div><div class="kpi-unit">ไม่มีจุดคุ้มทุน (ผันแปรสูงกว่ารายรับ)</div></div>
+      <div class="kpi cg"><div class="kpi-label">ส่วนเกินรวมทั้งหมด</div><div class="kpi-val num" id="be-sur">—</div><div class="kpi-unit">ล้านบาท (สุทธิ)</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border)">
+        <div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>เจาะลึกจุดคุ้มทุน 3 ระดับ</div><div class="card-sub">คลิกที่คณะเพื่อดูระดับการศึกษา และคลิกระดับเพื่อดูรายหลักสูตร · หรือพิมพ์ค้นหาด้านล่าง</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="bm-opt" id="be-expand" style="border:1px solid var(--border2)">ขยายทั้งหมด</button>
+          <button class="bm-opt" id="be-collapse" style="border:1px solid var(--border2)">ย่อทั้งหมด</button>
+        </div>
+      </div>
+      <div style="padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg2)">
+        <div class="be-search-wrap"><span class="be-search-ic">🔍</span>
+          <input type="text" id="be-search" class="be-search" placeholder="ค้นหาคณะ / ระดับ / ชื่อหลักสูตร / ชื่อปริญญา...">
+          <span class="be-search-clear" id="be-search-clear" title="ล้างคำค้นหา">✕</span>
+        </div>
+        <span class="pill" id="be-count">230 หลักสูตร</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="be-quick"></div>
+      </div>
+      <div style="max-height:640px;overflow:auto">
+        <div class="tree-head">
+          <div>คณะ / ระดับ / หลักสูตร</div>
+          <div style="text-align:right">นิสิต (Q)</div>
+          <div style="text-align:right">จุดคุ้มทุน Q*</div>
+          <div style="text-align:right">รายได้/หัว R</div>
+          <div style="text-align:right">AVC</div>
+          <div style="text-align:right">TR (ลบ.)</div>
+          <div style="text-align:right">ส่วนเกิน (ลบ.)</div>
+          <div style="text-align:right">สถานะ</div>
+        </div>
+        <div id="be-tree"></div>
+      </div>
+    </div>
+    <div class="ins"><h3>ประเด็นสำคัญ — จุดคุ้มทุนรายหลักสูตร</h3><ul id="be-ins"></ul></div>
+  </div>
+
+  <!-- BE CHART -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W2', title: 'จุดคุ้มทุน: คณะ · ระดับ · หลักสูตร', f: 'W2-breakeven.html', bm: true });
+document.querySelector('.page').insertAdjacentHTML('afterbegin', dataCaveat());
+</script>
+<script src="assets/page-breakeven.js"></script>
+</body>
+</html>

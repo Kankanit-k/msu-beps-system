@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W5 Cross Analysis & Heatmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-cross">
+    <div class="bm-note"><span>ℹ️</span><span id="cross-note"></span></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>Heatmap — ตัวชี้วัดสำคัญรายคณะ</div><div class="card-sub">เขียว = ดี · แดง = ต้องปรับปรุง (ปรับตามทิศทางของแต่ละตัวชี้วัด)</div></div>
+        <div style="font-size:9.5px;color:var(--text3);display:flex;align-items:center;gap:6px">ต่ำ<span style="display:inline-block;width:60px;height:10px;border-radius:3px;background:linear-gradient(90deg,rgb(252,205,210),rgb(255,243,191),rgb(188,232,219))"></span>สูง</div></div>
+      <div class="hm-wrap" id="heatmap-container"></div>
+    </div>
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card"><div class="card-head"><div><div class="card-title"><span class="dot" style="background:#f59f00"></span>Scatter: Q* เทียบ กำไร%</div><div class="card-sub" id="cross-ex" style="color:var(--red2)"></div></div></div><div class="scatter-wrap" style="height:290px"><canvas id="cross-scatter1"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title"><span class="dot" style="background:#e64980"></span>Scatter: AVC/R% เทียบ Utilization%</div></div><div class="scatter-wrap" style="height:290px"><canvas id="cross-scatter2"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:#6d4cff"></span>Quadrant Analysis — จัดกลุ่มคณะตามประสิทธิภาพ</div><div class="card-sub">แกน X = Utilization Q/Q* (%) · แกน Y = กำไร % · ขนาดฟอง = รายได้รวม</div></div></div>
+      <div style="position:relative;height:400px;background:var(--bg2);border-radius:10px;overflow:hidden;border:1px solid var(--border)"><canvas id="cross-bubble"></canvas><div id="quadrant-labels" style="position:absolute;inset:0;pointer-events:none"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="dot" style="background:#0ca678"></span>ตารางจัดอันดับ — เรียงตาม</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="metric-btn on" data-sort="pp">กำไร %</button><button class="metric-btn" data-sort="util">Utilization</button><button class="metric-btn" data-sort="CM">CM/หัว</button><button class="metric-btn" data-sort="profit_m">ส่วนเกิน</button><button class="metric-btn" data-sort="avc_r_ratio">AVC/R%</button></div></div>
+      <div style="overflow-x:auto;max-height:480px"><div id="cross-rank-table"></div></div>
+    </div>
+    <div class="ins"><h3>ประเด็นสำคัญ — Cross Analysis</h3><ul id="cross-ins"></ul></div>
+  </div>
+
+  <!-- METHOD -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W5', title: 'Cross Analysis & Heatmap', f: 'W5-cross.html', bm: true });
+document.querySelector('.page').insertAdjacentHTML('afterbegin', dataCaveat());
+</script>
+<script src="assets/page-cross.js"></script>
+</body>
+</html>

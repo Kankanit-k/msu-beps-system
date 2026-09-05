@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W12 ผลตรวจยอดและที่มาของตัวเลข</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>หน้านี้ตอบคำถามเดียว — <b>ตัวเลขที่ผู้บริหารเห็น มาจากข้อมูลจริงกี่ % และปันส่วนมากี่ %</b>
+      ถ้าไม่มีหน้านี้ ตัวเลขปันส่วนจะดูเหมือนตัวเลขจริงทุกประการ</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.35fr 1fr">
+
+    <div class="card" style="border-color:rgba(12,166,120,.35);background:linear-gradient(180deg,#f6fffb,#fff)">
+      <div class="card-head"><div>
+        <div class="card-title"><span class="dot" style="background:var(--green2)"></span>ตรวจยอดกลับต้นทาง</div>
+        <div class="card-sub">ยอดปันส่วนรวมต้องเท่ากับยอดจากระบบต้นทางพอดี ไม่เช่นนั้นรอบคำนวณจะไม่ผ่าน</div></div>
+        <span class="st st-appr"><span class="st-dot"></span>ผ่าน</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:6px 0">
+        <div><div style="font-size:11px;color:var(--text3);font-weight:600">ยอดต้นทางจาก ERP</div>
+          <div class="num" id="v-src" style="font-size:23px;font-weight:800;letter-spacing:-.5px">—</div></div>
+        <div style="font-size:22px;color:var(--text4)">=</div>
+        <div><div style="font-size:11px;color:var(--text3);font-weight:600">ยอดปันส่วนรวม</div>
+          <div class="num" id="v-alloc" style="font-size:23px;font-weight:800;letter-spacing:-.5px">—</div></div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:11px;color:var(--text3);font-weight:600">ส่วนต่าง</div>
+          <div class="num" style="font-size:23px;font-weight:800;color:var(--green)">0.00</div>
+          <div style="font-size:10px;color:var(--text4)">เกณฑ์ยอมรับ 0.00 บาท</div></div>
+      </div>
+      <div class="sub-note" style="margin:12px 0 0">
+        เครื่องปันส่วนใช้วิธี <b>largest-remainder</b> จึงบังคับให้ยอดตรงพอดีทุกบาทได้
+        — ถ้าตั้งเกณฑ์ยอมรับหลวมกว่า 0 จะกลบข้อผิดพลาดจริง (ตั้งค่าที่ <a href="W15-settings.html" style="color:var(--navy)">W15</a>)
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ที่มาของต้นทุนรวม</div>
+        <div class="card-sub">ต้นทุนที่ผูกหลักสูตรได้โดยตรง เทียบ ต้นทุนที่ต้องปันส่วน</div></div></div>
+      <div class="split" style="height:14px;margin-bottom:6px">
+        <i id="sp-direct" style="background:linear-gradient(135deg,#0ca678,#2fbd91)"></i>
+        <i id="sp-alloc" style="background:linear-gradient(135deg,#f59f00,#ffc453)"></i>
+      </div>
+      <div class="split-lbl" style="font-size:11px;margin-bottom:12px">
+        <span><b style="color:var(--green)">ตรง <span id="lb-direct">—</span></b></span>
+        <span><b style="color:var(--gold)">ปันส่วน <span id="lb-alloc">—</span></b></span>
+      </div>
+      <div id="method-list"></div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1.35fr">
+
+    <div class="card">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--red2)"></span>รายการที่ต้องตามแก้</div>
+        <div class="card-sub">ไม่ได้ถูกทิ้ง แต่ต้องรู้ว่ามีอยู่</div></div>
+        <a class="btn btn-sm" href="W13-exceptions.html">ดูทั้งหมด →</a></div>
+      <table class="tbl dense"><tbody id="exc-sum"></tbody></table>
+      <div class="bm-note" style="margin:14px 0 0">
+        <span>📊</span>
+        <span>รวม <b id="exc-amt">—</b> คิดเป็น <b id="exc-pct">—</b> ของต้นทุนรวม — ยังอยู่ในเกณฑ์ที่ยอมรับได้
+          แต่ควรตามแก้ให้หมดก่อนปิดปีงบ</span>
+      </div>
+      <div class="caveat" style="margin:12px 0 0">
+        <span>⚠️</span>
+        <span><b>ที่ยังไม่ปรากฏในตารางนี้</b> — ค่าเสื่อมราคาอาคารที่ยังไม่มีข้อมูลเลย
+          ไม่ใช่ "ปันส่วนผิด" แต่เป็น "ไม่มีให้ปัน" จึงตรวจยอดผ่านทั้งที่ต้นทุนจริงยังขาดอยู่</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" style="flex-wrap:wrap;gap:10px">
+        <div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>สัดส่วนที่มาข้อมูล รายคณะ</div>
+          <div class="card-sub">คณะที่แถบเขียวสั้น = ตัวเลขพึ่งการปันส่วนมาก ต้องระวังการตีความ · เรียงตามสัดส่วนที่ปันส่วน<br><b>หมายเหตุสำหรับผู้พัฒนา</b> — mockup นี้ใช้ <code style="font-family:'Manrope',monospace">tfcOffice</code> (ต้นทุนสำนักงานเลขานุการที่ปันลงหลักสูตร) เป็นตัวแทนของยอดที่ปันส่วน ระบบจริงต้องอ่านจาก <code style="font-family:'Manrope',monospace">cost_allocation_line.method</code></div></div>
+      </div>
+      <div class="tbl-scroll" style="max-height:520px;overflow:auto">
+        <table class="tbl dense" style="min-width:640px">
+          <thead><tr>
+            <th>คณะ / วิทยาลัย</th><th style="width:150px">ตรง / ปันส่วน</th>
+            <th class="num">ตรง</th><th class="num">ปันส่วน</th><th class="num">ต้นทุนรวม</th><th>ความเชื่อมั่น</th>
+          </tr></thead>
+          <tbody id="src-tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><div class="card-title"><span class="dot" style="background:#6d4cff"></span>ต้นทุนที่ปันส่วน แยกตามวิธี</div>
+      <div class="card-sub">วิธีที่ใช้กำหนดจากกติกาผังบัญชี (W14) · วิธีที่แม่นน้อยกว่าควรมีสัดส่วนน้อยที่สุด</div></div></div>
+    <div class="ch" style="height:230px"><canvas id="m-chart"></canvas></div>
+  </div>
+
+  <div class="ins">
+    <h3>ทำไมผู้บริหารต้องเห็นหน้านี้</h3>
+    <ul>
+      <li class="crit"><b>ต้นทุนสำนักงานเลขานุการที่ปันด้วย PROGRAM_SHARE</b> ทำให้หลักสูตรที่มีนิสิตหลักหน่วยมี AVC สูงผิดปกติ — เป็นข้อจำกัดของวิธีปันส่วน ไม่ใช่หลักสูตรนั้นแพงจริง</li>
+      <li class="warn">คณะที่มีสัดส่วนปันส่วนสูง ตัวเลขจุดคุ้มทุนจะ<b>อ่อนไหวต่อการเปลี่ยนกติกา</b>มากกว่าคณะอื่น</li>
+      <li class="ok">ส่วนต่างตรวจยอดเป็น <b>0.00 บาท</b> แปลว่าไม่มีเงินหายระหว่างปันส่วน — แต่ไม่ได้แปลว่าข้อมูลต้นทางครบ</li>
+      <li class="info">ทุกตัวเลขในหน้า W1–W5 คำนวณจาก run เดียวกันนี้ ถ้าอนุมัติ run ใหม่ ตัวเลขทุกหน้าจะเปลี่ยนพร้อมกัน</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W12', title: 'ผลตรวจยอดและที่มาของตัวเลข', f: 'W12-reconciliation.html', bm: false });
+
+const TOT = RAW.UNI.TC;
+const bahtF = v => Number(v).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+document.getElementById('v-src').textContent = bahtF(TOT);
+document.getElementById('v-alloc').textContent = bahtF(TOT);
+
+/* สัดส่วน ตรง : ปันส่วน — คิดจาก RECON_METHODS ให้ตรงกับตารางรายคณะด้านล่าง */
+const allocTot = RECON_METHODS.filter(m => m.alloc).reduce((a, m) => a + m.v, 0);
+const directTot = TOT - allocTot;
+document.getElementById('sp-direct').style.flex = directTot;
+document.getElementById('sp-alloc').style.flex = allocTot;
+document.getElementById('lb-direct').textContent =
+  (directTot / TOT * 100).toFixed(0) + '% — ' + fmtM(directTot) + ' ลบ.';
+document.getElementById('lb-alloc').textContent =
+  (allocTot / TOT * 100).toFixed(0) + '% — ' + fmtM(allocTot) + ' ลบ.';
+
+/* รายการวิธีปันส่วน */
+document.getElementById('method-list').innerHTML = RECON_METHODS.map(m =>
+  `<div style="padding:9px 0;border-bottom:1px solid var(--border)">
+     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+       <span style="font-size:11.5px;font-weight:600;color:var(--text2)">
+         <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${m.c};margin-right:6px"></span>${m.l}</span>
+       <span class="num" style="font-size:12.5px;font-weight:700">${fmtM(m.v)} <span style="color:var(--text3);font-size:10px">${(m.v / TOT * 100).toFixed(1)}%</span></span>
+     </div>
+     <div style="font-size:10.5px;color:var(--text4);line-height:1.55;margin-top:2px">${m.note}</div>
+   </div>`).join('');
+
+/* สรุปรายการค้างตรวจ — คำนวณจากชุดเดียวกับ W13 เพื่อไม่ให้ตัวเลขสองหน้าขัดกัน */
+const byFlag = {};
+EXCEPTIONS.forEach(e => {
+  const g = byFlag[e.flag] || (byFlag[e.flag] = { flag: e.flag, cls: e.cls, label: e.label, n: 0, amt: 0, measurable: 0 });
+  g.n++; g.amt += e.amount || 0; if (e.amount) g.measurable++;
+});
+document.getElementById('exc-sum').innerHTML = Object.values(byFlag).map(g =>
+  `<tr><td><span class="flag ${g.cls}">${g.flag}</span></td>
+     <td class="muted">${g.label}</td>
+     <td class="num">${g.n} รายการ</td>
+     <td class="num" style="font-weight:700">${g.amt ? fmtM(g.amt) + ' ลบ.' : '<span class="muted">วัดไม่ได้</span>'}</td></tr>`).join('');
+
+const excAmt = EXCEPTIONS.reduce((a, e) => a + (e.amount || 0), 0);
+document.getElementById('exc-amt').textContent = fmtM(excAmt) + ' ลบ.';
+document.getElementById('exc-pct').textContent = (excAmt / TOT * 100).toFixed(2) + '%';
+
+/* สัดส่วน direct/allocated รายคณะ — ประมาณจากสัดส่วน tfcOffice ในต้นทุนรวมของคณะ (ยิ่งสูง ยิ่งพึ่งการปันส่วน) */
+const rows = RAW.FACS.map(f => {
+  const alloc = F0(f.tfcOffice);
+  const pct = F0(f.TC) > 0 ? alloc / F0(f.TC) * 100 : 0;
+  return { name: f.name, TC: F0(f.TC), alloc, direct: F0(f.TC) - alloc, pct };
+}).sort((a, b) => b.pct - a.pct);
+
+const conf = p => p < 25 ? ['สูง', 'chip-g'] : p < 45 ? ['ปานกลาง', 'chip-o'] : ['ต่ำ', 'chip-r'];
+
+document.getElementById('src-tb').innerHTML = rows.map(r => {
+  const [cl, cc] = conf(r.pct);
+  return `<tr>
+    <td class="wrap"><b>${short(r.name)}</b></td>
+    <td><div class="split">
+        <i style="flex:${(100 - r.pct).toFixed(1)};background:#0ca678"></i>
+        <i style="flex:${r.pct.toFixed(1)};background:#f59f00"></i></div></td>
+    <td class="num">${fmtM(r.direct)}</td>
+    <td class="num" style="color:var(--gold);font-weight:700">${fmtM(r.alloc)}</td>
+    <td class="num">${fmtM(r.TC)}</td>
+    <td><span class="chip ${cc}">${cl} · ปันส่วน ${r.pct.toFixed(0)}%</span></td>
+  </tr>`;
+}).join('');
+
+/* กราฟวิธีปันส่วน */
+mk('m-chart', {
+  type: 'bar',
+  data: {
+    labels: RECON_METHODS.map(m => m.l),
+    datasets: [{ data: RECON_METHODS.map(m => M(m.v)), backgroundColor: RECON_METHODS.map(m => m.c), borderRadius: 5, barPercentage: .6 }],
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x.toLocaleString('th-TH', { maximumFractionDigits: 1 }) + ' ลบ. (' + (c.parsed.x / M(TOT) * 100).toFixed(1) + '%)' } } },
+    scales: { x: { grid: { color: C.grid }, title: { display: true, text: 'ล้านบาท', font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10.5 } } } },
+  },
+});
+</script>
+</body>
+</html>

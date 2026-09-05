@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W19 ผังบัญชี 4 ระดับ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+</head>
+<body>
+<div id="main">
+<div class="page">
+
+  <div class="bm-note">
+    <span>ℹ️</span>
+    <span>หน้านี้เก็บ<b>ตัวบัญชี</b> (<code style="font-family:'Manrope',monospace">erp_account</code>)
+      ส่วนการกำหนดว่าบัญชีนั้นเป็น TFC หรือ TVC อยู่ที่
+      <a href="W14-account-rules.html" style="color:var(--navy)">W14 กติกาผังบัญชี</a>
+      — แยกกันเพราะ<b>บัญชีหนึ่งใบมีกติกาได้หลายช่วงปี</b> และกติกาต้องผ่านการอนุมัติ ส่วนตัวบัญชีมาจาก ERP</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi cn"><div class="kpi-label">บัญชีที่มีผลในปีที่เลือก</div><div class="kpi-val num" style="color:var(--navy2)" id="k-n">—</div><div class="kpi-unit" id="k-n-s">คีย์ผสม 4 ระดับ</div></div>
+    <div class="kpi cg"><div class="kpi-label">ผูกกติกา TFC/TVC แล้ว</div><div class="kpi-val num" style="color:var(--green2)" id="k-rule">—</div><div class="kpi-unit">บัญชี · พร้อมเข้าการคำนวณ</div></div>
+    <div class="kpi cr"><div class="kpi-label">ยังไม่มีกติกา</div><div class="kpi-val num" style="color:var(--red2)" id="k-norule">—</div><div class="kpi-unit" id="k-norule-s">บัญชี · เงินจะถูกพักไว้</div></div>
+    <div class="kpi co"><div class="kpi-label">ยอดเงินที่ครอบคลุม</div><div class="kpi-val num" style="color:var(--gold)" id="k-amt">—</div><div class="kpi-unit" id="k-amt-s">ล้านบาท</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;background:var(--bg2)">
+    <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ทำไมคีย์ต้องเป็น 4 ระดับ</div>
+      <div class="card-sub">พิสูจน์จากข้อมูลจริง — <code style="font-family:'Manrope',monospace;font-size:10.5px">MAPPING.md</code> หัวข้อ 2</div></div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <span class="flow-step done">แผนงาน<br><code style="font-family:'Manrope',monospace;font-size:10px">plan_code</code></span>
+      <span class="flow-arrow">+</span>
+      <span class="flow-step done">หมวดงบประมาณ<br><code style="font-family:'Manrope',monospace;font-size:10px">budget_category_code</code></span>
+      <span class="flow-arrow">+</span>
+      <span class="flow-step done">หมวดรายจ่าย<br><code style="font-family:'Manrope',monospace;font-size:10px">expenditure_category_code</code></span>
+      <span class="flow-arrow">+</span>
+      <span class="flow-step done">หมวดย่อย<br><code style="font-family:'Manrope',monospace;font-size:10px">subcategory_code</code></span>
+      <span class="flow-arrow">=</span>
+      <span class="flow-step now">1 บัญชี</span>
+    </div>
+    <div class="sub-note" style="margin:0">
+      รหัสหมวดรายจ่ายเดียวกันเป็นคนละบัญชีได้เมื่ออยู่คนละแผนงาน — ดู
+      <code style="font-family:'Manrope',monospace">800:80001 เงินอุดหนุน</code> สองแถวในตาราง
+      แผนงาน <b>2</b> เป็นเงินอุดหนุนทั่วไป (ยังไม่จำแนก) ส่วนแผนงาน <b>3</b> เป็นเงินอุดหนุนโครงการวิจัย (คงที่)
+      · <b>ถ้าตั้งคีย์ด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน</b>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span class="bm-lbl">ปีงบประมาณที่ดู:</span>
+    <select class="inp" style="width:auto" id="f-year">
+      <option>2568</option><option>2569</option><option>2570</option>
+    </select>
+    <div class="seg" id="f-rule">
+      <button class="on" data-f="all">ทั้งหมด</button>
+      <button data-f="has">มีกติกาแล้ว</button>
+      <button data-f="none">ยังไม่มีกติกา</button>
+    </div>
+    <div class="be-search-wrap" style="max-width:240px">
+      <span class="be-search-ic">🔍</span>
+      <input type="text" id="f-q" class="be-search" placeholder="ค้นหารหัส / ชื่อบัญชี...">
+    </div>
+    <span class="grow"></span>
+    <span class="pill" id="cnt">—</span>
+    <button class="btn">⬆ นำเข้าผังบัญชีจาก Excel</button>
+    <button class="btn primary">+ เพิ่มบัญชี</button>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.7fr 1fr">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+        <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>ผังบัญชี</div>
+        <div class="card-sub">คลิกแถวเพื่อดูรายละเอียดและกติกาที่ผูกอยู่ · ตัวอย่าง 11 บัญชีจากทั้งหมด 412 บัญชี</div>
+      </div>
+      <div style="max-height:520px;overflow:auto">
+        <table class="tbl dense">
+          <thead><tr>
+            <th class="num" style="width:44px">แผน</th>
+            <th class="num" style="width:44px">งบ</th>
+            <th class="num" style="width:56px">รายจ่าย</th>
+            <th class="num" style="width:62px">ย่อย</th>
+            <th>ชื่อบัญชี</th>
+            <th class="num" style="width:80px">ยอด (ลบ.)</th>
+            <th style="width:72px">ช่วงปี</th>
+            <th style="width:118px">กติกา TFC/TVC</th>
+          </tr></thead>
+          <tbody id="acc-tb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card" id="detail"></div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--red2)"></span>เกิดอะไรขึ้นถ้าบัญชีไม่มีกติกา</div></div></div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:11px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:14px">1️⃣</div>
+          <div><div style="font-size:12px;font-weight:600">ระบบไม่เดาแทน</div>
+            <div class="rule-desc">รายการถูกจัดเป็น <code style="font-family:'Manrope',monospace">UNCLASSIFIED</code> ไม่ใช่เดาว่าเป็น FIXED</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:11px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:14px">2️⃣</div>
+          <div><div style="font-size:12px;font-weight:600">เงินถูกพักไว้ที่หน่วยงาน</div>
+            <div class="rule-desc">ไม่ปันลงหลักสูตร — ยอดรวมไม่หาย แต่ไม่เข้าไปในต้นทุนรายหลักสูตร</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:11px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:14px">3️⃣</div>
+          <div><div style="font-size:12px;font-weight:600">ติดธงไปที่รายการค้างตรวจ</div>
+            <div class="rule-desc">ปรากฏที่ <a href="W13-exceptions.html">W13</a> พร้อมมูลค่าและผู้รับผิดชอบ</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:11px;align-items:start;padding:10px 0">
+          <div style="font-size:14px">4️⃣</div>
+          <div><div style="font-size:12px;font-weight:600">ตรวจยอดยังผ่าน</div>
+            <div class="rule-desc">เพราะเงินไม่หาย — <b>นี่คือเหตุผลที่ต้องดู W13 คู่กับ W12 เสมอ</b></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ins">
+    <h3>จุดที่ต้องระวังในหน้านี้</h3>
+    <ul>
+      <li class="crit"><b>ห้ามแก้รหัสของบัญชีที่คำนวณไปแล้ว</b> — ต้นทุนในรอบคำนวณเก่าอ้างบัญชีนี้อยู่ ถ้าเปลี่ยนรหัสจะตามกลับไม่ได้ว่าเงินก้อนนั้นมาจากไหน</li>
+      <li class="warn"><b>บัญชียกเลิกให้ตั้ง <code style="font-family:'Manrope',monospace">valid_to</code> ไม่ใช่ลบทิ้ง</b> — รายงานปีเก่ายังต้องอ่านชื่อบัญชีได้</li>
+      <li class="warn"><b>บัญชีใหม่ต้องผูกกติกาที่ W14 ก่อนรอบคำนวณถัดไป</b> ไม่งั้นเงินก้อนนั้นจะไม่เข้าต้นทุนรายหลักสูตรทั้งปี</li>
+      <li class="info"><b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงไม่อยู่ในตารางนี้ — กำหนดประเภทผ่านค่าตั้ง <code style="font-family:'Manrope',monospace">depreciation_behavior</code> ที่ <a href="W15-settings.html">W15</a></li>
+      <li class="ok">ผังบัญชีปกติมาจาก ERP ผ่านการนำเข้า (<a href="W9-cost-data.html">W9</a>) หน้านี้ใช้แก้รายกรณีและเพิ่มบัญชีที่ ERP ยังไม่ส่งมา</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/master-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W19', title: 'ผังบัญชี 4 ระดับ', f: 'W19-erp-accounts.html', bm: false, run: false });
+
+let year = 2568, fRule = 'all', fQ = '', sel = 0;
+
+const keyOf = a => `${a.plan} · ${a.bud} · ${a.exp} · ${a.sub}`;
+const inYear = (a, y) => y >= +a.from && (a.to === null || y <= +a.to);
+/* กติกาที่ผูกกับบัญชีนี้ — อ่านจากชุดเดียวกับ W14 ไม่ให้สองหน้าขัดกัน */
+const rulesOf = a => ACCOUNTS.filter(x => x.key === (a.ruleKey || ' '));
+
+function visible() {
+  return ERP_ACCOUNTS.map((a, i) => ({ a, i }))
+    .filter(x => inYear(x.a, year))
+    .filter(x => fRule === 'all' || (fRule === 'has' ? !!x.a.ruleKey : !x.a.ruleKey))
+    .filter(x => !fQ || (keyOf(x.a) + x.a.name).toLowerCase().includes(fQ));
+}
+
+function renderKPI() {
+  const live = ERP_ACCOUNTS.filter(a => inYear(a, year));
+  const withRule = live.filter(a => a.ruleKey);
+  const without = live.filter(a => !a.ruleKey);
+  document.getElementById('k-n').textContent = fmtN(live.length);
+  document.getElementById('k-n-s').textContent = `คีย์ผสม 4 ระดับ · มีผลปีงบ ${year}`;
+  document.getElementById('k-rule').textContent = fmtN(withRule.length);
+  document.getElementById('k-norule').textContent = fmtN(without.length);
+  document.getElementById('k-norule-s').textContent =
+    `บัญชี · ${fmtM(without.reduce((s, a) => s + a.amount, 0))} ลบ. จะถูกพักไว้`;
+  document.getElementById('k-amt').textContent = fmtM(live.reduce((s, a) => s + a.amount, 0));
+  document.getElementById('k-amt-s').textContent = `ล้านบาท · ปีงบประมาณ ${year}`;
+}
+
+function renderTable() {
+  const rows = visible();
+  document.getElementById('acc-tb').innerHTML = rows.map(({ a, i }) => {
+    const r = rulesOf(a)[0];
+    const cur = r ? r.rules.find(v => year >= v.from && (v.to === null || year <= v.to)) : null;
+    const b = cur ? BEH[cur.beh] : null;
+    return `<tr data-i="${i}" class="${i === sel ? 'sel' : ''}" style="cursor:pointer;${a.to ? 'opacity:.6' : ''}">
+      <td class="num"><code style="font-family:'Manrope',monospace;font-size:10.5px;color:var(--navy)">${a.plan}</code></td>
+      <td class="num"><code style="font-family:'Manrope',monospace;font-size:10.5px">${a.bud}</code></td>
+      <td class="num"><code style="font-family:'Manrope',monospace;font-size:10.5px">${a.exp}</code></td>
+      <td class="num"><code style="font-family:'Manrope',monospace;font-size:10.5px">${a.sub}</code></td>
+      <td class="wrap"><b>${a.name}</b>${a.note ? `<div class="muted">${a.note}</div>` : ''}</td>
+      <td class="num">${a.amount ? fmtM(a.amount) : '<span class="muted">—</span>'}</td>
+      <td class="muted" style="font-size:10.5px">${a.from} – ${a.to === null ? 'ปัจจุบัน' : a.to}</td>
+      <td>${b
+        ? `<span class="chip ${b.c}">${b.l}</span>`
+        : '<span class="flag flag-unc">ยังไม่มีกติกา</span>'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--text4);padding:26px">— ไม่พบบัญชีที่ตรงกับตัวกรอง —</td></tr>`;
+
+  document.getElementById('cnt').textContent = `${rows.length} จาก ${ERP_ACCOUNTS.length} บัญชี`;
+  document.querySelectorAll('#acc-tb tr[data-i]').forEach(tr => {
+    tr.onclick = () => { sel = +tr.dataset.i; renderTable(); renderDetail(); };
+  });
+}
+
+function renderDetail() {
+  const a = ERP_ACCOUNTS[sel];
+  const r = rulesOf(a)[0];
+  const cur = r ? r.rules.find(v => year >= v.from && (v.to === null || year <= v.to)) : null;
+  const retired = a.to !== null;
+
+  document.getElementById('detail').innerHTML = `
+    <div class="card-head"><div>
+      <div class="card-title"><span class="dot" style="background:var(--navy2)"></span>${a.name}</div>
+      <div class="card-sub"><code style="font-family:'Manrope',monospace">${keyOf(a)}</code></div>
+    </div>${retired
+      ? '<span class="st st-fail"><span class="st-dot"></span>ยกเลิกแล้ว</span>'
+      : '<span class="st st-appr"><span class="st-dot"></span>ใช้งาน</span>'}</div>
+
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="field"><label>แผนงาน</label><input class="inp" value="${a.plan}"></div>
+      <div class="field"><label>หมวดงบประมาณ</label><input class="inp" value="${a.bud}"></div>
+      <div class="field"><label>หมวดรายจ่าย</label><input class="inp" value="${a.exp}"></div>
+      <div class="field"><label>หมวดรายจ่ายย่อย</label><input class="inp" value="${a.sub}"></div>
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>ชื่อบัญชี</label><input class="inp" value="${a.name}">
+      <div class="hint">ทั้ง 4 รหัสรวมกันเป็น UNIQUE key คู่กับ <code style="font-family:'Manrope',monospace">valid_from</code>
+        — แก้รหัสของบัญชีที่คำนวณไปแล้วไม่ได้</div>
+    </div>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="field"><label>เริ่มมีผล (ปีงบ)</label><input class="inp" value="${a.from}"></div>
+      <div class="field"><label>สิ้นสุด (เว้นว่าง = ยังใช้อยู่)</label>
+        <input class="inp" value="${a.to || ''}" placeholder="—"></div>
+    </div>
+
+    <div class="rule-row" style="border-top:1px solid var(--border);padding-top:12px">
+      <div><div class="rule-name">กติกา TFC/TVC ในปีงบ ${year}</div>
+        <div class="rule-desc">${cur
+          ? (cur.note || 'ไม่มีหมายเหตุ') + ' · ปันส่วน' + METHOD[cur.m]
+          : '<b style="color:var(--red)">ยังไม่มีกติกา</b> — เงินจะถูกพักไว้ที่หน่วยงานและติดธง UNCLASSIFIED'}</div></div>
+      ${cur ? `<span class="chip ${BEH[cur.beh].c}">${BEH[cur.beh].l}</span>` : '<span class="flag flag-unc">ไม่มี</span>'}
+    </div>
+    <div class="rule-row">
+      <div><div class="rule-name">จำนวนช่วงปีของกติกา</div>
+        <div class="rule-desc">${r
+          ? `บัญชีนี้มีกติกา ${r.rules.length} ช่วงปี — เปลี่ยนประเภทตามปีได้`
+          : 'ยังไม่เคยตั้งกติกาให้บัญชีนี้'}</div></div>
+      <span class="chip ${r ? 'chip-n' : 'chip-r'} num">${r ? r.rules.length : 0}</span>
+    </div>
+
+    <div class="toolbar" style="margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn">💾 บันทึก</button>
+      <a class="btn ${a.ruleKey ? '' : 'primary'}" href="W14-account-rules.html">
+        ${a.ruleKey ? '⚖ ดูกติกาที่ W14' : '+ ตั้งกติกา TFC/TVC ที่ W14'}</a>
+      ${retired
+        ? '<button class="btn ok">▶ เปิดใช้อีกครั้ง</button>'
+        : '<button class="btn danger">⏹ ยกเลิกบัญชี (ตั้ง valid_to)</button>'}
+    </div>`;
+}
+
+function renderAllW19() { renderKPI(); renderTable(); renderDetail(); }
+
+document.getElementById('f-year').onchange = e => { year = +e.target.value; renderAllW19(); };
+document.querySelectorAll('#f-rule button').forEach(b => b.onclick = () => {
+  fRule = b.dataset.f;
+  document.querySelectorAll('#f-rule button').forEach(x => x.classList.toggle('on', x === b));
+  renderTable();
+});
+document.getElementById('f-q').oninput = e => { fQ = e.target.value.trim().toLowerCase(); renderTable(); };
+
+renderAllW19();
+</script>
+</body>
+</html>

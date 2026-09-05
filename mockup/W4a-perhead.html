@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W4 รายได้ vs ต้นทุนต่อหัวนิสิต</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page" id="p-perhead">
+    <div class="bm-note"><span>ℹ️</span><span id="ph-note"></span></div>
+    <div class="kpis">
+      <div class="kpi cn"><div class="kpi-label">รายได้ต่อหัว (R)</div><div class="kpi-val num" style="color:var(--navy2)" id="ph-k1">—</div><div class="kpi-unit">บาท/คน · เฉลี่ยทั้งมหาวิทยาลัย</div></div>
+      <div class="kpi co"><div class="kpi-label">ต้นทุนรวมต่อหัว (ATC)</div><div class="kpi-val num" style="color:var(--gold)" id="ph-k2">—</div><div class="kpi-unit">บาท/คน · TC ÷ Q</div></div>
+      <div class="kpi cg"><div class="kpi-label">ส่วนต่าง R − ATC</div><div class="kpi-val num" id="ph-k3">—</div><div class="kpi-unit" id="ph-k3s">บาท/คน</div></div>
+      <div class="kpi"><div class="kpi-label">คณะที่ R ≥ ATC</div><div class="kpi-val num" style="color:var(--green2)" id="ph-k4">—</div><div class="kpi-unit">คณะ · รายได้/หัว คุ้มต้นทุน/หัว</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--green2)"></span>รายได้/หัว เทียบ ต้นทุน/หัว รายคณะ</div><div class="card-sub">แกน X = ลำดับคณะ · แกน Y = บาท/คน · แท่งส้มสูงกว่าเขียว = ขาดทุนต่อหัว</div><div class="card-sub" id="ph-ex" style="color:var(--red2);margin-top:3px"></div></div><div class="chip chip-g">บาท/คน</div></div>
+      <div class="leg-row"><div class="leg"><span class="leg-sq" style="background:#0ca678"></span><span id="ph-legr">รายได้/หัว (R)</span></div><div class="leg"><span class="leg-sq" style="background:#f59f00"></span>ต้นทุนรวม/หัว (ATC)</div><div class="leg"><span class="leg-sq" style="background:#6d4cff"></span>ต้นทุนผันแปร/หัว (AVC)</div></div>
+      <div class="ch" style="height:330px"><canvas id="ph-main"></canvas></div>
+    </div>
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:#6d4cff"></span>แผนภาพประสิทธิภาพ — R เทียบ ATC</div><div class="card-sub">เหนือเส้นทแยง = คุ้มทุน · ใต้เส้น = ขาดทุน · ขนาดจุด = จำนวนนิสิต</div></div></div>
+        <div class="ch" style="height:320px"><canvas id="ph-scatter"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--red2)"></span>ต้นทุน/หัว สูงสุด (Top 8)</div><div class="card-sub">เทียบกับค่าเฉลี่ยมหาวิทยาลัย</div></div></div>
+        <div id="ph-topbar" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head" style="flex-wrap:wrap;gap:10px"><div><div class="card-title"><span class="dot" style="background:var(--green2)"></span>ตารางเปรียบเทียบต่อหัว รายคณะ</div><div class="card-sub">เรียงตามส่วนต่าง R − ATC · หน่วย: บาท/คน</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="be-search-wrap" style="max-width:280px;min-width:190px"><span class="be-search-ic">🔍</span>
+            <input type="text" id="ph-search" class="be-search" placeholder="ค้นหาคณะ / สถานะ (คุ้ม, ขาด)...">
+            <span class="be-search-clear" id="ph-search-clear" title="ล้างคำค้นหา">✕</span>
+          </div>
+          <div style="display:flex;gap:6px" id="ph-quick"></div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;max-height:460px"><table class="tbl" style="min-width:760px"><thead><tr><th>#</th><th>คณะ / วิทยาลัย</th><th class="num">นิสิต</th><th class="num" id="ph-thr">R/หัว</th><th class="num">ATC/หัว</th><th class="num">AVC/หัว</th><th class="num">CM/หัว</th><th class="num">R−ATC</th><th class="num">สถานะ</th></tr></thead><tbody id="ph-tbl"></tbody></table></div>
+    </div>
+    <div class="ins"><h3>ประเด็นสำคัญ — ต่อหัวนิสิต</h3><ul id="ph-ins"></ul></div>
+  </div>
+
+  <!-- CROSS ANALYSIS -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W4', title: 'รายได้ vs ต้นทุนต่อหัวนิสิต', f: 'W4a-perhead.html', bm: true });
+document.querySelector('.page').insertAdjacentHTML('afterbegin', dataCaveat());
+</script>
+<script src="assets/page-perhead.js"></script>
+</body>
+</html>

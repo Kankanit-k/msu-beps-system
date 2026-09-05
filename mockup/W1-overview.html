@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSU-BEPS · W1 ภาพรวมมหาวิทยาลัย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/beps.css">
+<link rel="stylesheet" href="assets/extra.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+</head>
+<body>
+<div id="main">
+  <div class="page active" id="p-overview">
+    <div class="bm-note"><span>ℹ️</span><span id="ov-note"></span></div>
+    <div class="kpis">
+      <div class="kpi cn"><div class="kpi-label">นิสิตทั้งหมด</div><div class="kpi-val num" id="k-q">—</div><div class="kpi-unit">คน · 20 คณะ/วิทยาลัย · 230 หลักสูตร</div></div>
+      <div class="kpi"><div class="kpi-label" id="k-tr-l">รายได้รวม (TR)</div><div class="kpi-val num" style="color:var(--navy2)" id="k-tr">—</div><div class="kpi-unit">ล้านบาท</div></div>
+      <div class="kpi"><div class="kpi-label">ต้นทุนรวม (TC)</div><div class="kpi-val num" id="k-tc">—</div><div class="kpi-unit">ล้านบาท</div></div>
+      <div class="kpi cg"><div class="kpi-label">ส่วนเกิน/ขาดทุน (π)</div><div class="kpi-val num" id="k-prof">—</div><div class="kpi-unit" id="k-prof-s">ล้านบาท</div></div>
+      <div class="kpi co"><div class="kpi-label">รายได้ต่อหัว (R)</div><div class="kpi-val num" style="color:var(--gold)" id="k-r">—</div><div class="kpi-unit">บาท/คน</div></div>
+      <div class="kpi cr"><div class="kpi-label">นิสิต ณ จุดคุ้มทุน (Q*)</div><div class="kpi-val num" style="color:var(--red2)" id="k-qs">—</div><div class="kpi-unit" id="k-qs-s">คน · รวมทุกหลักสูตร</div></div>
+    </div>
+    <div class="grid g-2">
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>รายได้ (TR) เทียบ ต้นทุน (TC) รายคณะ</div><div class="card-sub">เรียงตามจำนวนนิสิต · หน่วยล้านบาท</div></div></div>
+        <div class="leg-row"><div class="leg"><span class="leg-sq" style="background:#6d4cff"></span><span id="lg-tr">รายได้รวม (TR)</span></div><div class="leg"><span class="leg-sq" style="background:#e64980"></span>ต้นทุนรวม (TC)</div></div>
+        <div class="ch" style="height:430px"><canvas id="ov-main"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--green2)"></span>โครงสร้างต้นทุนรวม</div><div class="card-sub">คงที่ (TFC) เทียบ ผันแปร (TVC)</div></div></div>
+        <div class="ch" style="height:210px"><canvas id="ov-donut"></canvas></div>
+        <div id="ov-cost-list" style="margin-top:14px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+    <div class="grid g-2e">
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--green2)"></span>คณะที่มีส่วนเกินสูงสุด</div><div class="chip chip-g">Top surplus</div></div>
+        <table class="tbl"><thead><tr><th>#</th><th>คณะ</th><th class="num">ส่วนเกิน (ลบ.)</th><th class="num">Q* / Q</th></tr></thead><tbody id="ov-top"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--red2)"></span>คณะที่ต้องเฝ้าระวัง (ขาดทุน)</div><div class="chip chip-r">Watchlist</div></div>
+        <table class="tbl"><thead><tr><th>#</th><th>คณะ</th><th class="num">ขาดทุน (ลบ.)</th><th class="num">Q* / Q</th></tr></thead><tbody id="ov-bot"></tbody></table>
+      </div>
+    </div>
+    <div class="ins"><h3>ประเด็นสำคัญ — ภาพรวม</h3><ul id="ov-ins"></ul></div>
+  </div>
+
+  <!-- BREAKEVEN DRILL -->
+
+</div>
+
+<script src="assets/logo.js"></script>
+<!-- ชุดตัวอย่างโหลดก่อนเสมอ · ถ้ามี data.js (ข้อมูลจริง ไม่ขึ้น git) จะโหลดทับให้เอง -->
+<script src="assets/data.sample.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+buildShell({ w: 'W1', title: 'ภาพรวมมหาวิทยาลัย', f: 'W1-overview.html', bm: true });
+document.querySelector('.page').insertAdjacentHTML('afterbegin', dataCaveat());
+</script>
+<script src="assets/page-overview.js"></script>
+</body>
+</html>
