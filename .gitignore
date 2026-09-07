@@ -52,3 +52,5 @@ mockup/assets/data.js
 
 # บทสนทนา export เป็น PDF — ไม่ใช่เอกสารออกแบบ
 *.pdf
+.vercel
+.env*

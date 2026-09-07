@@ -172,7 +172,10 @@ function buildShell(opt) {
     <div class="sb-footer">
       <p id="sb-stats">นิสิต ${fmtN(RAW.UNI.Q)} คน · 20 คณะ/วิทยาลัย · 230 หลักสูตร</p>
       <div class="sb-ver">ข้อมูลอัพเดท 20260711 · รอบคำนวณ #${RUN.id}</div>
-      <a class="sb-back" href="index.html">← สารบัญหน้าจอทั้งหมด</a>
+      <div class="sb-links">
+        <a class="sb-back" href="screens.html">☰ สารบัญหน้าจอทั้งหมด</a>
+        <a class="sb-back" href="W0-login.html">🔐 หน้าเข้าสู่ระบบ (W0)</a>
+      </div>
       <div class="credit-section">
         <div class="credit-label">ผู้พัฒนาระบบ</div>
         <div class="credit-item"><div class="credit-avatar">👩</div><div>
@@ -210,10 +213,11 @@ function buildShell(opt) {
     <div class="tb-page">${opt.title}<span class="tb-wid">${opt.w}</span></div>
     <div class="tb-spacer"></div>
     ${runBar}${bmBar}
-    <div class="tb-user" title="ผู้ใช้ที่เข้าสู่ระบบ · สิทธิ์กำหนดว่าเห็นเมนูใดบ้าง">
+    <a class="tb-user" href="W0-login.html"
+       title="ผู้ใช้ที่เข้าสู่ระบบ · สิทธิ์กำหนดว่าเห็นเมนูใดบ้าง — กดเพื่อไปหน้าเข้าสู่ระบบ (W0)">
       <span class="tb-avatar">ผ</span>
-      <span><b>ผศ.ดร.ปิยภัทร บุษบาบดินทร์</b><br><span class="tb-role">ผู้บริหารมหาวิทยาลัย</span></span>
-    </div>
+      <span><b>ผศ.ดร.ปิยภัทร บุษบาบดินทร์</b><br><span class="tb-role">ผู้ดูข้อมูล · เปลี่ยนผู้ใช้</span></span>
+    </a>
   </div>`;
 
   document.body.insertAdjacentHTML('afterbegin', sidebar);
@@ -268,8 +272,10 @@ function sampleBanner() {
 /* แถบเตือนข้อจำกัดของข้อมูล — ค่าเสื่อมราคาอาคารยังไม่ครบ
    ต้องติดไว้ทุกหน้าที่แสดงส่วนเกิน/Q* ไม่ให้ผู้บริหารอ่านเป็นตัวเลขสุดท้าย */
 function dataCaveat() {
+  const p = profit(RAW.UNI);
   return `<div class="caveat"><span>⚠️</span><span><b>ข้อจำกัดของข้อมูลชุดนี้</b> — ค่าเสื่อมราคาอาคารยังไม่ครบ
-    (ฟิลด์ <code>dep</code> รวม 302.5 ลบ. มีเฉพาะครุภัณฑ์) TFC และ TC จึงต่ำกว่าความจริง
-    ส่วนเกิน +32.8 ลบ. <b>สูงเกินจริง</b> และ Q* ทุกระดับ<b>ต่ำกว่าที่ควรเป็น</b>
+    (ฟิลด์ <code>dep</code> รวม ${fmtM(RAW.UNI.dep)} ลบ. มีเฉพาะครุภัณฑ์) TFC และ TC จึงต่ำกว่าความจริง
+    ส่วนเกิน ${p >= 0 ? '+' : '−'}${fmtM(Math.abs(p))} ลบ. <b>สูงเกินจริง</b>
+    และ Q* ทุกระดับ<b>ต่ำกว่าที่ควรเป็น</b>
     — ดูรายการค้างที่ <a href="W13-exceptions.html">รายการค้างตรวจ</a></span></div>`;
 }

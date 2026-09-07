@@ -30,7 +30,7 @@
   <div class="caveat">
     <span>⚠️</span>
     <span><b>รายการที่ร้ายแรงที่สุดไม่ได้วัดเป็นบาทได้</b> — ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว
-      ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ ส่วนเกิน <b>+32.8 ลบ.</b> ที่รายงานอยู่จึง<b>สูงเกินจริง</b>
+      ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ ส่วนเกิน <b id="sur">—</b> ที่รายงานอยู่จึง<b>สูงเกินจริง</b>
       และ Q* ทุกระดับ<b>ต่ำกว่าที่ควรเป็น</b> — ต้องกำกับข้อจำกัดนี้ทุกครั้งที่นำเสนอตัวเลขชุดปี 2568</span>
   </div>
 
@@ -87,7 +87,7 @@
 
       <div class="mini-stats" style="margin-bottom:16px">
         <div class="mini-stat"><div class="l">มูลค่าที่ติดธง</div><div class="v" style="color:var(--gold)" id="m1">—</div><div class="s">ล้านบาท</div></div>
-        <div class="mini-stat"><div class="l">คิดเป็นสัดส่วน</div><div class="v" style="color:var(--gold)" id="m2">—</div><div class="s">ของต้นทุนรวม 2,415.8 ลบ.</div></div>
+        <div class="mini-stat"><div class="l">คิดเป็นสัดส่วน</div><div class="v" style="color:var(--gold)" id="m2">—</div><div class="s" id="m2s">ของต้นทุนรวม</div></div>
         <div class="mini-stat"><div class="l">เกณฑ์ที่ยอมรับ</div><div class="v" style="color:var(--green2)">≤ 1.0%</div><div class="s">ตั้งไว้ในนโยบายคุณภาพข้อมูล</div></div>
       </div>
 
@@ -127,6 +127,9 @@ document.getElementById('k-open').textContent = cntState('OPEN');
 document.getElementById('k-prog').textContent = cntState('IN_PROGRESS');
 document.getElementById('k-acc').textContent = cntState('ACCEPTED');
 
+const _sur = RAW.UNI.TR - RAW.UNI.TC;
+document.getElementById('sur').textContent = (_sur >= 0 ? '+' : '−') + fmtM(Math.abs(_sur)) + ' ลบ.';
+
 const totalAmt = EXCEPTIONS.reduce((s, e) => s + (e.amount || 0), 0);
 document.getElementById('k-amt').textContent = fmtM(totalAmt);
 document.getElementById('k-amt-s').textContent =
@@ -140,6 +143,7 @@ document.getElementById('bar-ok').style.flex = 100 - pct;
 document.getElementById('lbl-flag').textContent = fmtM(totalAmt) + ' ลบ. (' + pct.toFixed(2) + '%)';
 document.getElementById('lbl-ok').textContent = fmtM(RAW.UNI.TC - totalAmt) + ' ลบ.';
 document.getElementById('note-pct').textContent = pct.toFixed(2) + '%';
+document.getElementById('m2s').textContent = 'ของต้นทุนรวม ' + fmtM(RAW.UNI.TC) + ' ลบ.';
 
 function render() {
   const rows = EXCEPTIONS.filter(e => fFlag === 'all' || e.flag === fFlag);

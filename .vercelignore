@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────────────
+# ข้อมูลการเงินภายในมหาวิทยาลัย — ห้ามขึ้น Vercel
+#
+# เว็บที่ deploy เป็น public ใครมี URL ก็เปิดได้ ไฟล์เหล่านี้จึงต้องกันไว้
+# แบบเดียวกับที่ .gitignore กันไม่ให้ขึ้น git
+#
+# หมายเหตุ: deploy ผ่าน GitHub จะไม่มีไฟล์เหล่านี้อยู่แล้วเพราะไม่ได้ commit
+# แต่ถ้า deploy จากเครื่องด้วย `vercel` CLI ไฟล์ในเครื่องจะถูกอัปโหลดไปด้วย
+# รายการนี้จึงจำเป็นเพื่อกันกรณีนั้น
+# ─────────────────────────────────────────────────────────────────────
+mockup/assets/data.js
+จุดคุ้มทุน_*.html
+MSU-BEPS*.html
+MOCKUP.html
+MOCKUP-MASTER.html
+*.xlsx
+*.docx
+*.pdf
+.env
+.env.*
+
+# ไม่จำเป็นต่อเว็บ static — ลดขนาดที่อัปโหลด
+node_modules/
+.git/
+packages/
+db/
+MANUS/
+.github/
+.claude/
+ER.html
+WIREFRAME.html
+*.md
+!mockup/README.md
+mockup/make-data-sample.mjs
+docker-compose.yml
+pnpm-lock.yaml
+pnpm-workspace.yaml
+tsconfig.base.json
+vitest.config.ts
+eslint.config.mjs

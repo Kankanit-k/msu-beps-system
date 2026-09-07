@@ -56,13 +56,13 @@
     </div>
     <div class="fm-card"><h4>📖 คำนิยามตัวแปรในสูตร</h4>
       <table class="vartbl"><thead><tr><th>สัญลักษณ์</th><th>ชื่อและความหมาย</th><th>หน่วย</th><th>มมส. (ข้อมูลอัพเดท)</th></tr></thead><tbody>
-        <tr><td>Q / Q*</td><td>จำนวนนิสิตจริง / ณ จุดคุ้มทุน · Q = ลงทะเบียนจริง, Q* = TFC ÷ (R − AVC)</td><td>คน</td><td>รวม 48,695 คน</td></tr>
-        <tr><td>TR</td><td>รายได้รวม (Total Revenue = R × Q) · งบแผ่นดิน + งบเงินรายได้ (ค่าธรรมเนียม)</td><td>บาท</td><td>2,448.7 ล้านบาท</td></tr>
-        <tr><td>TC</td><td>ต้นทุนรวม (Total Cost = TFC + TVC) · ต้นทุนทางตรงและทางอ้อมที่ปันส่วนมา</td><td>บาท</td><td>2,415.8 ล้านบาท</td></tr>
-        <tr><td>TFC</td><td>ต้นทุนคงที่รวม · เงินเดือน ค่าเสื่อมราคา ปันส่วนสำนักงานเลขานุการ</td><td>บาท</td><td>1,488.6 ล้าน (61.6%)</td></tr>
-        <tr><td>TVC / AVC</td><td>ต้นทุนผันแปร / ต่อหน่วย · AVC = TVC ÷ Q</td><td>บาท / บาท/คน</td><td>927.2 ล้าน (38.4%)</td></tr>
-        <tr><td>R</td><td>รายได้ต่อหน่วย (Revenue per Student = TR ÷ Q)</td><td>บาท/คน</td><td>50,286 บ. (เฉลี่ย)</td></tr>
-        <tr><td>π</td><td>กำไร/ขาดทุน · π &gt; 0 = ส่วนเกิน, π = 0 = BEP, π &lt; 0 = ขาดทุน</td><td>บาท</td><td>+32.8 ล้านบาท</td></tr>
+        <tr><td>Q / Q*</td><td>จำนวนนิสิตจริง / ณ จุดคุ้มทุน · Q = ลงทะเบียนจริง, Q* = TFC ÷ (R − AVC)</td><td>คน</td><td class="uq">—</td></tr>
+        <tr><td>TR</td><td>รายได้รวม (Total Revenue = R × Q) · งบแผ่นดิน + งบเงินรายได้ (ค่าธรรมเนียม)</td><td>บาท</td><td class="utr">—</td></tr>
+        <tr><td>TC</td><td>ต้นทุนรวม (Total Cost = TFC + TVC) · ต้นทุนทางตรงและทางอ้อมที่ปันส่วนมา</td><td>บาท</td><td class="utc">—</td></tr>
+        <tr><td>TFC</td><td>ต้นทุนคงที่รวม · เงินเดือน ค่าเสื่อมราคา ปันส่วนสำนักงานเลขานุการ</td><td>บาท</td><td class="utfc">—</td></tr>
+        <tr><td>TVC / AVC</td><td>ต้นทุนผันแปร / ต่อหน่วย · AVC = TVC ÷ Q</td><td>บาท / บาท/คน</td><td class="utvc">—</td></tr>
+        <tr><td>R</td><td>รายได้ต่อหน่วย (Revenue per Student = TR ÷ Q)</td><td>บาท/คน</td><td class="ur">—</td></tr>
+        <tr><td>π</td><td>กำไร/ขาดทุน · π &gt; 0 = ส่วนเกิน, π = 0 = BEP, π &lt; 0 = ขาดทุน</td><td>บาท</td><td class="upi">—</td></tr>
       </tbody></table>
     </div>
     <div class="fm-card"><h4>🗂️ การจำแนกประเภทต้นทุน (Cost Classification)</h4>
@@ -105,6 +105,18 @@
 <script src="assets/core.js"></script>
 <script>
 buildShell({ w: 'W10', title: 'สูตร & หลักวิชาการ', f: 'W10-method.html', bm: false });
+
+/* ตัวเลขในตารางนิยามตัวแปรต้องมาจากชุดข้อมูลที่โหลดอยู่ ไม่ใช่พิมพ์ไว้ตายตัว */
+const U = RAW.UNI, pct = (a, b) => (a / b * 100).toFixed(1) + '%';
+const put = (cls, html) => document.querySelectorAll('.' + cls).forEach(e => (e.innerHTML = html));
+put('uq', 'รวม ' + fmtN(U.Q) + ' คน');
+put('utr', fmtM(U.TR) + ' ล้านบาท');
+put('utc', fmtM(U.TC) + ' ล้านบาท');
+put('utfc', fmtM(U.TFC) + ' ล้าน (' + pct(U.TFC, U.TC) + ')');
+put('utvc', fmtM(U.TVC) + ' ล้าน (' + pct(U.TVC, U.TC) + ')');
+put('ur', fmtB(U.Rin) + ' บ. (เฉลี่ย)');
+const pi = U.TR - U.TC;
+put('upi', (pi >= 0 ? '+' : '−') + fmtM(Math.abs(pi)) + ' ล้านบาท');
 </script>
 </body>
 </html>

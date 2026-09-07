@@ -2,132 +2,16 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MSU-BEPS · สารบัญหน้าจอ W0–W19</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/beps.css">
-<link rel="stylesheet" href="assets/extra.css">
+<!-- หน้าแรกคือภาพรวมมหาวิทยาลัย (W1)
+     บนเว็บที่ deploy มี redirect ใน vercel.json จัดการให้ตั้งแต่ก่อนถึงไฟล์นี้
+     ไฟล์นี้จึงมีไว้สำหรับเปิดโฟลเดอร์จากเครื่องตรงๆ (file://) เท่านั้น -->
+<meta http-equiv="refresh" content="0; url=W1-overview.html">
+<title>MSU-BEPS</title>
 </head>
-<body>
-<div class="hub">
-
-  <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
-    <img id="logo" alt="ตราสัญลักษณ์มหาวิทยาลัยมหาสารคาม"
-         style="width:56px;height:56px;border-radius:10px;background:#fff;padding:3px;object-fit:contain;border:1px solid var(--border)">
-    <div>
-      <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--navy2);font-weight:700">Mahasarakham University</div>
-      <h1 class="hub-h">MSU-BEPS — สารบัญหน้าจอ</h1>
-    </div>
-  </div>
-
-  <p class="hub-sub">
-    Mockup ครบทั้งระบบ <b>W0–W19</b> ตามที่ระบุใน <code style="font-family:'Manrope',monospace;background:var(--bg3);padding:1px 5px;border-radius:4px">SA.md §9</code>
-    · หนึ่งหน้าจอ = หนึ่งไฟล์ HTML เปิดตรงจากเบราว์เซอร์ได้ ไม่ต้อง build
-    · ใช้สไตล์และสูตรคำนวณชุดเดียวกับ prototype <b>v8-1</b> และ<b>ข้อมูลจริงปีงบประมาณ 2568</b>
-    (นิสิต 48,695 คน · 20 คณะ · 230 หลักสูตร · ต้นทุนรวม 2,415.8 ลบ.)
-  </p>
-
-  <div class="caveat" style="margin-top:20px;max-width:900px">
-    <span>⚠️</span>
-    <span><b>ข้อจำกัดของข้อมูลชุดนี้</b> — ค่าเสื่อมราคาอาคารยังไม่มีข้อมูล TFC และ TC จึงต่ำกว่าความจริง
-      ส่วนเกิน +32.8 ลบ. <b>สูงเกินจริง</b> และ Q* ทุกระดับ<b>ต่ำกว่าที่ควรเป็น</b>
-      · ตัวเลขในหน้าจอชุดนี้ใช้เพื่อดูรูปแบบหน้าจอ ยังไม่ใช่ตัวเลขสำหรับนำเสนอเป็นข้อสรุป</span>
-  </div>
-
-  <div id="hub-body"></div>
-
-  <div style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border);
-      font-size:11px;color:var(--text3);line-height:1.85">
-    <b>โครงสร้างไฟล์</b> — ไฟล์หน้าจออยู่ที่ <code style="font-family:'Manrope',monospace">mockup/</code> ·
-    CSS · ข้อมูล · ตัวช่วยคำนวณ อยู่ที่ <code style="font-family:'Manrope',monospace">mockup/assets/</code><br>
-    <code style="font-family:'Manrope',monospace">beps.css</code> = สไตล์ยกมาจาก v8-1 ทั้งชุด ·
-    <code style="font-family:'Manrope',monospace">extra.css</code> = คอมโพเนนต์ของหน้าจอใหม่ ·
-    <code style="font-family:'Manrope',monospace">data.js</code> = ข้อมูลจริงปี 2568 ·
-    <code style="font-family:'Manrope',monospace">master-data.js</code> = ข้อมูลจำลองของหน้าจัดการ ·
-    <code style="font-family:'Manrope',monospace">core.js</code> = สูตร + เปลือกหน้าจอ ·
-    <code style="font-family:'Manrope',monospace">page-*.js</code> = ตรรกะเฉพาะหน้า<br>
-    หน้า W1–W7 และ W10 ยกมาจาก prototype v8-1 โดย<b>ไม่แก้สูตร</b> — แยกไฟล์และเพิ่มแถบรอบคำนวณ ปีงบประมาณ ผู้ใช้ และแถบข้อจำกัดของข้อมูล
-  </div>
-</div>
-
-<script src="assets/logo.js"></script>
-<script>
-document.getElementById('logo').src = MSU_LOGO;
-
-const SCREENS = [
-  { g: 'เข้าใช้ระบบ', items: [
-    { w: 'W0', ic: '🔐', t: 'เข้าสู่ระบบ + สิทธิ์', f: 'W0-login.html', isnew: true,
-      d: 'SSO ของมหาวิทยาลัย และตารางว่าแต่ละบทบาทเห็นหน้าจอไหนบ้าง — prototype เดิมไม่มีชั้นนี้เลย' },
-  ]},
-  { g: 'หน้าวิเคราะห์ (มีใน prototype แล้ว)', items: [
-    { w: 'W1', ic: '📊', t: 'ภาพรวมมหาวิทยาลัย', f: 'W1-overview.html',
-      d: 'KPI 6 ตัว · TR เทียบ TC รายคณะ · โครงสร้างต้นทุน · คณะที่ทำส่วนเกินสูงสุดและที่ต้องเฝ้าระวัง' },
-    { w: 'W2', ic: '🧭', t: 'เจาะลึกจุดคุ้มทุน 3 ระดับ', f: 'W2-breakeven.html',
-      d: 'ต้นไม้ คณะ → ระดับการศึกษา → หลักสูตร · ค้นหาและกรองตามสถานะได้ · 230 หลักสูตรครบ' },
-    { w: 'W3', ic: '⚖', t: 'กราฟจุดคุ้มทุน', f: 'W3-chart.html',
-      d: 'เส้น TR เทียบ TC จุดตัดคือ Q* · เลือกหน่วยวิเคราะห์ได้ 4 ระดับ · มีข้อเสนอแนะแยกตามผู้ใช้' },
-    { w: 'W4', ic: '💰', t: 'รายได้รายคณะ', f: 'W4c-revenue.html',
-      d: 'องค์ประกอบรายได้ เงินแผ่นดิน + เงินรายได้ · ตารางรายได้ · ต้นทุน · ส่วนเกิน รายคณะ' },
-    { w: 'W4', ic: '🏗', t: 'โครงสร้างต้นทุน', f: 'W4b-cost.html',
-      d: 'TFC เทียบ TVC รายคณะ · ต้นทุนคงที่แยกองค์ประกอบ (หลักสูตร · สำนักงาน · ค่าเสื่อม)' },
-    { w: 'W4', ic: '👤', t: 'รายได้ vs ต้นทุน/หัว', f: 'W4a-perhead.html',
-      d: 'R เทียบ ATC เทียบ AVC รายคณะ · แผนภาพประสิทธิภาพ · ตารางเปรียบเทียบต่อหัวพร้อมค้นหา' },
-    { w: 'W5', ic: '🔥', t: 'Cross Analysis & Heatmap', f: 'W5-cross.html',
-      d: 'Heatmap ตัวชี้วัด 9 ตัว · scatter 2 ชุด · quadrant analysis · ตารางจัดอันดับสลับเกณฑ์ได้' },
-    { w: 'W10', ic: '📐', t: 'สูตร & หลักวิชาการ', f: 'W10-method.html',
-      d: 'สูตรที่ 1–7 พร้อมคำอธิบาย · นิยามตัวแปร · การจำแนกประเภทต้นทุน · เอกสารอ้างอิง APA' },
-  ]},
-  { g: 'คำนวณด้วยตนเอง (มีใน prototype แล้ว)', items: [
-    { w: 'W6', ic: '✏️', t: 'จุดคุ้มทุนรายคณะ', f: 'W6-scenario-faculty.html',
-      d: 'เลือกคณะเพื่อดึงข้อมูลอัตโนมัติ แล้วปรับรายการ TFC/TVC เอง · เทียบผลทั้ง 2 ฐานรายได้' },
-    { w: 'W7', ic: '🎓', t: 'จุดคุ้มทุนรายหลักสูตร', f: 'W7-scenario-program.html',
-      d: 'หลักสูตรเดิมดึงจากระบบ · หลักสูตรใหม่กรอกเอง · มีกราฟ ประวัติการคำนวณ และออกรายงาน PDF' },
-  ]},
-  { g: 'ปันส่วนต้นทุน (ใหม่ — จาก ER v2)', items: [
-    { w: 'W11', ic: '⚙️', t: 'รอบคำนวณ (Allocation Run)', f: 'W11-allocation-run.html', isnew: true,
-      d: 'สร้าง run ที่ล็อกงวด ขอบเขต ฐานต้นทุน และเวอร์ชันกติกา · ไทม์ไลน์สถานะ 5 ขั้น · ผู้สร้างอนุมัติเองไม่ได้' },
-    { w: 'W12', ic: '🧾', t: 'ผลตรวจยอด (Reconciliation)', f: 'W12-reconciliation.html', isnew: true,
-      d: 'ยอดต้นทางเทียบยอดปันส่วน · สัดส่วน direct เทียบ allocated รายคณะ · ต้นทุนที่ปันส่วนแยกตามวิธี' },
-    { w: 'W13', ic: '🚩', t: 'รายการค้างตรวจ', f: 'W13-exceptions.html', isnew: true,
-      d: 'ธง UNCLASSIFIED · MISSING_DRIVER · NO_FEE · Q_ZERO พร้อมผู้รับผิดชอบและมูลค่าที่กระทบ' },
-  ]},
-  { g: 'ทะเบียนข้อมูลหลัก (ใหม่)', items: [
-    { w: 'W16', ic: '🎓', t: 'ทะเบียนหลักสูตร', f: 'W16-programs.html', isnew: true,
-      d: 'เปิดหลักสูตรใหม่ · ปรับปรุงรอบ มคอ. (สร้างรุ่นใหม่ ไม่ทับของเดิม) · งดรับ · ปิดหลักสูตร + ตรวจความพร้อมก่อนเปิดสอน' },
-    { w: 'W17', ic: '🏛', t: 'หน่วยงาน · งวด · ประเภทนิสิต', f: 'W17-master-data.html', isnew: true,
-      d: 'โครงสร้างหน่วยงาน 3 ระดับ + จับคู่รหัส ERP · งวดปีงบประมาณและวันตัดยอดนิสิต · ประเภทนิสิต 4 แบบ' },
-    { w: 'W19', ic: '📒', t: 'ผังบัญชี 4 ระดับ', f: 'W19-erp-accounts.html', isnew: true,
-      d: 'เพิ่ม/แก้บัญชี ERP ด้วยคีย์ผสม 4 ระดับ + ช่วงปีที่มีผล · บอกได้ว่าบัญชีไหนยังไม่ผูกกติกา TFC/TVC' },
-    { w: 'W8', ic: '💳', t: 'ค่าธรรมเนียมการศึกษา', f: 'W8-tuition.html', isnew: true,
-      d: 'ตารางอัตรา + workflow ร่าง → เสนอ → อนุมัติ · ช่วงปีที่มีผล · ประวัติการอนุมัติรายรายการ' },
-    { w: 'W9', ic: '📥', t: 'ข้อมูลต้นทุน & การนำเข้า', f: 'W9-cost-data.html', isnew: true,
-      d: 'สถานะ sync ของแหล่งข้อมูล 6 แหล่ง · นำเข้า Excel · บล็อกตรวจความพร้อมก่อนสั่งคำนวณ' },
-  ]},
-  { g: 'ตั้งค่าระบบ (ใหม่)', items: [
-    { w: 'W14', ic: '🗂', t: 'กติกาผังบัญชี TFC / TVC', f: 'W14-account-rules.html', isnew: true,
-      d: 'คีย์ผสม 4 ระดับ · สัดส่วน MIXED · ช่วงปีที่มีผล พร้อมไทม์ไลน์รายปีของบัญชีเดียวกัน' },
-    { w: 'W15', ic: '🎛', t: 'นโยบายการคำนวณ', f: 'W15-settings.html', isnew: true,
-      d: 'ค่าตั้ง 10 รายการ 3 กลุ่ม · แสดงผลกระทบของแต่ละตัวเลือกเป็นตัวเลขจริง · ประวัติรายปี' },
-    { w: 'W18', ic: '🔑', t: 'ผู้ใช้และสิทธิ์', f: 'W18-users.html', isnew: true,
-      d: 'จัดการบทบาทและขอบเขตรายคน (4 role ตาม schema) · ตารางสิทธิ์เต็ม 16 แถว · บันทึกการเปลี่ยนสิทธิ์' },
-  ]},
-];
-
-document.getElementById('hub-body').innerHTML = SCREENS.map(g => `
-  <div class="hub-grp">${g.g}</div>
-  <div class="hub-grid">
-    ${g.items.map(s => `<a class="hub-card${s.isnew ? ' isnew' : ''}" href="${s.f}">
-      <div class="hub-ic">${s.ic}</div>
-      <div>
-        <div class="hub-w">${s.w}</div>
-        <div class="hub-t">${s.t}</div>
-        <div class="hub-d">${s.d}</div>
-        <span class="hub-tag ${s.isnew ? 'brandnew' : 'proto'}">${s.isnew ? 'หน้าจอใหม่' : 'ยกมาจาก v8-1'}</span>
-      </div>
-    </a>`).join('')}
-  </div>`).join('');
-</script>
+<body style="font-family:system-ui,sans-serif;padding:40px;color:#475569">
+  กำลังไปที่ <a href="W1-overview.html">ภาพรวมมหาวิทยาลัย</a> …
+  <br><br>
+  <a href="screens.html">สารบัญหน้าจอทั้งหมด</a> ·
+  <a href="W0-login.html">เข้าสู่ระบบ</a>
 </body>
 </html>

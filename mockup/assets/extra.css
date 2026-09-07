@@ -17,8 +17,9 @@
 }
 .sb-item.active .sb-w { background: var(--navy2); color: #fff; }
 .sb-role { font-size: 10px; opacity: .5; }
+.sb-links { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .sb-back {
-  display: block; margin-top: 8px; font-size: 10px; color: var(--navy2);
+  display: block; font-size: 10px; color: var(--navy2);
   text-decoration: none; font-weight: 600;
 }
 .sb-back:hover { text-decoration: underline; }
@@ -37,7 +38,12 @@
 .tb-run:hover { border-color: var(--navy2); background: var(--navy4); }
 .tb-run-id { font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 800; color: var(--navy); }
 .tb-run-meta { font-size: 9.5px; color: var(--text3); line-height: 1.35; max-width: 190px; }
-.tb-user { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text2); line-height: 1.45; }
+.tb-user {
+  display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text2);
+  line-height: 1.45; text-decoration: none; padding: 4px 8px; border-radius: 9px;
+  border: 1px solid transparent; transition: .15s;
+}
+.tb-user:hover { background: var(--card); border-color: var(--border2); }
 .tb-user b { font-size: 11px; color: var(--text); }
 .tb-role { color: var(--text4); }
 .tb-avatar {
