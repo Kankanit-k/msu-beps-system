@@ -30,7 +30,7 @@
   <div class="caveat">
     <span>⚠️</span>
     <span><b>รายการที่ร้ายแรงที่สุดไม่ได้วัดเป็นบาทได้</b> — ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว
-      ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ ส่วนเกิน <b id="sur">—</b> ที่รายงานอยู่จึง<b>สูงเกินจริง</b>
+      ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ <span id="sur">—</span>
       และ Q* ทุกระดับ<b>ต่ำกว่าที่ควรเป็น</b> — ต้องกำกับข้อจำกัดนี้ทุกครั้งที่นำเสนอตัวเลขชุดปี 2568</span>
   </div>
 
@@ -127,8 +127,7 @@ document.getElementById('k-open').textContent = cntState('OPEN');
 document.getElementById('k-prog').textContent = cntState('IN_PROGRESS');
 document.getElementById('k-acc').textContent = cntState('ACCEPTED');
 
-const _sur = RAW.UNI.TR - RAW.UNI.TC;
-document.getElementById('sur').textContent = (_sur >= 0 ? '+' : '−') + fmtM(Math.abs(_sur)) + ' ลบ.';
+document.getElementById('sur').innerHTML = surplusCaveatTxt();
 
 const totalAmt = EXCEPTIONS.reduce((s, e) => s + (e.amount || 0), 0);
 document.getElementById('k-amt').textContent = fmtM(totalAmt);

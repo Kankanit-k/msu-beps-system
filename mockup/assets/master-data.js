@@ -10,6 +10,10 @@
 const _mb = v => (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const _sur = RAW.UNI.TR - RAW.UNI.TC;
 const _surTxt = (_sur >= 0 ? '+' : '−') + _mb(Math.abs(_sur)) + ' ลบ.';
+/* ต้นทุนที่ขาดไปทำให้ผลลัพธ์ดูดีเกินจริงเสมอ — ถ้ากำไรก็สูงเกินจริง ถ้าขาดทุนก็ขาดทุนน้อยกว่าจริง */
+const _surBias = _sur >= 0
+  ? `ส่วนเกิน ${_surTxt} สูงเกินจริง`
+  : `ตัวเลขขาดทุน ${_mb(Math.abs(_sur))} ลบ. น้อยกว่าความจริง`;
 
 /* ---------- fee_schedule + fee_approval_log (W8) ---------- */
 const FEES = [
@@ -63,7 +67,7 @@ const SRC_STATE = {
 
 /* บล็อก Validation ก่อนสั่งคำนวณ — SA §9.1 ข้อ 5 */
 const VALIDATIONS = [
-  { sev: 'block', title: 'คณะที่ยังไม่มีค่าเสื่อมราคาอาคาร', n: 20, unit: 'คณะ/วิทยาลัย', impact: `TFC ต่ำกว่าจริงทั้งระบบ · ส่วนเกิน ${_surTxt} สูงเกินจริง`, owner: 'กองคลัง — งานบริหารสินทรัพย์', go: 'W13-exceptions.html' },
+  { sev: 'block', title: 'คณะที่ยังไม่มีค่าเสื่อมราคาอาคาร', n: 20, unit: 'คณะ/วิทยาลัย', impact: `TFC ต่ำกว่าจริงทั้งระบบ · ${_surBias}`, owner: 'กองคลัง — งานบริหารสินทรัพย์', go: 'W13-exceptions.html' },
   { sev: 'block', title: 'หลักสูตรที่ยังไม่มีค่าธรรมเนียมที่อนุมัติ', n: 4, unit: 'หลักสูตร', impact: 'TR รายหลักสูตรคำนวณไม่ได้ · ถูกกันออกจากยอดรวม', owner: 'กองแผนงาน', go: 'W8-tuition.html' },
   { sev: 'warn', title: 'รายการต้นทุนที่ยังไม่จำแนก TFC/TVC', n: 2, unit: 'คีย์บัญชี · 1.6 ลบ.', impact: 'ถูกพักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร', owner: 'กองคลัง', go: 'W14-account-rules.html' },
   { sev: 'warn', title: 'หลักสูตรที่มีนิสิต Q = 0', n: 3, unit: 'หลักสูตร', impact: 'หาร Q ไม่ได้ · R และ AVC เป็น null', owner: 'กองทะเบียน', go: 'W13-exceptions.html' },
@@ -110,7 +114,7 @@ const RECON_METHODS = [
 
 /* ---------- exception queue (W13) ---------- */
 const EXCEPTIONS = [
-  { flag: 'MISSING_SOURCE', label: 'ไม่มีข้อมูลต้นทาง', cls: 'flag-unc', item: 'ค่าเสื่อมราคาอาคาร — ทั้ง 20 หน่วยงาน', org: 'ทั้งมหาวิทยาลัย', amount: null, owner: 'กองคลัง — งานบริหารสินทรัพย์', since: '11 ก.ค. 2569', state: 'OPEN', note: `ยังไม่เชื่อมต่อระบบสินทรัพย์ส่วนอาคาร · TFC และ TC ต่ำกว่าจริง ส่วนเกิน ${_surTxt} จึงสูงเกินจริง และ Q* ทุกระดับต่ำกว่าที่ควรเป็น` },
+  { flag: 'MISSING_SOURCE', label: 'ไม่มีข้อมูลต้นทาง', cls: 'flag-unc', item: 'ค่าเสื่อมราคาอาคาร — ทั้ง 20 หน่วยงาน', org: 'ทั้งมหาวิทยาลัย', amount: null, owner: 'กองคลัง — งานบริหารสินทรัพย์', since: '11 ก.ค. 2569', state: 'OPEN', note: `ยังไม่เชื่อมต่อระบบสินทรัพย์ส่วนอาคาร · TFC และ TC ต่ำกว่าจริง ${_surBias} และ Q* ทุกระดับต่ำกว่าที่ควรเป็น` },
   { flag: 'UNCLASSIFIED', label: 'ยังไม่จำแนก', cls: 'flag-unc', item: '2·2·400·40010 ค่าจดลิขสิทธิ์ / ค่าฐานข้อมูล', org: 'สำนักวิทยบริการ', amount: 1120400, owner: 'กองคลัง', since: '11 ก.ค. 2569', state: 'OPEN', note: 'รอกองคลังยืนยันว่าตีเป็น TFC หรือ TVC — ระหว่างนี้พักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร' },
   { flag: 'UNCLASSIFIED', label: 'ยังไม่จำแนก', cls: 'flag-unc', item: '2·4·800·80001 เงินอุดหนุนทั่วไป', org: 'กองแผนงาน', amount: 482300, owner: 'กองคลัง', since: '11 ก.ค. 2569', state: 'IN_PROGRESS', note: 'มติที่ประชุมให้ตีเป็น FIXED ตั้งแต่ปี 2569 — ปี 2568 ยังค้าง' },
   { flag: 'MISSING_DRIVER', label: 'ไม่มีตัวขับ', cls: 'flag-drv', item: 'ค่าสาธารณูปโภค — อาคารเรียนรวม RN', org: 'คณะมนุษยศาสตร์ฯ', amount: 214800, owner: 'กองอาคารสถานที่', since: '11 ก.ค. 2569', state: 'OPEN', note: 'กติกาสั่งปันตามการใช้จริง แต่ไม่มีเลขมิเตอร์ของอาคารนี้' },
