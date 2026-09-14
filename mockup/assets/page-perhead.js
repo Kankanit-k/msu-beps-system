@@ -37,14 +37,14 @@ function renderPerhead(){
   mk('ph-scatter',{type:'bubble',data:{datasets:[
     ...G.map(d=>({label:d.name,data:[{x:Math.round(d.ATC),y:Math.round(d.R),r:Math.max(4,Math.sqrt(d.Q/maxQ)*18)}],
       backgroundColor:d.diff>=0?'rgba(12,166,120,.55)':'rgba(230,73,128,.55)',borderColor:d.diff>=0?C.green:C.red,borderWidth:1.5})),
-    {label:'เส้นคุ้มทุน (R = ATC)',type:'line',data:[{x:0,y:0},{x:maxV,y:maxV}],borderColor:'#94a3b8',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}]},
+    {label:'เส้นคุ้มทุน (R = ATC)',type:'line',data:[{x:0,y:0},{x:maxV,y:maxV}],borderColor:'#9b95a6',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
       tooltip:{callbacks:{label:c=>{if(c.dataset.type==='line')return null;const d=G.find(x=>x.name===c.dataset.label);if(!d)return c.dataset.label;return [short(d.name),'R='+fmtB(d.R)+' | ATC='+fmtB(d.ATC),(d.diff>=0?'✓ +':'⚠ −')+fmtB(Math.abs(d.diff))+' บ./คน · '+fmtN(d.Q)+' คน'];}}}},
       scales:{x:{min:0,max:maxV,grid:{color:C.grid},title:{display:true,text:'ต้นทุน/หัว ATC (บาท) →'},ticks:{callback:v=>(v/1000).toFixed(0)+'k'}},
         y:{min:0,max:maxV,grid:{color:C.grid},title:{display:true,text:'รายได้/หัว R (บาท) →'},ticks:{callback:v=>(v/1000).toFixed(0)+'k'}}}}});
   // top cost bars
   const pTop=[...D].filter(d=>d.Q>50).sort((a,b)=>b.ATC-a.ATC).slice(0,8);
-  const bCols=['#e64980','#f03e3e','#f59f00','#fcc419','#6d4cff','#7c5cff','#0ca678','#3730a3'];
+  const bCols=['#ff4c51','#f03e3e','#ffb400','#ffc333','#6d4cff','#8b6fff','#56ca00','#5938e0'];
   const mc=pTop.length?pTop[0].ATC||1:1;
   document.getElementById('ph-topbar').innerHTML=pTop.map((d,i)=>`<div class="bar-item"><div class="bar-row"><span class="bar-name" title="${d.name}">${short(d.name)}</span><span class="bar-val" style="color:${bCols[i]};font-size:12px">${fmtB(d.ATC)} <span style="font-size:9px;color:var(--text4)">${(d.ATC/ATCu).toFixed(1)}×</span></span></div><div class="bar-track"><div class="bar-fill" style="background:${bCols[i]};width:${(d.ATC/mc*100).toFixed(0)}%"></div></div></div>`).join('');
   // table (filterable)

@@ -31,7 +31,7 @@ const HM=[{k:'util',l:'Utilization',s:'Q/Q* %',f:v=>v>0?v+'%':'—',g:'high'},
   {k:'Q',l:'Q จริง',s:'คน',f:v=>fmtN(v),g:'high'}];
 function hmColor(val,m,all){
   const s=[...all].sort((a,b)=>a-b),mn=s[0],mx=s[s.length-1];
-  if(mx===mn)return{bg:'#f1f5f9',fg:'#64748b'};
+  if(mx===mn)return{bg:'#f1f5f9',fg:'#6f6880'};
   const norm=(val-mn)/(mx-mn),score=m.g==='high'?norm:1-norm;
   let r,g,b;
   if(score<0.25){const t=score/0.25;r=252;g=Math.round(205+15*t);b=Math.round(210-24*t);}
@@ -71,10 +71,10 @@ function renderCross(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: Util=${c.raw.x}%, กำไร ${c.raw.y>=0?'+':''}${c.raw.y}%, TR=${fmtM(V.find(d=>d.short===c.dataset.label)?.TR_m*1e6||0)} ลบ.`}}},
       scales:{x:{title:{display:true,text:'Utilization Q/Q* (%)'},grid:{color:C.grid},ticks:{callback:v=>v+'%'}},y:{title:{display:true,text:'กำไร % (Profit Margin)'},grid:{color:C.grid},ticks:{callback:v=>(v>=0?'+':'')+v+'%'}}}}});
   document.getElementById('quadrant-labels').innerHTML=`
-    <div style="position:absolute;top:10px;left:52%;font-size:9px;font-weight:700;color:#0ca678;opacity:.65">⭐ Stars (Util สูง · กำไรสูง)</div>
-    <div style="position:absolute;top:10px;left:5%;font-size:9px;font-weight:700;color:#f59f00;opacity:.65">🔄 Recover (Util ต่ำ · กำไรสูง)</div>
+    <div style="position:absolute;top:10px;left:52%;font-size:9px;font-weight:700;color:#56ca00;opacity:.65">⭐ Stars (Util สูง · กำไรสูง)</div>
+    <div style="position:absolute;top:10px;left:5%;font-size:9px;font-weight:700;color:#ffb400;opacity:.65">🔄 Recover (Util ต่ำ · กำไรสูง)</div>
     <div style="position:absolute;bottom:30px;left:52%;font-size:9px;font-weight:700;color:#6d4cff;opacity:.65">📈 Growth (Util สูง · กำไรต่ำ)</div>
-    <div style="position:absolute;bottom:30px;left:5%;font-size:9px;font-weight:700;color:#e64980;opacity:.65">⚠️ Risk (Util ต่ำ · กำไรต่ำ)</div>`;
+    <div style="position:absolute;bottom:30px;left:5%;font-size:9px;font-weight:700;color:#ff4c51;opacity:.65">⚠️ Risk (Util ต่ำ · กำไรต่ำ)</div>`;
   sortCross(_crossSort);
   // insights
   const inv=cd.filter(d=>!d.valid);

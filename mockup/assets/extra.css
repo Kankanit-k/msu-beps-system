@@ -58,7 +58,7 @@
   border-left: 4px solid var(--gold2); border-radius: var(--radius2);
   padding: 10px 14px; margin-bottom: 16px;
 }
-.caveat b { color: #92400e; }
+.caveat b { color: #8a6100; }
 .caveat a { color: var(--gold); font-weight: 700; }
 .caveat code {
   font-family: 'Manrope', monospace; background: rgba(180, 83, 9, .12);
@@ -196,7 +196,7 @@
 .mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 .mini-stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
 .mini-stat .l { font-size: 9.5px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; }
-.mini-stat .v { font-size: 17px; font-weight: 700; font-family: 'Manrope', 'Prompt', sans-serif; margin-top: 4px; letter-spacing: -.4px; }
+.mini-stat .v { font-size: 17px; font-weight: 700; font-family: 'Manrope', 'Sarabun', sans-serif; margin-top: 4px; letter-spacing: -.4px; }
 .mini-stat .s { font-size: 10px; color: var(--text4); margin-top: 2px; }
 
 /* แถบผลตรวจยอด (W12) */
@@ -209,7 +209,7 @@
   font-weight: 700; border-bottom: 2px solid var(--border2); background: var(--card);
   position: sticky; top: 0; z-index: 2;
 }
-.recon-row .num { text-align: right; font-family: 'Manrope', 'Prompt', sans-serif; font-variant-numeric: tabular-nums; }
+.recon-row .num { text-align: right; font-family: 'Manrope', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) { .recon-row { grid-template-columns: 1fr 1fr; } }
 
 /* หน้าเข้าสู่ระบบ (W0) */
@@ -219,10 +219,10 @@
 }
 @media (max-width: 900px) { .login-wrap { grid-template-columns: 1fr; } }
 .login-brand {
-  background: linear-gradient(160deg, #3730a3, #6d4cff 60%, #7c5cff);
+  background: linear-gradient(160deg, #5938e0, #6d4cff 60%, #8b6fff);
   color: #fff; padding: 52px 48px; display: flex; flex-direction: column; justify-content: center; gap: 22px;
 }
-.login-brand h1 { font-size: 30px; font-weight: 800; font-family: 'Manrope', 'Prompt', sans-serif; letter-spacing: -.02em; }
+.login-brand h1 { font-size: 30px; font-weight: 800; font-family: 'Manrope', 'Sarabun', sans-serif; letter-spacing: -.02em; }
 .login-brand p { font-size: 13px; line-height: 1.85; color: rgba(255, 255, 255, .8); max-width: 430px; }
 .login-form { display: flex; align-items: center; justify-content: center; padding: 40px 32px; }
 .login-card {
@@ -260,7 +260,7 @@
 
 /* หน้าสารบัญ (index.html) */
 .hub { max-width: 1180px; margin: 0 auto; padding: 36px 26px 70px; }
-.hub-h { font-size: 26px; font-weight: 800; font-family: 'Manrope', 'Prompt', sans-serif; letter-spacing: -.02em; }
+.hub-h { font-size: 26px; font-weight: 800; font-family: 'Manrope', 'Sarabun', sans-serif; letter-spacing: -.02em; }
 .hub-sub { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.75; max-width: 780px; }
 .hub-grp { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--navy2); margin: 30px 0 12px; }
 .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 13px; }

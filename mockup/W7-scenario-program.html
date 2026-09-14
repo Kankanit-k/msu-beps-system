@@ -6,7 +6,7 @@
 <title>MSU-BEPS · W7 คำนวณจุดคุ้มทุนรายหลักสูตร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/beps.css">
 <link rel="stylesheet" href="assets/extra.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -18,7 +18,7 @@
   <div class="page" id="p-program">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div class="sec-title" style="margin-bottom:0">🎓 คำนวณจุดคุ้มทุนรายหลักสูตร (กรอกเอง)</div>
-      <button id="btn-pdf-report" onclick="openPdfReport()" disabled title="คำนวณก่อนเพื่อเปิดใช้งาน" style="display:flex;align-items:center;gap:7px;padding:9px 20px;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:not-allowed;background:#e2e8f2;color:#94a3b8;letter-spacing:.02em">🖨 ออกรายงาน PDF</button>
+      <button id="btn-pdf-report" onclick="openPdfReport()" disabled title="คำนวณก่อนเพื่อเปิดใช้งาน" style="display:flex;align-items:center;gap:7px;padding:9px 20px;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:not-allowed;background:#e2e8f2;color:#9b95a6;letter-spacing:.02em">🖨 ออกรายงาน PDF</button>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>กรอกข้อมูลหลักสูตร</div><div class="card-sub">เลือกประเภท — หลักสูตรเดิมดึงข้อมูลจากระบบอัตโนมัติ · หลักสูตรใหม่กรอกเอง</div></div></div>
@@ -51,12 +51,12 @@
         <div class="card" id="pg-result-card"></div>
         <div class="card">
           <div class="card-head"><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>กราฟจุดคุ้มทุน</div></div>
-          <div class="leg-row"><div class="leg"><span class="leg-sq" style="background:#6d4cff"></span>TR</div><div class="leg"><span class="leg-sq" style="background:#e64980"></span>TC</div><div class="leg"><span class="leg-sq" style="background:#f59f00"></span>TFC</div></div>
+          <div class="leg-row"><div class="leg"><span class="leg-sq" style="background:#6d4cff"></span>TR</div><div class="leg"><span class="leg-sq" style="background:#ff4c51"></span>TC</div><div class="leg"><span class="leg-sq" style="background:#ffb400"></span>TFC</div></div>
           <div class="ch" style="height:280px"><canvas id="pg-chart"></canvas></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-head"><div class="card-title"><span class="dot" style="background:#f59f00"></span>ประวัติการคำนวณ</div><button onclick="pgHist=[];renderPgHist()" style="font-size:10px;padding:4px 12px;border:1px solid var(--red3);background:var(--red3);color:var(--red2);border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600">ล้าง</button></div>
+        <div class="card-head"><div class="card-title"><span class="dot" style="background:#ffb400"></span>ประวัติการคำนวณ</div><button onclick="pgHist=[];renderPgHist()" style="font-size:10px;padding:4px 12px;border:1px solid var(--red3);background:var(--red3);color:var(--red2);border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600">ล้าง</button></div>
         <div id="pg-hist-body"></div>
       </div>
     </div>
@@ -69,9 +69,9 @@
     <button onclick="closePdfReport()" style="position:fixed;top:16px;right:24px;z-index:10002;background:rgba(255,255,255,.9);color:#334155;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);font-weight:700" title="ปิด">×</button>
     <div id="pdf-report"></div>
     <div style="position:fixed;bottom:24px;right:24px;z-index:10001;display:flex;gap:10px">
-      <button class="pdf-print-btn" id="btn-dl-pdf" onclick="downloadReport()" style="background:#0ca678">⬇ ดาวน์โหลด PDF</button>
+      <button class="pdf-print-btn" id="btn-dl-pdf" onclick="downloadReport()" style="background:#56ca00">⬇ ดาวน์โหลด PDF</button>
       <button class="pdf-print-btn" onclick="printPdfReport()" style="background:#6d4cff">🖨 พิมพ์ / บันทึก PDF</button>
-      <button class="pdf-print-btn" onclick="closePdfReport()" style="background:#64748b;padding:11px 18px;box-shadow:none">× ปิด</button>
+      <button class="pdf-print-btn" onclick="closePdfReport()" style="background:#6f6880;padding:11px 18px;box-shadow:none">× ปิด</button>
     </div>
   </div>
 

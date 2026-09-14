@@ -14,11 +14,11 @@ const fmtN = v => Math.round(F0(v)).toLocaleString('th-TH');
 const fmtB = v => Math.round(F0(v)).toLocaleString('th-TH');
 const short = s => s.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
 const C = {
-  navy: '#6d4cff', navyD: '#3730a3', gold: '#f59f00', gold2: '#fcc419',
-  green: '#0ca678', red: '#e64980', grid: 'rgba(15,23,42,.06)', tick: '#64748b',
+  navy: '#6d4cff', navyD: '#5938e0', gold: '#ffb400', gold2: '#ffc333',
+  green: '#56ca00', red: '#ff4c51', grid: 'rgba(46,38,61,.06)', tick: '#6f6880',
 };
 if (window.Chart) {
-  Chart.defaults.font.family = "'Prompt','IBM Plex Sans Thai',sans-serif";
+  Chart.defaults.font.family = "'Sarabun','IBM Plex Sans Thai',sans-serif";
   Chart.defaults.font.size = 11;
   Chart.defaults.color = C.tick;
 }

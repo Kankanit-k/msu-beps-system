@@ -106,7 +106,7 @@ function openPdfReport(){
   const logo=document.querySelector('.sb-logo-img')?document.querySelector('.sb-logo-img').src:'';
   const now=new Date(),dateStr=now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
   const typeLabel=d.type==='new'?'หลักสูตรใหม่ (New Program)':'หลักสูตรเดิม (Existing Program)';
-  const statusLabel=d.isOk?'ผ่านจุดคุ้มทุน':'ยังไม่ถึงจุดคุ้มทุน',statusColor=d.isOk?'#087f5b':'#b45309';
+  const statusLabel=d.isOk?'ผ่านจุดคุ้มทุน':'ยังไม่ถึงจุดคุ้มทุน',statusColor=d.isOk?'#3a8c00':'#a67500';
   const beRev=d.Qs?d.Qs*d.R:0,MoS=d.TR-beRev;
   // SVG chart
   const maxQ=Math.max(d.Q*1.4,d.Qs?d.Qs*1.6:d.Q*2,30),pts=10,step=maxQ/pts;
@@ -118,30 +118,30 @@ function openPdfReport(){
   const svg=`<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif">
     <rect width="${svgW}" height="${svgH}" fill="#f8fafd" rx="8"/>
     ${[1,2,3,4].map(i=>`<line x1="${pad}" y1="${sy(maxY*i/5).toFixed(1)}" x2="${svgW-pad}" y2="${sy(maxY*i/5).toFixed(1)}" stroke="#e2e8f2"/>`).join('')}
-    <line x1="${pad}" y1="${tfcY}" x2="${svgW-pad}" y2="${tfcY}" stroke="#0ca678" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <text x="${svgW-pad+4}" y="${tfcY}" font-size="9" fill="#0ca678" dominant-baseline="middle">TFC</text>
-    <polyline points="${tcPts.join(' ')}" fill="none" stroke="#e64980" stroke-width="2"/>
+    <line x1="${pad}" y1="${tfcY}" x2="${svgW-pad}" y2="${tfcY}" stroke="#56ca00" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="${svgW-pad+4}" y="${tfcY}" font-size="9" fill="#56ca00" dominant-baseline="middle">TFC</text>
+    <polyline points="${tcPts.join(' ')}" fill="none" stroke="#ff4c51" stroke-width="2"/>
     <polyline points="${trPts.join(' ')}" fill="none" stroke="#6d4cff" stroke-width="2.5"/>
-    ${bepX?`<circle cx="${bepX}" cy="${bepY}" r="5" fill="#3730a3" stroke="#fff" stroke-width="1.5"/><line x1="${bepX}" y1="${bepY}" x2="${bepX}" y2="${svgH-pad}" stroke="#3730a3" stroke-dasharray="4,3"/><text x="${bepX}" y="${svgH-pad+12}" font-size="9" fill="#3730a3" text-anchor="middle" font-weight="700">Q*=${fmtN(d.Qs)}</text>`:''}
-    <circle cx="${sx(d.Q).toFixed(1)}" cy="${sy(d.Q*d.R/1e6).toFixed(1)}" r="4" fill="#f59f00" stroke="#fff" stroke-width="1.5"/>
-    <text x="${sx(d.Q).toFixed(1)}" y="${(sy(d.Q*d.R/1e6)-8).toFixed(1)}" font-size="9" fill="#f59f00" text-anchor="middle" font-weight="700">Q=${fmtN(d.Q)}</text>
+    ${bepX?`<circle cx="${bepX}" cy="${bepY}" r="5" fill="#5938e0" stroke="#fff" stroke-width="1.5"/><line x1="${bepX}" y1="${bepY}" x2="${bepX}" y2="${svgH-pad}" stroke="#5938e0" stroke-dasharray="4,3"/><text x="${bepX}" y="${svgH-pad+12}" font-size="9" fill="#5938e0" text-anchor="middle" font-weight="700">Q*=${fmtN(d.Qs)}</text>`:''}
+    <circle cx="${sx(d.Q).toFixed(1)}" cy="${sy(d.Q*d.R/1e6).toFixed(1)}" r="4" fill="#ffb400" stroke="#fff" stroke-width="1.5"/>
+    <text x="${sx(d.Q).toFixed(1)}" y="${(sy(d.Q*d.R/1e6)-8).toFixed(1)}" font-size="9" fill="#ffb400" text-anchor="middle" font-weight="700">Q=${fmtN(d.Q)}</text>
     <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${svgH-pad}" stroke="#334155" stroke-width="1.5"/>
     <line x1="${pad}" y1="${svgH-pad}" x2="${svgW-pad}" y2="${svgH-pad}" stroke="#334155" stroke-width="1.5"/>
-    <text x="${svgW/2}" y="${svgH-8}" font-size="9" fill="#64748b" text-anchor="middle">จำนวนนิสิต (คน)</text>
-    <text x="12" y="${svgH/2}" font-size="9" fill="#64748b" text-anchor="middle" transform="rotate(-90,12,${svgH/2})">ล้านบาท</text>
+    <text x="${svgW/2}" y="${svgH-8}" font-size="9" fill="#6f6880" text-anchor="middle">จำนวนนิสิต (คน)</text>
+    <text x="12" y="${svgH/2}" font-size="9" fill="#6f6880" text-anchor="middle" transform="rotate(-90,12,${svgH/2})">ล้านบาท</text>
     <rect x="${pad+10}" y="${pad-5}" width="8" height="8" fill="#6d4cff" rx="1"/><text x="${pad+22}" y="${pad+3}" font-size="9" fill="#334155">TR</text>
-    <rect x="${pad+50}" y="${pad-5}" width="8" height="8" fill="#e64980" rx="1"/><text x="${pad+62}" y="${pad+3}" font-size="9" fill="#334155">TC</text>
-    <circle cx="${pad+96}" cy="${pad-1}" r="4" fill="#3730a3"/><text x="${pad+104}" y="${pad+3}" font-size="9" fill="#334155">Q*</text>
-    <circle cx="${pad+130}" cy="${pad-1}" r="4" fill="#f59f00"/><text x="${pad+138}" y="${pad+3}" font-size="9" fill="#334155">Q จริง</text>
+    <rect x="${pad+50}" y="${pad-5}" width="8" height="8" fill="#ff4c51" rx="1"/><text x="${pad+62}" y="${pad+3}" font-size="9" fill="#334155">TC</text>
+    <circle cx="${pad+96}" cy="${pad-1}" r="4" fill="#5938e0"/><text x="${pad+104}" y="${pad+3}" font-size="9" fill="#334155">Q*</text>
+    <circle cx="${pad+130}" cy="${pad-1}" r="4" fill="#ffb400"/><text x="${pad+138}" y="${pad+3}" font-size="9" fill="#334155">Q จริง</text>
   </svg>`;
-  const hdr=`<div class="pdf-header">${logo?`<img src="${logo}" class="pdf-logo" alt="MSU">`:'<div style="width:52px;height:52px;background:#3730a3;border-radius:8px"></div>'}<div class="pdf-header-text"><h1>มหาวิทยาลัยมหาสารคาม | Mahasarakham University</h1><p>รายงานการวิเคราะห์จุดคุ้มทุน (Break-Even Analysis Report) · กองแผนงาน</p></div>`;
+  const hdr=`<div class="pdf-header">${logo?`<img src="${logo}" class="pdf-logo" alt="MSU">`:'<div style="width:52px;height:52px;background:#5938e0;border-radius:8px"></div>'}<div class="pdf-header-text"><h1>มหาวิทยาลัยมหาสารคาม | Mahasarakham University</h1><p>รายงานการวิเคราะห์จุดคุ้มทุน (Break-Even Analysis Report) · กองแผนงาน</p></div>`;
   const report=`<div class="pdf-page">
-    ${hdr}<div style="margin-left:auto;text-align:right;font-size:9px;color:#94a3b8;line-height:1.8"><div style="font-weight:700;color:#3730a3">ปีการศึกษา 2568</div><div>${dateStr}</div><div style="font-size:8px;background:#ede9fe;color:#6d4cff;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:700;margin-top:4px">${typeLabel}</div><div style="font-size:8px;background:#fff4d6;color:#8a5a00;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:700;margin-top:3px">ฐานรายได้: ${d.modeLabel}</div></div></div>
+    ${hdr}<div style="margin-left:auto;text-align:right;font-size:9px;color:#9b95a6;line-height:1.8"><div style="font-weight:700;color:#5938e0">ปีการศึกษา 2568</div><div>${dateStr}</div><div style="font-size:8px;background:#efeaff;color:#6d4cff;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:700;margin-top:4px">${typeLabel}</div><div style="font-size:8px;background:#fff3d6;color:#8a5a00;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:700;margin-top:3px">ฐานรายได้: ${d.modeLabel}</div></div></div>
     <div class="pdf-title">รายงานการวิเคราะห์จุดคุ้มทุนหลักสูตร</div>
     <div class="pdf-subtitle">${d.name} · ${d.fac||'-'} · ${d.level}</div>
     <div class="pdf-result-box ${d.isOk?'pdf-result-ok':'pdf-result-warn'}" style="display:flex;align-items:center;gap:14px">
       <div style="font-size:28px">${d.isOk?'✅':'⚠️'}</div><div><div style="font-size:14px;font-weight:800;color:${statusColor}">${statusLabel}</div>
-      <div style="font-size:11px;color:#475569;margin-top:2px">${d.Qs?`จำนวนนิสิต ณ จุดคุ้มทุน = ${fmtN(d.Qs)} คน · นิสิตจริง = ${fmtN(d.Q)} คน · ส่วนต่าง ${d.Q>=d.Qs?'+':''}${fmtN(d.Q-d.Qs)} คน · รายได้ ณ จุดคุ้มทุน = ${MM(beRev,3)} ล้านบาท`:'ไม่มีจุดคุ้มทุน'}</div></div></div>
+      <div style="font-size:11px;color:#5a5169;margin-top:2px">${d.Qs?`จำนวนนิสิต ณ จุดคุ้มทุน = ${fmtN(d.Qs)} คน · นิสิตจริง = ${fmtN(d.Q)} คน · ส่วนต่าง ${d.Q>=d.Qs?'+':''}${fmtN(d.Q-d.Qs)} คน · รายได้ ณ จุดคุ้มทุน = ${MM(beRev,3)} ล้านบาท`:'ไม่มีจุดคุ้มทุน'}</div></div></div>
     <div class="pdf-sec">1. ข้อมูลหลักสูตร</div>
     <div class="pdf-info-grid">
       <div class="pdf-info-box"><div class="pdf-info-label">ชื่อหลักสูตร</div><div class="pdf-info-val">${d.name}</div></div>
@@ -150,41 +150,41 @@ function openPdfReport(){
       <div class="pdf-info-box"><div class="pdf-info-label">ประเภทหลักสูตร</div><div class="pdf-info-val">${typeLabel}</div></div></div>
     <div class="pdf-sec">2. ตัวชี้วัดทางการเงิน</div>
     <div class="pdf-kpi-row">
-      <div class="pdf-kpi"><div class="pdf-kpi-label">นิสิตจริง (Q)</div><div class="pdf-kpi-val" style="color:#3730a3">${fmtN(d.Q)}</div><div style="font-size:9px;color:#94a3b8">คน</div></div>
-      <div class="pdf-kpi"><div class="pdf-kpi-label">Q* จุดคุ้มทุน</div><div class="pdf-kpi-val" style="color:${statusColor}">${d.Qs?fmtN(d.Qs):'N/A'}</div><div style="font-size:9px;color:#94a3b8">คน</div></div>
-      <div class="pdf-kpi"><div class="pdf-kpi-label">รายได้/หัว (R)</div><div class="pdf-kpi-val" style="color:#6d4cff">${fmtB(d.R)}</div><div style="font-size:9px;color:#94a3b8">บาท/คน</div></div>
-      <div class="pdf-kpi"><div class="pdf-kpi-label">CM/หัว</div><div class="pdf-kpi-val" style="color:${d.CM>=0?'#087f5b':'#c2185b'}">${fmtB(d.CM)}</div><div style="font-size:9px;color:#94a3b8">บาท/คน</div></div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">นิสิตจริง (Q)</div><div class="pdf-kpi-val" style="color:#5938e0">${fmtN(d.Q)}</div><div style="font-size:9px;color:#9b95a6">คน</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Q* จุดคุ้มทุน</div><div class="pdf-kpi-val" style="color:${statusColor}">${d.Qs?fmtN(d.Qs):'N/A'}</div><div style="font-size:9px;color:#9b95a6">คน</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">รายได้/หัว (R)</div><div class="pdf-kpi-val" style="color:#6d4cff">${fmtB(d.R)}</div><div style="font-size:9px;color:#9b95a6">บาท/คน</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">CM/หัว</div><div class="pdf-kpi-val" style="color:${d.CM>=0?'#3a8c00':'#c2383c'}">${fmtB(d.CM)}</div><div style="font-size:9px;color:#9b95a6">บาท/คน</div></div></div>
     <div class="pdf-sec">3. โครงสร้างต้นทุนและรายได้</div>
     <table class="pdf-table"><thead><tr><th>รายการ</th><th>สัญลักษณ์</th><th>จำนวนเงิน (บาท)</th><th>ล้านบาท</th></tr></thead><tbody>
       <tr><td>รายได้รวม</td><td>TR</td><td class="bold navy">${fmtB(d.TR)}</td><td class="navy">${MM(d.TR,3)}</td></tr>
       <tr><td>ต้นทุนรวม</td><td>TC</td><td class="bold">${fmtB(d.TC)}</td><td>${MM(d.TC,3)}</td></tr>
-      <tr><td style="padding-left:20px;color:#475569">ต้นทุนคงที่รวม</td><td>TFC</td><td class="navy">${fmtB(d.TFC)}</td><td class="navy">${MM(d.TFC,3)}</td></tr>
-      <tr><td style="padding-left:20px;color:#475569">ต้นทุนผันแปรรวม</td><td>TVC</td><td class="gold">${fmtB(d.TVC)}</td><td class="gold">${MM(d.TVC,3)}</td></tr>
-      <tr><td style="padding-left:20px;color:#475569">ต้นทุนผันแปรต่อหน่วย</td><td>AVC</td><td class="gold">${fmtB(d.AVC)}</td><td class="gold">บ./คน</td></tr>
-      <tr style="background:#f0ecff"><td style="font-weight:700">Contribution Margin/หน่วย</td><td>CM</td><td class="bold" style="color:${d.CM>=0?'#087f5b':'#c2185b'}">${fmtB(d.CM)}</td><td style="color:${d.CM>=0?'#087f5b':'#c2185b'};font-weight:700">บ./คน</td></tr>
-      <tr style="background:${d.profit>=0?'#d3f9e8':'#ffdeeb'}"><td style="font-weight:700">ส่วนเกิน / ขาดทุน</td><td>π</td><td class="bold" style="color:${d.profit>=0?'#087f5b':'#c2185b'}">${d.profit>=0?'+':''}${fmtB(d.profit)}</td><td style="color:${d.profit>=0?'#087f5b':'#c2185b'};font-weight:700">${d.profit>=0?'+':''}${MM(d.profit,3)}</td></tr>
+      <tr><td style="padding-left:20px;color:#5a5169">ต้นทุนคงที่รวม</td><td>TFC</td><td class="navy">${fmtB(d.TFC)}</td><td class="navy">${MM(d.TFC,3)}</td></tr>
+      <tr><td style="padding-left:20px;color:#5a5169">ต้นทุนผันแปรรวม</td><td>TVC</td><td class="gold">${fmtB(d.TVC)}</td><td class="gold">${MM(d.TVC,3)}</td></tr>
+      <tr><td style="padding-left:20px;color:#5a5169">ต้นทุนผันแปรต่อหน่วย</td><td>AVC</td><td class="gold">${fmtB(d.AVC)}</td><td class="gold">บ./คน</td></tr>
+      <tr style="background:#f0ecff"><td style="font-weight:700">Contribution Margin/หน่วย</td><td>CM</td><td class="bold" style="color:${d.CM>=0?'#3a8c00':'#c2383c'}">${fmtB(d.CM)}</td><td style="color:${d.CM>=0?'#3a8c00':'#c2383c'};font-weight:700">บ./คน</td></tr>
+      <tr style="background:${d.profit>=0?'#e6f8d9':'#ffe4e5'}"><td style="font-weight:700">ส่วนเกิน / ขาดทุน</td><td>π</td><td class="bold" style="color:${d.profit>=0?'#3a8c00':'#c2383c'}">${d.profit>=0?'+':''}${fmtB(d.profit)}</td><td style="color:${d.profit>=0?'#3a8c00':'#c2383c'};font-weight:700">${d.profit>=0?'+':''}${MM(d.profit,3)}</td></tr>
       ${d.Qs?`<tr style="background:#f8fafd"><td style="font-weight:700">รายได้ ณ จุดคุ้มทุน</td><td>BE Rev</td><td class="bold">${fmtB(beRev)}</td><td>${MM(beRev,3)}</td></tr><tr style="background:#f8fafd"><td style="font-weight:700">Margin of Safety</td><td>MoS</td><td class="bold ${MoS>=0?'green':'red'}">${fmtB(MoS)}</td><td class="${MoS>=0?'green':'red'}">${MM(MoS,3)}</td></tr>`:''}
     </tbody></table>
     <div class="pdf-sec">4. การคำนวณจุดคุ้มทุน</div>
-    <div class="pdf-formula-box">Q* = TFC ÷ (R − AVC) = ${fmtB(d.TFC)} ÷ (${fmtB(d.R)} − ${fmtB(d.AVC)}) <strong style="color:#3730a3">${d.Qs?'= '+fmtN(d.Qs)+' คน':''}</strong></div>
-    <div class="pdf-formula-box">π = (R − AVC) × Q − TFC = (${fmtB(d.R)} − ${fmtB(d.AVC)}) × ${fmtN(d.Q)} − ${fmtB(d.TFC)} = <strong style="color:${d.profit>=0?'#087f5b':'#c2185b'}">${d.profit>=0?'+':''}${fmtB(d.profit)} บาท</strong></div>
+    <div class="pdf-formula-box">Q* = TFC ÷ (R − AVC) = ${fmtB(d.TFC)} ÷ (${fmtB(d.R)} − ${fmtB(d.AVC)}) <strong style="color:#5938e0">${d.Qs?'= '+fmtN(d.Qs)+' คน':''}</strong></div>
+    <div class="pdf-formula-box">π = (R − AVC) × Q − TFC = (${fmtB(d.R)} − ${fmtB(d.AVC)}) × ${fmtN(d.Q)} − ${fmtB(d.TFC)} = <strong style="color:${d.profit>=0?'#3a8c00':'#c2383c'}">${d.profit>=0?'+':''}${fmtB(d.profit)} บาท</strong></div>
     <div class="pdf-footer-line"><span>รายงานโดย MSU-BEPS · มหาวิทยาลัยมหาสารคาม · ปีการศึกษา 2568</span><span>หน้า 1 / 2</span></div>
   </div>
   <div class="pdf-page">
     ${hdr}</div>
     <div class="pdf-sec">5. กราฟเส้นจุดคุ้มทุน (Break-Even Chart)</div>
     <div style="text-align:center;margin-bottom:12px;border:1px solid #e2e8f2;border-radius:8px;overflow:hidden">${svg}</div>
-    <div style="font-size:9.5px;color:#64748b;text-align:center;margin-bottom:16px">จุดสีเข้ม (●) = Q* จุดคุ้มทุน${d.Qs?' = '+fmtN(d.Qs)+' คน':''} · จุดสีทอง (◆) = นิสิตจริง ${fmtN(d.Q)} คน</div>
+    <div style="font-size:9.5px;color:#6f6880;text-align:center;margin-bottom:16px">จุดสีเข้ม (●) = Q* จุดคุ้มทุน${d.Qs?' = '+fmtN(d.Qs)+' คน':''} · จุดสีทอง (◆) = นิสิตจริง ${fmtN(d.Q)} คน</div>
     <div class="pdf-sec">6. ข้อเสนอแนะ</div>
     <div style="font-size:11.5px;color:#334155;line-height:2;background:#f8fafd;border-radius:8px;padding:14px 16px;border:1px solid #e2e8f2;margin-bottom:16px">
-      ${d.isOk?`<strong style="color:#087f5b">✅ หลักสูตรผ่านเกณฑ์จุดคุ้มทุน</strong><br>มีนิสิตจริง <strong>${fmtN(d.Q)} คน</strong> ${d.Qs?`เกินจุดคุ้มทุน <strong>${fmtN(d.Qs)} คน</strong> อยู่ <strong>+${fmtN(d.Q-d.Qs)} คน</strong>`:''} · CM <strong>${fmtB(d.CM)} บ./คน</strong> · ส่วนเกิน <strong>${MM(d.profit,3)} ล้านบาท</strong><br>แนะนำ: ${d.type==='new'?'สามารถเปิดหลักสูตรได้ตามแผน โดยรักษาจำนวนนิสิตไม่ต่ำกว่า '+(d.Qs?fmtN(d.Qs):'-')+' คน':'รักษาจำนวนนิสิตและโครงสร้างต้นทุนให้คงที่เพื่อความยั่งยืน และพิจารณานำส่วนเกินไปพัฒนาคุณภาพ'}`:`<strong style="color:#b45309">⚠️ หลักสูตรยังไม่ถึงจุดคุ้มทุน</strong><br>มีนิสิตจริง <strong>${fmtN(d.Q)} คน</strong> ต้องเพิ่มอีก <strong>${d.Qs?fmtN(d.Qs-d.Q):'-'} คน</strong> เพื่อให้ถึงจุดคุ้มทุน<br>แนะนำ: ${d.type==='new'?'ควรทบทวนแผนรับนิสิต เพิ่มการประชาสัมพันธ์ หรือลดต้นทุนคงที่ก่อนเปิดหลักสูตร':'ควรพิจารณาปรับโครงสร้างต้นทุน เพิ่มค่าธรรมเนียม หรือเพิ่มจำนวนนิสิตให้ถึงเกณฑ์ · หากพึ่งพางบแผ่นดินสูงควรวางแผนความยั่งยืน'}`}
+      ${d.isOk?`<strong style="color:#3a8c00">✅ หลักสูตรผ่านเกณฑ์จุดคุ้มทุน</strong><br>มีนิสิตจริง <strong>${fmtN(d.Q)} คน</strong> ${d.Qs?`เกินจุดคุ้มทุน <strong>${fmtN(d.Qs)} คน</strong> อยู่ <strong>+${fmtN(d.Q-d.Qs)} คน</strong>`:''} · CM <strong>${fmtB(d.CM)} บ./คน</strong> · ส่วนเกิน <strong>${MM(d.profit,3)} ล้านบาท</strong><br>แนะนำ: ${d.type==='new'?'สามารถเปิดหลักสูตรได้ตามแผน โดยรักษาจำนวนนิสิตไม่ต่ำกว่า '+(d.Qs?fmtN(d.Qs):'-')+' คน':'รักษาจำนวนนิสิตและโครงสร้างต้นทุนให้คงที่เพื่อความยั่งยืน และพิจารณานำส่วนเกินไปพัฒนาคุณภาพ'}`:`<strong style="color:#a67500">⚠️ หลักสูตรยังไม่ถึงจุดคุ้มทุน</strong><br>มีนิสิตจริง <strong>${fmtN(d.Q)} คน</strong> ต้องเพิ่มอีก <strong>${d.Qs?fmtN(d.Qs-d.Q):'-'} คน</strong> เพื่อให้ถึงจุดคุ้มทุน<br>แนะนำ: ${d.type==='new'?'ควรทบทวนแผนรับนิสิต เพิ่มการประชาสัมพันธ์ หรือลดต้นทุนคงที่ก่อนเปิดหลักสูตร':'ควรพิจารณาปรับโครงสร้างต้นทุน เพิ่มค่าธรรมเนียม หรือเพิ่มจำนวนนิสิตให้ถึงเกณฑ์ · หากพึ่งพางบแผ่นดินสูงควรวางแผนความยั่งยืน'}`}
     </div>
     <div class="pdf-sec">7. ผู้รับรองรายงาน</div>
     <div class="pdf-sig-grid">
       <div class="pdf-sig-box"><div class="sig-title">ผู้จัดทำ</div><div style="margin-top:4px">(...................................)</div><div style="margin-top:4px;font-size:9px">วันที่: ${dateStr}</div></div>
       <div class="pdf-sig-box"><div class="sig-title">ประธานหลักสูตร</div><div style="margin-top:4px">(...................................)</div><div style="margin-top:4px;font-size:9px">วันที่: .........................</div></div>
       <div class="pdf-sig-box"><div class="sig-title">คณบดี / ผู้อำนวยการ</div><div style="margin-top:4px">(...................................)</div><div style="margin-top:4px;font-size:9px">วันที่: .........................</div></div></div>
-    <div style="margin-top:20px;padding:10px 14px;background:#f0ecff;border-radius:8px;border:1px solid rgba(109,76,255,.20);font-size:9.5px;color:#3730a3;line-height:1.8"><strong>อ้างอิงมาตรฐาน:</strong> การวิเคราะห์จุดคุ้มทุนอ้างอิงตาม Horngren, Datar & Rajan (2015) และหลักเกณฑ์กรมบัญชีกลาง (2566) ว่าด้วยการคำนวณต้นทุนต่อหน่วยผลผลิตของสถาบันอุดมศึกษา</div>
+    <div style="margin-top:20px;padding:10px 14px;background:#f0ecff;border-radius:8px;border:1px solid rgba(109,76,255,.20);font-size:9.5px;color:#5938e0;line-height:1.8"><strong>อ้างอิงมาตรฐาน:</strong> การวิเคราะห์จุดคุ้มทุนอ้างอิงตาม Horngren, Datar & Rajan (2015) และหลักเกณฑ์กรมบัญชีกลาง (2566) ว่าด้วยการคำนวณต้นทุนต่อหน่วยผลผลิตของสถาบันอุดมศึกษา</div>
     <div class="pdf-footer-line"><span>รายงานโดย MSU-BEPS · มหาวิทยาลัยมหาสารคาม · ปีการศึกษา 2568</span><span>หน้า 2 / 2</span></div>
   </div>`;
   document.getElementById('pdf-report').innerHTML=report;
@@ -194,37 +194,37 @@ function reportDocHtml(){
   const reportEl=document.getElementById('pdf-report');
   if(!reportEl||!reportEl.innerHTML.trim())return null;
   return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>รายงานการวิเคราะห์จุดคุ้มทุน — มหาวิทยาลัยมหาสารคาม</title>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#f0f4f8;font-family:'Prompt','IBM Plex Sans Thai',sans-serif;color:#0f172a;padding:20px 0}
-.toolbar{background:#3730a3;color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#f0f4f8;font-family:'Sarabun','IBM Plex Sans Thai',sans-serif;color:#2e263d;padding:20px 0}
+.toolbar{background:#5938e0;color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .toolbar h2{font-size:14px;font-weight:700}.toolbar p{font-size:11px;opacity:.7;margin-top:2px}
-.btn-print{background:#6d4cff;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-family:'Prompt',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-.btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 16px;font-family:'Prompt',sans-serif;font-size:12px;cursor:pointer;margin-left:10px}
+.btn-print{background:#6d4cff;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 16px;font-family:'Sarabun',sans-serif;font-size:12px;cursor:pointer;margin-left:10px}
 .page-wrap{max-width:794px;margin:20px auto}
 .pdf-page{width:794px;min-height:1123px;padding:40px 48px;background:#fff;page-break-after:always;box-shadow:0 4px 20px rgba(0,0,0,.1);position:relative;margin-bottom:20px}
 .pdf-page:last-child{page-break-after:auto}
-.pdf-header{display:flex;align-items:center;gap:14px;padding-bottom:12px;border-bottom:3.5px solid #3730a3;margin-bottom:18px}
+.pdf-header{display:flex;align-items:center;gap:14px;padding-bottom:12px;border-bottom:3.5px solid #5938e0;margin-bottom:18px}
 .pdf-logo{width:52px;height:52px;border-radius:8px;object-fit:contain;background:#f0f4fa;padding:3px}
-.pdf-header-text h1{font-size:13.5px;font-weight:800;color:#3730a3;font-family:'Manrope',sans-serif}.pdf-header-text p{font-size:9.5px;color:#64748b}
-.pdf-title{font-size:18px;font-weight:800;color:#3730a3;margin:0 0 4px}.pdf-subtitle{font-size:11px;color:#64748b;margin:0 0 16px}
+.pdf-header-text h1{font-size:13.5px;font-weight:800;color:#5938e0;font-family:'Manrope',sans-serif}.pdf-header-text p{font-size:9.5px;color:#6f6880}
+.pdf-title{font-size:18px;font-weight:800;color:#5938e0;margin:0 0 4px}.pdf-subtitle{font-size:11px;color:#6f6880;margin:0 0 16px}
 .pdf-sec{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6d4cff;margin:16px 0 7px;display:flex;align-items:center;gap:7px}
 .pdf-sec::before{content:'';width:3px;height:11px;background:#6d4cff;border-radius:2px}
 .pdf-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
 .pdf-info-box{background:#f8fafd;border:1px solid #e2e8f2;border-radius:7px;padding:9px 13px}
-.pdf-info-label{font-size:8px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px}.pdf-info-val{font-size:12.5px;font-weight:700;color:#0f172a}
+.pdf-info-label{font-size:8px;font-weight:700;color:#9b95a6;text-transform:uppercase;margin-bottom:3px}.pdf-info-val{font-size:12.5px;font-weight:700;color:#2e263d}
 .pdf-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
 .pdf-kpi{background:#f8fafd;border-radius:7px;padding:9px 11px;text-align:center;border:1px solid #e2e8f2}
-.pdf-kpi-label{font-size:7.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px}.pdf-kpi-val{font-size:15px;font-weight:800}
+.pdf-kpi-label{font-size:7.5px;font-weight:700;color:#9b95a6;text-transform:uppercase;margin-bottom:4px}.pdf-kpi-val{font-size:15px;font-weight:800}
 .pdf-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px}
-.pdf-table th{background:#3730a3;color:#fff;padding:7px 11px;text-align:left;font-size:9px;font-weight:700}
+.pdf-table th{background:#5938e0;color:#fff;padding:7px 11px;text-align:left;font-size:9px;font-weight:700}
 .pdf-table th:last-child,.pdf-table td:last-child{text-align:right}
 .pdf-table td{padding:7px 11px;border-bottom:1px solid #e2e8f2}.pdf-table tr:nth-child(even) td{background:#f8fafd}
-.pdf-table .bold{font-weight:700}.pdf-table .navy{color:#3730a3;font-weight:700}.pdf-table .gold{color:#b8860b;font-weight:700}.pdf-table .green{color:#087f5b;font-weight:700}.pdf-table .red{color:#c2185b;font-weight:700}
-.pdf-result-box{border-radius:9px;padding:12px 16px;margin-bottom:14px;border:2px solid}.pdf-result-ok{background:#d3f9e8;border-color:#0ca678}.pdf-result-warn{background:#fff4d6;border-color:#f59f00}
-.pdf-formula-box{background:#f0ecff;border:1px solid rgba(109,76,255,.25);border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:11.5px;color:#3730a3;line-height:1.8}
+.pdf-table .bold{font-weight:700}.pdf-table .navy{color:#5938e0;font-weight:700}.pdf-table .gold{color:#b8860b;font-weight:700}.pdf-table .green{color:#3a8c00;font-weight:700}.pdf-table .red{color:#c2383c;font-weight:700}
+.pdf-result-box{border-radius:9px;padding:12px 16px;margin-bottom:14px;border:2px solid}.pdf-result-ok{background:#e6f8d9;border-color:#56ca00}.pdf-result-warn{background:#fff3d6;border-color:#ffb400}
+.pdf-formula-box{background:#f0ecff;border:1px solid rgba(109,76,255,.25);border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:11.5px;color:#5938e0;line-height:1.8}
 .pdf-sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:24px}
-.pdf-sig-box{text-align:center;padding-top:45px;border-top:1px solid #334155;font-size:10px;color:#475569}.pdf-sig-box .sig-title{font-weight:700;color:#0f172a;font-size:10.5px}
-.pdf-footer-line{position:absolute;bottom:24px;left:48px;right:48px;border-top:1px solid #e2e8f2;padding-top:7px;font-size:8px;color:#94a3b8;display:flex;justify-content:space-between}
+.pdf-sig-box{text-align:center;padding-top:45px;border-top:1px solid #334155;font-size:10px;color:#5a5169}.pdf-sig-box .sig-title{font-weight:700;color:#2e263d;font-size:10.5px}
+.pdf-footer-line{position:absolute;bottom:24px;left:48px;right:48px;border-top:1px solid #e2e8f2;padding-top:7px;font-size:8px;color:#9b95a6;display:flex;justify-content:space-between}
 @media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{background:#fff!important;padding:0!important}.toolbar{display:none!important}.page-wrap{margin:0!important;max-width:none!important}.pdf-page{box-shadow:none!important;margin:0!important;min-height:auto!important}@page{size:A4;margin:0}}
 </style></head><body>
 <div class="toolbar"><div><h2>🖨 รายงานการวิเคราะห์จุดคุ้มทุน — มหาวิทยาลัยมหาสารคาม</h2><p>ตรวจสอบก่อนบันทึก · กด "พิมพ์ / บันทึก PDF" เพื่อดาวน์โหลด</p></div><div><button class="btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button><button class="btn-close" onclick="window.close()">× ปิด</button></div></div>

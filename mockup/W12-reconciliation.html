@@ -6,7 +6,7 @@
 <title>MSU-BEPS · W12 ผลตรวจยอดและที่มาของตัวเลข</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/beps.css">
 <link rel="stylesheet" href="assets/extra.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -50,8 +50,8 @@
       <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold2)"></span>ที่มาของต้นทุนรวม</div>
         <div class="card-sub">ต้นทุนที่ผูกหลักสูตรได้โดยตรง เทียบ ต้นทุนที่ต้องปันส่วน</div></div></div>
       <div class="split" style="height:14px;margin-bottom:6px">
-        <i id="sp-direct" style="background:linear-gradient(135deg,#0ca678,#2fbd91)"></i>
-        <i id="sp-alloc" style="background:linear-gradient(135deg,#f59f00,#ffc453)"></i>
+        <i id="sp-direct" style="background:linear-gradient(135deg,#56ca00,#78d533)"></i>
+        <i id="sp-alloc" style="background:linear-gradient(135deg,#ffb400,#ffd166)"></i>
       </div>
       <div class="split-lbl" style="font-size:11px;margin-bottom:12px">
         <span><b style="color:var(--green)">ตรง <span id="lb-direct">—</span></b></span>
@@ -181,8 +181,8 @@ document.getElementById('src-tb').innerHTML = rows.map(r => {
   return `<tr>
     <td class="wrap"><b>${short(r.name)}</b></td>
     <td><div class="split">
-        <i style="flex:${(100 - r.pct).toFixed(1)};background:#0ca678"></i>
-        <i style="flex:${r.pct.toFixed(1)};background:#f59f00"></i></div></td>
+        <i style="flex:${(100 - r.pct).toFixed(1)};background:#56ca00"></i>
+        <i style="flex:${r.pct.toFixed(1)};background:#ffb400"></i></div></td>
     <td class="num">${fmtM(r.direct)}</td>
     <td class="num" style="color:var(--gold);font-weight:700">${fmtM(r.alloc)}</td>
     <td class="num">${fmtM(r.TC)}</td>
