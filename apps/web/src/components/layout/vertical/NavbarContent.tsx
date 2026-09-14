@@ -5,6 +5,7 @@ import classnames from 'classnames'
 
 // Component Imports
 import NavToggle from './NavToggle'
+import BepsToolbar from '@components/beps/BepsToolbar'
 import ModeDropdown from '@components/layout/shared/ModeDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
 
@@ -14,11 +15,12 @@ import { verticalLayoutClasses } from '@layouts/utils/layoutClasses'
 const NavbarContent = () => {
   return (
     <div className={classnames(verticalLayoutClasses.navbarContent, 'flex items-center justify-between gap-4 is-full')}>
-      <div className='flex items-center gap-4'>
+      <div className='flex items-center gap-4 min-is-0'>
         <NavToggle />
-        <ModeDropdown />
+        <BepsToolbar />
       </div>
-      <div className='flex items-center'>
+      <div className='flex items-center gap-1'>
+        <ModeDropdown />
         <UserDropdown />
       </div>
     </div>

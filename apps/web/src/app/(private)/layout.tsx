@@ -18,6 +18,12 @@ import VerticalFooter from '@components/layout/vertical/Footer'
 import HorizontalFooter from '@components/layout/horizontal/Footer'
 import ScrollToTop from '@core/components/scroll-to-top'
 
+// Context Imports
+import { BepsProvider } from '@/contexts/BepsContext'
+
+// Data Imports
+import { getCurrentRun } from '@/server/beps/run'
+
 // Util Imports
 import { getMode, getSystemMode } from '@core/utils/serverHelpers'
 
@@ -31,26 +37,35 @@ const Layout = async (props: ChildrenType) => {
   const mode = await getMode()
   const systemMode = await getSystemMode()
 
+  /* รอบคำนวณอ่านฝั่ง server แล้วส่งลงไป — หน้าจอทุกหน้าต้องเห็นค่าเดียวกัน
+     และ SA.md §9.2 ข้อ 9 บังคับให้แสดงตลอดว่าตัวเลขมาจาก run ไหน */
+  const { current, availableYears } = getCurrentRun()
+
   return (
     <Providers direction={direction}>
-      <LayoutWrapper
-        systemMode={systemMode}
-        verticalLayout={
-          <VerticalLayout navigation={<Navigation mode={mode} />} navbar={<Navbar />} footer={<VerticalFooter />}>
-            {children}
-          </VerticalLayout>
-        }
-        horizontalLayout={
-          <HorizontalLayout header={<Header />} footer={<HorizontalFooter />}>
-            {children}
-          </HorizontalLayout>
-        }
-      />
-      <ScrollToTop className='mui-fixed'>
-        <Button variant='contained' className='is-10 bs-10 rounded-full p-0 min-is-0 flex items-center justify-center'>
-          <i className='ri-arrow-up-line' />
-        </Button>
-      </ScrollToTop>
+      <BepsProvider run={current} availableYears={availableYears}>
+        <LayoutWrapper
+          systemMode={systemMode}
+          verticalLayout={
+            <VerticalLayout navigation={<Navigation mode={mode} />} navbar={<Navbar />} footer={<VerticalFooter />}>
+              {children}
+            </VerticalLayout>
+          }
+          horizontalLayout={
+            <HorizontalLayout header={<Header />} footer={<HorizontalFooter />}>
+              {children}
+            </HorizontalLayout>
+          }
+        />
+        <ScrollToTop className='mui-fixed'>
+          <Button
+            variant='contained'
+            className='is-10 bs-10 rounded-full p-0 min-is-0 flex items-center justify-center'
+          >
+            <i className='ri-arrow-up-line' />
+          </Button>
+        </ScrollToTop>
+      </BepsProvider>
     </Providers>
   )
 }
