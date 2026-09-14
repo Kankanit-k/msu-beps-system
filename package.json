@@ -7,8 +7,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "dev": "pnpm --filter @beps/web dev",
+    "dev:api": "pnpm --filter @beps/api dev",
+    "lint": "eslint . && pnpm -r --if-present lint",
+    "lint:fix": "eslint . --fix && pnpm -r --if-present lint:fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r --if-present typecheck",
@@ -20,7 +22,12 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
     ]
   },
   "devDependencies": {

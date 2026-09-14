@@ -4,6 +4,14 @@ dist/
 coverage/
 pnpm-lock.yaml
 
+# apps/web — ยกมาจาก MSU Starter Kit · ไฟล์ที่ generate หรือเป็นของเทมเพลตล้วน
+# (โค้ดใน apps/web/src ยัง format ตามปกติ โดย prettier ใช้ apps/web/.prettierrc.json
+#  ซึ่งเป็นสไตล์ของเทมเพลต — ไม่มี semicolon · printWidth 120)
+apps/web/.next/
+apps/web/public/
+apps/web/src/assets/iconify-icons/generated-icons.*
+apps/api/dist/
+
 # ไฟล์อ้างอิงจาก prototype เดิม — ห้าม format (ต้องคงต้นฉบับไว้เทียบสูตร)
 MSU-BEPS_*.html
 MSU-BEPS*.html

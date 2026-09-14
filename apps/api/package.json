@@ -1,0 +1,29 @@
+{
+  "name": "@beps/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "ts-node index.ts",
+    "typecheck": "tsc --noEmit",
+    "prisma:pull": "prisma db pull",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@beps/calc-engine": "workspace:*",
+    "@beps/shared-types": "workspace:*",
+    "@prisma/client": "^5.22.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

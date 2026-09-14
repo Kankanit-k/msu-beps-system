@@ -16,6 +16,10 @@ export default tseslint.config(
       // สูตรยกมาจาก prototype v8-1 ต้องคงต้นฉบับไว้เทียบ จึงไม่ lint เช่นเดียวกับที่ไม่ format
       // (ดู .prettierignore และ SA.md หัวข้อ 9)
       'mockup/**',
+      // apps/web — ยกมาจาก MSU Starter Kit ซึ่งปักหมุด ESLint 8 + eslint-config-next 15
+      // ไว้ (flat config ของ root เป็น ESLint 9 เข้ากันไม่ได้) จึง lint ด้วย config ของ
+      // ตัวเองผ่าน `pnpm -r lint` แทน — ดู apps/web/.eslintrc.js
+      'apps/web/**',
     ],
   },
   js.configs.recommended,

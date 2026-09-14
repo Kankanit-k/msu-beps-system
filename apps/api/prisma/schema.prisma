@@ -1,0 +1,25 @@
+// Prisma schema ของ BEPS
+//
+// ต้นทางของ schema คือ db/01_schema.sql (34 ตาราง · 19 ENUM) ที่รันและทดสอบผ่านแล้ว
+// บน PostgreSQL 17 — **ไม่ได้เขียน model ที่นี่ด้วยมือ** แต่ introspect เอา:
+//
+//   docker compose up -d postgres          # ที่ root ของ repo
+//   psql $DATABASE_URL -f db/01_schema.sql
+//   psql $DATABASE_URL -f db/02_functions.sql
+//   pnpm --filter @beps/api prisma:pull    # เขียน model ลงท้ายไฟล์นี้
+//   pnpm --filter @beps/api prisma:generate
+//
+// เหตุผลที่ไม่ให้ Prisma เป็นเจ้าของ schema: db/02_functions.sql มี stored function
+// ของเครื่องปันส่วน (allocation engine) ที่ Prisma migrate จัดการไม่ได้ และ ICU collation
+// th-TH ที่ตั้งตอน initdb ก็อยู่นอกขอบเขต Prisma เช่นกัน — ดู SA.md §11
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── model ที่ introspect มาจะถูกเติมไว้ใต้บรรทัดนี้ ────────────────────────────
