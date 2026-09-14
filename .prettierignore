@@ -32,3 +32,4 @@ MOCKUP-MASTER.html
 # (mockup/README.md ไม่อยู่ในข้อยกเว้น — format ตามปกติ)
 mockup/*.html
 mockup/assets/
+apps/web/src/data/fixtures/raw.data.json
