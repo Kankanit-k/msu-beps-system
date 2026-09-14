@@ -41,6 +41,8 @@ pnpm-debug.log*
 *.xlsx
 *.docx
 MSU-BEPS*.html
+# ยกเว้นฉบับรวมไฟล์เดียวที่ใช้ชุดข้อมูลตัวอย่าง — แชร์ได้ปลอดภัย
+!MSU-BEPS-mockup.html
 จุดคุ้มทุน_*.html
 MOCKUP.html
 MOCKUP-MASTER.html
@@ -49,6 +51,10 @@ MOCKUP-MASTER.html
 # repo เก็บเฉพาะ mockup/assets/data.sample.js ที่สุ่มรบกวนตัวเลขแล้ว
 # สร้างใหม่ได้ด้วย: node mockup/make-data-sample.mjs
 mockup/assets/data.js
+
+# ฉบับไฟล์เดียวที่ฝังข้อมูลจริงไว้ข้างใน — ห้ามขึ้น git เช่นกัน
+# (ฉบับ MSU-BEPS-mockup.html ที่ใช้ชุดตัวอย่าง ขึ้น git ได้ ดูข้อยกเว้นด้านบน)
+MSU-BEPS-mockup-ข้อมูลจริง.html
 
 # บทสนทนา export เป็น PDF — ไม่ใช่เอกสารออกแบบ
 *.pdf
