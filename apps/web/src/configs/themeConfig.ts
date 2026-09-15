@@ -38,6 +38,8 @@ type Footer = {
 
 export type Config = {
   templateName: string
+  templateOrganization?: string
+  templateTagline?: string
   templateSubtitle?: string
   homePageUrl: string
   settingsCookieName: string
@@ -56,6 +58,8 @@ export type Config = {
 
 const themeConfig: Config = {
   templateName: 'MSU-BEPS',
+  templateOrganization: 'Mahasarakham University',
+  templateTagline: 'Break-Even Point System',
   templateSubtitle: 'ระบบวิเคราะห์จุดคุ้มทุน',
   homePageUrl: '/overview',
   settingsCookieName: 'msu-beps-v1',

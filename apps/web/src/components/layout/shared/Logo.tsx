@@ -28,7 +28,7 @@ type LogoTextProps = {
   color?: CSSProperties['color']
 }
 
-// Collapsible text block (title + subtitle) that hides when the nav is collapsed.
+// Collapsible text block (eyebrow + title + subtitles) that hides when the nav is collapsed.
 const LogoText = styled.div<LogoTextProps>`
   display: flex;
   flex-direction: column;
@@ -42,14 +42,25 @@ const LogoText = styled.div<LogoTextProps>`
       : 'opacity: 1; margin-inline-start: 10px;'}
 `
 
+// "MAHASARAKHAM UNIVERSITY" — wraps onto two lines inside the 260px nav, as in the brand lockup.
+const LogoEyebrow = styled.span`
+  color: var(--mui-palette-primary-main);
+  font-size: 0.5625rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`
+
 const LogoTitle = styled.span<{ color?: CSSProperties['color'] }>`
   color: ${({ color }) => color ?? 'var(--mui-palette-text-primary)'};
   font-family: var(--font-heading-latin), var(--font-heading-thai), 'Manrope', 'IBM Plex Sans Thai', sans-serif;
-  font-size: 1.0625rem;
-  line-height: 1.2;
+  font-size: 1.25rem;
+  line-height: 1.15;
   font-weight: 800;
   letter-spacing: -0.02em;
   white-space: nowrap;
+  margin-block-start: 2px;
 `
 
 const LogoSubtitle = styled.span`
@@ -117,7 +128,9 @@ const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
         transitionDuration={transitionDuration}
         isBreakpointReached={isBreakpointReached}
       >
+        <LogoEyebrow>{themeConfig.templateOrganization}</LogoEyebrow>
         <LogoTitle color={color}>{themeConfig.templateName}</LogoTitle>
+        {themeConfig.templateTagline ? <LogoSubtitle>{themeConfig.templateTagline}</LogoSubtitle> : null}
         {themeConfig.templateSubtitle ? <LogoSubtitle>{themeConfig.templateSubtitle}</LogoSubtitle> : null}
       </LogoText>
     </div>
