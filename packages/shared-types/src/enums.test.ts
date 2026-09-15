@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  approvalStatusSchema,
-  costTypeSchema,
-  revenueModeSchema,
-  roleNameSchema,
-} from './enums.js';
+import { approvalStatusSchema, costTypeSchema, revenueModeSchema, roleNameSchema } from './enums';
 
 describe('enum schemas', () => {
   it('รับค่าที่ถูกต้อง', () => {

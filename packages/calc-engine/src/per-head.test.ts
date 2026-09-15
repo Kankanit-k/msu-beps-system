@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { perHead } from './per-head.js';
+import { perHead } from './per-head';
 
 describe('perHead', () => {
   it('หารยอดรวมด้วยจำนวนนิสิตได้ถูกต้อง', () => {

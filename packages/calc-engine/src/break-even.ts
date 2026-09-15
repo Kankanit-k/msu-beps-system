@@ -5,11 +5,11 @@
  * สูตร 6a/6b (รวมขึ้นไประดับที่สูงกว่า) อยู่ใน `aggregate.ts`
  */
 
-import { perHead } from './per-head.js';
-import type { CalcPolicy } from './policy.js';
-import { DEFAULT_POLICY } from './policy.js';
-import { calcQStar } from './qstar.js';
-import type { BreakEvenInput, BreakEvenResult, RevenueMode } from './types.js';
+import { perHead } from './per-head';
+import type { CalcPolicy } from './policy';
+import { DEFAULT_POLICY } from './policy';
+import { calcQStar } from './qstar';
+import type { BreakEvenInput, BreakEvenResult, RevenueMode } from './types';
 
 /**
  * สูตรที่ 5a / 5b — ฐานรายได้ 2 กรณี

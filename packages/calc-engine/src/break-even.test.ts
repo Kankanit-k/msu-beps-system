@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { calcBreakEven, calcBreakEvenBothModes, totalRevenue } from './break-even.js';
-import { DEFAULT_POLICY } from './policy.js';
-import type { BreakEvenInput } from './types.js';
+import { calcBreakEven, calcBreakEvenBothModes, totalRevenue } from './break-even';
+import { DEFAULT_POLICY } from './policy';
+import type { BreakEvenInput } from './types';
 
 const base: Omit<BreakEvenInput, 'revenueMode'> = {
   q: 100,

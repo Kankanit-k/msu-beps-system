@@ -1,25 +1,45 @@
 // MUI Imports
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
-import Chip from '@mui/material/Chip'
-import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
+import Grid from '@mui/material/Grid'
 
-// หน้าจอ W7 — ยังไม่ได้ย้ายเนื้อหาจาก mockup (ดูแผน Phase 3)
-const ScenarioProgramPage = () => {
+// Component Imports
+import Link from '@components/Link'
+import ProgramScenario from '@views/beps/scenario/ProgramScenario'
+import PageHeader from '@views/beps/shared/PageHeader'
+
+// Data Imports
+import { getBreakEvenEntities } from '@/server/beps/entities'
+
+/**
+ * W7 — คำนวณจุดคุ้มทุนรายหลักสูตร · ต้นฉบับ: mockup/W7-scenario-program.html
+ *
+ * ใช้ตอนเสนอเปิดหลักสูตรใหม่ (ยังไม่มีนิสิตจริง) หรือทดลองปรับตัวเลขของหลักสูตรเดิม
+ * ผลที่ได้เป็น `scenario_plan` ไม่ปนกับผลจริง — และรายงาน PDF ที่ออกจากหน้านี้
+ * ระบุไว้ชัดว่าเป็นแบบจำลอง เพราะเป็นเอกสารที่เอาไปแนบเรื่องเสนอจริง
+ */
+const ProgramScenarioPage = () => {
+  const catalog = getBreakEvenEntities()
+
   return (
-    <Card>
-      <CardHeader
-        title='จุดคุ้มทุนรายหลักสูตร'
-        action={<Chip label='W7' size='small' color='primary' variant='tonal' />}
-      />
-      <CardContent>
-        <Typography color='text.secondary'>
-          ยังไม่ได้ย้ายเนื้อหาของหน้านี้จาก mockup — ต้นฉบับอยู่ที่ mockup/W7-*.html
-        </Typography>
-      </CardContent>
-    </Card>
+    <Grid container spacing={6}>
+      <Grid size={{ xs: 12 }}>
+        <PageHeader
+          title='คำนวณจุดคุ้มทุนรายหลักสูตร'
+          screen='W7'
+          subtitle='หลักสูตรเดิมดึงจากระบบ · หลักสูตรใหม่กรอกเอง · มีกราฟ ประวัติการคำนวณ และออกรายงาน PDF'
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12 }}>
+        <Alert severity='info'>
+          ผลจากหน้านี้เป็น<b>แบบจำลอง</b> ไม่ปนกับผลจริงจากรอบคำนวณ · หลักสูตรที่ยังไม่ถึงสถานะ &ldquo;เปิดสอน&rdquo; ใน{' '}
+          <Link href='/admin/programs'>ทะเบียนหลักสูตร</Link> จะประเมินได้เฉพาะแบบจำลองที่หน้านี้เท่านั้น
+        </Alert>
+      </Grid>
+
+      <ProgramScenario catalog={catalog} />
+    </Grid>
   )
 }
 
-export default ScenarioProgramPage
+export default ProgramScenarioPage

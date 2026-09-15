@@ -8,6 +8,8 @@ pnpm-lock.yaml
 # (โค้ดใน apps/web/src ยัง format ตามปกติ โดย prettier ใช้ apps/web/.prettierrc.json
 #  ซึ่งเป็นสไตล์ของเทมเพลต — ไม่มี semicolon · printWidth 120)
 apps/web/.next/
+# next dev/build เขียนทับไฟล์นี้เองทุกครั้ง (อยู่ใน .gitignore อยู่แล้ว)
+apps/web/next-env.d.ts
 apps/web/public/
 apps/web/src/assets/iconify-icons/generated-icons.*
 apps/api/dist/

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateBreakEven } from './aggregate.js';
-import { calcBreakEven } from './break-even.js';
-import { DEFAULT_POLICY } from './policy.js';
-import type { BreakEvenInput } from './types.js';
+import { aggregateBreakEven } from './aggregate';
+import { calcBreakEven } from './break-even';
+import { DEFAULT_POLICY } from './policy';
+import type { BreakEvenInput } from './types';
 
 const program = (
   q: number,

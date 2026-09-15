@@ -24,12 +24,12 @@
  * แต่เป็นลักษณะของข้อมูลชุดนี้เท่านั้น — โค้ดและ UI ต้องไม่ตั้งสมมติฐานเรื่องลำดับ
  */
 
-import { perHead } from './per-head.js';
-import type { CalcPolicy } from './policy.js';
-import { DEFAULT_POLICY } from './policy.js';
-import type { QStarOutcome } from './qstar.js';
-import { calcQStar } from './qstar.js';
-import type { BreakEvenResult, QStarMethod, RevenueMode, ScopeLevel } from './types.js';
+import { perHead } from './per-head';
+import type { CalcPolicy } from './policy';
+import { DEFAULT_POLICY } from './policy';
+import type { QStarOutcome } from './qstar';
+import { calcQStar } from './qstar';
+import type { BreakEvenResult, QStarMethod, RevenueMode, ScopeLevel } from './types';
 
 export interface AggregateBreakEvenResult extends BreakEvenResult {
   scope: ScopeLevel;

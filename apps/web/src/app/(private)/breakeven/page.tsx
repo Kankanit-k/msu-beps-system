@@ -1,25 +1,49 @@
 // MUI Imports
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
-import Chip from '@mui/material/Chip'
-import Typography from '@mui/material/Typography'
+import Grid from '@mui/material/Grid'
 
-// หน้าจอ W2 — ยังไม่ได้ย้ายเนื้อหาจาก mockup (ดูแผน Phase 3)
-const BreakevenPage = () => {
+// Component Imports
+import DataCaveatAlert from '@components/beps/DataCaveatAlert'
+import SampleDataAlert from '@components/beps/SampleDataAlert'
+import BreakEvenSummary from '@views/beps/breakeven/BreakEvenSummary'
+import BreakEvenTree from '@views/beps/breakeven/BreakEvenTree'
+import PageHeader from '@views/beps/shared/PageHeader'
+
+// Data Imports
+import { getBreakEvenTree } from '@/server/beps/breakeven-tree'
+import { getUniversityTotals } from '@/server/beps/university'
+
+/** W2 — เจาะลึกจุดคุ้มทุน 3 ระดับ · ต้นฉบับ: mockup/W2-breakeven.html + assets/page-breakeven.js */
+const BreakEvenPage = () => {
+  const faculties = getBreakEvenTree()
+  const totals = getUniversityTotals()
+
   return (
-    <Card>
-      <CardHeader
-        title='คณะ · ระดับ · หลักสูตร'
-        action={<Chip label='W2' size='small' color='primary' variant='tonal' />}
-      />
-      <CardContent>
-        <Typography color='text.secondary'>
-          ยังไม่ได้ย้ายเนื้อหาของหน้านี้จาก mockup — ต้นฉบับอยู่ที่ mockup/W2-*.html
-        </Typography>
-      </CardContent>
-    </Card>
+    <Grid container spacing={6}>
+      <Grid size={{ xs: 12 }}>
+        <PageHeader
+          title='เจาะลึกจุดคุ้มทุน'
+          screen='W2'
+          subtitle='คณะ → ระดับการศึกษา → หลักสูตร · ค้นหาและกรองตามสถานะได้'
+        />
+      </Grid>
+
+      {totals.isSample && (
+        <Grid size={{ xs: 12 }}>
+          <SampleDataAlert />
+        </Grid>
+      )}
+
+      <Grid size={{ xs: 12 }}>
+        <DataCaveatAlert />
+      </Grid>
+
+      <BreakEvenSummary faculties={faculties} />
+
+      <Grid size={{ xs: 12 }}>
+        <BreakEvenTree faculties={faculties} />
+      </Grid>
+    </Grid>
   )
 }
 
-export default BreakevenPage
+export default BreakEvenPage

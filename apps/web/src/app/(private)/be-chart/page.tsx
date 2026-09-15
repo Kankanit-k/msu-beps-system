@@ -1,22 +1,44 @@
 // MUI Imports
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
-import Chip from '@mui/material/Chip'
-import Typography from '@mui/material/Typography'
+import Grid from '@mui/material/Grid'
 
-// หน้าจอ W3 — ยังไม่ได้ย้ายเนื้อหาจาก mockup (ดูแผน Phase 3)
-const BeChartPage = () => {
+// Component Imports
+import DataCaveatAlert from '@components/beps/DataCaveatAlert'
+import SampleDataAlert from '@components/beps/SampleDataAlert'
+import BreakEvenExplorer from '@views/beps/be-chart/BreakEvenExplorer'
+import PageHeader from '@views/beps/shared/PageHeader'
+
+// Data Imports
+import { getBreakEvenEntities } from '@/server/beps/entities'
+import { getUniversityTotals } from '@/server/beps/university'
+
+/** W3 — กราฟจุดคุ้มทุน · ต้นฉบับ: mockup/W3-chart.html + assets/page-chart.js */
+const BreakEvenChartPage = () => {
+  const catalog = getBreakEvenEntities()
+  const totals = getUniversityTotals()
+
   return (
-    <Card>
-      <CardHeader title='กราฟจุดคุ้มทุน' action={<Chip label='W3' size='small' color='primary' variant='tonal' />} />
-      <CardContent>
-        <Typography color='text.secondary'>
-          ยังไม่ได้ย้ายเนื้อหาของหน้านี้จาก mockup — ต้นฉบับอยู่ที่ mockup/W3-*.html
-        </Typography>
-      </CardContent>
-    </Card>
+    <Grid container spacing={6}>
+      <Grid size={{ xs: 12 }}>
+        <PageHeader
+          title='กราฟจุดคุ้มทุน'
+          screen='W3'
+          subtitle='เส้นรายได้รวม (TR) ตัดกับต้นทุนรวม (TC) ที่จุดคุ้มทุน (Q*) — เลือกหน่วยวิเคราะห์ได้ 4 ระดับ'
+        />
+      </Grid>
+
+      {totals.isSample && (
+        <Grid size={{ xs: 12 }}>
+          <SampleDataAlert />
+        </Grid>
+      )}
+
+      <Grid size={{ xs: 12 }}>
+        <DataCaveatAlert />
+      </Grid>
+
+      <BreakEvenExplorer catalog={catalog} totals={totals} />
+    </Grid>
   )
 }
 
-export default BeChartPage
+export default BreakEvenChartPage

@@ -1,22 +1,39 @@
 // MUI Imports
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
-import Chip from '@mui/material/Chip'
-import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
+import Grid from '@mui/material/Grid'
 
-// หน้าจอ W6 — ยังไม่ได้ย้ายเนื้อหาจาก mockup (ดูแผน Phase 3)
-const ScenarioFacultyPage = () => {
+// Component Imports
+import FacultyScenario from '@views/beps/scenario/FacultyScenario'
+import PageHeader from '@views/beps/shared/PageHeader'
+
+// Data Imports
+import { getBreakEvenEntities } from '@/server/beps/entities'
+import { TFC_PRESETS, TVC_PRESETS } from '@/server/beps/scenario'
+
+/** W6 — คำนวณจุดคุ้มทุนรายคณะ · ต้นฉบับ: mockup/W6-scenario-faculty.html */
+const FacultyScenarioPage = () => {
+  const catalog = getBreakEvenEntities()
+
   return (
-    <Card>
-      <CardHeader title='จุดคุ้มทุนรายคณะ' action={<Chip label='W6' size='small' color='primary' variant='tonal' />} />
-      <CardContent>
-        <Typography color='text.secondary'>
-          ยังไม่ได้ย้ายเนื้อหาของหน้านี้จาก mockup — ต้นฉบับอยู่ที่ mockup/W6-*.html
-        </Typography>
-      </CardContent>
-    </Card>
+    <Grid container spacing={6}>
+      <Grid size={{ xs: 12 }}>
+        <PageHeader
+          title='คำนวณจุดคุ้มทุนรายคณะ'
+          screen='W6'
+          subtitle='เลือกคณะเพื่อดึงข้อมูลอัตโนมัติ แล้วปรับรายการ TFC/TVC เอง · เทียบผลทั้ง 2 ฐานรายได้'
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12 }}>
+        <Alert severity='info'>
+          ผลจากหน้านี้เป็น<b>แบบจำลอง</b> ไม่ปนกับผลจริงจากรอบคำนวณ — ตัวเลขที่นำไปเสนอต้องมาจากรอบที่อนุมัติแล้ว (ดู
+          chip รอบคำนวณบนแถบด้านบน) · สูตรที่ใช้เป็นชุดเดียวกับระบบ (@beps/calc-engine)
+        </Alert>
+      </Grid>
+
+      <FacultyScenario catalog={catalog} presets={{ tfc: TFC_PRESETS, tvc: TVC_PRESETS }} />
+    </Grid>
   )
 }
 
-export default ScenarioFacultyPage
+export default FacultyScenarioPage
