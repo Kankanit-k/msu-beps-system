@@ -19,10 +19,13 @@ MOCKUP-MASTER.html
 .env
 .env.*
 
-# ไม่จำเป็นต่อเว็บ static — ลดขนาดที่อัปโหลด
+# ไม่จำเป็นต่อการ deploy — ลดขนาดที่อัปโหลด
+#
+# ⚠️ ห้ามตัด packages/ ออก — โปรเจกต์แอป (apps/web) import @beps/calc-engine และ
+# @beps/shared-types จากตรงนั้นเป็น workspace dependency ถ้าตัดออก build จะพังทันที
+# (ตอนที่ deploy แค่ mockup static เคยตัดไว้ได้เพราะไม่มีขั้น build)
 node_modules/
 .git/
-packages/
 db/
 MANUS/
 .github/
@@ -33,8 +36,11 @@ WIREFRAME.html
 !mockup/README.md
 mockup/make-data-sample.mjs
 docker-compose.yml
-pnpm-lock.yaml
-pnpm-workspace.yaml
-tsconfig.base.json
 vitest.config.ts
 eslint.config.mjs
+
+# ⚠️ ห้ามตัด 3 ไฟล์นี้ออก — โปรเจกต์แอปต้องใช้ตอน build บน Vercel
+#   pnpm-workspace.yaml  ถ้าไม่มี apps/web จะไม่ถูกมองเป็น workspace แล้ว next ไม่ถูกติดตั้ง
+#                        (build ล้มด้วย "No Next.js version detected")
+#   pnpm-lock.yaml       ต้องมีคู่กัน ไม่งั้น --frozen-lockfile ไม่ผ่าน
+#   tsconfig.base.json   packages/* extend ไฟล์นี้
