@@ -5,8 +5,8 @@ import {
   solveAdmissionTarget,
   type AdmissionMixInput,
   type AdmissionMixRow,
-} from './admission-mix.js';
-import { DEFAULT_POLICY } from './policy.js';
+} from './admission-mix';
+import { DEFAULT_POLICY } from './policy';
 
 /**
  * ชุดอ้างอิงจากแผง `X9:AD22` ของชีต `4.จุดคุ้มทุนหลักสูตร(ใหม่)`

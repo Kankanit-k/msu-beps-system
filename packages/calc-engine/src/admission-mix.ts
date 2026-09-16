@@ -26,11 +26,11 @@
  * ซึ่งเป็น goal-seek และให้คำตอบที่ไม่ขึ้นกับการปันส่วน
  */
 
-import type { CalcPolicy } from './policy.js';
-import { DEFAULT_POLICY, roundQStar } from './policy.js';
-import { calcQStar } from './qstar.js';
-import { calcBreakEven } from './break-even.js';
-import type { BreakEvenResult, QStarStatus, RevenueMode } from './types.js';
+import type { CalcPolicy } from './policy';
+import { DEFAULT_POLICY, roundQStar } from './policy';
+import { calcQStar } from './qstar';
+import { calcBreakEven } from './break-even';
+import type { BreakEvenResult, QStarStatus, RevenueMode } from './types';
 
 /**
  * แผนการรับนิสิตของหนึ่งประเภท — รับได้ 2 แบบ

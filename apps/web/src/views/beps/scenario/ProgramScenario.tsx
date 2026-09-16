@@ -24,10 +24,10 @@ import tableStyles from '@core/styles/table.module.css'
 // Component Imports
 import BreakEvenChart from '@views/beps/be-chart/BreakEvenChart'
 import MiniStat from '@views/beps/shared/MiniStat'
+import AdmissionMixPanel from './AdmissionMixPanel'
 import ProgramReferenceNote from './ProgramReferenceNote'
 import ProgramReportDialog from './ProgramReportDialog'
 import ScenarioResult from './ScenarioResult'
-import StudentMixPanel from './StudentMixPanel'
 import type { ProgramScenarioSnapshot } from './ProgramReportDialog'
 
 // Context Imports
@@ -371,16 +371,14 @@ const ProgramScenario = ({ catalog }: Props) => {
             <BreakEvenChart result={results[revenueMode]} />
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
-            <StudentMixPanel
-              level={level}
-              tfc={tfc}
-              avc={results[revenueMode].avc ?? 0}
-              revenueMode={revenueMode}
-              revenueModeLabel={includesGovernment ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}
-              qStarOverall={results[revenueMode].qStar}
-            />
-          </Grid>
+          <AdmissionMixPanel
+            level={level}
+            q={q}
+            tfc={tfc}
+            tvc={tvc}
+            revenueMode={revenueMode}
+            revenueModeLabel={includesGovernment ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}
+          />
         </>
       )}
 
