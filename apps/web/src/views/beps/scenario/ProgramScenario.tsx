@@ -27,6 +27,7 @@ import MiniStat from '@views/beps/shared/MiniStat'
 import ProgramReferenceNote from './ProgramReferenceNote'
 import ProgramReportDialog from './ProgramReportDialog'
 import ScenarioResult from './ScenarioResult'
+import StudentMixPanel from './StudentMixPanel'
 import type { ProgramScenarioSnapshot } from './ProgramReportDialog'
 
 // Context Imports
@@ -368,6 +369,17 @@ const ProgramScenario = ({ catalog }: Props) => {
 
           <Grid size={{ xs: 12, lg: 6 }}>
             <BreakEvenChart result={results[revenueMode]} />
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
+            <StudentMixPanel
+              level={level}
+              tfc={tfc}
+              avc={results[revenueMode].avc ?? 0}
+              revenueMode={revenueMode}
+              revenueModeLabel={includesGovernment ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}
+              qStarOverall={results[revenueMode].qStar}
+            />
           </Grid>
         </>
       )}

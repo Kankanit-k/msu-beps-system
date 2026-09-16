@@ -14,4 +14,11 @@ export { calcQStar, applyQStarRounding } from './qstar';
 export type { QStarOutcome } from './qstar';
 export { calcBreakEven, calcBreakEvenBothModes, totalRevenue } from './break-even';
 export { aggregateBreakEven } from './aggregate';
+export { calcStudentMixBreakEven } from './student-mix';
+export type {
+  StudentMixInput,
+  StudentMixGroupInput,
+  StudentMixResult,
+  StudentMixGroupResult,
+} from './student-mix';
 export type { AggregateBreakEvenResult } from './aggregate';
