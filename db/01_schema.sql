@@ -137,6 +137,11 @@ CREATE TABLE program_version (
   curriculum_version varchar(30) NOT NULL,        -- รอบปรับปรุง มคอ.
   valid_from         date NOT NULL,
   valid_to           date,
+  -- โครงสร้างเวลาของหลักสูตร — ต้องเก็บ ห้ามฮาร์ดโค้ด
+  --   ชีต Excel มีช่อง "จำนวนเทอมต่อปี" แต่ไม่มีสูตรไหนอ้างถึงเลย ใช้ `*2` ฝังในสูตรแทน
+  --   เปลี่ยนค่าในช่องแล้วตัวเลขไม่ขยับ · หลักสูตรต่อเนื่องใช้ duration_years = 2
+  duration_years     smallint NOT NULL DEFAULT 4 CHECK (duration_years  BETWEEN 1 AND 10),
+  terms_per_year     smallint NOT NULL DEFAULT 2 CHECK (terms_per_year  BETWEEN 1 AND 4),
   CHECK (valid_to IS NULL OR valid_to >= valid_from),
   UNIQUE (program_id, curriculum_version)
 );
@@ -486,9 +491,56 @@ CREATE TABLE scenario_plan (
   q_input               integer NOT NULL CHECK (q_input >= 0),
   government_budget_in  numeric(20,2) NOT NULL DEFAULT 0,
   income_budget_in      numeric(20,2) NOT NULL DEFAULT 0,
+  -- โหมดแยกตามแผนการรับนิสิต (ความต้องการจากที่ประชุม: ได้จุดคุ้มทุนรวมแล้วต้องแตกต่อได้)
+  --   false = ใช้ q_input / งบ 2 ก้อนตามเดิม (จุดคุ้มทุนรวมอย่างเดียว)
+  --   true  = อ่านแผนรายประเภทจาก scenario_admission_plan แทน
+  --           แล้ว q_input ต้องเท่ากับผลรวมของแผน (ดู view scenario_admission_total)
+  uses_admission_mix    boolean NOT NULL DEFAULT false,
+  -- ต้นทุนผันแปรต่อหัว (บาท/คน/ปี) ที่ใช้จำลอง — จำเป็นเฉพาะโหมดแยกตามแผนการรับ
+  -- เพราะ TVC ต้องผันไปตามจำนวนนิสิตที่จำลอง ถ้าเก็บเป็นก้อนรวมจะไม่ขยับตามส่วนผสม
+  -- หลักสูตรเดิมดึงค่านี้มาจาก break_even_result.avc ของ run ที่อ้างอิง
+  variable_cost_per_head numeric(20,4) CHECK (variable_cost_per_head >= 0),
   created_at            timestamptz NOT NULL DEFAULT now(),
-  CHECK ((plan_type = 'existing') = (based_on_pv_id IS NOT NULL))
+  CHECK ((plan_type = 'existing') = (based_on_pv_id IS NOT NULL)),
+  CHECK (NOT uses_admission_mix OR variable_cost_per_head IS NOT NULL)
 );
+
+-- แผนการรับนิสิตรายประเภท — หนึ่งแถวต่อหนึ่งช่องกรอกในตารางแผนการรับของ W7
+-- ตรงกับ `AdmissionMixRow` ใน packages/calc-engine/src/admission-mix.ts แบบหนึ่งต่อหนึ่ง
+CREATE TABLE scenario_admission_plan (
+  scenario_admission_plan_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  scenario_plan_id    bigint NOT NULL REFERENCES scenario_plan(scenario_plan_id) ON DELETE CASCADE,
+  student_type_id     bigint NOT NULL REFERENCES student_type(student_type_id),
+  -- คีย์ของแถวในมุมมองผู้ใช้ — แยกจาก student_type_id เพราะประเภทเดียวกันอาจมี 2 แถว
+  -- เช่น ภาคปกติแบบ 4 ปี กับแบบต่อเนื่อง 2 ปี ซึ่งค่าธรรมเนียมและจำนวนปีต่างกัน
+  row_code            varchar(50) NOT NULL,
+  row_label           text,
+  -- แผนการรับ 2 แบบ — headcount (รู้จำนวนคงค้าง) หรือ intake (รู้แค่รับปีละกี่คน)
+  plan_basis          varchar(10) NOT NULL CHECK (plan_basis IN ('headcount','intake')),
+  headcount           integer  CHECK (headcount       >= 0),
+  intake_per_year     integer  CHECK (intake_per_year >= 0),
+  duration_years      smallint CHECK (duration_years BETWEEN 1 AND 10),
+  terms_per_year      smallint NOT NULL CHECK (terms_per_year BETWEEN 1 AND 4),
+  fee_per_term        numeric(20,2) NOT NULL CHECK (fee_per_term >= 0),
+  government_per_term numeric(20,2) NOT NULL DEFAULT 0 CHECK (government_per_term >= 0),
+  -- จำนวนนิสิตคงค้างที่ใช้คำนวณจริง — ให้ฐานข้อมูลบังคับสูตรเดียวกับ resolveHeadcount()
+  -- ในเครื่องคำนวณ จะได้ไม่มีทางที่สองฝั่งตีความแผนการรับต่างกัน
+  resolved_headcount  integer GENERATED ALWAYS AS (
+    CASE WHEN plan_basis = 'headcount' THEN headcount
+         ELSE intake_per_year * duration_years END
+  ) STORED,
+  CHECK ((plan_basis = 'headcount') = (headcount IS NOT NULL)),
+  CHECK ((plan_basis = 'intake')    = (intake_per_year IS NOT NULL AND duration_years IS NOT NULL)),
+  UNIQUE (scenario_plan_id, row_code)
+);
+
+-- ผลรวมจำนวนนิสิตตามแผนการรับ — ใช้ตรวจว่า scenario_plan.q_input ตรงกับแผนที่กรอกไว้
+CREATE VIEW scenario_admission_total AS
+SELECT scenario_plan_id,
+       count(*)                  AS row_count,
+       sum(resolved_headcount)   AS total_headcount
+FROM   scenario_admission_plan
+GROUP  BY scenario_plan_id;
 
 CREATE TABLE scenario_cost_item (
   scenario_cost_item_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -513,6 +565,36 @@ CREATE TABLE scenario_result (
   q_star_status      qstar_status NOT NULL,
   profit_loss        numeric(20,2) NOT NULL,
   computed_at        timestamptz NOT NULL DEFAULT now()
+);
+
+-- ผลลัพธ์แยกรายประเภทนิสิต — ตรงกับ `AdmissionMixRowResult` ในเครื่องคำนวณ
+--
+-- ⚠ `contribution` คือ **ส่วนเกิน** (รายได้ − TFC ที่ปันมา − TVC) ไม่ใช่จุดคุ้มทุน
+--   ชีต `4.จุดคุ้มทุนหลักสูตร(ใหม่)` แถว 22 ตั้งชื่อค่านี้ว่า "จุดคุ้มทุนของหลักสูตร"
+--   ซึ่งผิด — จุดคุ้มทุนอยู่ที่ `q_star` คนละฟิลด์กัน
+--
+-- ⚠ `allocated_tfc` และ `q_star` ขึ้นกับ**ส่วนผสมที่กรอกเข้ามา** เพราะ TFC เป็นก้อนเดียว
+--   ของทั้งหลักสูตร ต้องปันตามสัดส่วนหัวนิสิตก่อนจึงพูดถึงจุดคุ้มทุนรายประเภทได้
+--   เปลี่ยนส่วนผสมแล้วค่าเหล่านี้เปลี่ยน — หน้าจอต้องสื่อให้ชัด ไม่ใช่แสดงเป็นค่าคงที่ของกลุ่ม
+CREATE TABLE scenario_result_by_type (
+  scenario_result_by_type_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  scenario_plan_id   bigint NOT NULL REFERENCES scenario_plan(scenario_plan_id) ON DELETE CASCADE,
+  row_code           varchar(50) NOT NULL,
+  headcount          integer       NOT NULL CHECK (headcount >= 0),
+  share              numeric(12,10) NOT NULL CHECK (share BETWEEN 0 AND 1),
+  revenue_per_head   numeric(20,4) NOT NULL,
+  revenue            numeric(20,2) NOT NULL,
+  allocated_tfc      numeric(20,2) NOT NULL,
+  tvc                numeric(20,2) NOT NULL,
+  avc                numeric(20,4) NOT NULL,
+  cm                 numeric(20,4) NOT NULL,
+  contribution       numeric(20,2) NOT NULL,
+  q_star             numeric(20,2),
+  q_star_status      qstar_status NOT NULL,
+  computed_at        timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (scenario_plan_id, row_code),
+  FOREIGN KEY (scenario_plan_id, row_code)
+    REFERENCES scenario_admission_plan (scenario_plan_id, row_code) ON DELETE CASCADE
 );
 
 -- ─────────────────────────────── indexes ───────────────────────────────

@@ -13,12 +13,15 @@ export { perHead } from './per-head';
 export { calcQStar, applyQStarRounding } from './qstar';
 export type { QStarOutcome } from './qstar';
 export { calcBreakEven, calcBreakEvenBothModes, totalRevenue } from './break-even';
-export { aggregateBreakEven } from './aggregate';
-export { calcStudentMixBreakEven } from './student-mix';
+export { calcAdmissionMix, solveAdmissionTarget, resolveHeadcount } from './admission-mix';
 export type {
-  StudentMixInput,
-  StudentMixGroupInput,
-  StudentMixResult,
-  StudentMixGroupResult,
-} from './student-mix';
+  AdmissionPlan,
+  AdmissionMixRow,
+  AdmissionMixInput,
+  AdmissionMixRowResult,
+  AdmissionMixResult,
+  AdmissionTargetStatus,
+  AdmissionTargetResult,
+} from './admission-mix';
+export { aggregateBreakEven } from './aggregate';
 export type { AggregateBreakEvenResult } from './aggregate';

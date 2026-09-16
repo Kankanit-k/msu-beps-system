@@ -348,6 +348,151 @@ EXCEPTION WHEN exclusion_violation THEN
 END $$;
 
 \echo ''
+\echo '--- แผนการรับนิสิตรายประเภท (scenario_admission_plan) ---'
+
+-- ชุดอ้างอิงจากแผง X9:AD22 ของชีต 4.จุดคุ้มทุนหลักสูตร(ใหม่)
+--   คณะมนุษยศาสตร์ฯ · ปริญญาตรี · อ้างอิง "การสร้างสรรค์คอนเทนต์และนวัตกรรมสื่อดิจิทัล"
+--   TFC = 13,615,398.24 · AVC = 9,729,315.686 ÷ 581 = 16,745.81013080895
+-- ค่าที่คาดหวังตรงกับ packages/calc-engine/src/admission-mix.test.ts ทุกตัว
+INSERT INTO student_type (student_type_code, student_group, nationality) VALUES
+  ('TH-SPECIAL','ภาคพิเศษ','ไทย'),
+  ('INT-REG','ภาคปกติ','ต่างชาติ'),
+  ('INT-SPECIAL','ภาคพิเศษ','ต่างชาติ');
+
+INSERT INTO app_role (role_name) VALUES ('budget_office') ON CONFLICT (role_name) DO NOTHING;
+INSERT INTO app_user (app_role_id, full_name, email)
+SELECT app_role_id, 'ผู้ทดสอบ', 'tester@msu.ac.th' FROM app_role WHERE role_name='budget_office'
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO scenario_plan (created_by, based_on_pv_id, plan_name, plan_type, period_id,
+                           revenue_mode, q_input, uses_admission_mix, variable_cost_per_head)
+SELECT u.app_user_id, pv.program_version_id, 'จำลองเปิดรับต่างชาติ', 'existing', p.period_id,
+       'with_government', 542, true, 9729315.686 / 581
+  FROM app_user u, dim_period p,
+       program_version pv JOIN program pr USING (program_id)
+ WHERE pr.program_code = 'P01';
+
+INSERT INTO scenario_admission_plan (scenario_plan_id, student_type_id, row_code, row_label,
+                                     plan_basis, headcount, terms_per_year,
+                                     fee_per_term, government_per_term)
+SELECT sp.scenario_plan_id, st.student_type_id, 'TH_REG', 'ปกติ (นิสิตไทย)',
+       'headcount', 450, 2, 18000, 3550
+  FROM scenario_plan sp, student_type st WHERE st.student_type_code = 'TH-REG'
+UNION ALL
+SELECT sp.scenario_plan_id, st.student_type_id, 'INT_REG', 'ปกติ (นิสิตต่างชาติ)',
+       'headcount', 92, 2, 25000, 3550
+  FROM scenario_plan sp, student_type st WHERE st.student_type_code = 'INT-REG';
+
+DO $$
+DECLARE v_total integer; v_rows integer;
+BEGIN
+  SELECT total_headcount, row_count INTO v_total, v_rows FROM scenario_admission_total;
+  IF v_total <> 542 OR v_rows <> 2 THEN
+    RAISE EXCEPTION 'FAIL: ผลรวมแผนการรับ = % (% แถว) ควรเป็น 542 (2 แถว)', v_total, v_rows;
+  END IF;
+  IF EXISTS (SELECT 1 FROM scenario_plan sp JOIN scenario_admission_total t USING (scenario_plan_id)
+              WHERE sp.uses_admission_mix AND sp.q_input <> t.total_headcount) THEN
+    RAISE EXCEPTION 'FAIL: q_input ไม่ตรงกับผลรวมของแผนการรับ';
+  END IF;
+  RAISE NOTICE 'PASS  แผนการรับรวม 542 คน ตรงกับ q_input ของ scenario_plan';
+END $$;
+
+-- แปลง intake → จำนวนคงค้าง ให้ฐานข้อมูลคำนวณเอง (สูตรเดียวกับ resolveHeadcount())
+DO $$
+DECLARE v integer;
+BEGIN
+  INSERT INTO scenario_admission_plan (scenario_plan_id, student_type_id, row_code, row_label,
+                                       plan_basis, intake_per_year, duration_years, terms_per_year,
+                                       fee_per_term, government_per_term)
+  SELECT sp.scenario_plan_id, st.student_type_id, 'TH_CONT', 'ต่อเนื่อง 2 ปี',
+         'intake', 40, 2, 2, 18000, 3550
+    FROM scenario_plan sp, student_type st WHERE st.student_type_code = 'TH-SPECIAL';
+
+  SELECT resolved_headcount INTO v FROM scenario_admission_plan WHERE row_code = 'TH_CONT';
+  IF v <> 80 THEN RAISE EXCEPTION 'FAIL: รับปีละ 40 × 2 ปี ควรได้ 80 คน แต่ได้ %', v; END IF;
+  RAISE NOTICE 'PASS  หลักสูตรต่อเนื่อง 2 ปี — รับปีละ 40 คน = คงค้าง 80 คน ไม่ต้องมีเคสพิเศษ';
+
+  DELETE FROM scenario_admission_plan WHERE row_code = 'TH_CONT';
+END $$;
+
+\echo '--- ตัวเลขที่ได้ต้องตรงกับชีต Excel และกับ calc-engine ---'
+DO $$
+DECLARE
+  v_tfc     numeric := 13615398.24;
+  v_avc     numeric := 9729315.686 / 581;
+  v_total   integer;
+  r         record;
+  v_profit  numeric := 0;
+BEGIN
+  SELECT total_headcount INTO v_total FROM scenario_admission_total;
+
+  FOR r IN
+    SELECT row_code,
+           resolved_headcount                                            AS q,
+           resolved_headcount::numeric / v_total                         AS share,
+           (fee_per_term + government_per_term) * terms_per_year         AS r_head,
+           v_tfc * resolved_headcount / v_total                          AS alloc_tfc,
+           v_avc * resolved_headcount                                    AS tvc
+      FROM scenario_admission_plan ORDER BY row_code
+  LOOP
+    v_profit := v_profit + (r.r_head * r.q - r.alloc_tfc - r.tvc);
+
+    IF r.row_code = 'TH_REG' THEN
+      IF round(r.share, 10)     <> 0.8302583026 THEN RAISE EXCEPTION 'FAIL: สัดส่วนไทย %', r.share; END IF;
+      IF r.r_head               <> 43100        THEN RAISE EXCEPTION 'FAIL: รายได้ต่อหัวไทย %', r.r_head; END IF;
+      IF round(r.alloc_tfc, 2)  <> 11304297.43  THEN RAISE EXCEPTION 'FAIL: TFC ปันส่วนไทย %', r.alloc_tfc; END IF;
+      IF round(r.tvc, 2)        <> 7535614.56   THEN RAISE EXCEPTION 'FAIL: TVC ไทย %', r.tvc; END IF;
+    ELSIF r.row_code = 'INT_REG' THEN
+      IF round(r.share, 10)     <> 0.1697416974 THEN RAISE EXCEPTION 'FAIL: สัดส่วนต่างชาติ %', r.share; END IF;
+      IF r.r_head               <> 57100        THEN RAISE EXCEPTION 'FAIL: รายได้ต่อหัวต่างชาติ %', r.r_head; END IF;
+      IF round(r.alloc_tfc, 2)  <> 2311100.81   THEN RAISE EXCEPTION 'FAIL: TFC ปันส่วนต่างชาติ %', r.alloc_tfc; END IF;
+      IF round(r.tvc, 2)        <> 1540614.53   THEN RAISE EXCEPTION 'FAIL: TVC ต่างชาติ %', r.tvc; END IF;
+    END IF;
+  END LOOP;
+
+  IF round(v_profit, 2) <> 1956572.67 THEN
+    RAISE EXCEPTION 'FAIL: ส่วนเกินรวม % ควรเป็น 1956572.67 (AD22 ของชีต)', round(v_profit, 2);
+  END IF;
+  RAISE NOTICE 'PASS  แยกตามแผนการรับได้ตัวเลขตรงชีต Excel ทุกช่อง (ส่วนเกินรวม 1,956,572.67)';
+  RAISE NOTICE 'PASS  ปันส่วน TFC รายประเภทรวมกลับได้ 13,615,398.24 พอดี ไม่มีเศษหาย';
+END $$;
+
+\echo '--- ข้อจำกัดของแผนการรับ (คาดว่าต้องถูกปฏิเสธ) ---'
+DO $$
+BEGIN
+  INSERT INTO scenario_admission_plan (scenario_plan_id, student_type_id, row_code,
+                                       plan_basis, intake_per_year, terms_per_year, fee_per_term)
+  SELECT sp.scenario_plan_id, st.student_type_id, 'BAD_INTAKE', 'intake', 40, 2, 18000
+    FROM scenario_plan sp, student_type st WHERE st.student_type_code = 'INT-SPECIAL';
+  RAISE EXCEPTION 'FAIL: รับแผนแบบ intake ที่ไม่ระบุจำนวนปีได้ ทั้งที่คำนวณจำนวนคงค้างไม่ได้';
+EXCEPTION WHEN check_violation THEN
+  RAISE NOTICE 'PASS  แผนแบบ intake ที่ไม่ระบุ duration_years ถูกปฏิเสธ';
+END $$;
+
+DO $$
+BEGIN
+  INSERT INTO scenario_admission_plan (scenario_plan_id, student_type_id, row_code,
+                                       plan_basis, headcount, terms_per_year, fee_per_term)
+  SELECT sp.scenario_plan_id, st.student_type_id, 'TH_REG', 'headcount', 10, 2, 18000
+    FROM scenario_plan sp, student_type st WHERE st.student_type_code = 'INT-SPECIAL';
+  RAISE EXCEPTION 'FAIL: แผนการรับที่ row_code ซ้ำในหลักสูตรจำลองเดียวกันแทรกได้';
+EXCEPTION WHEN unique_violation THEN
+  RAISE NOTICE 'PASS  row_code ซ้ำในแผนเดียวกันถูกปฏิเสธ (สัดส่วนจะเพี้ยนถ้ายอมให้ซ้ำ)';
+END $$;
+
+DO $$
+BEGIN
+  INSERT INTO scenario_plan (created_by, based_on_pv_id, plan_name, plan_type, period_id,
+                             revenue_mode, q_input, uses_admission_mix)
+  SELECT u.app_user_id, pv.program_version_id, 'ไม่มี AVC', 'existing', p.period_id,
+         'with_government', 100, true
+    FROM app_user u, dim_period p, program_version pv LIMIT 1;
+  RAISE EXCEPTION 'FAIL: เปิดโหมดแยกตามแผนการรับได้โดยไม่ต้องมีต้นทุนผันแปรต่อหัว';
+EXCEPTION WHEN check_violation THEN
+  RAISE NOTICE 'PASS  โหมดแยกตามแผนการรับบังคับให้มี variable_cost_per_head';
+END $$;
+
+\echo ''
 \echo '=============== สรุปตัวเลข ==============='
 SELECT c.source_record_id AS "รายการ", c.amount AS "ยอดตั้งต้น",
        sum(r.allocated_amount) AS "ปันส่วนรวม",

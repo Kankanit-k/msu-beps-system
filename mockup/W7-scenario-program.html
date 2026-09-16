@@ -60,6 +60,38 @@
         <div id="pg-hist-body"></div>
       </div>
     </div>
+
+    <div class="sec-title" style="margin-top:22px">📐 วิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--gold)"></span>แผนการรับนิสิต</div>
+        <div class="card-sub">ขั้นที่ 2 — ได้จุดคุ้มทุนรวมจากด้านบนแล้ว แตกต่อตามแผนการรับ: ไทย/ต่างชาติ · ปกติ/พิเศษ · ต่อเนื่อง</div></div></div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end">
+          <div><label class="inp-label">ต้นทุนคงที่รวม (TFC)</label>
+            <input class="inp" type="text" value="ใช้ค่าจากการ์ดด้านบน" disabled style="color:var(--text4)"></div>
+          <div><label class="inp-label">ต้นทุนผันแปรต่อหัว (AVC) — เว้นว่างเพื่อใช้ TVC ÷ Q</label>
+            <input id="am-avc" class="inp" type="number" min="0" placeholder="คำนวณจาก TVC ÷ Q อัตโนมัติ"></div>
+          <div><label class="inp-label">ภาคเรียนต่อปี (ค่าตั้งต้นของแถวใหม่)</label>
+            <input id="am-terms" class="inp" type="number" min="1" max="4" value="2"></div>
+        </div>
+        <div style="margin-top:10px;font-size:10.5px;color:var(--text3);line-height:1.8">
+          TFC ใช้ค่าเดียวกับการ์ด “กรอกข้อมูลหลักสูตร” ด้านบน · AVC ต้องแยกเป็นค่าต่อหัวเพราะ TVC ต้องผันไปตามจำนวนนิสิตที่จำลอง
+          ถ้าใช้ TVC ก้อนรวม การเปลี่ยนส่วนผสมจะไม่ทำให้ต้นทุนผันแปรขยับ ซึ่งผิดนิยาม
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button onclick="amFillStandard()" style="padding:7px 15px;border:1px solid var(--navy4);background:var(--navy4);color:var(--navy2);border-radius:9px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700">✦ เติมประเภทมาตรฐาน</button>
+        <button onclick="amAddRow()" style="padding:7px 15px;border:1px solid var(--border);background:#fff;color:var(--text2);border-radius:9px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700">+ เพิ่มแถว</button>
+        <button onclick="amAddContinuing()" style="padding:7px 15px;border:1px solid var(--gold3);background:var(--gold4);color:var(--gold);border-radius:9px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700">+ หลักสูตรต่อเนื่อง 2 ปี</button>
+      </div>
+
+      <div id="am-rows" style="margin-bottom:12px"></div>
+      <button class="btn-primary" onclick="amRun()" style="max-width:240px">▶ วิเคราะห์สัดส่วน</button>
+    </div>
+
+    <div id="am-result" style="display:none"></div>
   </div>
 
 </div>
@@ -82,8 +114,10 @@
 <script src="assets/core.js"></script>
 <script>
 buildShell({ w: 'W7', title: 'คำนวณจุดคุ้มทุนรายหลักสูตร', f: 'W7-scenario-program.html', bm: true });
+setTimeout(function () { if (typeof amRenderRows === 'function') amRenderRows(); }, 0);
 
 </script>
 <script src="assets/page-scenario-program.js"></script>
+<script src="assets/page-admission-mix.js"></script>
 </body>
 </html>
