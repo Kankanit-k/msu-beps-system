@@ -370,15 +370,6 @@ const ProgramScenario = ({ catalog }: Props) => {
           <Grid size={{ xs: 12, lg: 6 }}>
             <BreakEvenChart result={results[revenueMode]} />
           </Grid>
-
-          <AdmissionMixPanel
-            level={level}
-            q={q}
-            tfc={tfc}
-            tvc={tvc}
-            revenueMode={revenueMode}
-            revenueModeLabel={includesGovernment ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}
-          />
         </>
       )}
 
@@ -481,6 +472,15 @@ const ProgramScenario = ({ catalog }: Props) => {
           </CardContent>
         </Card>
       </Grid>
+
+      <AdmissionMixPanel
+        level={level}
+        q={q}
+        tfc={tfc}
+        tvc={tvc}
+        revenueMode={revenueMode}
+        revenueModeLabel={includesGovernment ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}
+      />
 
       {history[0] && (
         <ProgramReportDialog
