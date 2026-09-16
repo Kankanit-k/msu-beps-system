@@ -9,7 +9,7 @@ import Typography from '@mui/material/Typography'
 import type { BreakEvenResult } from '@beps/calc-engine'
 
 // Util Imports
-import { fmtInt, fmtMillions, withSign } from '@/utils/beps-format'
+import { fmtDec, fmtInt, fmtMillions, withSign } from '@/utils/beps-format'
 
 /**
  * กล่องผลการคำนวณของฐานรายได้หนึ่งฐาน — แทน box() ใน
@@ -23,9 +23,14 @@ type Props = {
   title: string
   result: BreakEvenResult
   color: 'primary' | 'warning'
+  /**
+   * W7 แสดงผลกำไรเป็น **เปอร์เซ็นต์** ตาม mockup/assets/page-scenario-program.js
+   * ส่วน W6 แสดงเป็นล้านบาท — ตัวหารของ % มาจากนโยบาย `profit_pct_basis` ไม่ใช่ค่าที่หน้าจอเลือกเอง
+   */
+  profitDisplay?: 'amount' | 'percent'
 }
 
-const ScenarioResult = ({ title, result, color }: Props) => {
+const ScenarioResult = ({ title, result, color, profitDisplay = 'amount' }: Props) => {
   const isOk = result.qStar !== null && result.q >= result.qStar
   const isFullCostRecovery = result.qStarStatus === 'full_cost_recovery'
 
@@ -62,9 +67,13 @@ const ScenarioResult = ({ title, result, color }: Props) => {
           {isFullCostRecovery && <Chip size='small' variant='tonal' color='warning' label='TC ÷ R' />}
         </Typography>
         <Typography variant='body2'>
-          ส่วนเกิน:{' '}
+          {profitDisplay === 'percent' ? 'กำไร: ' : 'ส่วนเกิน: '}
           <Typography component='b' color={result.profit >= 0 ? 'success.main' : 'error.main'}>
-            {withSign(result.profit, fmtMillions)} ล.
+            {profitDisplay === 'percent'
+              ? result.profitPct === null
+                ? '—'
+                : withSign(result.profitPct, value => `${fmtDec(value)}%`)
+              : `${withSign(result.profit, fmtMillions)} ล.`}
           </Typography>
         </Typography>
       </Box>

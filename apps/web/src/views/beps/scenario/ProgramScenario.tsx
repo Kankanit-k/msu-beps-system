@@ -24,6 +24,7 @@ import tableStyles from '@core/styles/table.module.css'
 // Component Imports
 import BreakEvenChart from '@views/beps/be-chart/BreakEvenChart'
 import MiniStat from '@views/beps/shared/MiniStat'
+import ProgramReferenceNote from './ProgramReferenceNote'
 import ProgramReportDialog from './ProgramReportDialog'
 import ScenarioResult from './ScenarioResult'
 import type { ProgramScenarioSnapshot } from './ProgramReportDialog'
@@ -85,6 +86,15 @@ const ProgramScenario = ({ catalog }: Props) => {
     () =>
       canCalculate ? calcBreakEvenBothModes({ q, governmentBudget, incomeBudget, tfc, tvc }, DEFAULT_POLICY) : null,
     [canCalculate, q, governmentBudget, incomeBudget, tfc, tvc]
+  )
+
+  /**
+   * ผลการคำนวณจาก **ค่าจริง** ของหลักสูตรที่เลือก (ไม่ใช่ค่าที่ผู้ใช้แก้ในช่องกรอก)
+   * ใช้เป็นจุดอ้างอิงในกล่องสรุปด้านบน — ดู ProgramReferenceNote
+   */
+  const referenceResults = useMemo(
+    () => (selectedProgram ? calcBreakEvenBothModes(selectedProgram.input, DEFAULT_POLICY) : null),
+    [selectedProgram]
   )
 
   const loadProgram = (id: string) => {
@@ -297,9 +307,9 @@ const ProgramScenario = ({ catalog }: Props) => {
                 </Grid>
               </Grid>
 
-              {selectedProgram && !isNewProgram && (
+              {selectedProgram && referenceResults && !isNewProgram && (
                 <Grid size={{ xs: 12 }}>
-                  <Chip size='small' variant='tonal' color='success' label='ดึงจากระบบแล้ว — แก้ตัวเลขต่อได้' />
+                  <ProgramReferenceNote program={selectedProgram} results={referenceResults} />
                 </Grid>
               )}
 
@@ -340,8 +350,18 @@ const ProgramScenario = ({ catalog }: Props) => {
                   <MiniStat label='นิสิตจริง (Q)' value={`${fmtInt(q)} คน`} />
                 </div>
 
-                <ScenarioResult title='กรณีรวมเงินแผ่นดิน' result={results.with_government} color='primary' />
-                <ScenarioResult title='กรณีไม่รวมเงินแผ่นดิน' result={results.without_government} color='warning' />
+                <ScenarioResult
+                  title='กรณีรวมเงินแผ่นดิน'
+                  result={results.with_government}
+                  color='primary'
+                  profitDisplay='percent'
+                />
+                <ScenarioResult
+                  title='กรณีไม่รวมเงินแผ่นดิน'
+                  result={results.without_government}
+                  color='warning'
+                  profitDisplay='percent'
+                />
               </CardContent>
             </Card>
           </Grid>
@@ -381,12 +401,14 @@ const ProgramScenario = ({ catalog }: Props) => {
                       <th align='right'>AVC</th>
                       <th align='right'>Q* รวมแผ่นดิน</th>
                       <th align='right'>Q* ไม่รวม</th>
+                      <th align='right'>สถานะ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.map(row => {
                       const withGov = row.byMode.with_government
                       const withoutGov = row.byMode.without_government
+                      const isOk = withGov.qStar !== null && row.q >= withGov.qStar
 
                       return (
                         <tr key={row.id}>
@@ -430,6 +452,14 @@ const ProgramScenario = ({ catalog }: Props) => {
                             >
                               {withoutGov.qStar === null ? '—' : fmtInt(withoutGov.qStar)}
                             </Typography>
+                          </td>
+                          <td align='right'>
+                            <Chip
+                              size='small'
+                              variant='tonal'
+                              color={isOk ? 'success' : 'error'}
+                              label={isOk ? 'คุ้มทุน' : 'ยังไม่คุ้ม'}
+                            />
                           </td>
                         </tr>
                       )
