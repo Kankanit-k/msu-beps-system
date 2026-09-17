@@ -30,8 +30,13 @@ import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
 
 import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
+import AdmissionBreakdown from './AdmissionBreakdown';
 import { PG_DATA, EDUCATION_LEVELS } from './programData';
 import type { ProgramHistoryEntry } from './types';
+import type { ProgRow } from '@/data/mockup';
+
+/** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละระดับ/ปริญญา) — ต่อท้ายระดับให้แยกแยะได้ในดรอปดาวน์ */
+const progOptionLabel = (p: ProgRow) => `${p.prog} (${p.lvl})`;
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
@@ -40,7 +45,7 @@ const ScenarioProgramView = () => {
   const [progType, setProgType] = useState<'old' | 'new'>('old');
   const [level, setLevel] = useState<string>(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
   const [facSel, setFacSel] = useState<string | null>(null);
-  const [progSel, setProgSel] = useState<string | null>(null);
+  const [progSel, setProgSel] = useState<ProgRow | null>(null);
   const [nameNew, setNameNew] = useState('');
   const [facNew, setFacNew] = useState('');
 
@@ -88,12 +93,8 @@ const ScenarioProgramView = () => {
     resetNumbers();
   };
 
-  const onProgChange = (v: string | null) => {
-    setProgSel(v);
-
-    if (!v) return;
-
-    const p = programOptions.find((x) => x.prog === v);
+  const onProgChange = (p: ProgRow | null) => {
+    setProgSel(p);
 
     if (!p) return;
 
@@ -106,7 +107,7 @@ const ScenarioProgramView = () => {
     setAutofilled(true);
   };
 
-  const name = isNew ? nameNew || 'หลักสูตรใหม่' : progSel || 'ไม่ระบุ';
+  const name = isNew ? nameNew || 'หลักสูตรใหม่' : progSel?.prog || 'ไม่ระบุ';
   const fac = isNew ? facNew : facSel || '';
 
   const handleCalc = () => {
@@ -186,7 +187,9 @@ const ScenarioProgramView = () => {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Autocomplete
-                      options={programOptions.map((p) => p.prog)}
+                      options={programOptions}
+                      getOptionLabel={progOptionLabel}
+                      isOptionEqualToValue={(a, b) => a === b}
                       value={progSel}
                       disabled={!facSel}
                       onChange={(_, v) => onProgChange(v)}
@@ -361,7 +364,9 @@ const ScenarioProgramView = () => {
               </Grid>
             </Grid>
 
-            <Card>
+            <AdmissionBreakdown qStar={latestResult.qStar} programName={latest.name} />
+
+            <Card sx={{ mt: 4 }}>
               <CardHeader
                 title="ประวัติการคำนวณ"
                 action={
