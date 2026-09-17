@@ -47,7 +47,8 @@ beps-system/
 ├── packages/
 │   ├── calc-engine/     ★ สูตรคำนวณจุดคุ้มทุน — แกนความถูกต้องของระบบ (ดู TODO.md ข้างใน)
 │   └── shared-types/      Zod schema ที่ frontend/backend ใช้ร่วมกัน
-├── apps/                  ยังว่าง — api มาใน Sprint 2, web มาใน Sprint 6
+├── apps/
+│   └── web/               ★ Next.js + MUI (MSU Starter Kit) — frontend เริ่มแล้ว · api มาใน Sprint 2
 ├── docker-compose.yml     PostgreSQL 17 สำหรับ local dev
 ├── SA.md                  เอกสาร System Analysis ฉบับเต็ม (17 หัวข้อ)
 ├── ER.html                โครงสร้างฐานข้อมูล v2 32 ตาราง — เปิดดู/ส่งต่อได้ (ดูด้านล่าง)

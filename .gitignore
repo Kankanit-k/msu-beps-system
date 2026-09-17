@@ -59,4 +59,3 @@ MSU-BEPS-mockup-ข้อมูลจริง.html
 # บทสนทนา export เป็น PDF — ไม่ใช่เอกสารออกแบบ
 *.pdf
 .vercel
-.env*

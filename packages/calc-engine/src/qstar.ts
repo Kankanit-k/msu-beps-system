@@ -6,9 +6,9 @@
  * W6/W7 ใช้ฝั่งนี้ — ถ้าไม่ตรงกันผู้ใช้จะเห็นตัวเลขบนหน้าจอไม่ตรงกับที่บันทึกลง DB
  */
 
-import type { CalcPolicy, QStarRounding } from './policy.js';
-import { roundQStar } from './policy.js';
-import type { QStarStatus } from './types.js';
+import type { CalcPolicy, QStarRounding } from './policy';
+import { roundQStar } from './policy';
+import type { QStarStatus } from './types';
 
 export interface QStarOutcome {
   qStar: number | null;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { calcQStar } from './qstar.js';
-import { DEFAULT_POLICY, roundQStar } from './policy.js';
-import type { CalcPolicy } from './policy.js';
+import { calcQStar } from './qstar';
+import { DEFAULT_POLICY, roundQStar } from './policy';
+import type { CalcPolicy } from './policy';
 
 const policy = (over: Partial<CalcPolicy> = {}): CalcPolicy => ({ ...DEFAULT_POLICY, ...over });
 

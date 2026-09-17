@@ -14,11 +14,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { calcBreakEven, calcBreakEvenBothModes } from './break-even.js';
-import { aggregateBreakEven } from './aggregate.js';
-import { DEFAULT_POLICY } from './policy.js';
-import type { CalcPolicy } from './policy.js';
-import type { BreakEvenInput } from './types.js';
+import { calcBreakEven, calcBreakEvenBothModes } from './break-even';
+import { aggregateBreakEven } from './aggregate';
+import { DEFAULT_POLICY } from './policy';
+import type { CalcPolicy } from './policy';
+import type { BreakEvenInput } from './types';
 
 /** ระดับมหาวิทยาลัย — RAW.UNI ของ v8 */
 const UNI = {

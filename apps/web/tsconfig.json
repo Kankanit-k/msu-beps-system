@@ -1,0 +1,47 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "downlevelIteration": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowJs": true,
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "jsx": "react-jsx",
+    "incremental": true,
+
+    // ── ผ่อนคลายจาก tsconfig.base.json เฉพาะ 3 ค่านี้ ──
+    // โค้ดนี้เป็น template ที่ vendor เข้ามา (Materio MUI, ~390 ไฟล์) ไม่ได้เขียนตาม
+    // flag เข้มเหล่านี้ตั้งแต่ต้น การไล่แก้ทั้งหมดให้ผ่าน exactOptionalPropertyTypes/
+    // verbatimModuleSyntax/noUnusedLocals ใช้เวลาไม่คุ้มกับโค้ด UI ที่ยืมมา (จะแก้เอง
+    // เฉพาะจุดที่คัดลอกมาแก้ไขจริงในอนาคต)
+    "exactOptionalPropertyTypes": false,
+    "verbatimModuleSyntax": false,
+    "noUnusedLocals": false,
+
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@core/*": ["./src/@core/*"],
+      "@layouts/*": ["./src/@layouts/*"],
+      "@menu/*": ["./src/@menu/*"],
+      "@assets/*": ["./src/assets/*"],
+      "@components/*": ["./src/components/*"],
+      "@configs/*": ["./src/configs/*"],
+      "@views/*": ["./src/views/*"]
+    }
+  },
+  "include": [
+    "next.config.ts",
+    "next-env.d.ts",
+    "declarations.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next"]
+}
