@@ -43,8 +43,10 @@ type Footer = {
 };
 
 export type Config = {
+  templateEyebrow?: string;
   templateName: string;
   templateSubtitle?: string;
+  templateSubtitleTh?: string;
   homePageUrl: string;
   settingsCookieName: string;
   mode: Mode;
@@ -61,8 +63,10 @@ export type Config = {
 };
 
 const themeConfig: Config = {
-  templateName: 'MSU Starter Kit',
-  templateSubtitle: 'Next.js + MUI Template',
+  templateEyebrow: 'MAHASARAKHAM UNIVERSITY',
+  templateName: 'MSU-BEPS',
+  templateSubtitle: 'Break-Even Point System',
+  templateSubtitleTh: 'ระบบวิเคราะห์จุดคุ้มทุน',
   homePageUrl: '/overview',
   settingsCookieName: 'erp-msu-pms-v1',
   mode: 'system', // 'system', 'light', 'dark'

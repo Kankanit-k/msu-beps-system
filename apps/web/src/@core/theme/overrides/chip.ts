@@ -3,6 +3,11 @@ import type { Theme } from '@mui/material/styles';
 
 const chip: Theme['components'] = {
   MuiChip: {
+    defaultProps: {
+      // mockup/assets/beps.css .chip-* ใช้พื้นสีอ่อน 8-16% + ตัวอักษรสีเข้ม (soft pill) เป็นค่า
+      // เริ่มต้นของทุกหน้า — ใครต้องการชิปแบบทึบ (filled) ยังระบุ variant="filled" ทับได้
+      variant: 'tonal',
+    },
     styleOverrides: {
       root: ({ ownerState, theme }) => ({
         ...theme.typography.body2,

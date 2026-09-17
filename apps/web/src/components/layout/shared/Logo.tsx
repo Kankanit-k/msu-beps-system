@@ -39,6 +39,18 @@ const LogoText = styled.div<LogoTextProps>`
       : 'opacity: 1; margin-inline-start: 10px;'}
 `;
 
+// Stacked one word per line ("MAHASARAKHAM" / "UNIVERSITY") with tight line spacing.
+const LogoEyebrow = styled.span`
+  display: flex;
+  flex-direction: column;
+  color: var(--mui-palette-primary-main);
+  font-size: 0.6rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+`;
+
 const LogoTitle = styled.span<{ color?: CSSProperties['color'] }>`
   color: ${({ color }) => color ?? 'var(--mui-palette-text-primary)'};
   font-family:
@@ -57,6 +69,17 @@ const LogoSubtitle = styled.span`
   font-weight: 500;
   white-space: nowrap;
 `;
+
+// "MSU-BEPS" → "MSU-" in the default title color, "BEPS" picked out in the accent color.
+const splitTemplateName = (name: string): [string, string | null] => {
+  const dashIndex = name.indexOf('-');
+
+  if (dashIndex === -1) {
+    return [name, null];
+  }
+
+  return [name.slice(0, dashIndex + 1), name.slice(dashIndex + 1)];
+};
 
 const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
   // Refs
@@ -113,9 +136,29 @@ const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
         transitionDuration={transitionDuration}
         isBreakpointReached={isBreakpointReached}
       >
-        <LogoTitle color={color}>{themeConfig.templateName}</LogoTitle>
-        {themeConfig.templateSubtitle ? (
-          <LogoSubtitle>{themeConfig.templateSubtitle}</LogoSubtitle>
+        {themeConfig.templateEyebrow ? (
+          <LogoEyebrow>
+            {themeConfig.templateEyebrow.split(' ').map((word) => (
+              <span key={word}>{word}</span>
+            ))}
+          </LogoEyebrow>
+        ) : null}
+        <LogoTitle color={color}>
+          {(() => {
+            const [prefix, accent] = splitTemplateName(themeConfig.templateName);
+
+            return accent ? (
+              <>
+                {prefix}
+                <span style={{ color: '#2F5FE0' }}>{accent}</span>
+              </>
+            ) : (
+              prefix
+            );
+          })()}
+        </LogoTitle>
+        {themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle ? (
+          <LogoSubtitle>{themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle}</LogoSubtitle>
         ) : null}
       </LogoText>
     </div>

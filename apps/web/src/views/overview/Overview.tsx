@@ -6,6 +6,9 @@ import { useMemo, useState } from 'react';
 // Next Imports
 import dynamic from 'next/dynamic';
 
+// Next Imports
+import NextLink from 'next/link';
+
 // MUI Imports
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -23,6 +26,12 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
+import Divider from '@mui/material/Divider';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Link from '@mui/material/Link';
 
 import type { ApexOptions } from 'apexcharts';
 
@@ -30,6 +39,17 @@ import type { ApexOptions } from 'apexcharts';
 import { RAW } from '@/data/mockup';
 import type { RevenueMode } from '@beps/calc-engine';
 import { computeBreakEven, fmtInt, fmtMillion, shortFacName, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
+
+// Mock run/approval context — no Run/approval backend yet, so this is display-only sample data.
+const MOCK_RUN = {
+  budgetYear: '2568',
+  budgetYears: ['2566', '2567', '2568'],
+  id: 1042,
+  computedAt: '11 ก.ค. 2569 14:32',
+  method: 'v3 - ฐาน ACTUAL',
+  approved: true,
+  approver: { name: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', role: 'ผู้อนุมัติ' },
+};
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
@@ -125,28 +145,86 @@ const Overview = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 4, mb: 4 }}>
         <Box>
-          <Typography variant="h4">ภาพรวมมหาวิทยาลัย</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h4">ภาพรวมมหาวิทยาลัย</Typography>
+            <Chip size="small" label="W1" variant="outlined" />
+          </Box>
           <Typography variant="body2" color="text.secondary">
             สรุปรายได้ ต้นทุน และจุดคุ้มทุนทั้งมหาวิทยาลัย — {RAW.FACS.length} คณะ/วิทยาลัย · {RAW.PROGS.length} หลักสูตร
           </Typography>
         </Box>
-        <ToggleButtonGroup
-          size="small"
-          color="primary"
-          exclusive
-          value={mode}
-          onChange={(_, v) => v && setMode(v)}
-        >
-          <ToggleButton value="with_government">{REVENUE_MODE_LABEL.with_government}</ToggleButton>
-          <ToggleButton value="without_government">{REVENUE_MODE_LABEL.without_government}</ToggleButton>
-        </ToggleButtonGroup>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
+          <FormControl size="small">
+            <Select value={MOCK_RUN.budgetYear} sx={{ minWidth: 132 }}>
+              {MOCK_RUN.budgetYears.map((y) => (
+                <MenuItem key={y} value={y}>
+                  ปีงบประมาณ {y}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" fontWeight={700}>
+                Run #{MOCK_RUN.id}
+              </Typography>
+              <Chip size="small" color={MOCK_RUN.approved ? 'success' : 'warning'} label={MOCK_RUN.approved ? 'อนุมัติแล้ว' : 'รออนุมัติ'} />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              คำนวณ {MOCK_RUN.computedAt} · คิดค่า {MOCK_RUN.method}
+            </Typography>
+          </Box>
+
+          <ToggleButtonGroup size="small" color="primary" exclusive value={mode} onChange={(_, v) => v && setMode(v)}>
+            <ToggleButton value="with_government">{REVENUE_MODE_LABEL.with_government}</ToggleButton>
+            <ToggleButton value="without_government">{REVENUE_MODE_LABEL.without_government}</ToggleButton>
+          </ToggleButtonGroup>
+
+          <Chip color="primary" variant="tonal" label={`${fmtInt(uni.q)} นิสิต`} />
+          <Chip
+            color={uni.profit >= 0 ? 'success' : 'error'}
+            variant="tonal"
+            label={`${uni.profit >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtMillion(Math.abs(uni.profit))} ลบ.`}
+          />
+
+          <Divider orientation="vertical" flexItem />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ width: 36, height: 36 }}>{MOCK_RUN.approver.name.charAt(3)}</Avatar>
+            <Box>
+              <Typography variant="body2" fontWeight={600}>
+                {MOCK_RUN.approver.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {MOCK_RUN.approver.role} ·{' '}
+                <Link component="button" underline="hover">
+                  เปลี่ยนผู้ใช้
+                </Link>
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
       </Box>
 
+      <Alert severity="warning" sx={{ mb: 4 }}>
+        ข้อจำกัดของข้อมูลชุดนี้ — ค่าเสื่อมราคาอาคารยังไม่ครบ (ปิด dep รวม {fmtMillion(RAW.UNI.dep)} ลบ. มีเฉพาะครุภัณฑ์) TFC และ TC
+        จึงต่ำกว่าความจริง ตัวเลขขาดทุน {fmtMillion(Math.abs(uni.profit))} ลบ. ที่รายงานอยู่จึงน้อยกว่าความจริง และ Q* ทุกระดับต่ำกว่าที่ควรเป็น
+        — ดูรายละเอียดที่{' '}
+        <Link component={NextLink} href="/admin/exceptions" underline="hover">
+          รายการค้างตรวจ
+        </Link>
+      </Alert>
+
       {RAW.__sample && (
-        <Alert severity="warning" sx={{ mb: 4 }}>
-          ตัวเลขในหน้านี้เป็นข้อมูลตัวอย่าง (สุ่มรบกวนแล้ว) ไม่ใช่ข้อมูลจริงของมหาวิทยาลัย
+        <Alert severity="info" sx={{ mb: 4 }}>
+          ตัวเลขในหน้านี้เป็นข้อมูลตัวอย่าง ไม่ใช่ของจริง — repo นี้ไม่เก็บข้อมูลการเงินจริงของมหาวิทยาลัย (ดูเพิ่มเติมใน{' '}
+          <Box component="code">.gitignore</Box>) จึงโหลด <Box component="code">assets/data.sample.js</Box>{' '}
+          ที่ตัวเลขถูกสุ่มรบกวนแล้ว ความสัมพันธ์ทุกสูตรยังถูกต้อง แต่ห้ามนำตัวเลขไปอ้างอิง — ถ้ามี{' '}
+          <Box component="code">assets/data.js</Box> ในเครื่อง หน้าจะแสดงตัวเลขจริงโดยอัตโนมัติ
         </Alert>
       )}
 

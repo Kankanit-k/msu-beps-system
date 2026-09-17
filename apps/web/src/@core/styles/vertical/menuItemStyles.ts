@@ -37,24 +37,13 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
         },
       },
 
-      // Active item — tinted purple pill + left accent bar (MSU-BEPS reference look)
+      // Active item — solid blue pill, white text (MSU-PMS reference look)
       [`&:not(.${menuClasses.subMenuRoot}) > .${menuClasses.button}.${menuClasses.active}`]: {
-        position: 'relative',
-        color: 'var(--mui-palette-primary-main)',
-        backgroundColor: 'var(--mui-palette-primary-lightOpacity)',
+        color: '#fff',
+        backgroundColor: '#2F5FE0',
         fontWeight: 600,
         [`& .${menuClasses.icon}`]: {
-          color: 'var(--mui-palette-primary-main)',
-        },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          insetInlineStart: 0,
-          insetBlock: '22%',
-          inlineSize: 3,
-          borderStartEndRadius: 4,
-          borderEndEndRadius: 4,
-          backgroundColor: 'var(--mui-palette-primary-main)',
+          color: '#fff',
         },
       },
     }),

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -37,6 +38,17 @@ import type { ProgRow } from '@/data/mockup';
 
 /** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละระดับ/ปริญญา) — ต่อท้ายระดับให้แยกแยะได้ในดรอปดาวน์ */
 const progOptionLabel = (p: ProgRow) => `${p.prog} (${p.lvl})`;
+
+/** จุดกลมนำหน้าชื่อการ์ด — ตาม .card-title .dot ใน mockup/assets/beps.css */
+const TitleWithDot = ({ children }: { children: ReactNode }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+    <Box
+      component="span"
+      sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: 'primary.main', flexShrink: 0 }}
+    />
+    {children}
+  </Box>
+);
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
@@ -155,7 +167,10 @@ const ScenarioProgramView = () => {
         </Box>
 
         <Card sx={{ mb: 4 }}>
-          <CardHeader title="กรอกข้อมูลหลักสูตร" subheader="เลือกประเภท — หลักสูตรเดิมดึงข้อมูลจากระบบอัตโนมัติ · หลักสูตรใหม่กรอกเอง" />
+          <CardHeader
+            title={<TitleWithDot>กรอกข้อมูลหลักสูตร</TitleWithDot>}
+            subheader="เลือกประเภท — หลักสูตรเดิมดึงข้อมูลจากระบบอัตโนมัติ · หลักสูตรใหม่กรอกเอง"
+          />
           <CardContent>
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -267,21 +282,28 @@ const ScenarioProgramView = () => {
             <Grid container spacing={4} sx={{ mb: 4 }}>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card sx={{ height: '100%' }}>
-                  <CardHeader title={latest.name} subheader={`${latest.fac || '—'} · ${latest.level} · ${latest.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม'}`} />
+                  <CardHeader
+                    title={<TitleWithDot>{latest.name}</TitleWithDot>}
+                    subheader={`${latest.fac || '—'} · ${latest.level} · ${latest.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม'}`}
+                  />
                   <CardContent>
                     <Grid container spacing={2} sx={{ mb: 3 }}>
-                      {[
-                        ['รายได้รวม (TR)', `${(latestResult.tr / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`],
-                        ['ต้นทุนรวม (TC)', `${(latestResult.tc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`],
-                        ['AVC ต่อหน่วย', `${fmtB(latest.avc)} บ./คน`],
-                        ['นิสิตจริง (Q)', `${fmtN(latest.q)} คน`],
-                      ].map(([label, val]) => (
-                        <Grid key={label} size={6}>
+                      {(
+                        [
+                          ['รายได้รวม (TR)', `${(latestResult.tr / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'primary.main'],
+                          ['ต้นทุนรวม (TC)', `${(latestResult.tc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'text.primary'],
+                          ['ต้นทุนคงที่ (TFC)', `${(latest.tfc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'warning.main'],
+                          ['ต้นทุนผันแปร (TVC)', `${(latest.tvc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'text.primary'],
+                          ['AVC ต่อหน่วย', `${fmtB(latest.avc)} บ./คน`, 'text.primary'],
+                          ['นิสิตจริง (Q)', `${fmtN(latest.q)} คน`, 'text.primary'],
+                        ] as const
+                      ).map(([label, val, color]) => (
+                        <Grid key={label} size={4}>
                           <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
                             <Typography variant="caption" color="text.secondary" display="block" noWrap>
                               {label}
                             </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color }}>
                               {val}
                             </Typography>
                           </Box>
@@ -356,7 +378,10 @@ const ScenarioProgramView = () => {
 
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card sx={{ height: '100%' }}>
-                  <CardHeader title="กราฟจุดคุ้มทุน" subheader={`โหมด: ${latest.mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}`} />
+                  <CardHeader
+                    title={<TitleWithDot>กราฟจุดคุ้มทุน</TitleWithDot>}
+                    subheader={`โหมด: ${latest.mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}`}
+                  />
                   <CardContent>
                     <BreakEvenChart q={latest.q} tfc={latest.tfc} avc={latest.avc} rPerHead={latestResult.r ?? 0} qStar={latestResult.qStar} />
                   </CardContent>
@@ -368,9 +393,15 @@ const ScenarioProgramView = () => {
 
             <Card sx={{ mt: 4 }}>
               <CardHeader
-                title="ประวัติการคำนวณ"
+                title={<TitleWithDot>ประวัติการคำนวณ</TitleWithDot>}
                 action={
-                  <Button size="small" color="error" onClick={() => setHistory([])} sx={{ mr: 2 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setHistory([])}
+                    sx={{ mr: 2, borderRadius: 5 }}
+                  >
                     ล้าง
                   </Button>
                 }
