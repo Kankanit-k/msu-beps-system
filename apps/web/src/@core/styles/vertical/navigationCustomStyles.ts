@@ -65,6 +65,17 @@ const navigationCustomStyles = (verticalNavOptions: VerticalNavState, theme: The
             paddingInlineEnd: theme.spacing(3),
           }),
     },
+    // bgColorContainer is the flex column holding header → menu → SidebarFooter.
+    // Without these the tall menu pushes the footer past the bottom of the viewport
+    // and the developer credits get clipped.
+    [`& .${verticalNavClasses.bgColorContainer}`]: {
+      overflow: 'hidden',
+      // the PerfectScrollbar (or plain div below the breakpoint) wrapping the menu
+      '& > .ps, & > .bs-full': {
+        flex: '1 1 auto',
+        minBlockSize: 0,
+      },
+    },
     [`& .${verticalNavClasses.backdrop}`]: {
       backgroundColor: 'var(--backdrop-color)',
     },

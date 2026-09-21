@@ -47,7 +47,7 @@ const LogoEyebrow = styled.span`
   font-size: 0.6rem;
   line-height: 1.15;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.14em;
   white-space: nowrap;
 `;
 
@@ -69,17 +69,6 @@ const LogoSubtitle = styled.span`
   font-weight: 500;
   white-space: nowrap;
 `;
-
-// "MSU-BEPS" → "MSU-" in the default title color, "BEPS" picked out in the accent color.
-const splitTemplateName = (name: string): [string, string | null] => {
-  const dashIndex = name.indexOf('-');
-
-  if (dashIndex === -1) {
-    return [name, null];
-  }
-
-  return [name.slice(0, dashIndex + 1), name.slice(dashIndex + 1)];
-};
 
 const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
   // Refs
@@ -143,20 +132,7 @@ const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
             ))}
           </LogoEyebrow>
         ) : null}
-        <LogoTitle color={color}>
-          {(() => {
-            const [prefix, accent] = splitTemplateName(themeConfig.templateName);
-
-            return accent ? (
-              <>
-                {prefix}
-                <span style={{ color: '#2F5FE0' }}>{accent}</span>
-              </>
-            ) : (
-              prefix
-            );
-          })()}
-        </LogoTitle>
+        <LogoTitle color={color}>{themeConfig.templateName}</LogoTitle>
         {themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle ? (
           <LogoSubtitle>{themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle}</LogoSubtitle>
         ) : null}

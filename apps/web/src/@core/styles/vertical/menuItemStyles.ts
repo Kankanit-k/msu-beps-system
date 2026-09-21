@@ -37,13 +37,26 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
         },
       },
 
-      // Active item — solid blue pill, white text (MSU-PMS reference look)
+      // Active item — tinted panel + theme-coloured text + 3px leading bar.
+      // Mirrors .sb-item.active in mockup/assets/beps.css (see the mockup for the reference look).
       [`&:not(.${menuClasses.subMenuRoot}) > .${menuClasses.button}.${menuClasses.active}`]: {
-        color: '#fff',
-        backgroundColor: '#2F5FE0',
+        position: 'relative',
+        color: 'var(--mui-palette-primary-main)',
+        backgroundColor: 'var(--mui-palette-primary-lighterOpacity)',
+        boxShadow: 'inset 0 0 0 1px var(--mui-palette-primary-lightOpacity)',
         fontWeight: 600,
         [`& .${menuClasses.icon}`]: {
-          color: '#fff',
+          color: 'var(--mui-palette-primary-main)',
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          insetInlineStart: 0,
+          insetBlock: '20%',
+          inlineSize: '3px',
+          borderStartEndRadius: '3px',
+          borderEndEndRadius: '3px',
+          backgroundColor: 'var(--mui-palette-primary-main)',
         },
       },
     }),

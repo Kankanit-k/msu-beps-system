@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // .env.example. Must stay in sync with NEXT_PUBLIC_BASEPATH (origin + this same path).
   basePath: process.env.BASEPATH || '',
   trailingSlash: true,
+  // Default position (bottom-left) sits on top of the sidebar's developer-credits card.
+  devIndicators: { position: 'bottom-right' },
 };
 
 export default nextConfig;

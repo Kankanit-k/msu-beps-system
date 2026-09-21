@@ -16,6 +16,7 @@ import Fade from '@mui/material/Fade';
 import Paper from '@mui/material/Paper';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import MenuList from '@mui/material/MenuList';
+import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
@@ -75,6 +76,25 @@ const UserDropdown = () => {
 
   return (
     <>
+      {/* ชื่อ + สิทธิ์ ข้าง avatar — ซ่อนบนจอเล็กเพื่อไม่ให้ navbar ล้น */}
+      <Box
+        onClick={handleDropdownOpen}
+        sx={{
+          display: { xs: 'none', sm: 'flex' },
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          lineHeight: 1.25,
+          cursor: 'pointer',
+          minInlineSize: 0,
+        }}
+      >
+        <Typography variant="body2" fontWeight={600} noWrap>
+          {user?.STAFFNAME || 'ผู้ใช้งาน'}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" noWrap>
+          {user?.SCOPES?.groupname || 'ผู้ใช้งานทั่วไป'}
+        </Typography>
+      </Box>
       <Badge
         ref={anchorRef}
         overlap="circular"
