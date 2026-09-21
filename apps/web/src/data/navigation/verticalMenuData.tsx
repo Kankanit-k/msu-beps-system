@@ -109,6 +109,7 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       children: [
         { label: 'จุดคุ้มทุนรายคณะ', href: '/scenario/faculty', icon: 'ri-calculator-line' },
         { label: 'จุดคุ้มทุนรายหลักสูตร', href: '/scenario/program', icon: 'ri-calculator-line' },
+        { label: 'แผนการรับนิสิต', href: '/scenario/admission-plan', icon: 'ri-group-line' },
       ],
     },
 

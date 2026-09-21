@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 // MUI Imports
@@ -26,13 +26,19 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 
 import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
 
 import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
-import AdmissionBreakdown from './AdmissionBreakdown';
+import AdmissionBreakdownCard from './AdmissionBreakdownCard';
 import { PG_DATA, EDUCATION_LEVELS } from './programData';
+import { loadHistory, saveHistory } from './historyStore';
 import type { ProgramHistoryEntry } from './types';
 import type { ProgRow } from '@/data/mockup';
 
@@ -70,6 +76,11 @@ const ScenarioProgramView = () => {
 
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [history, setHistory] = useState<ProgramHistoryEntry[]>([]);
+
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  // อ่านหลัง mount เท่านั้น — อ่านตอน render แรกจะทำให้ SSR กับ client ไม่ตรงกัน
+  useEffect(() => setHistory(loadHistory()), []);
 
   const facultyOptions = useMemo(() => PG_DATA.map((g) => g.faculty), []);
   const programOptions = useMemo(
@@ -144,7 +155,10 @@ const ScenarioProgramView = () => {
       mode,
     };
 
-    setHistory((prev) => [entry, ...prev]);
+    const next = [entry, ...history];
+
+    setHistory(next);
+    saveHistory(next);
   };
 
   const latest = history[0];
@@ -389,7 +403,7 @@ const ScenarioProgramView = () => {
               </Grid>
             </Grid>
 
-            <AdmissionBreakdown qStar={latestResult.qStar} programName={latest.name} />
+            <AdmissionBreakdownCard qStar={latestResult.qStar} programName={latest.name} />
 
             <Card sx={{ mt: 4 }}>
               <CardHeader
@@ -399,7 +413,7 @@ const ScenarioProgramView = () => {
                     size="small"
                     variant="outlined"
                     color="error"
-                    onClick={() => setHistory([])}
+                    onClick={() => setConfirmClear(true)}
                     sx={{ mr: 2, borderRadius: 5 }}
                   >
                     ล้าง
@@ -467,6 +481,30 @@ const ScenarioProgramView = () => {
           </Alert>
         )}
       </Box>
+
+      <Dialog open={confirmClear} onClose={() => setConfirmClear(false)}>
+        <DialogTitle>ล้างประวัติการคำนวณ?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ประวัติทั้งหมด ({history.length} รายการ) จะถูกลบออกจากเครื่องนี้ถาวร และหน้า
+            &quot;แผนการรับนิสิต&quot; จะเลือกผลคำนวณเหล่านี้ไม่ได้อีก
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmClear(false)}>ยกเลิก</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              setHistory([]);
+              saveHistory([]);
+              setConfirmClear(false);
+            }}
+          >
+            ล้างประวัติ
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* รายงานสำหรับพิมพ์เท่านั้น — ซ่อนบนหน้าจอปกติ แสดงเฉพาะตอนสั่งพิมพ์ (window.print) */}
       {latest && (
