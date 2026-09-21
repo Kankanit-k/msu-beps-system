@@ -18,99 +18,167 @@ import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Alert from '@mui/material/Alert';
 import InputAdornment from '@mui/material/InputAdornment';
+import Autocomplete from '@mui/material/Autocomplete';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Chip from '@mui/material/Chip';
+import Skeleton from '@mui/material/Skeleton';
+
+import { distributeHeads } from '@beps/calc-engine';
+
+import { downloadCsv } from '@/utils/csv';
+
+import type { AdmissionPlan } from './admissionPlanStore';
+import { CATEGORY_KEYS, SEGMENT_LABELS } from './admissionPlanStore';
+import type { AdmissionPlanState } from './useAdmissionPlan';
 
 /**
  * แบ่งจุดคุ้มทุนรวม (Q*) ตามแผนการรับนิสิต — ตามที่กองแผนงานขอ (บันทึกเสียงประชุม 2026):
  * คำนวณจุดคุ้มทุนรวมจากโครงสร้างต้นทุน/รายได้ก่อน แล้วค่อยแตกยอดเป็นกลุ่มนิสิตไทย/ต่างชาติ
- * x ภาคปกติ/พิเศษ (+ หลักสูตรต่อเนื่องสำหรับบางหลักสูตร) ใช้ได้ทั้งหลักสูตรเดิมและหลักสูตรใหม่
+ * x ภาคปกติ/พิเศษ (+ หลักสูตรต่อเนื่องสำหรับบางหลักสูตร)
  *
- * ระบบยังไม่มีข้อมูลจริงแยกไทย/ต่างชาติ x ปกติ/พิเศษ ต่อหลักสูตร (รอเชื่อมข้อมูลทะเบียนใน
- * apps/api) — สัดส่วนนี้จึงเป็นค่าที่ผู้ใช้กำหนดเอง ไม่ใช่ค่าจริงจากระบบ
+ * วิธีนี้ถือว่าทุกกลุ่มมีอัตราเท่ากัน จึงใช้ได้เมื่อยังไม่รู้ค่าธรรมเนียมรายกลุ่ม —
+ * ถ้ารู้อัตราแล้วให้ใช้การ์ด "คำนวณจุดคุ้มทุนแยกรายกลุ่ม" (SegmentedBreakEven) ซึ่งแม่นกว่า
+ *
+ * สถานะทั้งหมดอยู่ใน useAdmissionPlan เพื่อให้การ์ดอื่นบนหน้าเดียวกันเห็นค่าชุดเดียวกัน
  */
 
-type CategoryKey = 'thaiSpecial' | 'foreignRegular' | 'foreignSpecial' | 'continuing';
+const planLabel = (p: AdmissionPlan) => `${p.name} · ${p.programName} · ${p.savedAt}`;
 
-const CATEGORY_LABELS: Record<CategoryKey, string> = {
-  thaiSpecial: 'นิสิตไทย · ภาคพิเศษ',
-  foreignRegular: 'นิสิตต่างชาติ · ภาคปกติ',
-  foreignSpecial: 'นิสิตต่างชาติ · ภาคพิเศษ',
-  continuing: 'หลักสูตรต่อเนื่อง (รับนิสิตเชื่อมโยง)',
-};
+interface Props {
+  qStar: number | null;
+  programName: string;
+  state: AdmissionPlanState;
+}
 
-/** ปัดเศษจำนวนคนให้รวมได้เท่ากับ total เป๊ะ ด้วยวิธี largest remainder */
-const distributeByShare = (total: number, shares: number[]): number[] => {
-  const raw = shares.map((s) => (total * s) / 100);
-  const floors = raw.map((v) => Math.floor(v));
-  let remaining = total - floors.reduce((a, b) => a + b, 0);
+const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
+  const { mix, plans, loadingPlans, selectedPlan, pristine, shares } = state;
+  const { enabled, pct } = mix;
+  const { activeKeys, otherTotal, thaiRegularPct, overAllocated } = shares;
 
-  const order = raw
-    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
-    .sort((a, b) => b.frac - a.frac);
-
-  const result = [...floors];
-
-  for (const { i } of order) {
-    if (remaining <= 0) break;
-    result[i] = (result[i] ?? 0) + 1;
-    remaining -= 1;
-  }
-
-  return result;
-};
-
-const AdmissionBreakdown = ({ qStar, programName }: { qStar: number | null; programName: string }) => {
-  const [enabled, setEnabled] = useState<Record<CategoryKey, boolean>>({
-    thaiSpecial: false,
-    foreignRegular: false,
-    foreignSpecial: false,
-    continuing: false,
-  });
-  const [pct, setPct] = useState<Record<CategoryKey, number>>({
-    thaiSpecial: 0,
-    foreignRegular: 0,
-    foreignSpecial: 0,
-    continuing: 0,
-  });
-
-  const activeKeys = (Object.keys(enabled) as CategoryKey[]).filter((k) => enabled[k]);
-  const otherTotal = activeKeys.reduce((sum, k) => sum + (pct[k] || 0), 0);
-  const thaiRegularPct = Math.max(0, 100 - otherTotal);
-  const overAllocated = otherTotal > 100;
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [planName, setPlanName] = useState('');
+  const [confirm, setConfirm] = useState<'clear' | 'delete' | null>(null);
 
   const rows = useMemo(() => {
-    const labels = ['นิสิตไทย · ภาคปกติ', ...activeKeys.map((k) => CATEGORY_LABELS[k])];
-    const shares = [thaiRegularPct, ...activeKeys.map((k) => pct[k] || 0)];
-    const heads = qStar && qStar > 0 ? distributeByShare(qStar, shares) : shares.map(() => 0);
+    const labels = [SEGMENT_LABELS.thaiRegular, ...activeKeys.map((k) => SEGMENT_LABELS[k])];
+    const pcts = [thaiRegularPct, ...activeKeys.map((k) => pct[k] || 0)];
+    const heads = qStar && qStar > 0 ? distributeHeads(qStar, pcts) : pcts.map(() => 0);
 
-    return labels.map((label, i) => ({ label, pct: shares[i] ?? 0, head: heads[i] ?? 0 }));
+    return labels.map((label, i) => ({ label, pct: pcts[i] ?? 0, head: heads[i] ?? 0 }));
   }, [activeKeys, pct, thaiRegularPct, qStar]);
 
-  const setCategoryPct = (key: CategoryKey, value: number) => {
-    const clamped = Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+  const openSaveDialog = () => {
+    const n = plans.filter((p) => p.programName === programName).length + 1;
 
-    setPct((prev) => ({ ...prev, [key]: clamped }));
+    setPlanName(`แผน ${n} — ${programName}`);
+    setSaveOpen(true);
   };
 
-  const toggleCategory = (key: CategoryKey, on: boolean) => {
-    setEnabled((prev) => ({ ...prev, [key]: on }));
+  const commitSave = () => {
+    if (!planName.trim()) return;
 
-    if (!on) setPct((prev) => ({ ...prev, [key]: 0 }));
+    state.savePlan(planName);
+    setSaveOpen(false);
+  };
+
+  const exportCsv = () => {
+    downloadCsv(`แผนการรับนิสิต-${programName}`, [
+      ['หลักสูตร', programName],
+      ['จุดคุ้มทุนรวม (คน)', qStar ?? ''],
+      ['ส่งออกเมื่อ', new Date().toLocaleString('th-TH')],
+      [],
+      ['กลุ่มนิสิต', 'สัดส่วน (%)', 'จำนวนที่ต้องรับ (คน)'],
+      ...rows.map((r) => [r.label, r.pct, r.head]),
+      ['รวม', 100, qStar ?? 0],
+    ]);
+    state.setToast('ส่งออก CSV แล้ว');
   };
 
   if (!qStar || qStar <= 0) return null;
 
   return (
-    <Card sx={{ mt: 4 }}>
+    <Card>
       <CardHeader
         title="แยกจุดคุ้มทุนตามแผนการรับนิสิต"
         subheader={`${programName} — จุดคุ้มทุนรวม ${qStar.toLocaleString('th-TH')} คน แตกยอดเป็นกลุ่มนิสิตด้านล่าง`}
+        action={
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button size="small" variant="outlined" color="secondary" onClick={exportCsv}>
+              ส่งออก CSV
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              disabled={pristine}
+              onClick={() => setConfirm('clear')}
+            >
+              ล้างค่า
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              disabled={pristine || overAllocated}
+              onClick={openSaveDialog}
+            >
+              บันทึกแผน
+            </Button>
+          </Box>
+        }
       />
       <CardContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          เปิดกลุ่มที่ต้องการแยก แล้วกำหนดสัดส่วน (%) — นิสิตไทยภาคปกติจะคำนวณเป็นส่วนที่เหลือให้อัตโนมัติ
+        {loadingPlans ? (
+          <Skeleton variant="rounded" height={40} sx={{ mb: 3, maxWidth: 560 }} />
+        ) : (
+          plans.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
+              <Autocomplete
+                sx={{ flex: 1, maxWidth: 560 }}
+                size="small"
+                options={plans}
+                getOptionLabel={planLabel}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                value={selectedPlan}
+                onChange={(_, v) => state.applyPlan(v)}
+                renderInput={(params) => <TextField {...params} label="📋 แผนที่บันทึกไว้" />}
+              />
+              <Tooltip title={selectedPlan ? 'ลบแผนนี้' : 'เลือกแผนก่อนจึงจะลบได้'}>
+                <span>
+                  <IconButton
+                    color="error"
+                    disabled={!selectedPlan}
+                    onClick={() => setConfirm('delete')}
+                  >
+                    <i className="ri-delete-bin-line" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          )
+        )}
+
+        <Typography component="div" variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          เปิดกลุ่มที่ต้องการแยก แล้วกำหนดสัดส่วน (%) —
+          นิสิตไทยภาคปกติจะคำนวณเป็นส่วนที่เหลือให้อัตโนมัติ
+          {!pristine && (
+            <Chip
+              size="small"
+              variant="tonal"
+              color="success"
+              label="เซฟร่างอัตโนมัติแล้ว"
+              sx={{ ml: 2 }}
+            />
+          )}
         </Typography>
 
-        {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => (
+        {CATEGORY_KEYS.map((key) => (
           <Box
             key={key}
             sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, flexWrap: 'wrap' }}
@@ -120,18 +188,20 @@ const AdmissionBreakdown = ({ qStar, programName }: { qStar: number | null; prog
               control={
                 <Switch
                   checked={enabled[key]}
-                  onChange={(e) => toggleCategory(key, e.target.checked)}
+                  onChange={(e) => state.toggleCategory(key, e.target.checked)}
                 />
               }
-              label={CATEGORY_LABELS[key]}
+              label={SEGMENT_LABELS[key]}
             />
             <TextField
               size="small"
               type="number"
               disabled={!enabled[key]}
               value={pct[key] || ''}
-              onChange={(e) => setCategoryPct(key, Number(e.target.value))}
-              slotProps={{ input: { endAdornment: <InputAdornment position="end">%</InputAdornment> } }}
+              onChange={(e) => state.setCategoryPct(key, Number(e.target.value))}
+              slotProps={{
+                input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+              }}
               sx={{ width: 120 }}
             />
           </Box>
@@ -139,7 +209,8 @@ const AdmissionBreakdown = ({ qStar, programName }: { qStar: number | null; prog
 
         {overAllocated && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            สัดส่วนรวมของกลุ่มที่เปิดไว้เกิน 100% ({otherTotal.toLocaleString('th-TH')}%) — ลดสัดส่วนลงก่อน
+            สัดส่วนรวมของกลุ่มที่เปิดไว้เกิน 100% ({otherTotal.toLocaleString('th-TH')}%) —
+            ลดสัดส่วนลงก่อน
           </Alert>
         )}
 
@@ -176,11 +247,66 @@ const AdmissionBreakdown = ({ qStar, programName }: { qStar: number | null; prog
         </TableContainer>
 
         <Alert severity="info" variant="outlined" sx={{ mt: 3 }}>
-          สัดส่วนไทย/ต่างชาติ x ภาคปกติ/พิเศษ ของแต่ละหลักสูตรยังไม่มีในระบบ (รอเชื่อมข้อมูลทะเบียนใน apps/api) —
-          ตัวเลขข้างบนคำนวณจากสัดส่วนที่ผู้ใช้กำหนดเอง ไม่ใช่ข้อมูลจริงจากระบบทะเบียน
-          หากต้องการดูรายละเอียดเกณฑ์การปันส่วนต้นทุนคงที่/ต้นทุนผันแปรเพิ่มเติม แจ้งทีมพัฒนาได้
+          ตารางนี้ถือว่าทุกกลุ่มมีอัตราค่าธรรมเนียมเท่ากัน — ถ้ามีอัตรารายกลุ่มจริงแล้ว ให้ใช้การ์ด
+          &quot;คำนวณจุดคุ้มทุนแยกรายกลุ่ม&quot; ด้านล่างแทน ซึ่งคำนวณ Q* จาก CM
+          ถัวเฉลี่ยถ่วงน้ำหนัก แผนที่บันทึกไว้เก็บอยู่ในเครื่องนี้เท่านั้น
+          (ยังไม่ได้เก็บบนเซิร์ฟเวอร์)
         </Alert>
       </CardContent>
+
+      <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>บันทึกแผนการรับนิสิต</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            sx={{ mt: 2 }}
+            label="ชื่อแผน"
+            placeholder="เช่น แผน A — เน้นนิสิตต่างชาติ"
+            value={planName}
+            onChange={(e) => setPlanName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && commitSave()}
+            error={!planName.trim()}
+            helperText={planName.trim() ? ' ' : 'ตั้งชื่อแผนก่อนบันทึก'}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button color="secondary" onClick={() => setSaveOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button variant="contained" disabled={!planName.trim()} onClick={commitSave}>
+            บันทึก
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={confirm !== null} onClose={() => setConfirm(null)} fullWidth maxWidth="xs">
+        <DialogTitle>{confirm === 'delete' ? 'ลบแผนนี้?' : 'ล้างค่าที่กรอกไว้?'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {confirm === 'delete'
+              ? `แผน "${selectedPlan?.name ?? ''}" จะถูกลบถาวร ย้อนกลับไม่ได้`
+              : 'สัดส่วนและอัตรารายกลุ่มที่กรอกไว้จะถูกล้าง (แผนที่บันทึกไว้แล้วยังอยู่ครบ)'}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button color="secondary" onClick={() => setConfirm(null)}>
+            ยกเลิก
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              if (confirm === 'delete' && selectedPlan) state.deletePlan(selectedPlan);
+              else if (confirm === 'clear') state.clearAll();
+
+              setConfirm(null);
+            }}
+          >
+            {confirm === 'delete' ? 'ลบ' : 'ล้างค่า'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

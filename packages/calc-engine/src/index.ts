@@ -12,4 +12,11 @@ export { calcQStar, applyQStarRounding } from './qstar';
 export type { QStarOutcome } from './qstar';
 export { calcBreakEven, calcBreakEvenBothModes, totalRevenue } from './break-even';
 export { aggregateBreakEven } from './aggregate';
+export { calcSegmentedBreakEven, distributeHeads, segmentRevenuePerHead } from './segmented';
+export type {
+  StudentSegmentInput,
+  SegmentBreakEven,
+  SegmentedBreakEvenInput,
+  SegmentedBreakEvenResult,
+} from './segmented';
 export type { AggregateBreakEvenResult } from './aggregate';

@@ -19,22 +19,20 @@ MOCKUP-MASTER.html
 .env
 .env.*
 
-# ไม่จำเป็นต่อเว็บ static — ลดขนาดที่อัปโหลด
+# ─────────────────────────────────────────────────────────────────────
+# ไฟล์ที่ไม่จำเป็นต่อการ deploy — ลดขนาดที่อัปโหลด
+#
+# รีโปนี้ deploy สองโปรเจกต์จากรากเดียวกัน (msu-beps-web = Next.js ใน apps/web,
+# msu-beps-mockup = static ใน mockup/) รายการนี้จึงต้องไม่ตัดไฟล์ที่ฝั่ง Next.js
+# ต้องใช้ build — ได้แก่ packages/, pnpm-lock.yaml, pnpm-workspace.yaml,
+# tsconfig.base.json ซึ่งเคยถูกตัดไว้ตอนที่รีโปมีแต่ mockup แล้วทำให้ build พัง
+# ─────────────────────────────────────────────────────────────────────
 node_modules/
 .git/
-packages/
-db/
 MANUS/
 .github/
 .claude/
 ER.html
 WIREFRAME.html
-*.md
-!mockup/README.md
 mockup/make-data-sample.mjs
 docker-compose.yml
-pnpm-lock.yaml
-pnpm-workspace.yaml
-tsconfig.base.json
-vitest.config.ts
-eslint.config.mjs

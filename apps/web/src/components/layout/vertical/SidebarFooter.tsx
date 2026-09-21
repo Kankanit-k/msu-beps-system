@@ -52,6 +52,7 @@ const SidebarFooter = () => {
     <Box
       sx={{
         marginBlockStart: 'auto',
+        flexShrink: 0,
         paddingInline: '16px',
         paddingBlock: '12px',
         borderBlockStart: '1px solid var(--mui-palette-divider)',
