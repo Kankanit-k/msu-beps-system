@@ -30,6 +30,8 @@ import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
 import Chip from '@mui/material/Chip';
 
+import { DotTitle } from '@components/ChartBits';
+
 import type { RevenueMode } from '@beps/calc-engine';
 
 import { downloadCsv } from '@/utils/csv';
@@ -117,7 +119,9 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
   return (
     <Card>
       <CardHeader
-        title="คำนวณจุดคุ้มทุนแยกรายกลุ่ม (Student Segregation)"
+        title={
+          <DotTitle color="success.main">คำนวณจุดคุ้มทุนแยกรายกลุ่ม (Student Segregation)</DotTitle>
+        }
         subheader="กรอกอัตราต่อหัวของแต่ละกลุ่ม ระบบหา Q* จาก CM ถัวเฉลี่ยถ่วงน้ำหนัก — ไม่ต้องรู้จำนวนนิสิตล่วงหน้า"
         action={
           <Button

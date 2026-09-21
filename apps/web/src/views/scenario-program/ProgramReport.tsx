@@ -159,7 +159,7 @@ const ProgramReport = ({ entry }: Props) => {
       </Typography>
       <Box sx={{ bgcolor: '#f0ecff', border: '1px solid rgba(109,76,255,.25)', borderRadius: 1.5, p: 2, mt: 1, mb: 2 }}>
         <Typography variant="body2" sx={{ color: '#5938e0' }}>
-          Q* = TFC ÷ (R − AVC) = {fmtB(r.tfc)} ÷ ({fmtB(r.r ?? 0)} − {fmtB(r.avc ?? 0)}){' '}
+          Q* = TFC / (R − AVC) = {fmtB(r.tfc)} / ({fmtB(r.r ?? 0)} − {fmtB(r.avc ?? 0)}){' '}
           <b>{r.qStar ? `= ${fmtN(r.qStar)} คน` : ''}</b>
         </Typography>
       </Box>

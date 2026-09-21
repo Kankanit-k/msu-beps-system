@@ -30,6 +30,8 @@ import DialogActions from '@mui/material/DialogActions';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 
+import { DotTitle } from '@components/ChartBits';
+
 import { distributeHeads } from '@beps/calc-engine';
 
 import { downloadCsv } from '@/utils/csv';
@@ -106,7 +108,7 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
   return (
     <Card>
       <CardHeader
-        title="แยกจุดคุ้มทุนตามแผนการรับนิสิต"
+        title={<DotTitle color="primary.main">แยกจุดคุ้มทุนตามแผนการรับนิสิต</DotTitle>}
         subheader={`${programName} — จุดคุ้มทุนรวม ${qStar.toLocaleString('th-TH')} คน แตกยอดเป็นกลุ่มนิสิตด้านล่าง`}
         action={
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>

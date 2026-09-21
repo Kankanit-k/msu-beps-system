@@ -44,7 +44,7 @@ export const SETTINGS: CalcSetting[] = [
   {
     key: 'cm_le_zero_policy',
     name: 'เมื่อ CM ≤ 0 (ต้นทุนผันแปร/หัว สูงกว่ารายได้/หัว)',
-    desc: 'full_cost_recovery = รายงานเป้าหมายขั้นต่ำ Q* = TC ÷ R (สูตรที่ 7) · not_computable = รายงานว่าไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน',
+    desc: 'full_cost_recovery = รายงานเป้าหมายขั้นต่ำ Q* = TC / R (สูตรที่ 7) · not_computable = รายงานว่าไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน',
     type: 'enum',
     opts: ['full_cost_recovery', 'not_computable'],
     def: 'full_cost_recovery',
@@ -72,7 +72,7 @@ export const SETTINGS: CalcSetting[] = [
   {
     key: 'profit_pct_basis',
     name: 'ตัวหารของ "กำไร %"',
-    desc: 'TC = กำไร ÷ ต้นทุนรวม (มองเป็น margin เทียบต้นทุน) · TR = กำไร ÷ รายได้รวม (มองเป็น margin เทียบยอดขาย) — v8 ใช้ตัวหารคนละตัวระหว่างหน้าภาพรวมกับ Cross Analysis จนตัวเลขไม่ตรงกัน จึงต้องบังคับให้ชัดเป็นค่าตั้งเดียว',
+    desc: 'TC = กำไร / ต้นทุนรวม (มองเป็น margin เทียบต้นทุน) · TR = กำไร / รายได้รวม (มองเป็น margin เทียบยอดขาย) — v8 ใช้ตัวหารคนละตัวระหว่างหน้าภาพรวมกับ Cross Analysis จนตัวเลขไม่ตรงกัน จึงต้องบังคับให้ชัดเป็นค่าตั้งเดียว',
     type: 'enum',
     opts: ['TC', 'TR'],
     def: 'TC',

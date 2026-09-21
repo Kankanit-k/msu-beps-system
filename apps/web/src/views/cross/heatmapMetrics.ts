@@ -16,13 +16,31 @@ const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
 
 export const HEATMAP_METRICS: HeatmapMetric[] = [
-  { key: 'util', label: 'Utilization', unit: 'Q/Q* %', good: 'high', format: (v) => (v > 0 ? `${v}%` : '—') },
-  { key: 'profitPct', label: 'กำไร %', unit: 'Profit', good: 'high', format: (v) => `${v >= 0 ? '+' : ''}${v}%` },
+  {
+    key: 'util',
+    label: 'Utilization',
+    unit: 'Q/Q* %',
+    good: 'high',
+    format: (v) => (v > 0 ? `${v}%` : '—'),
+  },
+  {
+    key: 'profitPct',
+    label: 'กำไร %',
+    unit: 'Profit',
+    good: 'high',
+    format: (v) => `${v >= 0 ? '+' : ''}${v}%`,
+  },
   { key: 'progOkRatio', label: 'หลักสูตรคุ้ม', unit: '%', good: 'high', format: (v) => `${v}%` },
   { key: 'CM', label: 'CM/หัว', unit: 'บาท', good: 'high', format: fmtB },
   { key: 'R', label: 'R/หัว', unit: 'บาท', good: 'high', format: fmtB },
   { key: 'AVC', label: 'AVC/หัว', unit: 'บาท', good: 'low', format: fmtB },
-  { key: 'avcRRatio', label: 'AVC/R', unit: '%', good: 'low', format: (v) => (v >= 999 ? '—' : `${v}%`) },
+  {
+    key: 'avcRRatio',
+    label: 'AVC/R',
+    unit: '%',
+    good: 'low',
+    format: (v) => (v >= 999 ? '—' : `${v}%`),
+  },
   { key: 'tfcTcRatio', label: 'TFC/TC', unit: '%', good: 'low', format: (v) => `${v}%` },
   {
     key: 'profitM',
@@ -36,6 +54,13 @@ export const HEATMAP_METRICS: HeatmapMetric[] = [
 ];
 
 /** ไล่สีแดง→ทอง→เขียว ตามตำแหน่งสัมพัทธ์ในคอลัมน์เดียวกัน (min-max ต่อคอลัมน์ ไม่ใช่ทั้งตาราง) */
+/**
+ * ป้ายบอกสเกลสีของ heatmap (ต่ำ → สูง) — ไล่สีชุดเดียวกับปลายทั้งสองข้างและช่วงกลางของ
+ * heatCellColor ด้านล่าง ถ้าแก้สีในฟังก์ชันนั้นให้แก้ที่นี่ด้วย ไม่ให้ป้ายกับตารางเพี้ยนกัน
+ */
+export const HEAT_SCALE_GRADIENT =
+  'linear-gradient(90deg, rgb(252,205,210), rgb(255,243,191), rgb(188,232,219))';
+
 export function heatCellColor(val: number, good: MetricGoodDirection, allInColumn: number[]) {
   const sorted = [...allInColumn].sort((a, b) => a - b);
   const min = sorted[0] ?? 0;

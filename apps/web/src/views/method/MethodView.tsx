@@ -65,7 +65,7 @@ const FormulaCard = ({ title, eq, eqColor = 'default', children }: FormulaCardPr
 const VAR_DEFS = (bothModes: ReturnType<typeof calcBreakEvenBothModes>) => [
   {
     sym: 'Q / Q*',
-    name: 'จำนวนนิสิตจริง / ณ จุดคุ้มทุน · Q = ลงทะเบียนจริง, Q* = TFC ÷ (R − AVC)',
+    name: 'จำนวนนิสิตจริง / ณ จุดคุ้มทุน · Q = ลงทะเบียนจริง, Q* = TFC / (R − AVC)',
     unit: 'คน',
     value: `รวม ${fmtN(RAW.UNI.Q)} คน`,
   },
@@ -89,13 +89,13 @@ const VAR_DEFS = (bothModes: ReturnType<typeof calcBreakEvenBothModes>) => [
   },
   {
     sym: 'TVC / AVC',
-    name: 'ต้นทุนผันแปร / ต่อหน่วย · AVC = TVC ÷ Q',
+    name: 'ต้นทุนผันแปร / ต่อหน่วย · AVC = TVC / Q',
     unit: 'บาท / บาท/คน',
     value: `${fmtM(RAW.UNI.TVC)} ล้าน (${pct(RAW.UNI.TVC, RAW.UNI.TC)})`,
   },
   {
     sym: 'R',
-    name: 'รายได้ต่อหน่วย (Revenue per Student = TR ÷ Q)',
+    name: 'รายได้ต่อหน่วย (Revenue per Student = TR / Q)',
     unit: 'บาท/คน',
     value: `${fmtN(bothModes.with_government.r ?? 0)} บ. (เฉลี่ย)`,
   },
@@ -165,7 +165,7 @@ const MethodView = () => {
       </Grid>
 
       <Grid size={{ xs: 12, md: 6 }}>
-        <FormulaCard title="📌 สูตรที่ 1 — จุดคุ้มทุน" eq="Q* = TFC ÷ ( R − AVC )">
+        <FormulaCard title="📌 สูตรที่ 1 — จุดคุ้มทุน" eq="Q* = TFC / ( R − AVC )">
           จุดคุ้มทุน (BEP) คือจำนวนนิสิตขั้นต่ำ Q* ที่ทำให้ TR = TC พอดี (π = 0) ส่วนต่าง (R − AVC) คือ{' '}
           <strong>Contribution Margin (CM)</strong> — รายได้ส่วนที่นำไปชดเชย TFC ยิ่ง CM สูง จุดคุ้มทุนยิ่งต่ำ
         </FormulaCard>
@@ -207,7 +207,7 @@ const MethodView = () => {
                     color: 'primary.main',
                   }}
                 >
-                  R รวมแผ่นดิน = (งบแผ่นดิน + งบเงินรายได้) ÷ Q
+                  R รวมแผ่นดิน = (งบแผ่นดิน + งบเงินรายได้) / Q
                 </Box>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -222,7 +222,7 @@ const MethodView = () => {
                     color: 'warning.main',
                   }}
                 >
-                  R ไม่รวมแผ่นดิน = งบเงินรายได้ ÷ Q
+                  R ไม่รวมแผ่นดิน = งบเงินรายได้ / Q
                 </Box>
               </Grid>
             </Grid>
@@ -268,7 +268,7 @@ const MethodView = () => {
               ต้องคุ้มต้นทุนคงที่ของตัวเอง ชดเชยข้ามหลักสูตรไม่ได้ → เข้มงวดและตรงกับการบริหารจริง
             </Typography>
             <Typography variant="body2" color="text.disabled">
-              <strong>วิธีเทียบ</strong> Q* = TFCคณะ ÷ (R − AVC) ใช้ยอดรวมทั้งคณะ ยอมให้หลักสูตรกำไรอุ้มหลักสูตรขาดทุน →
+              <strong>วิธีเทียบ</strong> Q* = TFCคณะ / (R − AVC) ใช้ยอดรวมทั้งคณะ ยอมให้หลักสูตรกำไรอุ้มหลักสูตรขาดทุน →
               ได้ Q* ต่ำกว่าจริง
             </Typography>
           </CardContent>
@@ -292,7 +292,7 @@ const MethodView = () => {
                 color: 'warning.main',
               }}
             >
-              ถ้า (R − AVC) ≤ 0 → Q* = TC ÷ R
+              ถ้า (R − AVC) ≤ 0 → Q* = TC / R
             </Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               เมื่อ AVC &gt; R (ต้นทุนผันแปรต่อหัวสูงกว่าค่าเทอมต่อหัว) ตัวส่วนของสูตรมาตรฐานจะติดลบ ได้ Q* ติดลบซึ่งไม่มี
@@ -301,7 +301,7 @@ const MethodView = () => {
             </Typography>
             <Typography variant="body2" gutterBottom>
               <strong>ตัวอย่าง</strong> — เคมี (คณะวิทยาศาสตร์): TC ≈ 2.16 ล้านบาท · ค่าเทอม ≈ 93,000 บ./คน → Q* =
-              2,163,604 ÷ 93,311 ≈ <strong>23 คน</strong>
+              2,163,604 / 93,311 ≈ <strong>23 คน</strong>
             </Typography>
             <Alert severity="warning" sx={{ mt: 1 }}>
               ค่าที่ได้เป็นเป้าหมายขั้นต่ำ ไม่ใช่จุดคุ้มทุนจริง — ทางแก้ที่ยั่งยืนคือลด AVC หรือขึ้นค่าธรรมเนียม

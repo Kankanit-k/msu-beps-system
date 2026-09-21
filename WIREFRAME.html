@@ -296,7 +296,7 @@
         <div class="bs ph">• สรุปอัตโนมัติตามผลกรองปัจจุบัน</div></div>
     </div>
   </div>
-  <div class="ann"><b>Logic ที่ต้องระวัง:</b> Q* ของแถวคณะ = <b>ผลรวม Q* ของหลักสูตรย่อย</b> (สูตร 6a) ไม่ใช่คำนวณจาก TFC รวมคณะ · แถวที่ R ≤ AVC ใช้สูตร 7 (Q* = TC ÷ R) และต้องติดป้ายชัดเจนว่าเป็น "เป้าหมายขั้นต่ำ" ไม่ใช่จุดคุ้มทุนจริง · หลักสูตรที่ยังไม่มีนิสิต (Q=0) แสดง Q* เป็น "—"</div>
+  <div class="ann"><b>Logic ที่ต้องระวัง:</b> Q* ของแถวคณะ = <b>ผลรวม Q* ของหลักสูตรย่อย</b> (สูตร 6a) ไม่ใช่คำนวณจาก TFC รวมคณะ · แถวที่ R ≤ AVC ใช้สูตร 7 (Q* = TC / R) และต้องติดป้ายชัดเจนว่าเป็น "เป้าหมายขั้นต่ำ" ไม่ใช่จุดคุ้มทุนจริง · หลักสูตรที่ยังไม่มีนิสิต (Q=0) แสดง Q* เป็น "—"</div>
 </section>
 
 
@@ -375,7 +375,7 @@
         <span class="seg"><div class="on">รวมเงินแผ่นดิน</div><div>ไม่รวม</div></span></div>
       <div class="kpis">
         <div class="kpi"><div class="l">รายได้ต่อหัว (R)</div><div class="v ph">50,286</div><div class="u">บาท/คน</div></div>
-        <div class="kpi"><div class="l">ต้นทุนรวมต่อหัว (ATC)</div><div class="v ph">49,612</div><div class="u">บาท/คน · TC÷Q</div></div>
+        <div class="kpi"><div class="l">ต้นทุนรวมต่อหัว (ATC)</div><div class="v ph">49,612</div><div class="u">บาท/คน · TC/Q</div></div>
         <div class="kpi"><div class="l">ส่วนต่าง R − ATC</div><div class="v ph">+674</div><div class="u">บาท/คน</div></div>
         <div class="kpi"><div class="l">คณะที่ R ≥ ATC</div><div class="v ph">14 / 20</div><div class="u">คณะ</div></div>
       </div>
@@ -481,7 +481,7 @@
       </div>
     </div>
   </div>
-  <div class="ann"><b>นิยามตัวชี้วัดที่ต้องยืนยัน:</b> Utilization = Q ÷ Q* (%) · กำไร% = π ÷ TR · AVC/R% = สัดส่วนต้นทุนผันแปรต่อรายได้ต่อหัว — ทั้ง 3 ตัวคำนวณจาก <code>BREAK_EVEN_RESULT</code> ได้เลย ไม่ต้องเก็บซ้ำ</div>
+  <div class="ann"><b>นิยามตัวชี้วัดที่ต้องยืนยัน:</b> Utilization = Q / Q* (%) · กำไร% = π / TR · AVC/R% = สัดส่วนต้นทุนผันแปรต่อรายได้ต่อหัว — ทั้ง 3 ตัวคำนวณจาก <code>BREAK_EVEN_RESULT</code> ได้เลย ไม่ต้องเก็บซ้ำ</div>
 </section>
 
 
@@ -748,13 +748,13 @@
     <div class="main">
       <div class="toolbar"><h2 class="h2">📐 สูตรและหลักวิชาการจุดคุ้มทุน</h2><span class="spacer"></span><span class="btn">⬇ PDF</span></div>
       <div class="row r2">
-        <div class="box"><div class="bt">📌 สูตร 1 — จุดคุ้มทุน</div><div class="bs">Q* = TFC ÷ (R − AVC)</div></div>
+        <div class="box"><div class="bt">📌 สูตร 1 — จุดคุ้มทุน</div><div class="bs">Q* = TFC / (R − AVC)</div></div>
         <div class="box"><div class="bt">📌 สูตร 2 — ต้นทุนรวม</div><div class="bs">TC = TFC + (AVC × Q)</div></div>
         <div class="box"><div class="bt">📌 สูตร 3 — กำไร/ขาดทุน</div><div class="bs">π = TR − TC = (R − AVC) × Q − TFC</div></div>
         <div class="box"><div class="bt">📌 สูตร 4 — รายได้ ณ จุดคุ้มทุน</div><div class="bs">BE Revenue = Q* × R</div></div>
         <div class="box"><div class="bt">📌 สูตร 5 — ฐานรายได้ 2 กรณี</div><div class="bs">R รวมแผ่นดิน / R ไม่รวมแผ่นดิน</div></div>
         <div class="box"><div class="bt">📌 สูตร 6 — Q* ระดับคณะ (2 วิธี)</div><div class="bs">Σ Q*หลักสูตร (หลัก) vs pooled (เทียบ)</div></div>
-        <div class="box"><div class="bt">📌 สูตร 7 — กรณี CM ≤ 0</div><div class="bs">Q* = TC ÷ R (Full-Cost Recovery)</div></div>
+        <div class="box"><div class="bt">📌 สูตร 7 — กรณี CM ≤ 0</div><div class="bs">Q* = TC / R (Full-Cost Recovery)</div></div>
         <div class="box"><div class="bt">📖 คำนิยามตัวแปร + 🗂️ การจำแนกต้นทุน</div><div class="bs">ตาราง Q/Q*, TR, TC, TFC, TVC/AVC, R, π + หมวด TFC/TVC</div></div>
       </div>
       <div class="box" style="margin-top:10px"><div class="bt">📚 เอกสารอ้างอิง (APA 7th)</div>

@@ -71,7 +71,9 @@ export const STATUS_COLOR: Record<BEStatus, 'success' | 'error' | 'warning' | 'd
 /* ---------------- ตัวช่วยจัดรูปแบบตัวเลข (บาทไทย) ---------------- */
 
 export const fmtInt = (v: number | null | undefined): string =>
-  v === null || v === undefined || !Number.isFinite(v) ? '—' : Math.round(v).toLocaleString('th-TH');
+  v === null || v === undefined || !Number.isFinite(v)
+    ? '—'
+    : Math.round(v).toLocaleString('th-TH');
 
 export const fmtMillion = (v: number | null | undefined): string =>
   v === null || v === undefined || !Number.isFinite(v)
@@ -85,4 +87,11 @@ export const shortFacName = (name: string): string =>
 export const REVENUE_MODE_LABEL: Record<RevenueMode, string> = {
   with_government: 'รวมเงินแผ่นดิน',
   without_government: 'ไม่รวมเงินแผ่นดิน',
+};
+
+/** คำอธิบายฐานรายได้ตามโหมด — ตรงกับ noteTxt() ของ mockup */
+export const REVENUE_MODE_NOTE: Record<RevenueMode, string> = {
+  with_government: 'ฐานรายได้ = เงินแผ่นดิน + เงินรายได้ (สะท้อนต้นทุนจริงทั้งหมด)',
+  without_government:
+    'ฐานรายได้ = เงินรายได้/ค่าธรรมเนียมเท่านั้น (สะท้อนการเลี้ยงตัวเองของหลักสูตร)',
 };

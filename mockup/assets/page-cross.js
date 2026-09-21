@@ -42,7 +42,7 @@ function hmColor(val,m,all){
 }
 function renderCross(){
   const cd=crossData();
-  document.getElementById('cross-note').innerHTML=`โหมด <b>${BM==='in'?'รวมเงินแผ่นดิน':'ไม่รวมเงินแผ่นดิน'}</b> · <b>Utilization = Q ÷ Q*</b> (Q* = ผลรวมรายหลักสูตร) · คณะที่ <b>CM ≤ 0</b> จะไม่มี Q* (แสดง —)`;
+  document.getElementById('cross-note').innerHTML=`โหมด <b>${BM==='in'?'รวมเงินแผ่นดิน':'ไม่รวมเงินแผ่นดิน'}</b> · <b>Utilization = Q / Q*</b> (Q* = ผลรวมรายหลักสูตร) · คณะที่ <b>CM ≤ 0</b> จะไม่มี Q* (แสดง —)`;
   // heatmap
   const valA={};HM.forEach(m=>valA[m.k]=cd.map(d=>d[m.k]));
   let h='<table class="hm-table"><thead><tr><th class="col-name">คณะ / วิทยาลัย</th>';
@@ -81,7 +81,7 @@ function renderCross(){
   const stars=V.filter(d=>d.util>=100&&d.pp>=0),growth=V.filter(d=>d.util>=100&&d.pp<0),recov=V.filter(d=>d.util<100&&d.pp>=0),risk=V.filter(d=>d.util<100&&d.pp<0);
   const I=[{t:'info',h:`<b>จัดกลุ่ม 4 กลุ่ม</b>: ⭐ Stars <b>${stars.length}</b> · 📈 Growth <b>${growth.length}</b> · 🔄 Recover <b>${recov.length}</b> · ⚠️ Risk <b>${risk.length}</b>${inv.length?` · ไม่มี Q* <b>${inv.length}</b>`:''}`}];
   if(risk.length)I.push({t:'crit',h:`<b>⚠ กลุ่ม Risk — ${risk.length} คณะ</b> (นิสิตไม่ถึง Q* และขาดทุน): ${[...risk].sort((a,b)=>a.pp-b.pp).slice(0,3).map(d=>`${d.short} (Util ${d.util}% · ${d.pp}%)`).join(', ')}`});
-  if(inv.length)I.push({t:'crit',h:`<b>${inv.length} คณะมี CM ≤ 0</b>: ${inv.map(d=>`${d.short} (CM ${fmtB(d.CM)})`).join(', ')} → Q* ใช้ TC ÷ ค่าเทอม · ควรขึ้นค่าธรรมเนียมหรือลดต้นทุนผันแปร`});
+  if(inv.length)I.push({t:'crit',h:`<b>${inv.length} คณะมี CM ≤ 0</b>: ${inv.map(d=>`${d.short} (CM ${fmtB(d.CM)})`).join(', ')} → Q* ใช้ TC / ค่าเทอม · ควรขึ้นค่าธรรมเนียมหรือลดต้นทุนผันแปร`});
   if(stars.length)I.push({t:'ok',h:`<b>⭐ กลุ่ม Stars — ${stars.length} คณะ</b> (เกิน Q* และมีกำไร): ${[...stars].sort((a,b)=>b.pp-a.pp).slice(0,3).map(d=>`${d.short} (+${d.pp}%)`).join(', ')}`});
   const hiAVC=V.filter(d=>d.avc_r_ratio>=50);
   if(hiAVC.length)I.push({t:'warn',h:`<b>${hiAVC.length} คณะมี AVC/R ≥ 50%</b> (ต้นทุนผันแปรกินรายได้เกินครึ่ง) — ขาดทุน <b>${hiAVC.filter(d=>d.pp<0).length}/${hiAVC.length}</b> คณะ`});

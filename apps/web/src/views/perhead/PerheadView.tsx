@@ -35,10 +35,18 @@ import type { ApexOptions } from 'apexcharts';
 // Type Imports
 import type { RevenueMode } from '@beps/calc-engine';
 
+// Component Imports
+import { DotTitle, LegendItem } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
+import KpiCard from '@components/KpiCard';
+import NoteBar from '@components/NoteBar';
+import PageHeaderBar from '@components/PageHeaderBar';
+
 // Data & Calc Imports
 import { calcBreakEven } from '@beps/calc-engine';
 import { RAW } from '@/data/mockup';
 import type { FacRow } from '@/data/mockup';
+import { computeBreakEven, fmtInt, shortFacName, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
@@ -46,9 +54,10 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 // หน่วยวิจัยขนาดเล็กมาก (นิสิต < 30 คน) ทำให้ ATC/หัว สูงผิดปกติจนกราฟอ่านยาก — กันออกจากกราฟ แต่ยังอยู่ในตาราง
 const OUTLIER_MIN_Q = 30;
 
-const short = (s: string) => s.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
-const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
-const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
+// จัดรูปแบบ/ย่อชื่อใช้ตัวเดียวกับหน้าอื่น (ดู @views/breakeven/calc)
+const short = shortFacName;
+const fmtB = fmtInt;
+const fmtN = fmtInt;
 const median = (arr: number[]) => {
   if (!arr.length) return 0;
   const s = [...arr].sort((a, b) => a - b);
@@ -83,6 +92,9 @@ const PerheadView = () => {
 
   const uni = useMemo(() => calcFor({ ...RAW.UNI, name: 'มหาวิทยาลัย' }, mode), [mode]);
 
+  // ส่วนเกิน/ขาดทุนระดับมหาวิทยาลัย — ใช้กับชิปสรุปและแถบข้อจำกัดข้อมูลบนหัวหน้าจอ
+  const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
+
   const allRows = useMemo(() => RAW.FACS.map((f) => calcFor(f, mode)), [mode]);
   const chartRows = useMemo(() => allRows.filter((d) => d.Q >= OUTLIER_MIN_Q), [allRows]);
   const outlierRows = useMemo(() => allRows.filter((d) => d.Q < OUTLIER_MIN_Q), [allRows]);
@@ -96,7 +108,8 @@ const PerheadView = () => {
     return sortedRows.filter((d) => {
       const statWord = d.diff >= 0 ? 'คุ้ม' : 'ขาด';
       const matchesText = !q || d.name.toLowerCase().includes(q) || statWord.includes(q);
-      const matchesFilter = statusFilter === 'all' || (statusFilter === 'ok' ? d.diff >= 0 : d.diff < 0);
+      const matchesFilter =
+        statusFilter === 'all' || (statusFilter === 'ok' ? d.diff >= 0 : d.diff < 0);
 
       return matchesText && matchesFilter;
     });
@@ -114,7 +127,7 @@ const PerheadView = () => {
     ],
     dataLabels: { enabled: false },
     grid: { borderColor: 'var(--mui-palette-divider)', xaxis: { lines: { show: true } } },
-    legend: { position: 'top', horizontalAlign: 'left' },
+    legend: { show: false },
     xaxis: {
       categories: barCategories,
       labels: { formatter: (v) => `${(Number(v) / 1000).toFixed(0)}k` },
@@ -149,9 +162,15 @@ const PerheadView = () => {
       labels: { formatter: (v) => `${(Number(v) / 1000).toFixed(0)}k` },
     },
     markers: { size: 7 },
-    legend: { position: 'top', horizontalAlign: 'left' },
+    legend: { show: false },
     tooltip: {
-      custom: ({ seriesIndex, dataPointIndex }: { seriesIndex: number; dataPointIndex: number }) => {
+      custom: ({
+        seriesIndex,
+        dataPointIndex,
+      }: {
+        seriesIndex: number;
+        dataPointIndex: number;
+      }) => {
         const pts = seriesIndex === 0 ? okPts : lossPts;
         const d = pts[dataPointIndex];
 
@@ -185,8 +204,8 @@ const PerheadView = () => {
           sev: 'error',
           text: (
             <>
-              เฉลี่ยทั้งมหาวิทยาลัย <b>ขาดทุน {fmtB(Math.abs(uni.diff))} บาท/คน</b> — รายได้/หัว {fmtB(uni.r)}{' '}
-              ต่ำกว่าต้นทุน/หัว {fmtB(uni.atc)} บาท
+              เฉลี่ยทั้งมหาวิทยาลัย <b>ขาดทุน {fmtB(Math.abs(uni.diff))} บาท/คน</b> — รายได้/หัว{' '}
+              {fmtB(uni.r)} ต่ำกว่าต้นทุน/หัว {fmtB(uni.atc)} บาท
             </>
           ),
         },
@@ -218,8 +237,8 @@ const PerheadView = () => {
       sev: 'success',
       text: (
         <>
-          คุ้มค่าที่สุดต่อหัว: <b>{short(good[0]!.name)}</b> +{fmtB(good[0]!.diff)} บาท/คน (R {fmtB(good[0]!.r)} ·
-          ATC {fmtB(good[0]!.atc)})
+          คุ้มค่าที่สุดต่อหัว: <b>{short(good[0]!.name)}</b> +{fmtB(good[0]!.diff)} บาท/คน (R{' '}
+          {fmtB(good[0]!.r)} · ATC {fmtB(good[0]!.atc)})
         </>
       ),
     });
@@ -237,9 +256,9 @@ const PerheadView = () => {
         sev: 'info',
         text: (
           <>
-            <b>Economies of Scale</b>: คณะใหญ่ (≥3,000 คน) ต้นทุน/หัวมัธยฐาน <b>{fmtB(ab)}</b> บาท · คณะเล็ก
-            (&lt;1,000 คน) <b>{fmtB(as)}</b> บาท — สูงกว่า <b>{(as / ab).toFixed(1)}×</b> เพราะต้นทุนคงที่กระจายบน
-            นิสิตจำนวนน้อย
+            <b>Economies of Scale</b>: คณะใหญ่ (≥3,000 คน) ต้นทุน/หัวมัธยฐาน <b>{fmtB(ab)}</b> บาท ·
+            คณะเล็ก (&lt;1,000 คน) <b>{fmtB(as)}</b> บาท — สูงกว่า <b>{(as / ab).toFixed(1)}×</b>{' '}
+            เพราะต้นทุนคงที่กระจายบน นิสิตจำนวนน้อย
           </>
         ),
       });
@@ -251,278 +270,285 @@ const PerheadView = () => {
       sev: 'error',
       text: (
         <>
-          <b>{f.name}</b> มีนิสิตเพียง <b>{fmtN(f.Q)} คน</b> แต่ต้นทุนรวม {(f.TC / 1e6).toFixed(1)} ล้านบาท → ต้นทุน
-          /หัว {fmtB(f.atc)} บาท ({(f.atc / uni.atc).toFixed(0)}× ค่าเฉลี่ย) — เป็นหน่วยวิจัย จึงกันออกจากกราฟ
+          <b>{f.name}</b> มีนิสิตเพียง <b>{fmtN(f.Q)} คน</b> แต่ต้นทุนรวม {(f.TC / 1e6).toFixed(1)}{' '}
+          ล้านบาท → ต้นทุน /หัว {fmtB(f.atc)} บาท ({(f.atc / uni.atc).toFixed(0)}× ค่าเฉลี่ย) —
+          เป็นหน่วยวิจัย จึงกันออกจากกราฟ
         </>
       ),
     });
   });
 
   return (
-    <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
-        <Alert severity="info">
-          ATC (ต้นทุนรวม/หัว) และ AVC ไม่เปลี่ยนตามฐานรายได้ — เปลี่ยนเฉพาะ R ·{' '}
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={mode}
-            onChange={(_, v) => v && setMode(v)}
-            sx={{ ml: 2, verticalAlign: 'middle' }}
-          >
-            <ToggleButton value="with_government">รวมเงินแผ่นดิน</ToggleButton>
-            <ToggleButton value="without_government">ไม่รวมเงินแผ่นดิน</ToggleButton>
-          </ToggleButtonGroup>
-        </Alert>
-      </Grid>
+    <Box>
+      <PageHeaderBar
+        title="รายได้ vs ต้นทุนต่อหัวนิสิต"
+        code="W4"
+        mode={mode}
+        onModeChange={setMode}
+        q={uniRes.q}
+        profit={uniRes.profit}
+      />
 
-      {/* KPIs */}
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              รายได้ต่อหัว (R)
-            </Typography>
-            <Typography variant="h4" color="success.main">
-              {fmtB(uni.r)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              บาท/คน · เฉลี่ยทั้งมหาวิทยาลัย
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              ต้นทุนรวมต่อหัว (ATC)
-            </Typography>
-            <Typography variant="h4" color="warning.main">
-              {fmtB(uni.atc)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              บาท/คน · TC ÷ Q
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              ส่วนต่าง R − ATC
-            </Typography>
-            <Typography variant="h4" color={uni.diff >= 0 ? 'success.main' : 'error.main'}>
-              {uni.diff >= 0 ? '+' : '−'}
-              {fmtB(Math.abs(uni.diff))}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              บาท/คน · {uni.diff >= 0 ? 'กำไรต่อหัว' : 'ขาดทุนต่อหัว'}
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              คณะที่ R ≥ ATC
-            </Typography>
-            <Typography variant="h4" color="success.main">
-              {nOk}/{allRows.length}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              คณะ · รายได้/หัว คุ้มต้นทุน/หัว
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+      <DataCaveatNotes profit={uniRes.profit} />
 
-      {/* กราฟหลัก */}
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardHeader
-            title="รายได้/หัว เทียบ ต้นทุน/หัว รายคณะ"
-            subheader={
-              outlierRows.length
-                ? `ไม่รวม ${outlierRows.length} หน่วยที่นิสิต < ${OUTLIER_MIN_Q} คน (ATC สูงผิดปกติ) — ดูในตารางด้านล่าง`
-                : 'บาท/คน ต่อคณะ'
+      <NoteBar severity="info">
+        <b>ATC (ต้นทุนรวม/หัว) และ AVC ไม่เปลี่ยนตามฐานรายได้</b> — เปลี่ยนเฉพาะ <b>R</b> · โหมด:{' '}
+        <b>{REVENUE_MODE_LABEL[mode]}</b> → R เฉลี่ย {fmtB(uni.r)} เทียบ ATC {fmtB(uni.atc)} บาท/คน
+      </NoteBar>
+
+      <Grid container spacing={4} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="รายได้ต่อหัว (R)"
+            value={fmtB(uni.r)}
+            unit="บาท/คน · เฉลี่ยทั้งมหาวิทยาลัย"
+            accent="success"
+            valueColor="var(--mui-palette-success-main)"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="ต้นทุนรวมต่อหัว (ATC)"
+            value={fmtB(uni.atc)}
+            unit="บาท/คน · TC / Q"
+            accent="warning"
+            valueColor="var(--mui-palette-warning-main)"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="ส่วนต่าง R − ATC"
+            value={`${uni.diff >= 0 ? '+' : '−'}${fmtB(Math.abs(uni.diff))}`}
+            unit={`บาท/คน · ${uni.diff >= 0 ? 'กำไรต่อหัว' : 'ขาดทุนต่อหัว'}`}
+            accent={uni.diff >= 0 ? 'success' : 'error'}
+            valueColor={
+              uni.diff >= 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)'
             }
           />
-          <CardContent>
-            <AppReactApexCharts
-              type="bar"
-              height={barHeight}
-              width="100%"
-              options={barOptions}
-              series={barSeries}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="คณะที่ R ≥ ATC"
+            value={`${nOk}/${allRows.length}`}
+            unit="คณะ · รายได้/หัว คุ้มต้นทุน/หัว"
+            accent="primary"
+            valueColor="var(--mui-palette-primary-main)"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={4}>
+        {/* กราฟหลัก */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardHeader
+              title={<DotTitle color="success.main">รายได้/หัว เทียบ ต้นทุน/หัว รายคณะ</DotTitle>}
+              subheader={
+                outlierRows.length
+                  ? `ไม่รวม ${outlierRows.length} หน่วยที่นิสิต < ${OUTLIER_MIN_Q} คน (ATC สูงผิดปกติ) — ดูในตารางด้านล่าง`
+                  : 'บาท/คน ต่อคณะ'
+              }
             />
-          </CardContent>
-        </Card>
-      </Grid>
+            <CardContent>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
+                <LegendItem color="success.main" label="รายได้/หัว (R)" />
+                <LegendItem color="warning.main" label="ต้นทุนรวม/หัว (ATC)" />
+                <LegendItem color="primary.main" label="ต้นทุนผันแปร/หัว (AVC)" />
+              </Box>
+              <AppReactApexCharts
+                type="bar"
+                height={barHeight}
+                width="100%"
+                options={barOptions}
+                series={barSeries}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
 
-      {/* Scatter + Top ATC */}
-      <Grid size={{ xs: 12, md: 7 }}>
-        <Card sx={{ height: '100%' }}>
-          <CardHeader
-            title="แผนภาพประสิทธิภาพ — R เทียบ ATC"
-            subheader="แต่ละจุด = 1 คณะ · สีเขียว = คุ้มทุนต่อหัว (R ≥ ATC) · สีแดง = ขาดทุนต่อหัว"
-          />
-          <CardContent>
-            <AppReactApexCharts type="scatter" height={340} width="100%" options={scatterOptions} series={scatterSeries} />
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, md: 5 }}>
-        <Card sx={{ height: '100%' }}>
-          <CardHeader title="ต้นทุน/หัว สูงสุด (Top 8)" subheader="เทียบกับค่าเฉลี่ยมหาวิทยาลัย" />
-          <CardContent>
-            <Stack spacing={3}>
-              {topAtc.map((d) => (
-                <Box key={d.name}>
-                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                    <Typography variant="body2" noWrap title={d.name} sx={{ maxWidth: '60%' }}>
-                      {short(d.name)}
-                    </Typography>
-                    <Typography variant="body2" fontWeight={600}>
-                      {fmtB(d.atc)}{' '}
-                      <Typography component="span" variant="caption" color="text.secondary">
-                        ({(d.atc / uni.atc).toFixed(1)}×)
+        {/* Scatter + Top ATC */}
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Card sx={{ height: '100%' }}>
+            <CardHeader
+              title={<DotTitle color="primary.main">แผนภาพประสิทธิภาพ — R เทียบ ATC</DotTitle>}
+              subheader="แต่ละจุด = 1 คณะ · สีเขียว = คุ้มทุนต่อหัว (R ≥ ATC) · สีแดง = ขาดทุนต่อหัว"
+            />
+            <CardContent>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
+                <LegendItem color="success.main" label="คุ้มทุนต่อหัว (R ≥ ATC)" />
+                <LegendItem color="error.main" label="ขาดทุนต่อหัว" />
+              </Box>
+              <AppReactApexCharts
+                type="scatter"
+                height={340}
+                width="100%"
+                options={scatterOptions}
+                series={scatterSeries}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Card sx={{ height: '100%' }}>
+            <CardHeader
+              title={<DotTitle color="error.main">ต้นทุน/หัว สูงสุด (Top 8)</DotTitle>}
+              subheader="เทียบกับค่าเฉลี่ยมหาวิทยาลัย"
+            />
+            <CardContent>
+              <Stack spacing={3}>
+                {topAtc.map((d) => (
+                  <Box key={d.name}>
+                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                      <Typography variant="body2" noWrap title={d.name} sx={{ maxWidth: '60%' }}>
+                        {short(d.name)}
                       </Typography>
-                    </Typography>
-                  </Stack>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(d.atc / maxAtc) * 100}
-                    color={d.atc > uni.atc ? 'error' : 'warning'}
-                  />
-                </Box>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* ตาราง */}
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardHeader
-            title="ตารางเปรียบเทียบต่อหัว รายคณะ"
-            subheader="เรียงตามส่วนต่าง R − ATC · หน่วย: บาท/คน"
-            action={
-              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
-                <TextField
-                  size="small"
-                  placeholder="ค้นหาคณะ / สถานะ (คุ้ม, ขาด)..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <i className="ri-search-line" />
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={statusFilter}
-                  onChange={(_, v) => v && setStatusFilter(v)}
-                >
-                  <ToggleButton value="all">ทั้งหมด</ToggleButton>
-                  <ToggleButton value="ok">✓ คุ้ม</ToggleButton>
-                  <ToggleButton value="loss">⚠ ขาด</ToggleButton>
-                </ToggleButtonGroup>
+                      <Typography variant="body2" fontWeight={600}>
+                        {fmtB(d.atc)}{' '}
+                        <Typography component="span" variant="caption" color="text.secondary">
+                          ({(d.atc / uni.atc).toFixed(1)}×)
+                        </Typography>
+                      </Typography>
+                    </Stack>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(d.atc / maxAtc) * 100}
+                      color={d.atc > uni.atc ? 'error' : 'warning'}
+                    />
+                  </Box>
+                ))}
               </Stack>
-            }
-          />
-          <TableContainer sx={{ maxHeight: 460 }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>คณะ / วิทยาลัย</TableCell>
-                  <TableCell align="right">นิสิต</TableCell>
-                  <TableCell align="right">R/หัว</TableCell>
-                  <TableCell align="right">ATC/หัว</TableCell>
-                  <TableCell align="right">AVC/หัว</TableCell>
-                  <TableCell align="right">CM/หัว</TableCell>
-                  <TableCell align="right">R−ATC</TableCell>
-                  <TableCell align="right">สถานะ</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredRows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                      ไม่พบคณะที่ตรงกับเงื่อนไขที่เลือก
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filteredRows.map((d, i) => {
-                  const ok = d.diff >= 0;
+            </CardContent>
+          </Card>
+        </Grid>
 
-                  return (
-                    <TableRow key={d.name} hover>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell sx={{ maxWidth: 220, fontWeight: 600 }} title={d.name}>
-                        {d.name}
-                      </TableCell>
-                      <TableCell align="right">{fmtN(d.Q)}</TableCell>
-                      <TableCell align="right" sx={{ color: 'success.main' }}>
-                        {fmtB(d.r)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: 'warning.main' }}>
-                        {fmtB(d.atc)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: 'primary.main' }}>
-                        {fmtB(d.avc)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: d.cm > 0 ? 'success.main' : 'error.main' }}>
-                        {d.cm > 0 ? '+' : '−'}
-                        {fmtB(Math.abs(d.cm))}
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: ok ? 'success.main' : 'error.main', fontWeight: 700 }}>
-                        {ok ? '+' : '−'}
-                        {fmtB(Math.abs(d.diff))}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          size="small"
-                          label={ok ? '✓ คุ้ม' : '⚠ ขาด'}
-                          color={ok ? 'success' : 'error'}
-                          variant="tonal"
-                        />
+        {/* ตาราง */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardHeader
+              title={<DotTitle color="warning.main">ตารางเปรียบเทียบต่อหัว รายคณะ</DotTitle>}
+              subheader="เรียงตามส่วนต่าง R − ATC · หน่วย: บาท/คน"
+              action={
+                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <TextField
+                    size="small"
+                    placeholder="ค้นหาคณะ / สถานะ (คุ้ม, ขาด)..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <i className="ri-search-line" />
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                  />
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={statusFilter}
+                    onChange={(_, v) => v && setStatusFilter(v)}
+                  >
+                    <ToggleButton value="all">ทั้งหมด</ToggleButton>
+                    <ToggleButton value="ok">✓ คุ้ม</ToggleButton>
+                    <ToggleButton value="loss">⚠ ขาด</ToggleButton>
+                  </ToggleButtonGroup>
+                </Stack>
+              }
+            />
+            <TableContainer sx={{ maxHeight: 460 }}>
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>คณะ / วิทยาลัย</TableCell>
+                    <TableCell align="right">นิสิต</TableCell>
+                    <TableCell align="right">R/หัว</TableCell>
+                    <TableCell align="right">ATC/หัว</TableCell>
+                    <TableCell align="right">AVC/หัว</TableCell>
+                    <TableCell align="right">CM/หัว</TableCell>
+                    <TableCell align="right">R−ATC</TableCell>
+                    <TableCell align="right">สถานะ</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                        ไม่พบคณะที่ตรงกับเงื่อนไขที่เลือก
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
-      </Grid>
+                  )}
+                  {filteredRows.map((d, i) => {
+                    const ok = d.diff >= 0;
 
-      {/* ประเด็นสำคัญ */}
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardHeader title="ประเด็นสำคัญ — ต่อหัวนิสิต" />
-          <CardContent>
-            <Stack spacing={2}>
-              {insights.map((ins, i) => (
-                <Alert key={i} severity={ins.sev} variant="outlined">
-                  {ins.text}
-                </Alert>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
+                    return (
+                      <TableRow key={d.name} hover>
+                        <TableCell>{i + 1}</TableCell>
+                        <TableCell sx={{ maxWidth: 220, fontWeight: 600 }} title={d.name}>
+                          {d.name}
+                        </TableCell>
+                        <TableCell align="right">{fmtN(d.Q)}</TableCell>
+                        <TableCell align="right" sx={{ color: 'success.main' }}>
+                          {fmtB(d.r)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ color: 'warning.main' }}>
+                          {fmtB(d.atc)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ color: 'primary.main' }}>
+                          {fmtB(d.avc)}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: d.cm > 0 ? 'success.main' : 'error.main' }}
+                        >
+                          {d.cm > 0 ? '+' : '−'}
+                          {fmtB(Math.abs(d.cm))}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: ok ? 'success.main' : 'error.main', fontWeight: 700 }}
+                        >
+                          {ok ? '+' : '−'}
+                          {fmtB(Math.abs(d.diff))}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip
+                            size="small"
+                            label={ok ? '✓ คุ้ม' : '⚠ ขาด'}
+                            color={ok ? 'success' : 'error'}
+                            variant="tonal"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Card>
+        </Grid>
+
+        {/* ประเด็นสำคัญ */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardHeader
+              title={<DotTitle color="primary.main">ประเด็นสำคัญ — ต่อหัวนิสิต</DotTitle>}
+            />
+            <CardContent>
+              <Stack spacing={2}>
+                {insights.map((ins, i) => (
+                  <Alert key={i} severity={ins.sev} variant="outlined">
+                    {ins.text}
+                  </Alert>
+                ))}
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
-    </Grid>
+    </Box>
   );
 };
 

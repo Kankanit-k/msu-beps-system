@@ -2,13 +2,9 @@
 
 // React Imports
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 
 // Next Imports
 import dynamic from 'next/dynamic';
-
-// Next Imports
-import NextLink from 'next/link';
 
 // MUI Imports
 import Grid from '@mui/material/Grid';
@@ -17,8 +13,6 @@ import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -26,17 +20,15 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
-import Avatar from '@mui/material/Avatar';
-import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import Link from '@mui/material/Link';
 
 import type { ApexOptions } from 'apexcharts';
 
-// Data / calc Imports
-import NoteBar from '@components/NoteBar';
+// Component Imports
+import { DotTitle, LegendItem } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
 import KpiCard from '@components/KpiCard';
+import NoteBar from '@components/NoteBar';
+import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
@@ -46,36 +38,10 @@ import {
   fmtInt,
   fmtMillion,
   shortFacName,
-  REVENUE_MODE_LABEL,
+  REVENUE_MODE_NOTE,
 } from '@views/breakeven/calc';
 
-/** คำอธิบายฐานรายได้ตามโหมด — ตรงกับ noteTxt() ของ mockup */
-const REVENUE_MODE_NOTE: Record<RevenueMode, string> = {
-  with_government: 'ฐานรายได้ = เงินแผ่นดิน + เงินรายได้ (สะท้อนต้นทุนจริงทั้งหมด)',
-  without_government:
-    'ฐานรายได้ = เงินรายได้/ค่าธรรมเนียมเท่านั้น (สะท้อนการเลี้ยงตัวเองของหลักสูตร)',
-};
-
-// Mock run/approval context — no Run/approval backend yet, so this is display-only sample data.
-const MOCK_RUN = {
-  budgetYear: '2568',
-  budgetYears: ['2566', '2567', '2568'],
-  id: 1042,
-  computedAt: '11 ก.ค. 2569 14:32',
-  method: 'v3 - ฐาน ACTUAL',
-  approved: true,
-  approver: { name: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', role: 'ผู้อนุมัติ' },
-};
-
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
-
-/** หัวการ์ดแบบ mockup — จุดสีนำหน้าชื่อการ์ด (.card-title .dot) */
-const DotTitle = ({ color, children }: { color: string; children: ReactNode }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-    <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
-    <span>{children}</span>
-  </Box>
-);
 
 const Overview = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
@@ -164,136 +130,16 @@ const Overview = () => {
 
   return (
     <Box>
-      {/* หัวหน้าจอ — แถวเดียวแบบ mockup: ชื่อหน้า + ตัวเลือกบริบท + ชิปสรุป + ผู้อนุมัติ */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h5" fontWeight={700}>
-            ภาพรวมมหาวิทยาลัย
-          </Typography>
-          <Chip size="small" label="W1" variant="tonal" color="primary" />
-        </Box>
+      <PageHeaderBar
+        title="ภาพรวมมหาวิทยาลัย"
+        code="W1"
+        mode={mode}
+        onModeChange={setMode}
+        q={uni.q}
+        profit={uni.profit}
+      />
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 3,
-            marginInlineStart: 'auto',
-          }}
-        >
-          <FormControl size="small">
-            <Select value={MOCK_RUN.budgetYear} sx={{ minWidth: 148 }}>
-              {MOCK_RUN.budgetYears.map((y) => (
-                <MenuItem key={y} value={y}>
-                  ปีงบประมาณ {y}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              px: 3,
-              py: 1.25,
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: 1,
-              bgcolor: 'background.paper',
-            }}
-          >
-            <Typography variant="body2" fontWeight={700} color="primary.main">
-              Run #{MOCK_RUN.id}
-            </Typography>
-            <Typography sx={{ fontSize: '0.6875rem' }} color="text.secondary">
-              คำนวณ {MOCK_RUN.computedAt} · คิดค่า {MOCK_RUN.method}
-            </Typography>
-            <Chip
-              size="small"
-              variant="tonal"
-              color={MOCK_RUN.approved ? 'success' : 'warning'}
-              label={MOCK_RUN.approved ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
-            />
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }} color="text.secondary">
-              ฐานรายได้:
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              color="primary"
-              exclusive
-              value={mode}
-              onChange={(_, v) => v && setMode(v)}
-            >
-              <ToggleButton value="with_government">
-                {REVENUE_MODE_LABEL.with_government}
-              </ToggleButton>
-              <ToggleButton value="without_government">
-                {REVENUE_MODE_LABEL.without_government}
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-
-          <Chip size="small" color="primary" variant="tonal" label={`${fmtInt(uni.q)} นิสิต`} />
-          <Chip
-            size="small"
-            color={uni.profit >= 0 ? 'success' : 'error'}
-            variant="tonal"
-            label={`${uni.profit >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtMillion(Math.abs(uni.profit))} ลบ.`}
-          />
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ width: 30, height: 30, fontSize: '0.8125rem' }}>
-              {MOCK_RUN.approver.name.charAt(0)}
-            </Avatar>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.35 }}>
-                {MOCK_RUN.approver.name}
-              </Typography>
-              <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.35 }} color="text.secondary">
-                {MOCK_RUN.approver.role} ·{' '}
-                <Link component="button" underline="hover" sx={{ fontSize: 'inherit' }}>
-                  เปลี่ยนผู้ใช้
-                </Link>
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ข้อจำกัดของข้อมูล — แถบเตี้ยบรรทัดเดียวแบบ mockup */}
-      <NoteBar severity="warning">
-        <b>ข้อจำกัดของข้อมูลชุดนี้</b> — ค่าเสื่อมราคาอาคารยังไม่ครบ (ฟิลด์ <code>dep</code> รวม{' '}
-        {fmtMillion(RAW.UNI.dep)} ลบ. มีเฉพาะครุภัณฑ์) TFC และ TC จึงต่ำกว่าความจริง ตัวเลขขาดทุน{' '}
-        {fmtMillion(Math.abs(uni.profit))} ลบ. ที่รายงานอยู่จึง<b>น้อยกว่าความจริง</b> และ Q*
-        ทุกระดับต่ำกว่าที่ควรเป็น — ดูรายการค้างตรวจที่{' '}
-        <Link component={NextLink} href="/admin/exceptions" underline="hover">
-          รายการค้างตรวจ
-        </Link>
-      </NoteBar>
-
-      {RAW.__sample && (
-        <NoteBar severity="error">
-          <b>ตัวเลขในหน้านี้เป็นข้อมูลตัวอย่าง ไม่ใช่ของจริง</b> — repo
-          นี้ไม่เก็บข้อมูลการเงินจริงของมหาวิทยาลัย (ดูเหตุผลใน <code>.gitignore</code>) จึงโหลด{' '}
-          <code>assets/data.sample.js</code> ที่ตัวเลขถูกสุ่มรบกวนแล้ว ความสัมพันธ์ทุกสูตรยังถูกต้อง
-          แต่<b>ห้ามนำตัวเลขไปอ้างอิง</b> — ถ้ามี <code>assets/data.js</code> ในเครื่อง
-          หน้าจะแสดงตัวเลขจริงเองโดยอัตโนมัติ
-        </NoteBar>
-      )}
+      <DataCaveatNotes profit={uni.profit} />
 
       <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
 
@@ -493,15 +339,6 @@ const Overview = () => {
     </Box>
   );
 };
-
-const LegendItem = ({ color, label }: { color: string; label: string }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-    <Box sx={{ width: 11, height: 11, borderRadius: '3px', bgcolor: color }} />
-    <Typography variant="caption" color="text.secondary" fontWeight={500}>
-      {label}
-    </Typography>
-  </Box>
-);
 
 const CostRow = ({
   label,

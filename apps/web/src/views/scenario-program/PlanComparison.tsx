@@ -30,6 +30,8 @@ import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 
+import { DotTitle } from '@components/ChartBits';
+
 import { distributeHeads } from '@beps/calc-engine';
 
 import { downloadCsv } from '@/utils/csv';
@@ -116,7 +118,7 @@ const PlanComparison = ({ state }: { state: AdmissionPlanState }) => {
   return (
     <Card>
       <CardHeader
-        title="เทียบแผนการรับนิสิต"
+        title={<DotTitle color="warning.main">เทียบแผนการรับนิสิต</DotTitle>}
         subheader={`เลือกได้สูงสุด ${MAX_COMPARE} แผน เพื่อดูสัดส่วนและจำนวนที่ต้องรับข้างกัน`}
         action={
           <Button

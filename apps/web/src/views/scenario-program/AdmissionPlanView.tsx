@@ -13,7 +13,6 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
@@ -26,6 +25,15 @@ import Skeleton from '@mui/material/Skeleton';
 import Snackbar from '@mui/material/Snackbar';
 
 import type { RevenueMode } from '@beps/calc-engine';
+
+// Component Imports
+import { DotTitle } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
+import PageHeaderBar from '@components/PageHeaderBar';
+
+// Data / calc Imports
+import { RAW } from '@/data/mockup';
+import { computeBreakEven } from '@views/breakeven/calc';
 
 import AdmissionBreakdown from './AdmissionBreakdown';
 import PlanComparison from './PlanComparison';
@@ -58,6 +66,8 @@ const AdmissionPlanView = () => {
     if (loaded.length === 0) setSource('manual');
   }, []);
 
+  const uni = computeBreakEven(RAW.UNI, mode);
+
   const qStar = useMemo(() => {
     if (source === 'manual') return manualQStar > 0 ? manualQStar : null;
 
@@ -74,11 +84,24 @@ const AdmissionPlanView = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <Typography variant="h4">🧮 แยกจุดคุ้มทุนตามแผนการรับนิสิต</Typography>
+      {/* หัวหน้าจอชุดเดียวกับหน้าอื่น — ตัด mb ของแถบสุดท้ายออก เพราะคอนเทนเนอร์นี้เว้นระยะด้วย gap แล้ว */}
+      <Box sx={{ '& > :last-child': { mb: 0 } }}>
+        {/* หน้านี้ไม่มีรหัสจอใน SA.md (เป็นส่วนต่อขยายของ W7) จึงไม่ส่ง code */}
+        <PageHeaderBar
+          title="แยกจุดคุ้มทุนตามแผนการรับนิสิต"
+          mode={mode}
+          onModeChange={setMode}
+          q={uni.q}
+          profit={uni.profit}
+        />
+
+        {/* Q* มาจากผลคำนวณที่ผู้ใช้บันทึกเอง จึงขึ้นเฉพาะแถบข้อมูลตัวอย่าง */}
+        <DataCaveatNotes profit={uni.profit} limitations={false} />
+      </Box>
 
       <Card>
         <CardHeader
-          title="จุดคุ้มทุนรวม (Q*)"
+          title={<DotTitle color="primary.main">จุดคุ้มทุนรวม (Q*)</DotTitle>}
           subheader="เลือกผลคำนวณที่บันทึกไว้จากหน้าจุดคุ้มทุนรายหลักสูตร หรือกรอกตัวเลขเอง"
         />
         <CardContent>
@@ -111,32 +134,14 @@ const AdmissionPlanView = () => {
                 &quot;จุดคุ้มทุนรายหลักสูตร&quot; ก่อน หรือสลับไปโหมดกรอก Q* เอง
               </Alert>
             ) : (
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 7 }}>
-                  <Autocomplete
-                    options={history}
-                    getOptionLabel={entryLabel}
-                    isOptionEqualToValue={(a, b) => a.id === b.id}
-                    value={selected}
-                    onChange={(_, v) => setSelected(v)}
-                    renderInput={(params) => (
-                      <TextField {...params} label="📚 ผลคำนวณที่บันทึกไว้" />
-                    )}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 5 }}>
-                  <ToggleButtonGroup
-                    size="small"
-                    exclusive
-                    color="primary"
-                    value={mode}
-                    onChange={(_, v: RevenueMode | null) => v && setMode(v)}
-                  >
-                    <ToggleButton value="with_government">รวมเงินแผ่นดิน</ToggleButton>
-                    <ToggleButton value="without_government">ไม่รวมเงินแผ่นดิน</ToggleButton>
-                  </ToggleButtonGroup>
-                </Grid>
-              </Grid>
+              <Autocomplete
+                options={history}
+                getOptionLabel={entryLabel}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                value={selected}
+                onChange={(_, v) => setSelected(v)}
+                renderInput={(params) => <TextField {...params} label="📚 ผลคำนวณที่บันทึกไว้" />}
+              />
             )
           ) : (
             <Grid container spacing={3}>

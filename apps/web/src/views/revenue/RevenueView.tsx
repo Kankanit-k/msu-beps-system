@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 
 // MUI Imports
-import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
@@ -18,9 +18,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Typography from '@mui/material/Typography';
 
 // Third-party Imports
 import type { ApexOptions } from 'apexcharts';
@@ -28,205 +25,184 @@ import type { ApexOptions } from 'apexcharts';
 // Type Imports
 import type { RevenueMode } from '@beps/calc-engine';
 
-// Data & Calc Imports
-import { calcBreakEven } from '@beps/calc-engine';
+// Component Imports
+import { DotTitle, LegendItem } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
+import KpiCard from '@components/KpiCard';
+import NoteBar from '@components/NoteBar';
+import PageHeaderBar from '@components/PageHeaderBar';
+
+// Data / calc Imports
 import { RAW } from '@/data/mockup';
+import {
+  computeBreakEven,
+  fmtInt,
+  fmtMillion,
+  REVENUE_MODE_NOTE,
+  shortFacName,
+} from '@views/breakeven/calc';
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
-const short = (s: string) => s.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
-const fmtM = (v: number) => (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
-const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
-
 const RevenueView = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
 
-  const U = RAW.UNI;
-  const F = RAW.FACS;
-
-  const uniRes = calcBreakEven({
-    q: U.Q,
-    governmentBudget: U.st,
-    incomeBudget: U.own,
-    tfc: U.TFC,
-    tvc: U.TVC,
-    revenueMode: mode,
-  });
+  const uni = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
 
   const rows = useMemo(
-    () =>
-      F.map((f) => {
-        const res = calcBreakEven({
-          q: f.Q,
-          governmentBudget: f.st,
-          incomeBudget: f.own,
-          tfc: f.TFC,
-          tvc: f.TVC,
-          revenueMode: mode,
-        });
-
-        return { ...f, tr: res.tr, r: res.r ?? 0, profit: res.profit, qStar: res.qStar, qStarStatus: res.qStarStatus };
-      }),
-    [F, mode],
+    () => RAW.FACS.map((fac) => ({ fac, res: computeBreakEven(fac, mode) })),
+    [mode],
   );
 
-  // ===== องค์ประกอบรายได้รายคณะ (stacked bar) =====
-  const categories = F.map((f) => short(f.name));
+  // กราฟองค์ประกอบรายได้ — แสดงเงินแผ่นดินและเงินรายได้เสมอ ไม่ขึ้นกับโหมดฐานรายได้
+  // เพราะจุดประสงค์คือเทียบสัดส่วนแหล่งเงินของแต่ละคณะ (ตรงกับ mockup)
   const stackedOptions: ApexOptions = {
     chart: { type: 'bar', stacked: true, toolbar: { show: false }, parentHeightOffset: 0 },
-    plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '68%' } },
+    plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '70%' } },
     colors: ['var(--mui-palette-primary-main)', 'var(--mui-palette-warning-main)'],
     dataLabels: { enabled: false },
-    grid: { borderColor: 'var(--mui-palette-divider)' },
-    legend: { position: 'top', horizontalAlign: 'left' },
-    xaxis: { categories, title: { text: 'ล้านบาท' } },
-    yaxis: { labels: { style: { fontSize: '11px' } } },
-    tooltip: { y: { formatter: (v) => `${fmtM(v * 1e6)} ล้านบาท` } },
+    stroke: { width: 0 },
+    legend: { show: false },
+    grid: {
+      borderColor: 'var(--mui-palette-divider)',
+      xaxis: { lines: { show: true } },
+      yaxis: { lines: { show: false } },
+    },
+    xaxis: {
+      categories: RAW.FACS.map((f) => shortFacName(f.name)),
+      labels: { style: { fontSize: '11px' } },
+    },
+    yaxis: { labels: { style: { fontSize: '10px' }, maxWidth: 240 } },
+    tooltip: {
+      y: {
+        formatter: (v: number) => `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ.`,
+      },
+    },
   };
   const stackedSeries = [
-    { name: 'เงินรายได้ (ค่าธรรมเนียม)', data: F.map((f) => Number((f.own / 1e6).toFixed(2))) },
-    { name: 'เงินแผ่นดิน', data: F.map((f) => Number((f.st / 1e6).toFixed(2))) },
+    {
+      name: 'เงินรายได้ (ค่าธรรมเนียม)',
+      data: RAW.FACS.map((f) => Number((f.own / 1e6).toFixed(2))),
+    },
+    { name: 'เงินแผ่นดิน', data: RAW.FACS.map((f) => Number((f.st / 1e6).toFixed(2))) },
   ];
-  const stackedHeight = Math.max(420, F.length * 24);
 
   return (
-    <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
-        <Alert severity="info">
-          {mode === 'with_government'
-            ? 'ฐานรายได้ = เงินแผ่นดิน + เงินรายได้ (สะท้อนต้นทุนจริงทั้งหมด)'
-            : 'ฐานรายได้ = เงินรายได้/ค่าธรรมเนียมเท่านั้น (สะท้อนการเลี้ยงตัวเองของหลักสูตร)'}{' '}
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={mode}
-            onChange={(_, v) => v && setMode(v)}
-            sx={{ ml: 2, verticalAlign: 'middle' }}
-          >
-            <ToggleButton value="with_government">รวมเงินแผ่นดิน</ToggleButton>
-            <ToggleButton value="without_government">ไม่รวมเงินแผ่นดิน</ToggleButton>
-          </ToggleButtonGroup>
-        </Alert>
+    <Box>
+      <PageHeaderBar
+        title="รายได้รายคณะ"
+        code="W4"
+        mode={mode}
+        onModeChange={setMode}
+        q={uni.q}
+        profit={uni.profit}
+      />
+
+      <DataCaveatNotes profit={uni.profit} />
+
+      <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
+
+      <Grid container spacing={4} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label={mode === 'with_government' ? 'รายได้รวม (TR)' : 'เงินรายได้ (ค่าธรรมเนียม)'}
+            value={fmtMillion(uni.tr)}
+            unit="ล้านบาท"
+            accent="primary"
+            valueColor="var(--mui-palette-primary-main)"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard label="งบประมาณเงินแผ่นดิน" value={fmtMillion(RAW.UNI.st)} unit="ล้านบาท" />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="งบประมาณเงินรายได้"
+            value={fmtMillion(RAW.UNI.own)}
+            unit="ล้านบาท"
+            accent="warning"
+            valueColor="var(--mui-palette-warning-main)"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="รายได้เฉลี่ยต่อหัว (R)"
+            value={fmtInt(uni.r)}
+            unit="บาท/คน"
+            accent="success"
+            valueColor="var(--mui-palette-success-main)"
+          />
+        </Grid>
       </Grid>
 
-      {/* KPIs */}
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              {mode === 'with_government' ? 'รายได้รวม (TR)' : 'เงินรายได้ (ค่าธรรมเนียม)'}
-            </Typography>
-            <Typography variant="h4" color="primary.main">
-              {fmtM(uniRes.tr)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              ล้านบาท
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              งบประมาณเงินแผ่นดิน
-            </Typography>
-            <Typography variant="h4">{fmtM(U.st)}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              ล้านบาท
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              งบประมาณเงินรายได้
-            </Typography>
-            <Typography variant="h4" color="warning.main">
-              {fmtM(U.own)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              ล้านบาท
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              รายได้เฉลี่ยต่อหัว (R)
-            </Typography>
-            <Typography variant="h4" color="success.main">
-              {fmtB(uniRes.r ?? 0)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              บาท/คน
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+      <Card sx={{ mb: 4 }}>
+        <CardHeader
+          title={<DotTitle color="primary.main">องค์ประกอบรายได้รายคณะ</DotTitle>}
+          subheader="เงินแผ่นดิน + เงินรายได้ (ล้านบาท)"
+        />
+        <CardContent>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
+            <LegendItem color="primary.main" label="เงินรายได้ (ค่าธรรมเนียม)" />
+            <LegendItem color="warning.main" label="เงินแผ่นดิน" />
+          </Box>
+          <AppReactApexCharts
+            type="bar"
+            height={Math.max(420, RAW.FACS.length * 26)}
+            width="100%"
+            options={stackedOptions}
+            series={stackedSeries}
+          />
+        </CardContent>
+      </Card>
 
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardHeader title="องค์ประกอบรายได้รายคณะ" subheader="เงินแผ่นดิน + เงินรายได้ (ล้านบาท)" />
-          <CardContent>
-            <AppReactApexCharts
-              type="bar"
-              height={stackedHeight}
-              width="100%"
-              options={stackedOptions}
-              series={stackedSeries}
-            />
-          </CardContent>
-        </Card>
-      </Grid>
-
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardHeader title="ตารางรายได้ · ต้นทุน · ส่วนเกิน รายคณะ" />
-          <TableContainer sx={{ maxHeight: 460 }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>คณะ</TableCell>
-                  <TableCell align="right">นิสิต</TableCell>
-                  <TableCell align="right">{mode === 'with_government' ? 'TR' : 'เงินรายได้'}</TableCell>
-                  <TableCell align="right">TC</TableCell>
-                  <TableCell align="right">ส่วนเกิน</TableCell>
-                  <TableCell align="right">R/หัว</TableCell>
-                  <TableCell align="right">Q*</TableCell>
+      <Card>
+        <CardHeader
+          title={<DotTitle color="success.main">ตารางรายได้ · ต้นทุน · ส่วนเกิน รายคณะ</DotTitle>}
+          subheader={`${RAW.FACS.length} คณะ/วิทยาลัย · หน่วยล้านบาท ยกเว้น R/หัว (บาท) และ Q* (คน)`}
+        />
+        <TableContainer sx={{ maxBlockSize: 460 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>#</TableCell>
+                <TableCell>คณะ</TableCell>
+                <TableCell align="right">นิสิต</TableCell>
+                <TableCell align="right">
+                  {mode === 'with_government' ? 'TR' : 'เงินรายได้'}
+                </TableCell>
+                <TableCell align="right">TC</TableCell>
+                <TableCell align="right">ส่วนเกิน</TableCell>
+                <TableCell align="right">R/หัว</TableCell>
+                <TableCell align="right">Q*</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map(({ fac, res }, i) => (
+                <TableRow key={fac.name} hover>
+                  <TableCell sx={{ color: 'text.disabled', fontWeight: 700 }}>{i + 1}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{fac.name}</TableCell>
+                  <TableCell align="right">{fmtInt(fac.Q)}</TableCell>
+                  <TableCell align="right">{fmtMillion(res.tr)}</TableCell>
+                  <TableCell align="right">{fmtMillion(res.tc)}</TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ color: res.profit >= 0 ? 'success.main' : 'error.main', fontWeight: 700 }}
+                  >
+                    {res.profit >= 0 ? '+' : '−'}
+                    {fmtMillion(Math.abs(res.profit))}
+                  </TableCell>
+                  <TableCell align="right">{fmtInt(res.r)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'error.main' }}>
+                    {fmtInt(res.qStar)}
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((f, i) => (
-                  <TableRow key={f.name} hover>
-                    <TableCell>{i + 1}</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{f.name}</TableCell>
-                    <TableCell align="right">{fmtN(f.Q)}</TableCell>
-                    <TableCell align="right">{fmtM(f.tr)}</TableCell>
-                    <TableCell align="right">{fmtM(f.TC)}</TableCell>
-                    <TableCell align="right" sx={{ color: f.profit >= 0 ? 'success.main' : 'error.main', fontWeight: 700 }}>
-                      {f.profit >= 0 ? '+' : '−'}
-                      {fmtM(Math.abs(f.profit))}
-                    </TableCell>
-                    <TableCell align="right">{fmtB(f.r)}</TableCell>
-                    <TableCell align="right" sx={{ color: 'error.main' }}>
-                      {f.qStar !== null ? fmtN(f.qStar) : '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Card>
-      </Grid>
-    </Grid>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
+    </Box>
   );
 };
 

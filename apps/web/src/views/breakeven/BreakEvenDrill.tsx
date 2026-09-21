@@ -2,34 +2,42 @@
 
 // React Imports
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 // MUI Imports
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardContent from '@mui/material/CardContent';
-import Grid from '@mui/material/Grid';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
-import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Divider from '@mui/material/Divider';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import Chip from '@mui/material/Chip';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+
+// Type Imports
+import type { RevenueMode } from '@beps/calc-engine';
+
+// Component Imports
+import { DotTitle } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
+import KpiCard from '@components/KpiCard';
+import NoteBar from '@components/NoteBar';
+import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import type { DeptRow, FacRow, ProgRow } from '@/data/mockup';
-import type { RevenueMode } from '@beps/calc-engine';
 import {
   computeBreakEven,
   fmtInt,
   fmtMillion,
-  REVENUE_MODE_LABEL,
-  STATUS_COLOR,
-  STATUS_LABEL,
+  REVENUE_MODE_NOTE,
+  shortFacName,
   statusOf,
   type BEStatus,
 } from '@views/breakeven/calc';
@@ -42,6 +50,24 @@ const QUICK_FILTERS: { value: QuickFilter; label: string }[] = [
   { value: 'loss', label: 'ยังไม่คุ้ม' },
   { value: 'fcr', label: 'R ≤ AVC' },
 ];
+
+/** ป้ายสถานะในตาราง — ใช้คำสั้นแบบ .st-badge ของ mockup (ต่างจาก STATUS_LABEL ที่ใช้ในการ์ดสรุป W3) */
+const BADGE_LABEL: Record<BEStatus, string> = {
+  ok: 'คุ้มทุน',
+  loss: 'ยังไม่คุ้ม',
+  fcr: 'R≤AVC',
+  none: 'ไม่มีข้อมูล',
+};
+
+const BADGE_COLOR: Record<BEStatus, 'success' | 'error' | 'warning' | 'default'> = {
+  ok: 'success',
+  loss: 'error',
+  fcr: 'warning',
+  none: 'default',
+};
+
+/** ความกว้างคอลัมน์ของหัวตารางและทุกแถว — ต้องตรงกันเป๊ะ จึงประกาศที่เดียว */
+const GRID_COLS = 'minmax(220px,2fr) repeat(6, minmax(78px,1fr)) minmax(86px,0.9fr)';
 
 const norm = (s: string) => s.toLowerCase();
 
@@ -72,6 +98,38 @@ const BreakEvenDrill = () => {
   const searchTerm = search.trim().toLowerCase();
   const filtering = !!searchTerm || filter !== 'all';
 
+  // ส่วนเกิน/นิสิตระดับมหาวิทยาลัย — ใช้กับชิปบนหัวหน้าจอและแถบข้อจำกัดข้อมูล (เหมือนหน้าอื่น)
+  const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
+
+  /** ผลคำนวณรายหลักสูตรครั้งเดียว — ใช้ทั้ง KPI, ต้นไม้ และประเด็นสำคัญ */
+  const progStats = useMemo(() => {
+    const map = new Map<ProgRow, { res: ReturnType<typeof computeBreakEven>; status: BEStatus }>();
+
+    RAW.PROGS.forEach((p) => {
+      const res = computeBreakEven(p, mode);
+
+      map.set(p, { res, status: statusOf(res) });
+    });
+
+    return map;
+  }, [mode]);
+
+  const { counts, totalSurplus } = useMemo(() => {
+    let ok = 0;
+    let loss = 0;
+    let fcrOrNone = 0;
+    let surplus = 0;
+
+    progStats.forEach(({ res, status }) => {
+      if (status === 'ok') ok++;
+      else if (status === 'loss') loss++;
+      else fcrOrNone++;
+      surplus += res.profit;
+    });
+
+    return { counts: { ok, loss, fcrOrNone }, totalSurplus: surplus };
+  }, [progStats]);
+
   const progHit = (p: ProgRow, status: BEStatus) => {
     const text =
       !searchTerm ||
@@ -85,29 +143,20 @@ const BreakEvenDrill = () => {
     return text && statusHit;
   };
 
-  const { rows, shownProgs, shownFacs, counts, totalSurplus } = useMemo(() => {
+  const { rows, shownProgs, shownFacs } = useMemo(() => {
     const out: Row[] = [];
     let shownProgsN = 0;
     let shownFacsN = 0;
-    let ok = 0;
-    let loss = 0;
-    let fcrOrNone = 0;
-    let surplus = 0;
 
     RAW.FACS.forEach((f: FacRow) => {
-      const facProgs = RAW.PROGS.filter((p) => p.fac === f.name);
-      const facProgStatuses = facProgs.map((p) => ({ p, status: statusOf(computeBreakEven(p, mode)) }));
+      const facProgStatuses = RAW.PROGS.filter((p) => p.fac === f.name).map((p) => ({
+        p,
+        status: progStats.get(p)!.status,
+      }));
 
-      facProgStatuses.forEach(({ status }) => {
-        if (status === 'ok') ok++;
-        else if (status === 'loss') loss++;
-        else fcrOrNone++;
-      });
-      facProgStatuses.forEach(({ p }) => {
-        surplus += computeBreakEven(p, mode).profit;
-      });
-
-      const hitProgs = filtering ? facProgStatuses.filter(({ p, status }) => progHit(p, status)) : facProgStatuses;
+      const hitProgs = filtering
+        ? facProgStatuses.filter(({ p, status }) => progHit(p, status))
+        : facProgStatuses;
 
       if (filtering && hitProgs.length === 0) return;
       shownFacsN++;
@@ -140,7 +189,9 @@ const BreakEvenDrill = () => {
       RAW.DEPTS.filter((d: DeptRow) => d.fac === f.name).forEach((d) => {
         const key = `${f.name}||${d.grp}`;
         const depProgs = facProgStatuses.filter(({ p }) => p.grp === d.grp);
-        const depHits = filtering ? depProgs.filter(({ p, status }) => progHit(p, status)) : depProgs;
+        const depHits = filtering
+          ? depProgs.filter(({ p, status }) => progHit(p, status))
+          : depProgs;
 
         if (filtering && depHits.length === 0) return;
 
@@ -172,7 +223,7 @@ const BreakEvenDrill = () => {
 
         depHits.forEach(({ p, status }) => {
           shownProgsN++;
-          const pRes = computeBreakEven(p, mode);
+          const pRes = progStats.get(p)!.res;
 
           out.push({
             key: `prog-${f.name}-${d.grp}-${p.prog}`,
@@ -192,14 +243,64 @@ const BreakEvenDrill = () => {
       });
     });
 
-    return {
-      rows: out,
-      shownProgs: shownProgsN,
-      shownFacs: shownFacsN,
-      counts: { ok, loss, fcrOrNone },
-      totalSurplus: surplus,
-    };
-  }, [mode, expandedFac, expandedDept, searchTerm, filter, filtering]);
+    return { rows: out, shownProgs: shownProgsN, shownFacs: shownFacsN };
+  }, [mode, progStats, expandedFac, expandedDept, searchTerm, filter, filtering]);
+
+  // ===== ประเด็นสำคัญ (ตรงกับ be-ins ของ mockup) =====
+  const insights = useMemo(() => {
+    type Insight = { sev: 'success' | 'warning' | 'error' | 'info'; text: ReactNode };
+    const list: Insight[] = [];
+    const entries = RAW.PROGS.map((p) => ({ p, ...progStats.get(p)! }));
+
+    list.push({
+      sev: counts.ok >= counts.loss + counts.fcrOrNone ? 'success' : 'warning',
+      text: (
+        <>
+          จาก {RAW.PROGS.length} หลักสูตร มี <b>{fmtInt(counts.ok)}</b> หลักสูตรที่คุ้มทุนแล้ว,{' '}
+          <b>{fmtInt(counts.loss)}</b> ยังไม่ถึงจุดคุ้มทุน และ <b>{fmtInt(counts.fcrOrNone)}</b>{' '}
+          หลักสูตรที่ R ≤ AVC (ไม่มีจุดคุ้มทุน ณ ราคาปัจจุบัน)
+        </>
+      ),
+    });
+
+    const gap = entries
+      .filter((e) => e.status === 'loss' && e.res.qStar !== null)
+      .sort((a, b) => b.res.qStar! - b.res.q - (a.res.qStar! - a.res.q))[0];
+
+    if (gap) {
+      list.push({
+        sev: 'warning',
+        text: (
+          <>
+            หลักสูตรที่ต้องเพิ่มนิสิตมากสุดเพื่อคุ้มทุน: <b>{gap.p.prog}</b> (
+            {shortFacName(gap.p.fac)}) ปัจจุบัน {fmtInt(gap.res.q)} คน ต้องการ{' '}
+            {fmtInt(gap.res.qStar)} คน — ขาดอีก <b>{fmtInt(gap.res.qStar! - gap.res.q)} คน</b>
+          </>
+        ),
+      });
+    }
+
+    const worst = entries
+      .filter((e) => e.status !== 'ok')
+      .sort((a, b) => a.res.profit - b.res.profit)
+      .slice(0, 3);
+
+    if (worst.length) {
+      list.push({
+        sev: 'error',
+        text: (
+          <>
+            หลักสูตรขาดทุนสูงสุด:{' '}
+            {worst
+              .map((e) => `${e.p.prog} (−${fmtMillion(Math.abs(e.res.profit))} ลบ.)`)
+              .join(', ')}
+          </>
+        ),
+      });
+    }
+
+    return list;
+  }, [progStats, counts]);
 
   const expandAll = () => {
     const fac: Record<string, boolean> = {};
@@ -217,72 +318,93 @@ const BreakEvenDrill = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 4 }}>
-        <Box>
-          <Typography variant="h4">เจาะลึกจุดคุ้มทุน</Typography>
-          <Typography variant="body2" color="text.secondary">
-            คณะ · ระดับการศึกษา · หลักสูตร
-          </Typography>
-        </Box>
-        <ToggleButtonGroup size="small" color="primary" exclusive value={mode} onChange={(_, v) => v && setMode(v)}>
-          <ToggleButton value="with_government">{REVENUE_MODE_LABEL.with_government}</ToggleButton>
-          <ToggleButton value="without_government">{REVENUE_MODE_LABEL.without_government}</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+      <PageHeaderBar
+        title="จุดคุ้มทุน: คณะ · ระดับ · หลักสูตร"
+        code="W2"
+        mode={mode}
+        onModeChange={setMode}
+        q={uniRes.q}
+        profit={uniRes.profit}
+      />
+
+      <DataCaveatNotes profit={uniRes.profit} />
+
+      <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard label="หลักสูตรคุ้มทุน (Q ≥ Q*)" value={fmtInt(counts.ok)} unit={`จาก ${RAW.PROGS.length} หลักสูตร`} />
-        </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard
-            label="หลักสูตรยังไม่คุ้มทุน"
-            value={fmtInt(counts.loss)}
-            unit="Q < Q*"
-            color="var(--mui-palette-error-main)"
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="หลักสูตรคุ้มทุน (Q ≥ Q*)"
+            value={fmtInt(counts.ok)}
+            unit={`จาก ${RAW.PROGS.length} หลักสูตร`}
+            accent="primary"
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
+            label="หลักสูตรยังไม่คุ้มทุน"
+            value={fmtInt(counts.loss + counts.fcrOrNone)}
+            unit="Q < Q* หรือ R ≤ AVC"
+            accent="error"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
             label="หลักสูตร R ≤ AVC"
             value={fmtInt(counts.fcrOrNone)}
-            unit="รายรับต่อหัวต่ำกว่าต้นทุนผันแปร"
-            color="var(--mui-palette-warning-main)"
+            unit="ไม่มีจุดคุ้มทุน (ผันแปรสูงกว่ารายรับ)"
+            accent="warning"
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <StatCard
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <KpiCard
             label="ส่วนเกินรวมทั้งหมด"
             value={`${totalSurplus >= 0 ? '+' : '−'}${fmtMillion(Math.abs(totalSurplus))}`}
             unit="ล้านบาท (สุทธิ)"
-            color={totalSurplus >= 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)'}
+            accent="success"
+            valueColor={
+              totalSurplus >= 0
+                ? 'var(--mui-palette-success-main)'
+                : 'var(--mui-palette-error-main)'
+            }
           />
         </Grid>
       </Grid>
 
       <Card>
         <CardHeader
-          title="เจาะลึกจุดคุ้มทุน 3 ระดับ"
+          title={<DotTitle color="primary.main">เจาะลึกจุดคุ้มทุน 3 ระดับ</DotTitle>}
           subheader="คลิกที่คณะเพื่อดูระดับการศึกษา และคลิกระดับเพื่อดูรายหลักสูตร · หรือพิมพ์ค้นหาด้านล่าง"
           action={
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button size="small" variant="outlined" onClick={expandAll}>
+              <Button size="small" variant="outlined" color="secondary" onClick={expandAll}>
                 ขยายทั้งหมด
               </Button>
-              <Button size="small" variant="outlined" onClick={collapseAll}>
+              <Button size="small" variant="outlined" color="secondary" onClick={collapseAll}>
                 ย่อทั้งหมด
               </Button>
             </Box>
           }
         />
-        <Divider />
-        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', bgcolor: 'action.hover' }}>
+        <Box
+          sx={{
+            px: 4,
+            py: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            flexWrap: 'wrap',
+            borderBlock: 1,
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+          }}
+        >
           <TextField
             size="small"
             placeholder="ค้นหาคณะ / ระดับ / ชื่อหลักสูตร / ชื่อปริญญา..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ minWidth: 280 }}
+            sx={{ minWidth: 300, bgcolor: 'background.paper' }}
             slotProps={{
               input: {
                 startAdornment: (
@@ -292,7 +414,7 @@ const BreakEvenDrill = () => {
                 ),
                 endAdornment: search && (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearch('')}>
+                    <IconButton size="small" onClick={() => setSearch('')} title="ล้างคำค้นหา">
                       <i className="ri-close-line" />
                     </IconButton>
                   </InputAdornment>
@@ -302,32 +424,34 @@ const BreakEvenDrill = () => {
           />
           <Chip
             size="small"
+            variant="tonal"
+            color="secondary"
             label={
               filtering
                 ? `พบ ${fmtInt(shownProgs)} หลักสูตร · ${fmtInt(shownFacs)} คณะ`
                 : `${RAW.PROGS.length} หลักสูตร · ${RAW.FACS.length} คณะ`
             }
           />
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             {QUICK_FILTERS.map((qf) => (
               <Chip
                 key={qf.value}
                 size="small"
                 label={qf.label}
-                color={filter === qf.value ? 'primary' : 'default'}
+                color={filter === qf.value ? 'primary' : 'secondary'}
                 variant={filter === qf.value ? 'filled' : 'outlined'}
                 onClick={() => setFilter(qf.value)}
               />
             ))}
           </Box>
         </Box>
-        <Divider />
-        <Box sx={{ maxHeight: 640, overflow: 'auto' }}>
+        <Box sx={{ maxBlockSize: 640, overflow: 'auto' }}>
           <TreeHeader />
           {rows.length === 0 && (
-            <Box sx={{ p: 8, textAlign: 'center' }}>
+            <Box sx={{ p: 10, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                🔍 ไม่พบข้อมูลที่ตรงกับ &quot;{search}&quot;{filter !== 'all' ? ' ในตัวกรองที่เลือก' : ''} — ลองคำอื่นหรือกดล้างคำค้นหา
+                🔍 ไม่พบข้อมูลที่ตรงกับ &quot;{search}&quot;
+                {filter !== 'all' ? ' ในตัวกรองที่เลือก' : ''} — ลองคำอื่นหรือกดล้างคำค้นหา
               </Typography>
             </Box>
           )}
@@ -338,47 +462,73 @@ const BreakEvenDrill = () => {
       </Card>
 
       <Card sx={{ mt: 4 }}>
-        <CardHeader title="ประเด็นสำคัญ — จุดคุ้มทุนรายหลักสูตร" />
-        <CardContent component="ul" sx={{ m: 0, pl: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <li>
-            <Typography variant="body2">
-              จาก {RAW.PROGS.length} หลักสูตร มี <b>{fmtInt(counts.ok)}</b> หลักสูตรที่คุ้มทุนแล้ว, <b>{fmtInt(counts.loss)}</b>{' '}
-              ยังไม่ถึงจุดคุ้มทุน และ <b>{fmtInt(counts.fcrOrNone)}</b> หลักสูตรที่ R ≤ AVC (ไม่มีจุดคุ้มทุน ณ ราคาปัจจุบัน)
-            </Typography>
-          </li>
+        <CardHeader
+          title={<DotTitle color="primary.main">ประเด็นสำคัญ — จุดคุ้มทุนรายหลักสูตร</DotTitle>}
+        />
+        <CardContent>
+          <Stack spacing={2}>
+            {insights.map((ins, i) => (
+              <Alert key={i} severity={ins.sev} variant="outlined">
+                {ins.text}
+              </Alert>
+            ))}
+          </Stack>
         </CardContent>
       </Card>
     </Box>
   );
 };
 
+const HEAD_CELLS = [
+  'นิสิต (Q)',
+  'จุดคุ้มทุน Q*',
+  'รายได้/หัว R',
+  'AVC',
+  'TR (ลบ.)',
+  'ส่วนเกิน (ลบ.)',
+  'สถานะ',
+];
+
 const TreeHeader = () => (
   <Box
     sx={{
       display: 'grid',
-      gridTemplateColumns: 'minmax(220px,2fr) repeat(6, minmax(80px,1fr)) minmax(90px,1fr)',
-      gap: 2,
-      px: 3,
-      py: 2,
-      borderBottom: '1px solid var(--mui-palette-divider)',
+      gridTemplateColumns: GRID_COLS,
+      gap: 3,
+      px: 4,
+      py: 2.5,
+      borderBlockEnd: 1,
+      borderColor: 'divider',
       bgcolor: 'background.paper',
       position: 'sticky',
-      top: 0,
+      insetBlockStart: 0,
       zIndex: 1,
     }}
   >
-    <Typography variant="caption" fontWeight={700}>
+    <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700 }} color="text.secondary">
       คณะ / ระดับ / หลักสูตร
     </Typography>
-    {['นิสิต (Q)', 'จุดคุ้มทุน Q*', 'รายได้/หัว R', 'AVC', 'TR (ลบ.)', 'ส่วนเกิน (ลบ.)'].map((h) => (
-      <Typography key={h} variant="caption" fontWeight={700} textAlign="right">
+    {HEAD_CELLS.map((h) => (
+      <Typography
+        key={h}
+        sx={{ fontSize: '0.6875rem', fontWeight: 700 }}
+        color="text.secondary"
+        textAlign="right"
+      >
         {h}
       </Typography>
     ))}
-    <Typography variant="caption" fontWeight={700} textAlign="right">
-      สถานะ
-    </Typography>
   </Box>
+);
+
+const NumCell = ({ value, color, bold }: { value: string; color?: string; bold?: boolean }) => (
+  <Typography
+    className="num"
+    textAlign="right"
+    sx={{ fontSize: '0.8125rem', fontWeight: bold ? 700 : 400, color }}
+  >
+    {value}
+  </Typography>
 );
 
 const TreeRow = ({ row }: { row: Row }) => (
@@ -386,79 +536,69 @@ const TreeRow = ({ row }: { row: Row }) => (
     onClick={row.hasChildren ? row.onToggle : undefined}
     sx={{
       display: 'grid',
-      gridTemplateColumns: 'minmax(220px,2fr) repeat(6, minmax(80px,1fr)) minmax(90px,1fr)',
-      gap: 2,
-      px: 3,
+      gridTemplateColumns: GRID_COLS,
+      alignItems: 'center',
+      gap: 3,
+      px: 4,
       py: 2,
-      borderBottom: '1px solid var(--mui-palette-divider)',
+      borderBlockEnd: 1,
+      borderColor: 'divider',
       cursor: row.hasChildren ? 'pointer' : 'default',
       '&:hover': row.hasChildren ? { bgcolor: 'action.hover' } : undefined,
-      bgcolor: row.level === 0 ? 'action.hover' : undefined,
     }}
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pl: row.level * 4 }}>
-      {row.hasChildren && (
-        <i
-          className="ri-arrow-right-s-line"
-          style={{ transition: 'transform .15s', transform: row.open ? 'rotate(90deg)' : 'none' }}
-        />
-      )}
-      <Box>
-        <Typography variant="body2" fontWeight={row.level === 0 ? 700 : row.level === 1 ? 600 : 400}>
+      <Box
+        component="i"
+        className="ri-arrow-right-s-line"
+        sx={{
+          fontSize: '1rem',
+          color: 'text.disabled',
+          visibility: row.hasChildren ? 'visible' : 'hidden',
+          transition: 'transform .15s',
+          transform: row.open ? 'rotate(90deg)' : 'none',
+        }}
+      />
+      <Box sx={{ minInlineSize: 0 }}>
+        <Typography
+          title={row.label}
+          noWrap
+          sx={{
+            fontSize: '0.8125rem',
+            fontWeight: row.level === 0 ? 700 : row.level === 1 ? 600 : 400,
+          }}
+        >
           {row.label}
         </Typography>
         {row.sub && (
-          <Typography variant="caption" color="text.secondary">
+          <Typography sx={{ fontSize: '0.625rem' }} color="text.disabled">
             {row.sub}
           </Typography>
         )}
       </Box>
     </Box>
-    <Typography variant="body2" textAlign="right" className="num">
-      {fmtInt(row.q)}
-    </Typography>
-    <Typography variant="body2" textAlign="right" className="num">
-      {row.qStar !== null ? fmtInt(row.qStar) : '—'}
-    </Typography>
-    <Typography variant="body2" textAlign="right" className="num">
-      {row.r !== null ? fmtInt(row.r) : '—'}
-    </Typography>
-    <Typography variant="body2" textAlign="right" color="text.secondary" className="num">
-      {row.avc !== null ? fmtInt(row.avc) : '—'}
-    </Typography>
-    <Typography variant="body2" textAlign="right" className="num">
-      {fmtMillion(row.tr)}
-    </Typography>
-    <Typography
-      variant="body2"
-      textAlign="right"
-      fontWeight={700}
-      className="num"
-      color={row.profit >= 0 ? 'success.main' : 'error.main'}
-    >
-      {row.profit >= 0 ? '+' : '−'}
-      {fmtMillion(Math.abs(row.profit))}
-    </Typography>
-    <Box textAlign="right">
-      <Chip size="small" label={STATUS_LABEL[row.status]} color={STATUS_COLOR[row.status]} />
+    <NumCell value={fmtInt(row.q)} />
+    <NumCell value={row.qStar !== null ? fmtInt(row.qStar) : '—'} />
+    <NumCell value={row.r !== null ? fmtInt(row.r) : '—'} />
+    <NumCell
+      value={row.avc !== null ? fmtInt(row.avc) : '—'}
+      color="var(--mui-palette-text-disabled)"
+    />
+    <NumCell value={fmtMillion(row.tr)} />
+    <NumCell
+      value={`${row.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(row.profit))}`}
+      color={row.profit >= 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)'}
+      bold
+    />
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <Chip
+        size="small"
+        variant="tonal"
+        label={BADGE_LABEL[row.status]}
+        color={BADGE_COLOR[row.status]}
+      />
     </Box>
   </Box>
-);
-
-const StatCard = ({ label, value, unit, color }: { label: string; value: string; unit: string; color?: string }) => (
-  <Card>
-    <CardContent>
-      <Typography variant="body2" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="h5" fontWeight={700} sx={{ color, my: 0.5 }} className="num">
-        {value}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {unit}
-      </Typography>
-    </CardContent>
-  </Card>
 );
 
 export default BreakEvenDrill;

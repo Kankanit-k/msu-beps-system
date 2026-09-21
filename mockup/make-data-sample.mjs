@@ -62,7 +62,7 @@ function derive(o) {
   o.AVC = o.Q ? r2(o.TVC / o.Q) : 0;
   const cmIn = o.Rin - o.AVC;
   const cmEx = o.Rex - o.AVC;
-  /* สูตรที่ 7 — เมื่อ CM ≤ 0 ใช้ Full-Cost Recovery (Q* = TC ÷ R) */
+  /* สูตรที่ 7 — เมื่อ CM ≤ 0 ใช้ Full-Cost Recovery (Q* = TC / R) */
   o.Qin = cmIn > 0 ? CEIL(o.TFC / cmIn) : o.Rin > 0 ? CEIL(o.TC / o.Rin) : null;
   o.Qex = cmEx > 0 ? CEIL(o.TFC / cmEx) : o.Rex > 0 ? CEIL(o.TC / o.Rex) : null;
   o.mIn = cmIn > 0 ? 'cm' : 'fcr';
@@ -148,7 +148,7 @@ const header = `/* ชุดข้อมูล "ตัวอย่าง" สำ
    ถ้ามีไฟล์นั้นอยู่ในเครื่อง หน้าจอจะโหลดทับชุดนี้เองและแสดงตัวเลขจริง
 
    ตัวเลขในไฟล์นี้ถูกสุ่มรบกวนรายรายการแล้วคำนวณใหม่ตามสูตรเดิมทั้งหมด
-   ความสัมพันธ์ทุกสูตรจึงยังถูกต้อง (TR = st + own · TC = TFC + TVC · Q* = TFC ÷ (R − AVC) ฯลฯ)
+   ความสัมพันธ์ทุกสูตรจึงยังถูกต้อง (TR = st + own · TC = TFC + TVC · Q* = TFC / (R − AVC) ฯลฯ)
    แต่ตัวเลข "ไม่ตรงกับงบประมาณจริงของมหาวิทยาลัย" และห้ามนำไปอ้างอิง
    UNI = มหาวิทยาลัย · FACS = ${FACS.length} คณะ · DEPTS = ${DEPTS.length} คณะ x ระดับ · PROGS = ${PROGS.length} หลักสูตร */
 var RAW = `;

@@ -25,6 +25,13 @@ import ListItemText from '@mui/material/ListItemText';
 
 import type { ApexOptions } from 'apexcharts';
 
+// Component Imports
+import { DotTitle, LegendItem } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
+import KpiCard, { type KpiAccent } from '@components/KpiCard';
+import NoteBar from '@components/NoteBar';
+import PageHeaderBar from '@components/PageHeaderBar';
+
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
@@ -34,6 +41,7 @@ import {
   computeBreakEven,
   fmtInt,
   fmtMillion,
+  REVENUE_MODE_NOTE,
   STATUS_COLOR,
   STATUS_LABEL,
   statusOf,
@@ -103,7 +111,14 @@ const buildEntity = (
     if (progsInLevel.length === 0) {
       const empty = computeBreakEven({ Q: 0, st: 0, own: 0, TFC: 0, TVC: 0 }, mode);
 
-      return { name: `${fac.name} — ${lvlSel}`, q: 0, st: 0, own: 0, res: empty, resWithoutGov: empty };
+      return {
+        name: `${fac.name} — ${lvlSel}`,
+        q: 0,
+        st: 0,
+        own: 0,
+        res: empty,
+        resWithoutGov: empty,
+      };
     }
 
     const scope: ScopeLevel = 'education_level';
@@ -150,7 +165,11 @@ interface Rec {
   h: string;
 }
 
-const buildRecommendations = (entity: Entity, mode: RevenueMode, uniRes: BreakEvenResult): { prog: Rec[]; exec: Rec[] } => {
+const buildRecommendations = (
+  entity: Entity,
+  mode: RevenueMode,
+  uniRes: BreakEvenResult,
+): { prog: Rec[]; exec: Rec[] } => {
   const { res, resWithoutGov, q, st, own } = entity;
   const r = res.r ?? 0;
   const cm = res.cm ?? 0;
@@ -261,7 +280,7 @@ const BreakEvenChart = () => {
   const [facIdx, setFacIdx] = useState(0);
   const [lvl, setLvl] = useState<string>('');
   const [progIdx, setProgIdx] = useState(0);
-  const [mode] = useState<RevenueMode>('with_government');
+  const [mode, setMode] = useState<RevenueMode>('with_government');
 
   const fac = RAW.FACS[facIdx] ?? RAW.FACS[0]!;
   const levels = useMemo(() => facLevels(fac.name), [fac.name]);
@@ -295,7 +314,7 @@ const BreakEvenChart = () => {
     ],
     stroke: { width: [2.5, 2.5, 1.5, 0, 0], dashArray: [0, 0, 6, 0, 0], curve: 'straight' },
     markers: { size: [0, 0, 0, 7, 7], strokeWidth: 2 },
-    legend: { show: true, position: 'top', horizontalAlign: 'left' },
+    legend: { show: false },
     grid: { borderColor: 'var(--mui-palette-divider)' },
     xaxis: { type: 'numeric', min: 0, max: xmax, title: { text: 'จำนวนนิสิต (คน)' } },
     yaxis: {
@@ -306,14 +325,37 @@ const BreakEvenChart = () => {
     },
     tooltip: {
       x: { formatter: (v: number) => `นิสิต ${fmtInt(v)} คน` },
-      y: { formatter: (v: number) => `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ.` },
+      y: {
+        formatter: (v: number) => `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ.`,
+      },
     },
   };
 
   const chartSeries = [
-    { name: 'รายได้รวม (TR)', type: 'line', data: [[0, 0], [xmax, (r * xmax) / 1e6]] },
-    { name: 'ต้นทุนรวม (TC)', type: 'line', data: [[0, tfc / 1e6], [xmax, (tfc + avc * xmax) / 1e6]] },
-    { name: 'ต้นทุนคงที่ (TFC)', type: 'line', data: [[0, tfc / 1e6], [xmax, tfc / 1e6]] },
+    {
+      name: 'รายได้รวม (TR)',
+      type: 'line',
+      data: [
+        [0, 0],
+        [xmax, (r * xmax) / 1e6],
+      ],
+    },
+    {
+      name: 'ต้นทุนรวม (TC)',
+      type: 'line',
+      data: [
+        [0, tfc / 1e6],
+        [xmax, (tfc + avc * xmax) / 1e6],
+      ],
+    },
+    {
+      name: 'ต้นทุนคงที่ (TFC)',
+      type: 'line',
+      data: [
+        [0, tfc / 1e6],
+        [xmax, tfc / 1e6],
+      ],
+    },
     {
       name: 'จุดคุ้มทุน',
       type: 'scatter',
@@ -323,6 +365,31 @@ const BreakEvenChart = () => {
   ];
 
   const status = statusOf(res);
+
+  const KPIS: { label: string; value: string; unit: string; accent: KpiAccent }[] = [
+    { label: 'นิสิตปัจจุบัน (Q)', value: fmtInt(q), unit: 'คน', accent: 'primary' },
+    {
+      label: 'จุดคุ้มทุน (Q*)',
+      value: qStar !== null ? fmtInt(qStar) : 'ไม่มี',
+      unit: qStar !== null ? 'คน' : 'CM ≤ 0',
+      accent: 'error',
+    },
+    { label: 'รายได้/หัว (R)', value: fmtInt(res.r), unit: 'บาท/คน', accent: 'warning' },
+    { label: 'ต้นทุนผันแปร/หัว (AVC)', value: fmtInt(res.avc), unit: 'บาท/คน', accent: 'warning' },
+    {
+      label: 'กำไรส่วนเกิน/หัว (R−AVC)',
+      value: fmtInt(r - avc),
+      unit: 'บาท/คน',
+      accent: 'success',
+    },
+    {
+      label: 'ส่วนเกิน/ขาดทุน',
+      value: `${res.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(res.profit))}`,
+      unit: 'ล้านบาท',
+      accent: res.profit >= 0 ? 'success' : 'error',
+    },
+  ];
+
   const need = qStar !== null && q < qStar ? qStar - q : 0;
 
   const { prog: progRecs, exec: execRecs } = useMemo(
@@ -332,22 +399,27 @@ const BreakEvenChart = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4">กราฟจุดคุ้มทุน</Typography>
-        <Typography variant="body2" color="text.secondary">
-          เส้นรายได้รวม (TR) และต้นทุนรวม (TC) ตามจำนวนนิสิต จุดตัดคือจุดคุ้มทุน (Q*)
-        </Typography>
-      </Box>
+      <PageHeaderBar
+        title="กราฟจุดคุ้มทุน"
+        code="W3"
+        mode={mode}
+        onModeChange={setMode}
+        q={uniRes.q}
+        profit={uniRes.profit}
+      />
+
+      <DataCaveatNotes profit={uniRes.profit} />
+
+      <NoteBar severity="info">
+        {REVENUE_MODE_NOTE[mode]} · เส้นรายได้รวม (TR) และต้นทุนรวม (TC) ตามจำนวนนิสิต
+        จุดตัดคือจุดคุ้มทุน (Q*)
+      </NoteBar>
 
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>หน่วยวิเคราะห์</InputLabel>
-            <Select
-              label="หน่วยวิเคราะห์"
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
-            >
+            <Select label="หน่วยวิเคราะห์" value={level} onChange={(e) => setLevel(e.target.value)}>
               <MenuItem value="uni">มหาวิทยาลัย (รวม)</MenuItem>
               <MenuItem value="fac">รายคณะ</MenuItem>
               <MenuItem value="dep">คณะ × ระดับการศึกษา</MenuItem>
@@ -399,7 +471,11 @@ const BreakEvenChart = () => {
           {level === 'prog' && (
             <FormControl size="small" sx={{ minWidth: 260 }}>
               <InputLabel>หลักสูตร</InputLabel>
-              <Select label="หลักสูตร" value={progIdx} onChange={(e) => setProgIdx(Number(e.target.value))}>
+              <Select
+                label="หลักสูตร"
+                value={progIdx}
+                onChange={(e) => setProgIdx(Number(e.target.value))}
+              >
                 {progsInLevel.map((p, i) => (
                   <MenuItem key={p.prog} value={i}>
                     {p.prog}
@@ -412,28 +488,15 @@ const BreakEvenChart = () => {
       </Card>
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
-        {[
-          ['นิสิตปัจจุบัน (Q)', `${fmtInt(q)} คน`],
-          ['จุดคุ้มทุน (Q*)', qStar !== null ? `${fmtInt(qStar)} คน` : 'ไม่มี'],
-          ['รายได้/หัว (R)', `${fmtInt(res.r)} บาท`],
-          ['ต้นทุนผันแปร/หัว (AVC)', `${fmtInt(res.avc)} บาท`],
-          ['กำไรส่วนเกิน/หัว (R−AVC)', `${fmtInt(r - avc)} บาท`],
-          [
-            'ส่วนเกิน/ขาดทุน',
-            `${res.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(res.profit))} ลบ.`,
-          ],
-        ].map(([label, value]) => (
-          <Grid key={label} size={{ xs: 6, sm: 4, md: 2 }}>
-            <Card>
-              <CardContent>
-                <Typography variant="caption" color="text.secondary">
-                  {label}
-                </Typography>
-                <Typography variant="h6" fontWeight={700} className="num">
-                  {value}
-                </Typography>
-              </CardContent>
-            </Card>
+        {KPIS.map((k) => (
+          <Grid key={k.label} size={{ xs: 6, sm: 4, md: 2 }}>
+            <KpiCard
+              label={k.label}
+              value={k.value}
+              unit={k.unit}
+              accent={k.accent}
+              valueColor={`var(--mui-palette-${k.accent}-main)`}
+            />
           </Grid>
         ))}
       </Grid>
@@ -441,37 +504,60 @@ const BreakEvenChart = () => {
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Card>
-            <CardHeader title="แผนภาพจุดคุ้มทุน (Break-Even Chart)" />
+            <CardHeader
+              title={<DotTitle color="primary.main">แผนภาพจุดคุ้มทุน (Break-Even Chart)</DotTitle>}
+            />
             <CardContent>
-              <AppReactApexCharts type="line" height={380} width="100%" options={chartOptions} series={chartSeries} />
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
+                <LegendItem color="primary.main" label="รายได้รวม (TR)" />
+                <LegendItem color="error.main" label="ต้นทุนรวม (TC)" />
+                <LegendItem color="warning.main" label="ต้นทุนคงที่ (TFC)" />
+                <LegendItem color="success.main" label="จุดคุ้มทุน (Q*)" />
+                <LegendItem color="text.primary" label="จุดปัจจุบัน" />
+              </Box>
+              <AppReactApexCharts
+                type="line"
+                height={380}
+                width="100%"
+                options={chartOptions}
+                series={chartSeries}
+              />
             </CardContent>
           </Card>
         </Grid>
         <Grid size={{ xs: 12, md: 5 }}>
           <Card sx={{ height: '100%' }}>
-            <CardHeader title="สรุปการวิเคราะห์" action={<Chip size="small" label={STATUS_LABEL[status]} color={STATUS_COLOR[status]} />} />
+            <CardHeader
+              title={<DotTitle color="success.main">สรุปการวิเคราะห์</DotTitle>}
+              action={
+                <Chip size="small" label={STATUS_LABEL[status]} color={STATUS_COLOR[status]} />
+              }
+            />
             <CardContent>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 {name}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.9 }}>
-                หน่วยนี้มีนิสิต <b>{fmtInt(q)}</b> คน ต้นทุนคงที่ (TFC) <b>{fmtMillion(tfc)}</b> ลบ. ต้นทุนผันแปรต่อหัว
-                (AVC) <b>{fmtInt(avc)}</b> บาท และรายได้ต่อหัว (R) <b>{fmtInt(r)}</b> บาท
+                หน่วยนี้มีนิสิต <b>{fmtInt(q)}</b> คน ต้นทุนคงที่ (TFC) <b>{fmtMillion(tfc)}</b> ลบ.
+                ต้นทุนผันแปรต่อหัว (AVC) <b>{fmtInt(avc)}</b> บาท และรายได้ต่อหัว (R){' '}
+                <b>{fmtInt(r)}</b> บาท
                 <br />
                 <br />
                 {status === 'fcr' || status === 'none' ? (
                   <>
-                    รายรับต่อหัวต่ำกว่าต้นทุนผันแปรต่อหัว จึงไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน ต้องปรับค่าธรรมเนียมหรือลดต้นทุนผันแปร
+                    รายรับต่อหัวต่ำกว่าต้นทุนผันแปรต่อหัว จึงไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน
+                    ต้องปรับค่าธรรมเนียมหรือลดต้นทุนผันแปร
                   </>
                 ) : status === 'ok' ? (
                   <>
-                    จำนวนนิสิตปัจจุบัน ({fmtInt(q)}) มากกว่าจุดคุ้มทุน ({fmtInt(qStar)}) อยู่ <b>{fmtInt(q - (qStar ?? 0))}</b>{' '}
-                    คน สร้างส่วนเกิน <b>{fmtMillion(res.profit)}</b> ลบ.
+                    จำนวนนิสิตปัจจุบัน ({fmtInt(q)}) มากกว่าจุดคุ้มทุน ({fmtInt(qStar)}) อยู่{' '}
+                    <b>{fmtInt(q - (qStar ?? 0))}</b> คน สร้างส่วนเกิน{' '}
+                    <b>{fmtMillion(res.profit)}</b> ลบ.
                   </>
                 ) : (
                   <>
-                    ต้องเพิ่มนิสิตอีก <b>{fmtInt(need)}</b> คน (จาก {fmtInt(q)} เป็น {fmtInt(qStar)}) หรือลดต้นทุน/เพิ่มค่าธรรมเนียม
-                    จึงจะถึงจุดคุ้มทุน
+                    ต้องเพิ่มนิสิตอีก <b>{fmtInt(need)}</b> คน (จาก {fmtInt(q)} เป็น {fmtInt(qStar)}
+                    ) หรือลดต้นทุน/เพิ่มค่าธรรมเนียม จึงจะถึงจุดคุ้มทุน
                   </>
                 )}
               </Typography>
@@ -482,12 +568,18 @@ const BreakEvenChart = () => {
 
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <RecommendationCard title="🎓 ข้อเสนอแนะ — ผู้บริหารหลักสูตร" subtitle="เชิงปฏิบัติการ ระดับหลักสูตร/หน่วยที่เลือก" items={progRecs} />
+          <RecommendationCard
+            title="🎓 ข้อเสนอแนะ — ผู้บริหารหลักสูตร"
+            subtitle="เชิงปฏิบัติการ ระดับหลักสูตร/หน่วยที่เลือก"
+            accent="warning.main"
+            items={progRecs}
+          />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <RecommendationCard
             title="🏛️ ข้อเสนอแนะ — ผู้บริหารคณะ / มหาวิทยาลัย"
             subtitle="เชิงกลยุทธ์ ระดับพอร์ตหลักสูตรและงบประมาณ"
+            accent="primary.main"
             items={execRecs}
           />
         </Grid>
@@ -496,8 +588,19 @@ const BreakEvenChart = () => {
   );
 };
 
-const RecommendationCard = ({ title, subtitle, items }: { title: string; subtitle: string; items: Rec[] }) => (
-  <Card sx={{ height: '100%' }}>
+const RecommendationCard = ({
+  title,
+  subtitle,
+  accent,
+  items,
+}: {
+  title: string;
+  subtitle: string;
+  /** เส้นสีขอบซ้าย — ตรงกับ .ins ของ mockup ที่ใช้สีบอกว่าเป็นข้อเสนอแนะระดับไหน */
+  accent: string;
+  items: Rec[];
+}) => (
+  <Card sx={{ blockSize: '100%', borderInlineStart: 3, borderInlineStartColor: accent }}>
     <CardHeader title={title} subheader={subtitle} />
     <CardContent sx={{ pt: 0 }}>
       <List dense disablePadding>

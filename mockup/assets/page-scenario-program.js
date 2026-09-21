@@ -66,9 +66,9 @@ function calcPg(){
     <div style="font-size:10px;font-weight:800;color:${c};text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${t}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11.5px;margin-bottom:8px">
       <div>R/หัว: <b>${fmtB(m.R)}</b> บ.</div><div>CM/หัว: <b style="color:${m.CM>0?'var(--green)':'var(--red)'}">${fmtB(m.CM)}</b> บ.</div>
-      <div>Q*: <b style="color:var(--red);font-size:13px">${m.Qs?fmtN(m.Qs)+' คน':'—'}</b>${m.full?' <span style="font-size:8px;font-weight:800;padding:1px 4px;border-radius:6px;background:var(--gold4);color:var(--gold)">TC÷R</span>':''}</div>
+      <div>Q*: <b style="color:var(--red);font-size:13px">${m.Qs?fmtN(m.Qs)+' คน':'—'}</b>${m.full?' <span style="font-size:8px;font-weight:800;padding:1px 4px;border-radius:6px;background:var(--gold4);color:var(--gold)">TC/R</span>':''}</div>
       <div>กำไร: <b style="color:${m.profit>=0?'var(--green)':'var(--red)'}">${m.pp>=0?'+':''}${m.pp.toFixed(1)}%</b></div></div>
-    <div style="font-size:11px;font-weight:700;color:${m.isOk?'var(--green)':'var(--red)'}">${!m.Qs?'⚠ คำนวณไม่ได้':(m.full?'⚠ CM≤0 · ใช้ TC÷R · ':'')+(m.isOk?'✓ เกินจุดคุ้มทุน +'+fmtN(Q-m.Qs)+' คน':'⚠ ต้องเพิ่มอีก '+fmtN(m.Qs-Q)+' คน')}</div></div>`;
+    <div style="font-size:11px;font-weight:700;color:${m.isOk?'var(--green)':'var(--red)'}">${!m.Qs?'⚠ คำนวณไม่ได้':(m.full?'⚠ CM≤0 · ใช้ TC/R · ':'')+(m.isOk?'✓ เกินจุดคุ้มทุน +'+fmtN(Q-m.Qs)+' คน':'⚠ ต้องเพิ่มอีก '+fmtN(m.Qs-Q)+' คน')}</div></div>`;
   document.getElementById('pg-result-card').innerHTML=`<div class="card-head"><div><div class="card-title"><span class="dot" style="background:var(--navy2)"></span>${name}</div><div class="card-sub">${fac||'—'} · ${level||'—'} · ${isNew?'หลักสูตรใหม่':'หลักสูตรเดิม'}</div></div></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px">${ss.map(([l,c,v])=>`<div class="stat-box" style="padding:9px 12px"><div class="stat-lbl" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l}">${l}</div><div class="stat-val" style="color:${c};font-size:12px">${v}</div></div>`).join('')}</div>
     <div style="display:flex;flex-direction:column;gap:9px">${card('กรณีรวมเงินแผ่นดิน','var(--navy2)',A)}${card('กรณีไม่รวมเงินแผ่นดิน','var(--gold)',B)}</div>`;
@@ -166,7 +166,7 @@ function openPdfReport(){
       ${d.Qs?`<tr style="background:#f8fafd"><td style="font-weight:700">รายได้ ณ จุดคุ้มทุน</td><td>BE Rev</td><td class="bold">${fmtB(beRev)}</td><td>${MM(beRev,3)}</td></tr><tr style="background:#f8fafd"><td style="font-weight:700">Margin of Safety</td><td>MoS</td><td class="bold ${MoS>=0?'green':'red'}">${fmtB(MoS)}</td><td class="${MoS>=0?'green':'red'}">${MM(MoS,3)}</td></tr>`:''}
     </tbody></table>
     <div class="pdf-sec">4. การคำนวณจุดคุ้มทุน</div>
-    <div class="pdf-formula-box">Q* = TFC ÷ (R − AVC) = ${fmtB(d.TFC)} ÷ (${fmtB(d.R)} − ${fmtB(d.AVC)}) <strong style="color:#5938e0">${d.Qs?'= '+fmtN(d.Qs)+' คน':''}</strong></div>
+    <div class="pdf-formula-box">Q* = TFC / (R − AVC) = ${fmtB(d.TFC)} / (${fmtB(d.R)} − ${fmtB(d.AVC)}) <strong style="color:#5938e0">${d.Qs?'= '+fmtN(d.Qs)+' คน':''}</strong></div>
     <div class="pdf-formula-box">π = (R − AVC) × Q − TFC = (${fmtB(d.R)} − ${fmtB(d.AVC)}) × ${fmtN(d.Q)} − ${fmtB(d.TFC)} = <strong style="color:${d.profit>=0?'#3a8c00':'#c2383c'}">${d.profit>=0?'+':''}${fmtB(d.profit)} บาท</strong></div>
     <div class="pdf-footer-line"><span>รายงานโดย MSU-BEPS · มหาวิทยาลัยมหาสารคาม · ปีการศึกษา 2568</span><span>หน้า 1 / 2</span></div>
   </div>

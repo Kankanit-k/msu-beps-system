@@ -181,7 +181,7 @@ const SETTINGS = [
       pooled: 'Q* มหาวิทยาลัย = <b>47,644 คน</b> · ยอมให้หลักสูตรที่กำไรอุ้มหลักสูตรที่ขาดทุน — <b>ต่างจากอีกวิธี 5,441 คน</b>',
     } },
   { key: 'cm_le_zero_policy', grp: 'calculation', name: 'เมื่อ CM ≤ 0 (ต้นทุนผันแปร/หัว สูงกว่ารายได้/หัว)',
-    desc: 'full_cost_recovery = รายงานเป้าหมายขั้นต่ำ Q* = TC ÷ R (สูตรที่ 7) · not_computable = รายงานว่าไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน',
+    desc: 'full_cost_recovery = รายงานเป้าหมายขั้นต่ำ Q* = TC / R (สูตรที่ 7) · not_computable = รายงานว่าไม่มีจุดคุ้มทุน ณ ระดับราคาปัจจุบัน',
     type: 'enum', opts: ['full_cost_recovery', 'not_computable'], def: 'full_cost_recovery', cur: null, affects: true,
     impact: {
       full_cost_recovery: '<b>18 หลักสูตร</b> จะแสดงเป้าหมายขั้นต่ำเป็นตัวเลข เช่น เคมี (ป.โท) = <b>24 คน</b> — ผู้ใช้อาจเข้าใจผิดว่าเป็นจุดคุ้มทุนจริง',

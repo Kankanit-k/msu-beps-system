@@ -79,9 +79,9 @@ function calcInp(){
     <div style="font-size:10px;font-weight:800;color:${c};text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">${t}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px">
       <div>R/หัว: <b>${fmtB(m.R)}</b></div><div>CM/หัว: <b style="color:${m.CM>0?'var(--green)':'var(--red)'}">${fmtB(m.CM)}</b></div>
-      <div>Q*: <b style="color:var(--red)">${m.Qs?fmtN(m.Qs)+' คน':'—'}</b>${m.full?' <span style="font-size:8px;font-weight:800;padding:1px 4px;border-radius:6px;background:var(--gold4);color:var(--gold)">TC÷R</span>':''}</div>
+      <div>Q*: <b style="color:var(--red)">${m.Qs?fmtN(m.Qs)+' คน':'—'}</b>${m.full?' <span style="font-size:8px;font-weight:800;padding:1px 4px;border-radius:6px;background:var(--gold4);color:var(--gold)">TC/R</span>':''}</div>
       <div>ส่วนเกิน: <b style="color:${m.profit>=0?'var(--green)':'var(--red)'}">${m.profit>=0?'+':'−'}${MM(Math.abs(m.profit),2)} ล.</b></div></div>
-    <div style="margin-top:8px;font-size:11px;font-weight:700;color:${m.isOk?'var(--green)':'var(--red)'}">${!m.Qs?'⚠ คำนวณไม่ได้':(m.full?'⚠ CM≤0 · ใช้ TC÷R · ':'')+(m.isOk?'✓ เกินจุดคุ้มทุน +'+fmtN(Q-m.Qs)+' คน':'⚠ ขาดอีก '+fmtN(m.Qs-Q)+' คน')}</div></div>`;
+    <div style="margin-top:8px;font-size:11px;font-weight:700;color:${m.isOk?'var(--green)':'var(--red)'}">${!m.Qs?'⚠ คำนวณไม่ได้':(m.full?'⚠ CM≤0 · ใช้ TC/R · ':'')+(m.isOk?'✓ เกินจุดคุ้มทุน +'+fmtN(Q-m.Qs)+' คน':'⚠ ขาดอีก '+fmtN(m.Qs-Q)+' คน')}</div></div>`;
   document.getElementById('inp-result').innerHTML=`<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px">${name}</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:11px">นิสิต ${fmtN(Q)} คน · TFC ${MM(TFC,2)} ล. · TVC ${MM(TVC,2)} ล. · AVC ${fmtB(AVC)} บ./คน</div>
     <div style="display:flex;flex-direction:column;gap:9px">${box('กรณีรวมเงินแผ่นดิน','var(--navy2)',A)}${box('กรณีไม่รวมเงินแผ่นดิน','var(--gold)',B)}</div>`;

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -21,11 +20,6 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Alert from '@mui/material/Alert';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import RadioGroup from '@mui/material/RadioGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Radio from '@mui/material/Radio';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -33,6 +27,15 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 
 import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
+
+// Component Imports
+import { DotTitle } from '@components/ChartBits';
+import DataCaveatNotes from '@components/DataCaveatNotes';
+import PageHeaderBar from '@components/PageHeaderBar';
+
+// Data / calc Imports
+import { RAW } from '@/data/mockup';
+import { computeBreakEven } from '@views/breakeven/calc';
 
 import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
@@ -42,22 +45,65 @@ import { loadHistory, saveHistory } from './historyStore';
 import type { ProgramHistoryEntry } from './types';
 import type { ProgRow } from '@/data/mockup';
 
+/** ประเภทหลักสูตร — ดรอปดาวน์ตาม mockup (#pg-type) */
+const PROGRAM_TYPES = [
+  { value: 'old' as const, label: 'หลักสูตรเดิม (Existing)' },
+  { value: 'new' as const, label: 'หลักสูตรใหม่ (New)' },
+];
+
 /** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละระดับ/ปริญญา) — ต่อท้ายระดับให้แยกแยะได้ในดรอปดาวน์ */
 const progOptionLabel = (p: ProgRow) => `${p.prog} (${p.lvl})`;
 
-/** จุดกลมนำหน้าชื่อการ์ด — ตาม .card-title .dot ใน mockup/assets/beps.css */
-const TitleWithDot = ({ children }: { children: ReactNode }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-    <Box
-      component="span"
-      sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: 'primary.main', flexShrink: 0 }}
-    />
-    {children}
-  </Box>
-);
-
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
+
+/** แถบอ้างอิงตัวเลขจากระบบของหลักสูตรที่เลือก — ตรงกับ #pg-ref-note ของ mockup */
+const ProgramRefNote = ({ p, fac }: { p: ProgRow; fac: string }) => {
+  const line = (label: string, color: string, r: number, qStar: number) => (
+    <Box component="div">
+      <Box component="span" sx={{ color, fontWeight: 700 }}>
+        ● {label}:
+      </Box>{' '}
+      R=<b>{fmtB(r)}</b> · CM=<b>{fmtB(r - p.AVC)}</b> ·{' '}
+      <b>Q*={qStar ? `${fmtN(qStar)} คน` : 'ไม่มี (CM≤0)'}</b>{' '}
+      {qStar > 0 && (
+        <Box
+          component="span"
+          sx={{ fontWeight: 700, color: p.Q >= qStar ? 'success.main' : 'error.main' }}
+        >
+          {p.Q >= qStar ? '✓ คุ้ม' : `⚠ ขาด ${fmtN(qStar - p.Q)}`}
+        </Box>
+      )}
+    </Box>
+  );
+
+  return (
+    <Box
+      sx={{
+        mt: 3,
+        px: 3,
+        py: 2,
+        borderRadius: 1,
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        fontSize: '0.6875rem',
+        lineHeight: 1.8,
+        color: 'text.secondary',
+      }}
+    >
+      <Box component="span" sx={{ fontWeight: 700, color: 'primary.main' }}>
+        {p.prog}
+      </Box>{' '}
+      · {p.lvl} · {fac}
+      <Box component="div">
+        AVC = <b>{fmtB(p.AVC)}</b> บ./คน | นิสิตจริง <b>{fmtN(p.Q)}</b> คน
+      </Box>
+      {line('รวมแผ่นดิน', 'primary.main', p.Rin, p.Qin)}
+      {line('ไม่รวมแผ่นดิน', 'warning.main', p.Rex, p.Qex)}
+    </Box>
+  );
+};
 
 const ScenarioProgramView = () => {
   const [progType, setProgType] = useState<'old' | 'new'>('old');
@@ -161,20 +207,51 @@ const ScenarioProgramView = () => {
     saveHistory(next);
   };
 
+  const uni = computeBreakEven(RAW.UNI, mode);
   const latest = history[0];
-  const latestResult = latest ? (latest.mode === 'with_government' ? latest.withGov : latest.withoutGov) : null;
+  const latestResult = latest
+    ? latest.mode === 'with_government'
+      ? latest.withGov
+      : latest.withoutGov
+    : null;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box sx={{ '@media print': { display: 'none' } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 4 }}>
-          <Typography variant="h4">🎓 คำนวณจุดคุ้มทุนรายหลักสูตร (กรอกเอง)</Typography>
+        <PageHeaderBar
+          title="คำนวณจุดคุ้มทุนรายหลักสูตร"
+          code="W7"
+          mode={mode}
+          onModeChange={setMode}
+          q={uni.q}
+          profit={uni.profit}
+        />
+
+        {/* หน้านี้กรอกตัวเลขเอง ไม่ได้อ่านจากรอบคำนวณ จึงขึ้นเฉพาะแถบข้อมูลตัวอย่าง (ตาม mockup) */}
+        <DataCaveatNotes profit={uni.profit} limitations={false} />
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 2,
+            mb: 4,
+          }}
+        >
+          <Typography variant="h5" fontWeight={700}>
+            🎓 คำนวณจุดคุ้มทุนรายหลักสูตร (กรอกเอง)
+          </Typography>
           <Button
             variant="contained"
             disabled={!latest}
-            startIcon={<i className="ri-printer-line" />}
             onClick={() => window.print()}
-            title={latest ? 'เปิดหน้าต่างพิมพ์ของเบราว์เซอร์ — เลือก "บันทึกเป็น PDF" ได้' : 'คำนวณก่อนเพื่อเปิดใช้งาน'}
+            title={
+              latest
+                ? 'เปิดหน้าต่างพิมพ์ของเบราว์เซอร์ — เลือก "บันทึกเป็น PDF" ได้'
+                : 'คำนวณก่อนเพื่อเปิดใช้งาน'
+            }
           >
             🖨 ออกรายงาน PDF
           </Button>
@@ -182,16 +259,21 @@ const ScenarioProgramView = () => {
 
         <Card sx={{ mb: 4 }}>
           <CardHeader
-            title={<TitleWithDot>กรอกข้อมูลหลักสูตร</TitleWithDot>}
+            title={<DotTitle color="primary.main">กรอกข้อมูลหลักสูตร</DotTitle>}
             subheader="เลือกประเภท — หลักสูตรเดิมดึงข้อมูลจากระบบอัตโนมัติ · หลักสูตรใหม่กรอกเอง"
           />
           <CardContent>
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <RadioGroup row value={progType} onChange={(e) => onTypeChange(e.target.value as 'old' | 'new')}>
-                  <FormControlLabel value="old" control={<Radio />} label="📚 หลักสูตรเดิม (Existing)" />
-                  <FormControlLabel value="new" control={<Radio />} label="✎ หลักสูตรใหม่ (New)" />
-                </RadioGroup>
+                <Autocomplete
+                  disableClearable
+                  options={PROGRAM_TYPES}
+                  getOptionLabel={(o) => o.label}
+                  isOptionEqualToValue={(a, b) => a.value === b.value}
+                  value={PROGRAM_TYPES.find((t) => t.value === progType) ?? PROGRAM_TYPES[0]}
+                  onChange={(_, v) => v && onTypeChange(v.value)}
+                  renderInput={(params) => <TextField {...params} label="📚 ประเภทหลักสูตร" />}
+                />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Autocomplete
@@ -211,7 +293,9 @@ const ScenarioProgramView = () => {
                       options={facultyOptions}
                       value={facSel}
                       onChange={(_, v) => onFacChange(v)}
-                      renderInput={(params) => <TextField {...params} label="🏫 สังกัดคณะ / วิทยาลัย" />}
+                      renderInput={(params) => (
+                        <TextField {...params} label="🏫 สังกัดคณะ / วิทยาลัย" />
+                      )}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -250,38 +334,87 @@ const ScenarioProgramView = () => {
               )}
             </Grid>
 
-            <Box sx={{ bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 2, p: 3, mb: 3 }}>
+            <Box
+              sx={{
+                bgcolor: 'action.hover',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 2,
+                p: 3,
+                mb: 3,
+              }}
+            >
               <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 700 }}>
                 📊 ข้อมูลตัวเลข{' '}
-                {autofilled && <Chip size="small" color="success" label="✓ ดึงจากระบบ" sx={{ ml: 1, height: 18 }} />}
+                {autofilled && (
+                  <Chip
+                    size="small"
+                    color="success"
+                    label="✓ ดึงจากระบบ"
+                    sx={{ ml: 1, height: 18 }}
+                  />
+                )}
               </Typography>
               <Grid container spacing={2} sx={{ mt: 0.5 }}>
                 <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField fullWidth type="number" label="จำนวนนิสิต (Q)" value={q || ''} onChange={(e) => setQ(Number(e.target.value) || 0)} />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="จำนวนนิสิต (Q)"
+                    value={q || ''}
+                    onChange={(e) => setQ(Number(e.target.value) || 0)}
+                  />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField fullWidth type="number" label="งบเงินแผ่นดิน" value={st || ''} onChange={(e) => setSt(Number(e.target.value) || 0)} />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="งบเงินแผ่นดิน"
+                    value={st || ''}
+                    onChange={(e) => setSt(Number(e.target.value) || 0)}
+                  />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField fullWidth type="number" label="งบเงินรายได้" value={own || ''} onChange={(e) => setOwn(Number(e.target.value) || 0)} />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="งบเงินรายได้"
+                    value={own || ''}
+                    onChange={(e) => setOwn(Number(e.target.value) || 0)}
+                  />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField fullWidth type="number" label="TFC รวม" value={tfc || ''} onChange={(e) => setTfc(Number(e.target.value) || 0)} />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="TFC รวม"
+                    value={tfc || ''}
+                    onChange={(e) => setTfc(Number(e.target.value) || 0)}
+                  />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField fullWidth type="number" label="TVC รวม" value={tvc || ''} onChange={(e) => setTvc(Number(e.target.value) || 0)} />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="TVC รวม"
+                    value={tvc || ''}
+                    onChange={(e) => setTvc(Number(e.target.value) || 0)}
+                  />
                 </Grid>
               </Grid>
+
+              {progSel && progSel.Q > 0 && <ProgramRefNote p={progSel} fac={facSel ?? ''} />}
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-              <Button variant="contained" disabled={!canCalc} onClick={handleCalc} sx={{ maxWidth: 240 }}>
+              <Button
+                variant="contained"
+                disabled={!canCalc}
+                onClick={handleCalc}
+                sx={{ maxWidth: 240 }}
+              >
                 ▶ คำนวณจุดคุ้มทุน
               </Button>
-              <ToggleButtonGroup size="small" exclusive color="primary" value={mode} onChange={(_, v) => v && setMode(v)}>
-                <ToggleButton value="with_government">รวมเงินแผ่นดิน</ToggleButton>
-                <ToggleButton value="without_government">ไม่รวมเงินแผ่นดิน</ToggleButton>
-              </ToggleButtonGroup>
               {!canCalc && (
                 <Typography variant="caption" color="text.disabled">
                   กรุณากรอก จำนวนนิสิต งบประมาณ และต้นทุน ให้ครบก่อนคำนวณ
@@ -297,24 +430,45 @@ const ScenarioProgramView = () => {
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card sx={{ height: '100%' }}>
                   <CardHeader
-                    title={<TitleWithDot>{latest.name}</TitleWithDot>}
+                    title={<DotTitle color="primary.main">{latest.name}</DotTitle>}
                     subheader={`${latest.fac || '—'} · ${latest.level} · ${latest.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม'}`}
                   />
                   <CardContent>
                     <Grid container spacing={2} sx={{ mb: 3 }}>
                       {(
                         [
-                          ['รายได้รวม (TR)', `${(latestResult.tr / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'primary.main'],
-                          ['ต้นทุนรวม (TC)', `${(latestResult.tc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'text.primary'],
-                          ['ต้นทุนคงที่ (TFC)', `${(latest.tfc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'warning.main'],
-                          ['ต้นทุนผันแปร (TVC)', `${(latest.tvc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`, 'text.primary'],
+                          [
+                            'รายได้รวม (TR)',
+                            `${(latestResult.tr / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
+                            'primary.main',
+                          ],
+                          [
+                            'ต้นทุนรวม (TC)',
+                            `${(latestResult.tc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
+                            'text.primary',
+                          ],
+                          [
+                            'ต้นทุนคงที่ (TFC)',
+                            `${(latest.tfc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
+                            'warning.main',
+                          ],
+                          [
+                            'ต้นทุนผันแปร (TVC)',
+                            `${(latest.tvc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
+                            'text.primary',
+                          ],
                           ['AVC ต่อหน่วย', `${fmtB(latest.avc)} บ./คน`, 'text.primary'],
                           ['นิสิตจริง (Q)', `${fmtN(latest.q)} คน`, 'text.primary'],
                         ] as const
                       ).map(([label, val, color]) => (
                         <Grid key={label} size={4}>
                           <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
-                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                              noWrap
+                            >
                               {label}
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 700, color }}>
@@ -339,11 +493,21 @@ const ScenarioProgramView = () => {
                             borderRadius: 2,
                             p: 2,
                             mb: 2,
-                            bgcolor: isOk ? 'var(--mui-palette-success-lightOpacity)' : 'var(--mui-palette-error-lightOpacity)',
+                            bgcolor: isOk
+                              ? 'var(--mui-palette-success-lightOpacity)'
+                              : 'var(--mui-palette-error-lightOpacity)',
                           }}
                         >
-                          <Typography variant="overline" sx={{ fontWeight: 800, color: m === 'with_government' ? 'primary.main' : 'warning.main' }}>
-                            {m === 'with_government' ? 'กรณีรวมเงินแผ่นดิน' : 'กรณีไม่รวมเงินแผ่นดิน'}
+                          <Typography
+                            variant="overline"
+                            sx={{
+                              fontWeight: 800,
+                              color: m === 'with_government' ? 'primary.main' : 'warning.main',
+                            }}
+                          >
+                            {m === 'with_government'
+                              ? 'กรณีรวมเงินแผ่นดิน'
+                              : 'กรณีไม่รวมเงินแผ่นดิน'}
                           </Typography>
                           <Grid container spacing={1}>
                             <Grid size={6}>
@@ -354,7 +518,14 @@ const ScenarioProgramView = () => {
                             <Grid size={6}>
                               <Typography variant="body2">
                                 CM/หัว:{' '}
-                                <b style={{ color: (r.cm ?? 0) > 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)' }}>
+                                <b
+                                  style={{
+                                    color:
+                                      (r.cm ?? 0) > 0
+                                        ? 'var(--mui-palette-success-main)'
+                                        : 'var(--mui-palette-error-main)',
+                                  }}
+                                >
                                   {fmtB(r.cm ?? 0)}
                                 </b>{' '}
                                 บ.
@@ -362,25 +533,51 @@ const ScenarioProgramView = () => {
                             </Grid>
                             <Grid size={6}>
                               <Typography variant="body2">
-                                Q*: <b style={{ color: 'var(--mui-palette-error-main)' }}>{r.qStar ? `${fmtN(r.qStar)} คน` : '—'}</b>{' '}
-                                {full && <Chip size="small" label="TC÷R" color="warning" sx={{ height: 16, fontSize: 10 }} />}
+                                Q*:{' '}
+                                <b style={{ color: 'var(--mui-palette-error-main)' }}>
+                                  {r.qStar ? `${fmtN(r.qStar)} คน` : '—'}
+                                </b>{' '}
+                                {full && (
+                                  <Chip
+                                    size="small"
+                                    label="TC/R"
+                                    color="warning"
+                                    sx={{ height: 16, fontSize: 10 }}
+                                  />
+                                )}
                               </Typography>
                             </Grid>
                             <Grid size={6}>
                               <Typography variant="body2">
                                 กำไร:{' '}
-                                <b style={{ color: (r.profitPct ?? 0) >= 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)' }}>
+                                <b
+                                  style={{
+                                    color:
+                                      (r.profitPct ?? 0) >= 0
+                                        ? 'var(--mui-palette-success-main)'
+                                        : 'var(--mui-palette-error-main)',
+                                  }}
+                                >
                                   {(r.profitPct ?? 0) >= 0 ? '+' : ''}
                                   {(r.profitPct ?? 0).toFixed(1)}%
                                 </b>
                               </Typography>
                             </Grid>
                           </Grid>
-                          <Typography variant="body2" sx={{ mt: 1, fontWeight: 700, color: isOk ? 'success.main' : 'error.main' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 1,
+                              fontWeight: 700,
+                              color: isOk ? 'success.main' : 'error.main',
+                            }}
+                          >
                             {!r.qStar
                               ? '⚠ คำนวณไม่ได้'
-                              : `${full ? '⚠ CM≤0 · ใช้ TC÷R · ' : ''}${
-                                  isOk ? `✓ เกินจุดคุ้มทุน +${fmtN(latest.q - r.qStar)} คน` : `⚠ ต้องเพิ่มอีก ${fmtN(r.qStar - latest.q)} คน`
+                              : `${full ? '⚠ CM≤0 · ใช้ TC/R · ' : ''}${
+                                  isOk
+                                    ? `✓ เกินจุดคุ้มทุน +${fmtN(latest.q - r.qStar)} คน`
+                                    : `⚠ ต้องเพิ่มอีก ${fmtN(r.qStar - latest.q)} คน`
                                 }`}
                           </Typography>
                         </Box>
@@ -393,11 +590,17 @@ const ScenarioProgramView = () => {
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card sx={{ height: '100%' }}>
                   <CardHeader
-                    title={<TitleWithDot>กราฟจุดคุ้มทุน</TitleWithDot>}
+                    title={<DotTitle color="primary.main">กราฟจุดคุ้มทุน</DotTitle>}
                     subheader={`โหมด: ${latest.mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}`}
                   />
                   <CardContent>
-                    <BreakEvenChart q={latest.q} tfc={latest.tfc} avc={latest.avc} rPerHead={latestResult.r ?? 0} qStar={latestResult.qStar} />
+                    <BreakEvenChart
+                      q={latest.q}
+                      tfc={latest.tfc}
+                      avc={latest.avc}
+                      rPerHead={latestResult.r ?? 0}
+                      qStar={latestResult.qStar}
+                    />
                   </CardContent>
                 </Card>
               </Grid>
@@ -407,7 +610,7 @@ const ScenarioProgramView = () => {
 
             <Card sx={{ mt: 4 }}>
               <CardHeader
-                title={<TitleWithDot>ประวัติการคำนวณ</TitleWithDot>}
+                title={<DotTitle color="warning.main">ประวัติการคำนวณ</DotTitle>}
                 action={
                   <Button
                     size="small"
@@ -443,26 +646,52 @@ const ScenarioProgramView = () => {
 
                         return (
                           <TableRow key={h.id} hover>
-                            <TableCell sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}>{h.time}</TableCell>
-                            <TableCell sx={{ fontWeight: 600, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h.name}>
+                            <TableCell sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}>
+                              {h.time}
+                            </TableCell>
+                            <TableCell
+                              sx={{
+                                fontWeight: 600,
+                                maxWidth: 160,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title={h.name}
+                            >
                               {h.name}
                             </TableCell>
                             <TableCell sx={{ fontSize: 12 }}>{h.level || '—'}</TableCell>
                             <TableCell>
-                              <Chip size="small" label={h.isNew ? 'ใหม่' : 'เดิม'} color={h.isNew ? 'primary' : 'warning'} sx={{ height: 18, fontSize: 10 }} />
+                              <Chip
+                                size="small"
+                                label={h.isNew ? 'ใหม่' : 'เดิม'}
+                                color={h.isNew ? 'primary' : 'warning'}
+                                sx={{ height: 18, fontSize: 10 }}
+                              />
                             </TableCell>
                             <TableCell align="right">{fmtN(h.q)}</TableCell>
                             <TableCell align="right" sx={{ color: 'warning.main' }}>
                               {fmtB(h.avc)}
                             </TableCell>
-                            <TableCell align="right" sx={{ color: okA ? 'success.main' : 'error.main' }}>
+                            <TableCell
+                              align="right"
+                              sx={{ color: okA ? 'success.main' : 'error.main' }}
+                            >
                               {h.withGov.qStar ? fmtN(h.withGov.qStar) : '—'}
                             </TableCell>
-                            <TableCell align="right" sx={{ color: okB ? 'success.main' : 'error.main' }}>
+                            <TableCell
+                              align="right"
+                              sx={{ color: okB ? 'success.main' : 'error.main' }}
+                            >
                               {h.withoutGov.qStar ? fmtN(h.withoutGov.qStar) : '—'}
                             </TableCell>
                             <TableCell align="right">
-                              <Chip size="small" label={okA ? '✓' : '⚠'} color={okA ? 'success' : 'error'} />
+                              <Chip
+                                size="small"
+                                label={okA ? '✓' : '⚠'}
+                                color={okA ? 'success' : 'error'}
+                              />
                             </TableCell>
                           </TableRow>
                         );
@@ -477,7 +706,8 @@ const ScenarioProgramView = () => {
 
         {!latest && (
           <Alert severity="info" variant="outlined">
-            กรอกข้อมูลหลักสูตรแล้วกด &quot;คำนวณจุดคุ้มทุน&quot; เพื่อดูผลลัพธ์ กราฟ และเปิดใช้งานปุ่มออกรายงาน PDF
+            กรอกข้อมูลหลักสูตรแล้วกด &quot;คำนวณจุดคุ้มทุน&quot; เพื่อดูผลลัพธ์ กราฟ
+            และเปิดใช้งานปุ่มออกรายงาน PDF
           </Alert>
         )}
       </Box>

@@ -202,8 +202,8 @@ function buildShell(opt) {
     <div class="bm-wrap">
       <span class="bm-lbl">ฐานรายได้:</span>
       <div class="bm-toggle">
-        <button class="bm-opt on" id="bm-in" data-bm="in" title="R = (เงินแผ่นดิน + เงินรายได้) ÷ จำนวนนิสิต">รวมเงินแผ่นดิน</button>
-        <button class="bm-opt" id="bm-ex" data-bm="ex" title="R = เงินรายได้ ÷ จำนวนนิสิต">ไม่รวมเงินแผ่นดิน</button>
+        <button class="bm-opt on" id="bm-in" data-bm="in" title="R = (เงินแผ่นดิน + เงินรายได้) / จำนวนนิสิต">รวมเงินแผ่นดิน</button>
+        <button class="bm-opt" id="bm-ex" data-bm="ex" title="R = เงินรายได้ / จำนวนนิสิต">ไม่รวมเงินแผ่นดิน</button>
       </div>
     </div>
     <div class="badge badge-navy num" id="tb-q">—</div>
