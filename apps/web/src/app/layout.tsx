@@ -23,7 +23,7 @@ import '@/app/globals.css';
 import '@assets/iconify-icons/generated-icons.css';
 
 export const metadata = {
-  title: 'MSU Starter Kit — MUI + Next.js Template',
+  title: 'MSU-BEPS',
   description: 'เทมเพลตเริ่มต้นสำหรับระบบงาน มหาวิทยาลัยมหาสารคาม (Next.js + MUI)',
 };
 

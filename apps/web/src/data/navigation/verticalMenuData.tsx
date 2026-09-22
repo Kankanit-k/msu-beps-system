@@ -3,6 +3,10 @@ import type { VerticalMenuDataType } from '@/types/menuTypes';
 import { accessLevelRank, requiredLevelFor } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
+// Show/hide the "สาธารณะ" chip in the sidebar. The tagging logic below stays intact —
+// flip this to true to bring the chip back.
+const SHOW_PUBLIC_CHIP: boolean = false;
+
 // Tag links that are viewable without login (driven by accessControl → publicRoutes).
 const publicChip = {
   label: 'สาธารณะ',
@@ -171,7 +175,9 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
     },
   ];
 
-  return tagPublic(filterByRank(menu, rank));
+  const visible = filterByRank(menu, rank);
+
+  return SHOW_PUBLIC_CHIP ? tagPublic(visible) : visible;
 };
 
 export default verticalMenuData;
