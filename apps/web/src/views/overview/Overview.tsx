@@ -157,11 +157,12 @@ const Overview = () => {
             label={mode === 'with_government' ? 'รายได้รวม (TR)' : 'รายได้เงินรายได้'}
             value={fmtMillion(uni.tr)}
             unit="ล้านบาท"
-            valueColor="var(--mui-palette-primary-main)"
+            accent="info"
+            valueColor="var(--mui-palette-info-main)"
           />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard label="ต้นทุนรวม (TC)" value={fmtMillion(uni.tc)} unit="ล้านบาท" />
+          <KpiCard label="ต้นทุนรวม (TC)" value={fmtMillion(uni.tc)} unit="ล้านบาท" accent="secondary" />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard

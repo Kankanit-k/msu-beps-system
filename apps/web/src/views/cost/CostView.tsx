@@ -118,7 +118,7 @@ const CostView = () => {
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard label="ต้นทุนรวม (TC)" value={fmtMillion(U.TC)} unit="ล้านบาท" />
+          <KpiCard label="ต้นทุนรวม (TC)" value={fmtMillion(U.TC)} unit="ล้านบาท" accent="secondary" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard

@@ -5,7 +5,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 
-export type KpiAccent = 'primary' | 'success' | 'warning' | 'error' | 'info';
+export type KpiAccent = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 
 type Props = {
   label: string;
