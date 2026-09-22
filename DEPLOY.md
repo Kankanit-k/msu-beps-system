@@ -11,6 +11,9 @@
 ทั้งสองโปรเจกต์ **ไม่ได้ต่อกับ GitHub** — deploy ด้วย `vercel` CLI จากเครื่องเท่านั้น
 push ขึ้น git จึงไม่ทำให้อะไร deploy เอง
 
+**ลิงก์ production ของเว็บจริง:** <https://msu-beps-web.vercel.app/beps/overview/>
+(อย่าแจก `https://msu-beps-web.vercel.app/` เปล่า ๆ — root ของโดเมนได้ 404 เพราะ `BASEPATH=/beps`)
+
 ## ห้ามวาง `vercel.json` ไว้ที่รากรีโป
 
 `vercel.json` ที่รากมีผลกับ **ทุกโปรเจกต์ที่ deploy จากรากนี้** และ **ทับ** ทั้ง
@@ -23,16 +26,27 @@ Project Settings ใน dashboard และ `vercel.json` ที่อยู่�
 
 ## คำสั่ง
 
+ทุกคำสั่งรันจาก **รากรีโป** และ **ต้องใส่ `--scope plan-b636`** (ดูหัวข้อถัดไป)
+
 ```bash
 # เว็บจริง — preview
-vercel deploy
+vercel deploy --scope plan-b636
 
 # เว็บจริง — production
-vercel deploy --prod
+vercel deploy --prod --scope plan-b636
 
 # mockup (ต้อง link ไปโปรเจกต์ mockup ก่อน)
-vercel link --project msu-beps-mockup && vercel deploy --prod
+vercel link --project msu-beps-mockup && vercel deploy --prod --scope plan-b636
 ```
+
+### `Not authorized` ตอน deploy
+
+`vercel deploy --prod` เฉย ๆ จะตอบ `{"status":"error","reason":"deploy_failed","message":"Not authorized"}`
+ทั้งที่ `vercel whoami` ขึ้นชื่อผู้ใช้ปกติ สาเหตุคือ `orgId` ใน `.vercel/project.json`
+เป็นทีมเก่า (`team_i4thRGQUZMTdbFMU4tfv7vlW`) ไม่ตรงกับ scope ที่ล็อกอินอยู่ (`plan-b636`)
+
+แก้เฉพาะหน้า: ใส่ `--scope plan-b636` ทุกครั้ง · แก้ถาวร: `vercel link` ใหม่ให้ `.vercel/project.json`
+ชี้ทีมปัจจุบัน
 
 ## กับดักของ monorepo (แก้ไว้แล้วใน `apps/web/vercel.json`)
 
@@ -68,8 +82,11 @@ vercel link --project msu-beps-mockup && vercel deploy --prod
 สถานะ Ready ไม่ได้แปลว่าใช้งานได้ ให้ดู build log ว่า **build Next.js จริง** และลองยิง path จริง:
 
 ```bash
-vercel inspect --logs <deployment-url> | tail -20
+vercel inspect --logs <deployment-url> --scope plan-b636 | tail -20
 vercel curl <deployment-url>/beps/overview/ -s -o /dev/null -w '%{http_code}\n'
+
+# production หลัง alias ขึ้นแล้ว (ต้องมี -L เพราะ /beps/overview redirect 308 ไป /beps/overview/)
+curl -sL -o /dev/null -w '%{http_code}\n' https://msu-beps-web.vercel.app/beps/overview/
 ```
 
 `vercel curl` จะจัดการ Deployment Protection ของ preview ให้เอง (`curl` เปล่าจะได้ 302 ไปหน้า SSO)
