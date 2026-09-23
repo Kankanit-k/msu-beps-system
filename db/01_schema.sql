@@ -19,8 +19,11 @@ CREATE TYPE cost_behavior     AS ENUM ('FIXED','VARIABLE','MIXED','UNCLASSIFIED'
 CREATE TYPE result_behavior   AS ENUM ('FIXED','VARIABLE');  -- MIXED ถูกแตกก่อนถึงชั้นผลลัพธ์แล้ว
 CREATE TYPE master_status     AS ENUM ('DRAFT','PENDING_APPROVAL','APPROVED','REJECTED','RETIRED');
 CREATE TYPE run_status        AS ENUM ('DRAFT','RUNNING','CALCULATED','VALIDATED','APPROVED','FAILED','CANCELLED');
-CREATE TYPE alloc_method      AS ENUM ('DIRECT','ACTUAL_USAGE','STUDENT_HEADCOUNT','PROGRAM_SHARE');
-CREATE TYPE quality_flag      AS ENUM ('PASS','ESTIMATED','UNCLASSIFIED','MISSING_DRIVER','ROUNDING_ADJUSTMENT','MANUAL_OVERRIDE');
+-- 3 ค่าท้ายเป็นวิธีจัดสรรต้นทุนคงที่ตามมติที่ประชุม (ดู ../FIXED-COST-WORKFLOW.md)
+--   ทั้ง 3 วิธีต่างกันแค่ "ค่าของ driver" เครื่องปันส่วนจึงไม่ต้องรู้จักวิธีเป็นรายตัว
+CREATE TYPE alloc_method      AS ENUM ('DIRECT','ACTUAL_USAGE','STUDENT_HEADCOUNT','PROGRAM_SHARE',
+                                       'PER_HEAD_FTES','EQUAL_PROGRAM','CUSTOM_PCT');
+CREATE TYPE quality_flag      AS ENUM ('PASS','ESTIMATED','UNCLASSIFIED','MISSING_DRIVER','ROUNDING_ADJUSTMENT','MANUAL_OVERRIDE','POLICY_DEFAULTED');
 CREATE TYPE org_level         AS ENUM ('UNIVERSITY','FACULTY','EDUCATION_LEVEL','DEPARTMENT','COST_CENTER');
 CREATE TYPE scope_level       AS ENUM ('program','education_level','faculty','university');
 CREATE TYPE revenue_mode      AS ENUM ('with_government','without_government');
@@ -36,6 +39,12 @@ CREATE TYPE approval_action   AS ENUM ('submit','approve','reject');
 --   FISCAL   = ปีงบประมาณ (งบประมาณ ผังบัญชี ค่าเสื่อมราคา)
 CREATE TYPE year_basis        AS ENUM ('ACADEMIC','FISCAL');
 CREATE TYPE setting_value_type AS ENUM ('string','integer','numeric','boolean','enum');
+-- กลุ่มต้นทุนคงที่ที่นโยบายรายคณะกำหนดวิธีหารแยกกันได้
+--   ALL = ฉบับเดียวคุมต้นทุนคงที่ทั้งก้อน (ใช้เป็น fallback เสมอ)
+--   OTHER = ต้นทุนที่ยังไม่ได้จับกลุ่ม — ตกไปใช้ฉบับ ALL
+CREATE TYPE fixed_cost_pool   AS ENUM ('ALL','SALARY','DEPRECIATION','OFFICE_OVERHEAD','OTHER');
+-- ระดับที่คณะกำหนดสัดส่วนเอง — ตัวอย่างในมติ (ป.ตรี 90% / ป.โท-เอก 10%) เป็นระดับการศึกษา
+CREATE TYPE bucket_level      AS ENUM ('EDUCATION_LEVEL','PROGRAM');
 
 -- ════════════════ ชั้น 0 — Governance ════════════════
 CREATE TABLE import_batch (
@@ -145,7 +154,10 @@ CREATE TABLE student_type (
   student_type_id   bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   student_type_code varchar(50) NOT NULL UNIQUE,
   student_group     varchar(30) NOT NULL CHECK (student_group IN ('ภาคปกติ','ภาคพิเศษ')),
-  nationality       varchar(30) NOT NULL CHECK (nationality  IN ('ไทย','ต่างชาติ'))
+  nationality       varchar(30) NOT NULL CHECK (nationality  IN ('ไทย','ต่างชาติ')),
+  -- น้ำหนัก FTES ของนิสิตประเภทนี้ — มติเขียน "Per Head / FTES" ติดกัน แต่สองอย่างนี้ไม่เท่ากัน
+  -- ตั้งทุกประเภท = 1 → FTES กลายเป็นการนับหัวตรงๆ จึงรองรับทั้งสองแบบโดยไม่ต้องแก้โค้ด
+  ftes_weight       numeric(6,4) NOT NULL DEFAULT 1 CHECK (ftes_weight > 0)
 );
 
 CREATE TABLE erp_account (
@@ -165,7 +177,7 @@ CREATE TABLE erp_account (
 CREATE TABLE allocation_method_def (
   allocation_method_code alloc_method PRIMARY KEY,
   method_name            text NOT NULL,
-  reliability_rank       smallint NOT NULL UNIQUE CHECK (reliability_rank BETWEEN 1 AND 4),
+  reliability_rank       smallint NOT NULL UNIQUE CHECK (reliability_rank BETWEEN 1 AND 9),
   default_quality_flag   quality_flag NOT NULL
 );
 
@@ -341,15 +353,78 @@ CREATE TABLE registration_snapshot (
 );
 
 -- ════════════════ ชั้น 4 — Allocation ════════════════
+-- ─────────── นโยบายจัดสรรต้นทุนคงที่รายคณะ (มติที่ประชุม · FIXED-COST-WORKFLOW.md) ───────────
+-- เดิมวิธีหารต้นทุนคงที่เป็นกติกากลางใน account_behavior_rule ที่กองแผนงานตั้งให้ทั้งระบบ
+-- มติย้ายการตัดสินใจมาที่คณะ แต่ยังต้องผ่านการอนุมัติและตรวจสอบย้อนหลังได้
+-- จึงเก็บเป็น master ที่มีเวอร์ชันรายปี ไม่ใช่ค่าคงที่ในโค้ดและไม่ใช่การแก้ตัวเลขผลลัพธ์
+
+-- จับคู่ผังบัญชีกับกลุ่มต้นทุนคงที่ — ไม่จับคู่ = 'OTHER' ซึ่งตกไปใช้ฉบับ ALL
+CREATE TABLE fixed_cost_pool_rule (
+  pool_rule_id   bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  erp_account_id bigint NOT NULL REFERENCES erp_account(erp_account_id),
+  cost_pool      fixed_cost_pool NOT NULL CHECK (cost_pool <> 'ALL'),
+  note           text,
+  UNIQUE (erp_account_id)
+);
+
+CREATE TABLE fixed_cost_policy (
+  policy_id       bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  org_unit_id     bigint NOT NULL REFERENCES org_unit(org_unit_id),   -- ระดับ FACULTY
+  academic_year   integer NOT NULL CHECK (academic_year BETWEEN 2500 AND 2700),
+  cost_pool       fixed_cost_pool NOT NULL DEFAULT 'ALL',
+  method          alloc_method NOT NULL
+                  CHECK (method IN ('PER_HEAD_FTES','EQUAL_PROGRAM','CUSTOM_PCT')),
+  -- ใช้เมื่อ method = CUSTOM_PCT เท่านั้น — ชั้นที่ 2 ของการแบ่ง (ภายใน bucket)
+  sub_method      alloc_method CHECK (sub_method IN ('PER_HEAD_FTES','EQUAL_PROGRAM')),
+  bucket_level    bucket_level,
+  status          master_status NOT NULL DEFAULT 'DRAFT',
+  -- V4: กำหนดสัดส่วนเองต้องอ้างมติและเหตุผลเสมอ — ดุลพินิจที่ไม่มีหลักฐานคือช่องโหว่ธรรมาภิบาล
+  meeting_ref     text,
+  rationale       text,
+  submitted_by    varchar(100),
+  submitted_at    timestamptz,
+  approved_by     varchar(100),
+  approved_at     timestamptz,
+  reject_reason   text,
+  supersedes_policy_id bigint REFERENCES fixed_cost_policy(policy_id),
+  created_by      varchar(100) NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CHECK ((method = 'CUSTOM_PCT') = (bucket_level IS NOT NULL)),
+  CHECK (method = 'CUSTOM_PCT' OR sub_method IS NULL),
+  CHECK (status <> 'APPROVED' OR (approved_by IS NOT NULL AND approved_at IS NOT NULL)),
+  -- V5 maker-checker: ผู้เสนออนุมัติฉบับของตัวเองไม่ได้ (กติกาเดียวกับ allocation_run)
+  CHECK (approved_by IS NULL OR submitted_by IS NULL OR approved_by <> submitted_by),
+  CHECK (method <> 'CUSTOM_PCT' OR status NOT IN ('PENDING_APPROVAL','APPROVED')
+         OR (meeting_ref IS NOT NULL AND rationale IS NOT NULL))
+);
+
+-- หนึ่งปี หนึ่งคณะ หนึ่งกลุ่มต้นทุน มีฉบับที่อนุมัติได้ครั้งละหนึ่งเท่านั้น
+-- ฉบับใหม่ต้องชี้ supersedes_policy_id และผลักฉบับเก่าเป็น RETIRED
+CREATE UNIQUE INDEX ux_fixed_cost_policy_approved
+  ON fixed_cost_policy (org_unit_id, academic_year, cost_pool) WHERE status = 'APPROVED';
+
+CREATE TABLE fixed_cost_policy_line (
+  policy_line_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  policy_id      bigint NOT NULL REFERENCES fixed_cost_policy(policy_id) ON DELETE CASCADE,
+  -- ระดับการศึกษา (degree_level) หรือ program_version_id ตาม bucket_level ของฉบับนั้น
+  bucket_key     text NOT NULL,
+  pct            numeric(7,4) NOT NULL CHECK (pct >= 0 AND pct <= 100),
+  UNIQUE (policy_id, bucket_key)   -- V1: กันกำหนดกลุ่มเดียวซ้ำสองบรรทัด
+);
+
 CREATE TABLE allocation_driver_value (
   driver_value_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   period_id          bigint NOT NULL REFERENCES dim_period(period_id),
   org_unit_id        bigint NOT NULL REFERENCES org_unit(org_unit_id),  -- ขอบเขต pool
   program_version_id bigint NOT NULL REFERENCES program_version(program_version_id),
   driver_code        alloc_method NOT NULL,
+  -- กลุ่มต้นทุนที่ค่า driver ชุดนี้ใช้กับ — คณะเดียวกันอาจตั้งสัดส่วนเงินเดือนกับค่าเสื่อมต่างกัน
+  -- ค่า 'ALL' คือชุดที่ใช้กับต้นทุนทั่วไป (driver เดิมทั้งหมดอยู่ในชุดนี้)
+  cost_pool          fixed_cost_pool NOT NULL DEFAULT 'ALL',
   driver_value       numeric(20,8) NOT NULL CHECK (driver_value >= 0),
+  -- 'policy:<id>' เมื่อค่านี้ถูกสร้างจากนโยบายต้นทุนคงที่ — ตามรอยกลับไปยังฉบับที่อนุมัติได้
   source_reference   text,
-  UNIQUE (period_id, org_unit_id, program_version_id, driver_code)
+  UNIQUE (period_id, org_unit_id, program_version_id, driver_code, cost_pool)
 );
 
 CREATE TABLE allocation_run (
@@ -517,7 +592,8 @@ CREATE TABLE scenario_result (
 
 -- ─────────────────────────────── indexes ───────────────────────────────
 CREATE INDEX ix_cost_source_scope   ON cost_source(period_id, org_unit_id, basis);
-CREATE INDEX ix_driver_lookup       ON allocation_driver_value(period_id, org_unit_id, driver_code);
+CREATE INDEX ix_driver_lookup       ON allocation_driver_value(period_id, org_unit_id, driver_code, cost_pool);
+CREATE INDEX ix_fixed_policy_lookup ON fixed_cost_policy(org_unit_id, academic_year, cost_pool, status);
 CREATE INDEX ix_result_run_program  ON allocation_result(allocation_run_id, program_version_id);
 CREATE INDEX ix_bep_lookup          ON break_even_result(allocation_run_id, scope, revenue_mode);
 CREATE INDEX ix_audit_entity        ON audit_event(entity_type, entity_id, event_time);
@@ -527,7 +603,13 @@ INSERT INTO allocation_method_def (allocation_method_code, method_name, reliabil
   ('DIRECT',            'ผูกกับหลักสูตรโดยตรง',        1, 'PASS'),
   ('ACTUAL_USAGE',      'ตามการใช้จริง',               2, 'PASS'),
   ('STUDENT_HEADCOUNT', 'ตามจำนวนนิสิต',               3, 'PASS'),
-  ('PROGRAM_SHARE',     'ตามสัดส่วนหลักสูตร (ประมาณการ)', 4, 'ESTIMATED');
+  -- วิธีที่ 1 ตามมติ — เหมือน STUDENT_HEADCOUNT แต่ถ่วงน้ำหนักด้วย student_type.ftes_weight
+  ('PER_HEAD_FTES',     'ตามรายหัวนิสิต (FTES)',       4, 'PASS'),
+  ('PROGRAM_SHARE',     'ตามสัดส่วนหลักสูตร (ประมาณการ)', 5, 'ESTIMATED'),
+  -- วิธีที่ 2 — ไม่พึ่งข้อมูลนิสิต จึงไม่มีทางขาด driver แต่ไม่สะท้อนขนาดหลักสูตร
+  ('EQUAL_PROGRAM',     'หารเท่ากันทุกหลักสูตรในคณะ',   6, 'PASS'),
+  -- วิธีที่ 3 — มาจากดุลพินิจของคณะ ไม่ใช่ข้อมูลจริง จึงติดธง MANUAL_OVERRIDE เสมอ
+  ('CUSTOM_PCT',        'กำหนดสัดส่วนเปอร์เซ็นต์เอง',   7, 'MANUAL_OVERRIDE');
 
 INSERT INTO app_role (role_name) VALUES ('admin'),('budget_office'),('faculty_officer'),('viewer');
 

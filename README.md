@@ -51,6 +51,7 @@ beps-system/
 │   └── web/               ★ Next.js + MUI (MSU Starter Kit) — frontend เริ่มแล้ว · api มาใน Sprint 2
 ├── docker-compose.yml     PostgreSQL 17 สำหรับ local dev
 ├── SA.md                  เอกสาร System Analysis ฉบับเต็ม (17 หัวข้อ)
+├── FIXED-COST-WORKFLOW.md ★ กระบวนการจัดสรรต้นทุนคงที่ 3 วิธี ตามมติที่ประชุม (ข้อเสนอ)
 ├── ER.html                โครงสร้างฐานข้อมูล v2 32 ตาราง — เปิดดู/ส่งต่อได้ (ดูด้านล่าง)
 ├── mockup/                ★ Mockup high-fidelity ครบ 20 หน้าจอ W0–W19 — หนึ่งหน้าจอ = หนึ่งไฟล์ (ดู mockup/README.md)
 ├── WIREFRAME.html         Wireframe 15 หน้าจอ (W0–W14) — โครงหน้าจอ low-fidelity (ยังไม่มี W15)

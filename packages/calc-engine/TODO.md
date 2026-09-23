@@ -13,10 +13,13 @@
 - [x] `break-even.ts` — สูตร 2, 3, 4, 5a/5b (`calcBreakEven`, `calcBreakEvenBothModes`)
 - [x] `aggregate.ts` — สูตร 6a/6b (`aggregateBreakEven`) คืนผลทั้ง 2 วิธีเสมอ
 - [x] golden test เทียบ v8 — มหาวิทยาลัย · คณะ · คณะสัตวแพทยศาสตร์ครบ 5 หลักสูตร · เคส CM ≤ 0
+- [x] `fixed-cost-policy.ts` + `fixed-cost-simulation.ts` — จัดสรรต้นทุนคงที่ 3 วิธีตามมติที่ประชุม
+      (`buildFixedCostDrivers` · `allocateAmount` largest-remainder รองรับยอดติดลบ · `simulateFixedCostMethods`)
+      ดู [`../../FIXED-COST-WORKFLOW.md`](../../FIXED-COST-WORKFLOW.md) · ต้องให้ผลตรงกับ `db/02_functions.sql` เป๊ะ
 - [ ] `scenario_result` — โปรซีเยอร์คำนวณแผนจำลอง (ใช้ `calcBreakEven` ได้เลย เหลือแค่ชั้นเก็บผล)
 - [ ] golden test **ระดับหลักสูตรครบ 230 รายการ** — รอข้อ A
 
-รัน: `pnpm test` (67 เทสต์) หรือ `pnpm verify` (format + lint + typecheck + test)
+รัน: `pnpm test` (127 เทสต์) หรือ `pnpm verify` (format + lint + typecheck + test)
 
 ## ต้องได้คำตอบก่อนเขียนสูตร (SA.md หัวข้อ 17 ข้อ A–D)
 

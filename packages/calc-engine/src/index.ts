@@ -20,3 +20,25 @@ export type {
   SegmentedBreakEvenResult,
 } from './segmented';
 export type { AggregateBreakEvenResult } from './aggregate';
+export { allocateAmount, allocateFixedCost, buildFixedCostDrivers } from './fixed-cost-policy';
+export type {
+  BucketLevel,
+  DriverFlag,
+  FixedCostDriver,
+  FixedCostDriverSet,
+  FixedCostMethod,
+  FixedCostPolicy,
+  FixedCostPolicyLine,
+  FixedCostSubMethod,
+  PolicyIssue,
+  PolicyIssueCode,
+  ProgramWeightInput,
+} from './fixed-cost-policy';
+export { defaultCandidates, simulateFixedCostMethods } from './fixed-cost-simulation';
+export type {
+  FixedCostProgramInput,
+  FixedCostSimulationInput,
+  FixedCostSimulationResult,
+  SimulatedMethod,
+  SimulatedProgram,
+} from './fixed-cost-simulation';
