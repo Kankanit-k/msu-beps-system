@@ -25,8 +25,17 @@ export const runtime = 'nodejs';
 /** เพดานขนาดคำขอ — คำขอจริงของคณะใหญ่สุดยังไม่ถึง 100 KB */
 const MAX_BODY_BYTES = 512 * 1024;
 
+/**
+ * ทางลัดสำหรับ dev เดียวกับ `AUTH_DISABLED` ใน src/middleware.ts — ไม่มีอันนี้
+ * หน้า W20 จะเปิดได้แต่กดจำลองไม่ได้ ซึ่งทำให้หน้าจอทดสอบในเครื่องไม่ได้เลย
+ *
+ * ต่างจาก middleware ตรงที่ **ผูกกับ NODE_ENV ด้วย**: build ของ production
+ * ไม่มีทางข้ามการตรวจ session ได้ แม้จะเผลอตั้ง AUTH_DISABLED=true ไว้ในเครื่องจริง
+ */
+const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true' && process.env.NODE_ENV !== 'production';
+
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = AUTH_DISABLED ? {} : await getServerSession(authOptions);
 
   if (!session) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 

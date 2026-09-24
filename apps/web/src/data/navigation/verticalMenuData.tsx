@@ -122,6 +122,11 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       label: 'ปันส่วนต้นทุน',
       isSection: true,
       children: [
+        {
+          label: 'นโยบายต้นทุนคงที่',
+          href: '/admin/fixed-cost-policy',
+          icon: 'ri-percent-line',
+        },
         { label: 'คอนโซลรอบคำนวณ', href: '/admin/allocation-run', icon: 'ri-play-circle-line' },
         { label: 'ผลตรวจยอด', href: '/admin/reconciliation', icon: 'ri-checkbox-circle-line' },
         { label: 'รายการค้างตรวจ', href: '/admin/exceptions', icon: 'ri-error-warning-line' },

@@ -23,6 +23,7 @@ export const fixedCostPoolSchema = z.enum([
   'OFFICE_OVERHEAD',
   'OTHER',
 ]);
+export type FixedCostPool = z.infer<typeof fixedCostPoolSchema>;
 
 export const fixedCostPolicyLineSchema = z.object({
   bucketKey: z.string().min(1),
