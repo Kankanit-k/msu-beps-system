@@ -7,12 +7,8 @@ import { getToken } from 'next-auth/jwt';
 
 // Config Imports
 import { accessLevelRank, requiredLevelFor, resolveUserLevel } from '@/configs/accessControl';
+import { AUTH_DISABLED } from '@/configs/authBypass';
 import themeConfig from '@configs/themeConfig';
-
-// Local-dev escape hatch — set AUTH_DISABLED=true in .env.local to browse without logging in.
-// ผูกกับ NODE_ENV ด้วย (เหมือน api/fixed-cost/simulate/route.ts) เพื่อไม่ให้ตัวแปรที่ตั้งค้างไว้
-// บน production เปิดทุกหน้าทิ้งไว้โดยไม่ตั้งใจ — production build ข้ามการตรวจ session ไม่ได้
-const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true' && process.env.NODE_ENV !== 'production';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
