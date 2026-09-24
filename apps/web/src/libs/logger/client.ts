@@ -6,6 +6,9 @@
 // Type Imports
 import type { LogContext, LogLevel, LogSource } from './types';
 
+// Lib Imports
+import { apiUrl } from '@/libs/apiPath';
+
 type ClientPayload = {
   level: LogLevel;
   source: LogSource;
@@ -15,14 +18,7 @@ type ClientPayload = {
   page?: { url: string; referrer: string; userAgent: string };
 };
 
-// NEXT_PUBLIC_BASEPATH may be a full URL (http://host/subpath) — we only want the path part,
-// because fetch/sendBeacon are not rewritten by Next's basePath. Trailing slash matches
-// `trailingSlash: true` in next.config.ts so the POST is not 308-redirected.
-const basePath = (process.env.NEXT_PUBLIC_BASEPATH ?? '')
-  .replace(/^https?:\/\/[^/]+/, '')
-  .replace(/\/$/, '');
-
-const endpoint = `${basePath}/api/log/`;
+const endpoint = apiUrl('/api/log');
 
 const toError = (error: unknown) => {
   if (error instanceof Error) {

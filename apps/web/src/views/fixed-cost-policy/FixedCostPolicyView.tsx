@@ -56,6 +56,7 @@ import { buildFacultyScope, FACULTIES, POOL_OPTIONS, poolOption } from './data';
 import { clearDraft, loadDraft, loadLastScope, saveDraft, saveLastScope } from './draft';
 import type { DraftScope } from './draft';
 import { RAW } from '@/data/mockup';
+import { apiUrl } from '@/libs/apiPath';
 
 /** วิธีที่ระบบใช้อยู่เดิมกับทุกคณะ — ใช้เป็นฐานเปรียบเทียบและเป็นค่าตั้งต้นของนโยบายใหม่ */
 const CURRENT_METHOD: FixedCostMethod = 'PER_HEAD_FTES';
@@ -232,7 +233,7 @@ const FixedCostPolicyView = () => {
     setSimError(null);
 
     try {
-      const res = await fetch('/api/fixed-cost/simulate', {
+      const res = await fetch(apiUrl('/api/fixed-cost/simulate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
