@@ -18,8 +18,10 @@ import { useSettings } from '@core/hooks/useSettings';
 import useLayoutInit from '@core/hooks/useLayoutInit';
 import { useAuthUser } from '@/hooks/AuthHooks';
 
-// Local-dev escape hatch, mirrors AUTH_DISABLED in middleware.
-const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+// Local-dev escape hatch, mirrors AUTH_DISABLED in middleware — รวมถึงการผูกกับ NODE_ENV
+// ด้วย ไม่งั้นบน production จอจะไม่พาไปล็อกอินทั้งที่ middleware บล็อกอยู่
+const AUTH_DISABLED =
+  process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true' && process.env.NODE_ENV !== 'production';
 
 type LayoutWrapperProps = {
   systemMode: SystemMode;
