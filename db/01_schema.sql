@@ -544,7 +544,7 @@ CREATE TABLE break_even_result (
 CREATE TABLE app_user (
   app_user_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   app_role_id bigint NOT NULL REFERENCES app_role(app_role_id),
-  org_unit_id bigint REFERENCES org_unit(org_unit_id),   -- จำกัดขอบเขตเจ้าหน้าที่คณะ
+  org_unit_id bigint REFERENCES org_unit(org_unit_id),   -- จำกัดขอบเขตทุก role (เจ้าหน้าที่คณะ, คณบดีที่เป็น viewer) · NULL = ทุกหน่วยงาน
   full_name   text NOT NULL,
   email       varchar(255) NOT NULL UNIQUE
 );

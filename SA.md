@@ -584,7 +584,8 @@ Endpoint `POST /breakeven/recalculate` (สิทธิ์ admin/budget_office) 
 ### 11.3 Auth & RBAC
 
 - JWT (access + refresh) เก็บใน httpOnly cookie · ถ้ามหาวิทยาลัยมี SSO ให้ต่อภายหลังโดยแทนเฉพาะขั้น login
-- Middleware ตรวจ 2 ชั้น: **role** (จาก `ROLE.name`) และ **scope** (`USER.faculty_id`) — `faculty_officer` query ข้อมูลคณะอื่นต้องได้ 403 โดย enforce ที่ระดับ service ไม่ใช่ซ่อนแค่ใน UI
+- Middleware ตรวจ 2 ชั้น: **role** (จาก `ROLE.name`) และ **scope** (`app_user.org_unit_id`) — ผู้ใช้ที่ผูกหน่วยงานไว้ query ข้อมูลคณะอื่นต้องได้ 403 โดย enforce ที่ระดับ service ไม่ใช่ซ่อนแค่ใน UI
+- **Scope ใช้กับทุก role ไม่ใช่แค่ `faculty_officer`** (ยืนยันแล้ว 2026-09-28: คณบดีต้องไม่เห็นคณะอื่น) — `viewer` แยกด้วย `org_unit_id` โดยไม่ต้องเพิ่ม role ใหม่: คณบดี/ผู้บริหารคณะ = ผูกคณะของตัวเอง · อธิการบดี/รองอธิการบดี/กรรมการ = `NULL` (เห็นทุกหน่วยงาน)
 - ทุก mutation บันทึกผู้ทำรายการ (`FEE_APPROVAL_LOG` สำหรับค่าธรรมเนียม, audit log กลางสำหรับตารางอื่น)
 
 ### 11.4 Excel Import
@@ -618,7 +619,7 @@ FR ต้นทางข้อมูลยังเป็น Excel จริง�
 | 2   | Workflow อนุมัติ   | **ยืนยันแล้ว (ไม่ใช่ assumption อีกต่อไป): 2 ขั้น** — เจ้าหน้าที่คณะกรอก+กดส่ง → กองงบประมาณกดอนุมัติ/ตีกลับ · ค่าธรรมเนียมมีผลกับการคำนวณเฉพาะเมื่อ `approval_status = approved` | —                                                                                               |
 | 3   | Role               | 4 role: admin, budget_office, faculty_officer, viewer                                                                                                                             | เพิ่ม/แยก role ได้ผ่านตาราง `ROLE` ไม่ต้องแก้โค้ดถ้า permission เป็น data-driven                |
 | 4   | อัตราเงินสมทบ      | เก็บแยกทุกปีงบประมาณ (ไม่ overwrite)                                                                                                                                              | ทางนี้ปลอดภัยกว่าอยู่แล้ว — ถ้าจริงต้องการแค่ปีล่าสุดก็ยังใช้ได้                                |
-| 5   | Multi-faculty      | รองรับทุกคณะในระบบเดียว จำกัดการมองเห็นด้วย `USER.faculty_id`                                                                                                                     | ถ้าต้องแยก instance ต่อคณะ (ไม่น่าจะใช่) ต้องรื้อ — จึงยืนยันข้อนี้ก่อนเริ่ม Sprint 3           |
+| 5   | Multi-faculty      | รองรับทุกคณะในระบบเดียว จำกัดการมองเห็นด้วย `app_user.org_unit_id` (ใช้กับ viewer ด้วย — คณบดีไม่เห็นคณะอื่น ✔ ยืนยันแล้ว)                                                        | ถ้าต้องแยก instance ต่อคณะ (ไม่น่าจะใช่) ต้องรื้อ — จึงยืนยันข้อนี้ก่อนเริ่ม Sprint 3           |
 | 8   | ความถี่ sync       | sync/import เป็นรอบ (ต่อภาคเรียน) ไม่ใช่ real-time                                                                                                                                | ถ้าต้อง real-time เพิ่ม cache layer + ปรับ recalculate ให้ incremental                          |
 | 9   | Cross Analysis     | เป็น Phase 2 ไม่อยู่ใน MVP                                                                                                                                                        | ถ้าผู้บริหารต้องการตั้งแต่แรก ย้าย Sprint 8 มาก่อน Sprint 7                                     |
 
