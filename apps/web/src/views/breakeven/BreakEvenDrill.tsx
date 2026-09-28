@@ -24,7 +24,7 @@ import type { RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
 import { DotTitle } from '@components/ChartBits';
-import DataCaveatNotes from '@components/DataCaveatNotes';
+import DataCaveatNotes, { SHOW_BREAKEVEN_NOTES } from '@components/DataCaveatNotes';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
@@ -327,9 +327,13 @@ const BreakEvenDrill = () => {
         profit={uniRes.profit}
       />
 
-      <DataCaveatNotes profit={uniRes.profit} />
+      {SHOW_BREAKEVEN_NOTES && (
+        <>
+          <DataCaveatNotes profit={uniRes.profit} />
 
-      <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
+          <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
+        </>
+      )}
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>

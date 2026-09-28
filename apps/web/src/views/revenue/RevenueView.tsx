@@ -330,7 +330,7 @@ const RevenueView = () => {
   // เพราะจุดประสงค์คือเทียบสัดส่วนแหล่งเงินของแต่ละคณะ (ตรงกับ mockup)
   const stackedOptions: ApexOptions = {
     chart: { type: 'bar', stacked: true, toolbar: { show: false }, parentHeightOffset: 0 },
-    plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '70%' } },
+    plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '75%' } },
     colors: ['var(--mui-palette-primary-main)', 'var(--mui-palette-warning-main)'],
     dataLabels: { enabled: false },
     stroke: { width: 0 },
@@ -563,7 +563,7 @@ const RevenueView = () => {
                   </Box>
                   <AppReactApexCharts
                     type="bar"
-                    height={Math.max(420, facs.length * 26)}
+                    height={340}
                     width="100%"
                     options={stackedOptions}
                     series={stackedSeries}
@@ -603,7 +603,7 @@ const RevenueView = () => {
                 <Box sx={{ inlineSize: 220, maxInlineSize: '45%' }}>
                   <AppReactApexCharts
                     type="radialBar"
-                    height={210}
+                    height={170}
                     width="100%"
                     options={gaugeOptions}
                     series={gaugeSeries}
@@ -649,7 +649,7 @@ const RevenueView = () => {
                   <Typography
                     align="center"
                     fontWeight={700}
-                    sx={{ mt: 4, color: `var(--mui-palette-${COVERAGE_ACCENT[qCoverage]}-main)` }}
+                    sx={{ mt: 2, color: `var(--mui-palette-${COVERAGE_ACCENT[qCoverage]}-main)` }}
                     className="num"
                   >
                     {(qGap ?? 0) >= 0 ? 'สูงกว่าจุดคุ้มทุน +' : 'ต่ำกว่าจุดคุ้มทุน −'}

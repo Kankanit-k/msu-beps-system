@@ -78,6 +78,7 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
     {
       label: 'ข้อมูลภาพรวม',
       isSection: true,
+      defaultOpen: true,
       children: [
         { label: 'ภาพรวมมหาวิทยาลัย', href: '/overview', icon: 'ri-home-smile-line' },
         { label: 'รายได้รายคณะ', href: '/revenue', icon: 'ri-money-dollar-circle-line' },

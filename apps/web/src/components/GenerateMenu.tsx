@@ -1,5 +1,9 @@
 // React Imports
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+
+// Next Imports
+import { usePathname } from 'next/navigation';
 
 // MUI Imports
 import Chip from '@mui/material/Chip';
@@ -27,6 +31,40 @@ import {
   MenuSection,
 } from '@menu/vertical-menu';
 
+const collectHrefs = (items: VerticalMenuDataType[]): string[] =>
+  items.flatMap((item) =>
+    'children' in item && item.children
+      ? collectHrefs(item.children)
+      : 'href' in item && item.href
+        ? [String(item.href)]
+        : [],
+  );
+
+// Sections collapse/expand on heading click; the one holding the current page opens itself.
+const CollapsibleSection = ({
+  section,
+  children,
+}: {
+  section: VerticalSectionDataType;
+  children: ReactNode;
+}) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { children: items, isSection, defaultOpen, ...rest } = section;
+  const pathname = (usePathname() ?? '').replace(/\/+$/, '') || '/';
+  const hasActive = collectHrefs(items).some((href) => pathname === href);
+  const [open, setOpen] = useState(Boolean(defaultOpen) || hasActive);
+
+  useEffect(() => {
+    if (hasActive) setOpen(true);
+  }, [hasActive]);
+
+  return (
+    <MenuSection {...rest} open={open} onToggle={() => setOpen((o) => !o)}>
+      {children}
+    </MenuSection>
+  );
+};
+
 // Generate a menu from the menu data array
 export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataType[] }) => {
   // Hooks
@@ -40,14 +78,10 @@ export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataT
 
       // Check if the current item is a section
       if (menuSectionItem.isSection) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { children, isSection, ...rest } = menuSectionItem;
-
-        // If it is, return a MenuSection component and call generateMenu with the current menuSectionItem's children
         return (
-          <MenuSection key={index} {...rest}>
-            {children && renderMenuItems(children)}
-          </MenuSection>
+          <CollapsibleSection key={index} section={menuSectionItem}>
+            {menuSectionItem.children && renderMenuItems(menuSectionItem.children)}
+          </CollapsibleSection>
         );
       }
 

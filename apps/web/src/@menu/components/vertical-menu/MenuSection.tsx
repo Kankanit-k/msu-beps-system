@@ -2,7 +2,13 @@
 
 // React Imports
 import { forwardRef } from 'react';
-import type { ForwardRefRenderFunction, CSSProperties, ReactElement, ReactNode } from 'react';
+import type {
+  ForwardRefRenderFunction,
+  CSSProperties,
+  KeyboardEvent,
+  ReactElement,
+  ReactNode,
+} from 'react';
 
 // Third-party Imports
 import classnames from 'classnames';
@@ -33,6 +39,10 @@ export type MenuSectionProps = Partial<ChildrenType> &
     prefix?: ReactNode;
     suffix?: ReactNode;
 
+    /** Collapsible section: pass both to make the heading toggle its children. */
+    open?: boolean;
+    onToggle?: () => void;
+
     /**
      * @ignore
      */
@@ -62,11 +72,42 @@ const menuSectionContentStyles: CSSProperties = {
 
 const MenuSection: ForwardRefRenderFunction<HTMLLIElement, MenuSectionProps> = (props, ref) => {
   // Props
-  const { children, icon, className, prefix, suffix, label, rootStyles, ...rest } = props;
+  const {
+    children,
+    icon,
+    className,
+    prefix,
+    suffix,
+    label,
+    rootStyles,
+    open = true,
+    onToggle,
+    ...rest
+  } = props;
 
   // Hooks
   const { isCollapsed, isHovered } = useVerticalNav();
   const { menuSectionStyles, collapsedMenuSectionLabel, textTruncate } = useVerticalMenu();
+
+  // The mini (collapsed, not hovered) sidebar hides section headings, so always show items there.
+  const collapsedNotHovered = isCollapsed && !isHovered;
+  const showChildren = open || collapsedNotHovered || !onToggle;
+
+  const toggleProps =
+    onToggle && !collapsedNotHovered
+      ? {
+          role: 'button',
+          tabIndex: 0,
+          'aria-expanded': open,
+          onClick: onToggle,
+          onKeyDown: (e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onToggle();
+            }
+          },
+        }
+      : {};
 
   const getMenuSectionStyles = (element: MenuSectionElement): CSSObject | undefined => {
     // If the menuSectionStyles prop is provided, get the styles for the element from the prop
@@ -86,7 +127,11 @@ const MenuSection: ForwardRefRenderFunction<HTMLLIElement, MenuSectionProps> = (
       {/* Menu Section Content Wrapper */}
       <ul className={menuClasses.menuSectionWrapper} {...rest} style={menuSectionWrapperStyles}>
         {/* Menu Section Content */}
-        <li className={menuClasses.menuSectionContent} style={menuSectionContentStyles}>
+        <li
+          className={menuClasses.menuSectionContent}
+          style={{ ...menuSectionContentStyles, ...(toggleProps.role && { cursor: 'pointer' }) }}
+          {...toggleProps}
+        >
           {icon && (
             <StyledMenuIcon className={menuClasses.icon} rootStyles={getMenuSectionStyles('icon')}>
               {icon}
@@ -133,9 +178,17 @@ const MenuSection: ForwardRefRenderFunction<HTMLLIElement, MenuSectionProps> = (
               {suffix}
             </StyledMenuSuffix>
           )}
+          {toggleProps.role && (
+            // order: 1 puts the chevron after the ::after divider line
+            <i
+              className={open ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}
+              style={{ order: 1, fontSize: '1rem' }}
+              aria-hidden
+            />
+          )}
         </li>
         {/* Render Child */}
-        {children}
+        {showChildren && children}
       </ul>
     </StyledVerticalMenuSection>
   );

@@ -9,12 +9,8 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav';
 import { useRole, useIsAdmin } from '@/hooks/useRole';
-import { roleDisplay } from '@/configs/accessControl';
+import { roleDisplay, roleOrder } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
-
-// Order shown in the toggle; labels/icons come from the shared roleDisplay map
-// so the navbar profile (UserDropdown) shows exactly the same wording.
-const roleOrder: AppRole[] = ['user', 'deptAdmin', 'universityAdmin'];
 
 // Developer credits shown at the bottom of the sidebar.
 // Replace the placeholder names below with the real ones.

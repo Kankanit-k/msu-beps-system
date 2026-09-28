@@ -28,7 +28,17 @@ import { useAuthUser, useAuthMethod } from '@/hooks/AuthHooks';
 import { useRole, useIsAdmin } from '@/hooks/useRole';
 
 // Config Imports
-import { roleDisplay } from '@/configs/accessControl';
+import { roleDisplay, roleOrder } from '@/configs/accessControl';
+
+/** ซ่อนเมนู My Profile / Settings / Pricing / FAQ ชั่วคราว — ตั้งเป็น true เพื่อแสดงกลับ */
+const SHOW_PROFILE_MENU_ITEMS = false;
+
+const profileMenuItems = [
+  { label: 'My Profile', icon: 'ri-user-3-line' },
+  { label: 'Settings', icon: 'ri-settings-4-line' },
+  { label: 'Pricing', icon: 'ri-money-dollar-circle-line' },
+  { label: 'FAQ', icon: 'ri-question-line' },
+];
 
 // Styled component for badge content
 const BadgeContentSpan = styled('span')({
@@ -51,7 +61,7 @@ const UserDropdown = () => {
   const router = useRouter();
   const { user } = useAuthUser();
   const { logout } = useAuthMethod();
-  const { role } = useRole();
+  const { role, setRole } = useRole();
   const isAdmin = useIsAdmin();
 
   // Accounts that may switch views show the role picked in the sidebar footer, so the
@@ -158,22 +168,47 @@ const UserDropdown = () => {
                     </div>
                   </div>
                   <Divider className="mlb-1" />
-                  <MenuItem className="gap-3" onClick={(e) => handleDropdownClose(e)}>
-                    <i className="ri-user-3-line" />
-                    <Typography color="text.primary">My Profile</Typography>
-                  </MenuItem>
-                  <MenuItem className="gap-3" onClick={(e) => handleDropdownClose(e)}>
-                    <i className="ri-settings-4-line" />
-                    <Typography color="text.primary">Settings</Typography>
-                  </MenuItem>
-                  <MenuItem className="gap-3" onClick={(e) => handleDropdownClose(e)}>
-                    <i className="ri-money-dollar-circle-line" />
-                    <Typography color="text.primary">Pricing</Typography>
-                  </MenuItem>
-                  <MenuItem className="gap-3" onClick={(e) => handleDropdownClose(e)}>
-                    <i className="ri-question-line" />
-                    <Typography color="text.primary">FAQ</Typography>
-                  </MenuItem>
+                  {/* Role switcher — mirrors the sidebar footer toggle (same useRole state) */}
+                  {isAdmin && (
+                    <div>
+                      <Typography
+                        variant="caption"
+                        color="primary"
+                        className="block pli-4 plb-1 font-bold uppercase"
+                      >
+                        มุมมองสิทธิ์
+                      </Typography>
+                      {roleOrder.map((value) => (
+                        <MenuItem
+                          key={value}
+                          className="gap-3"
+                          selected={role === value}
+                          onClick={(e) => {
+                            setRole(value);
+                            handleDropdownClose(e);
+                          }}
+                        >
+                          <i className={roleDisplay[value].icon} />
+                          <Typography color="text.primary" className="flex-1">
+                            {roleDisplay[value].label}
+                          </Typography>
+                          {role === value && <i className="ri-check-line text-primary" />}
+                        </MenuItem>
+                      ))}
+                      <Divider className="mlb-1" />
+                    </div>
+                  )}
+                  {SHOW_PROFILE_MENU_ITEMS &&
+                    profileMenuItems.map((item) => (
+                      <MenuItem
+                        key={item.label}
+                        className="gap-3"
+                        onClick={(e) => handleDropdownClose(e)}
+                      >
+                        <i className={item.icon} />
+                        <Typography color="text.primary">{item.label}</Typography>
+                      </MenuItem>
+                    ))}
                   <div className="flex items-center plb-2 pli-4">
                     <Button
                       fullWidth

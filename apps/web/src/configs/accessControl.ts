@@ -97,3 +97,6 @@ export const roleDisplay: Record<AppRole, { label: string; icon: string }> = {
   deptAdmin: { label: 'ผู้ดูแลหน่วยงาน', icon: 'ri-shield-user-line' },
   universityAdmin: { label: 'ผู้ดูแลมหาวิทยาลัย', icon: 'ri-government-line' },
 };
+
+/** Order the viewable roles appear in both role switchers (sidebar footer + navbar dropdown). */
+export const roleOrder: AppRole[] = ['user', 'deptAdmin', 'universityAdmin'];
