@@ -47,7 +47,6 @@ const features = [
   'ฟอนต์ Sarabun + Manrope / IBM Plex Sans Thai',
   'ธีมสีม่วง (primary) สลับ light/dark ได้',
   'Sidebar แบบจัดกลุ่ม แก้ที่ data/navigation',
-  'Customizer มุมขวาบนสำหรับปรับธีมสด ๆ',
 ];
 
 const HomePage = () => {

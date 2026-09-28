@@ -113,8 +113,9 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
           </div>
 
           <Typography className="!text-white/90" style={{ lineHeight: 1.8 }}>
-            ระบบนี้แสดงต้นทุนและจุดคุ้มทุนรายหลักสูตรของทั้งมหาวิทยาลัย ซึ่งเป็นข้อมูลที่กระทบการตัดสินใจ
-            เรื่องงบประมาณและการเปิด/ปิดหลักสูตรโดยตรง จึงต้องระบุตัวตนก่อนเข้าใช้เสมอ และ
+            ระบบนี้แสดงต้นทุนและจุดคุ้มทุนรายหลักสูตรของทั้งมหาวิทยาลัย
+            ซึ่งเป็นข้อมูลที่กระทบการตัดสินใจ เรื่องงบประมาณและการเปิด/ปิดหลักสูตรโดยตรง
+            จึงต้องระบุตัวตนก่อนเข้าใช้เสมอ และ
             <b className="!text-white"> สิ่งที่แต่ละคนเห็นขึ้นอยู่กับสิทธิ์</b>
           </Typography>
 
@@ -122,22 +123,23 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
             <div className="flex gap-3 items-start">
               <i className="ri-lock-2-line text-xl" />
               <Typography className="!text-white/90" variant="body2">
-                เข้าสู่ระบบด้วยบัญชี <b className="!text-white">MSU Account</b> เดียวกับระบบอื่นของมหาวิทยาลัย
-                (SSO) — ระบบไม่เก็บรหัสผ่านของตัวเอง
+                เข้าสู่ระบบด้วยบัญชี <b className="!text-white">MSU Account</b>{' '}
+                เดียวกับระบบอื่นของมหาวิทยาลัย (SSO) — ระบบไม่เก็บรหัสผ่านของตัวเอง
               </Typography>
             </div>
             <div className="flex gap-3 items-start">
               <i className="ri-eye-line text-xl" />
               <Typography className="!text-white/90" variant="body2">
-                ผู้รับผิดชอบหลักสูตรเห็นเฉพาะคณะที่สังกัด · ผู้บริหารเห็นทุกคณะ · เมนูจัดการข้อมูลและตั้งค่าระบบ
+                ผู้รับผิดชอบหลักสูตรเห็นเฉพาะคณะที่สังกัด · ผู้บริหารเห็นทุกคณะ ·
+                เมนูจัดการข้อมูลและตั้งค่าระบบ
                 <b className="!text-white"> ไม่ปรากฏเลย</b>สำหรับผู้ที่ไม่มีสิทธิ์
               </Typography>
             </div>
             <div className="flex gap-3 items-start">
               <i className="ri-file-list-3-line text-xl" />
               <Typography className="!text-white/90" variant="body2">
-                ทุกการแก้ข้อมูลหลัก การอนุมัติ และการสั่งคำนวณใหม่ ถูกบันทึกพร้อมชื่อผู้ทำและเวลา เพื่อให้ตอบได้ว่า
-                ตัวเลขแต่ละชุดมาจากใครและกติกาปีไหน
+                ทุกการแก้ข้อมูลหลัก การอนุมัติ และการสั่งคำนวณใหม่ ถูกบันทึกพร้อมชื่อผู้ทำและเวลา
+                เพื่อให้ตอบได้ว่า ตัวเลขแต่ละชุดมาจากใครและกติกาปีไหน
               </Typography>
             </div>
           </div>
@@ -164,7 +166,11 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
             </Typography>
           </div>
 
-          <Button fullWidth variant="contained" startIcon={<i className="ri-graduation-cap-line" />}>
+          <Button
+            fullWidth
+            variant="contained"
+            startIcon={<i className="ri-graduation-cap-line" />}
+          >
             เข้าสู่ระบบด้วย MSU Account (SSO)
           </Button>
 
@@ -179,7 +185,12 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
             }}
             className="flex flex-col gap-5"
           >
-            <TextField autoFocus fullWidth label="ชื่อผู้ใช้ / อีเมล" placeholder="name@msu.ac.th" />
+            <TextField
+              autoFocus
+              fullWidth
+              label="ชื่อผู้ใช้ / อีเมล"
+              placeholder="name@msu.ac.th"
+            />
             <TextField
               fullWidth
               label="รหัสผ่าน"
@@ -220,7 +231,8 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
                 สิทธิ์แต่ละบทบาทเห็นอะไรบ้าง
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                3 บทบาทตรงกับ <code>AppRole</code> ของระบบ — ขอบเขตข้อมูลกำหนดจากหน่วยงานที่ผูกไว้กับบัญชี
+                3 บทบาทตรงกับ <code>AppRole</code> ของระบบ —
+                ขอบเขตข้อมูลกำหนดจากหน่วยงานที่ผูกไว้กับบัญชี
               </Typography>
               <TableContainer sx={{ mt: 3 }}>
                 <Table size="small">

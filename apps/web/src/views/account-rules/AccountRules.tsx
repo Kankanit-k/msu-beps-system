@@ -59,13 +59,16 @@ const AccountRules = () => {
   const rows = useMemo(
     () =>
       ACCOUNTS.map((a, i) => ({ a, i, r: ruleAt(a, year) }))
-        .filter(x => x.r)
-        .filter(x => fBeh === 'all' || x.r?.beh === fBeh),
-    [year, fBeh]
+        .filter((x) => x.r)
+        .filter((x) => fBeh === 'all' || x.r?.beh === fBeh),
+    [year, fBeh],
   );
 
-  const withRule = useMemo(() => ACCOUNTS.filter(a => ruleAt(a, year)), [year]);
-  const unclassified = useMemo(() => withRule.filter(a => ruleAt(a, year)?.beh === 'UNCLASSIFIED'), [withRule, year]);
+  const withRule = useMemo(() => ACCOUNTS.filter((a) => ruleAt(a, year)), [year]);
+  const unclassified = useMemo(
+    () => withRule.filter((a) => ruleAt(a, year)?.beh === 'UNCLASSIFIED'),
+    [withRule, year],
+  );
 
   const account = ACCOUNTS[sel] ?? ACCOUNTS[0]!;
   const rule = ruleAt(account, year);
@@ -74,9 +77,10 @@ const AccountRules = () => {
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
         <Alert severity="info">
-          กติกาผูกกับ <b>คีย์ผสม 4 ระดับ</b> (แผนงาน · หมวดงบ · หมวดรายจ่าย · หมวดย่อย) ไม่ใช่รหัสหมวดรายจ่ายอย่างเดียว
-          เพราะรหัสเดียวกันเป็นคนละประเภทได้เมื่ออยู่คนละแผนงาน — ดู <code>800:เงินอุดหนุน</code> สองแถวในตาราง ·
-          ทุกกติกามี<b>ช่วงปีที่มีผล</b> เปลี่ยนปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม
+          กติกาผูกกับ <b>คีย์ผสม 4 ระดับ</b> (แผนงาน · หมวดงบ · หมวดรายจ่าย · หมวดย่อย)
+          ไม่ใช่รหัสหมวดรายจ่ายอย่างเดียว เพราะรหัสเดียวกันเป็นคนละประเภทได้เมื่ออยู่คนละแผนงาน — ดู{' '}
+          <code>800:เงินอุดหนุน</code> สองแถวในตาราง · ทุกกติกามี<b>ช่วงปีที่มีผล</b>{' '}
+          เปลี่ยนปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม
         </Alert>
       </Grid>
 
@@ -149,9 +153,9 @@ const AccountRules = () => {
               labelId="year-label"
               label="ปีการศึกษาที่ดู"
               value={year}
-              onChange={e => setYear(Number(e.target.value))}
+              onChange={(e) => setYear(Number(e.target.value))}
             >
-              {YEARS.map(y => (
+              {YEARS.map((y) => (
                 <MenuItem key={y} value={y}>
                   {y}
                 </MenuItem>
@@ -164,7 +168,7 @@ const AccountRules = () => {
             value={fBeh}
             onChange={(_, v) => v && setFBeh(v)}
           >
-            {BEH_FILTERS.map(f => (
+            {BEH_FILTERS.map((f) => (
               <ToggleButton key={f} value={f}>
                 {BEH_FILTER_LABEL[f]}
               </ToggleButton>
@@ -228,7 +232,9 @@ const AccountRules = () => {
                         <Chip size="small" color={b.color} label={b.label} />
                       </TableCell>
                       <TableCell align="right">
-                        {r.beh === 'MIXED' ? `${(r.f * 100).toFixed(0)}:${(r.v * 100).toFixed(0)}` : '—'}
+                        {r.beh === 'MIXED'
+                          ? `${(r.f * 100).toFixed(0)}:${(r.v * 100).toFixed(0)}`
+                          : '—'}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
@@ -256,7 +262,11 @@ const AccountRules = () => {
                     {account.org ? ` · ตั้งเจาะจง ${account.org}` : ' · กติกากลางทั้งมหาวิทยาลัย'}
                   </>
                 }
-                action={rule && <Chip size="small" color={BEH[rule.beh].color} label={BEH[rule.beh].label} />}
+                action={
+                  rule && (
+                    <Chip size="small" color={BEH[rule.beh].color} label={BEH[rule.beh].label} />
+                  )
+                }
               />
               <CardContent>
                 {!rule ? (
@@ -266,8 +276,14 @@ const AccountRules = () => {
                     <Typography variant="body2" gutterBottom>
                       ประเภทต้นทุนในปีการศึกษา {year}
                     </Typography>
-                    <ToggleButtonGroup size="small" exclusive value={rule.beh} fullWidth sx={{ mb: 4 }}>
-                      {(['TFC', 'TVC', 'MIXED', 'UNCLASSIFIED'] as Behavior[]).map(v => (
+                    <ToggleButtonGroup
+                      size="small"
+                      exclusive
+                      value={rule.beh}
+                      fullWidth
+                      sx={{ mb: 4 }}
+                    >
+                      {(['TFC', 'TVC', 'MIXED', 'UNCLASSIFIED'] as Behavior[]).map((v) => (
                         <ToggleButton key={v} value={v} disabled>
                           {BEH[v].label}
                         </ToggleButton>
@@ -306,15 +322,20 @@ const AccountRules = () => {
                           </Box>
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                          ยอด {fmtM(account.amount)} ลบ. → TFC {fmtM(account.amount * rule.f)} ลบ. · TVC{' '}
-                          {fmtM(account.amount * rule.v)} ลบ.
+                          ยอด {fmtM(account.amount)} ลบ. → TFC {fmtM(account.amount * rule.f)} ลบ. ·
+                          TVC {fmtM(account.amount * rule.v)} ลบ.
                         </Typography>
                       </Box>
                     )}
 
                     <FormControl fullWidth size="small" sx={{ mb: 4 }}>
                       <InputLabel id="method-label">วิธีปันส่วนลงหลักสูตร</InputLabel>
-                      <Select labelId="method-label" label="วิธีปันส่วนลงหลักสูตร" value={rule.m} disabled>
+                      <Select
+                        labelId="method-label"
+                        label="วิธีปันส่วนลงหลักสูตร"
+                        value={rule.m}
+                        disabled
+                      >
                         {Object.entries(METHOD).map(([k, v]) => (
                           <MenuItem key={k} value={k}>
                             {v}
@@ -360,7 +381,10 @@ const AccountRules = () => {
                     const on = year >= r.from && (r.to === null || year <= r.to);
                     const span = `${r.from <= 2500 ? 'ตั้งแต่เริ่มระบบ' : r.from} – ${r.to === null ? 'ปัจจุบัน' : r.to}`;
                     return (
-                      <TimelineItem key={idx} sx={{ opacity: on ? 1 : 0.55, '&::before': { display: 'none' } }}>
+                      <TimelineItem
+                        key={idx}
+                        sx={{ opacity: on ? 1 : 0.55, '&::before': { display: 'none' } }}
+                      >
                         <TimelineOppositeContent sx={{ flex: 0.001, p: 0 }} />
                         <TimelineSeparator>
                           <TimelineDot color={on ? 'primary' : 'grey'} />
@@ -373,9 +397,20 @@ const AccountRules = () => {
                             </Typography>
                             <Chip size="small" color={b.color} label={b.label} />
                             {r.beh === 'MIXED' && (
-                              <Chip size="small" variant="outlined" label={`${(r.f * 100).toFixed(0)}:${(r.v * 100).toFixed(0)}`} />
+                              <Chip
+                                size="small"
+                                variant="outlined"
+                                label={`${(r.f * 100).toFixed(0)}:${(r.v * 100).toFixed(0)}`}
+                              />
                             )}
-                            {on && <Chip size="small" color="success" variant="outlined" label="มีผลอยู่" />}
+                            {on && (
+                              <Chip
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                label="มีผลอยู่"
+                              />
+                            )}
                           </Box>
                           <Typography variant="body2" color="text.secondary">
                             {r.note || 'ไม่มีหมายเหตุ'} · ปันส่วน{METHOD[r.m]}
@@ -402,20 +437,25 @@ const AccountRules = () => {
           <CardContent>
             <Box display="flex" flexDirection="column" gap={2}>
               <Alert severity="error">
-                <b>คีย์ผสม 4 ระดับ ไม่ใช่รหัสหมวดเดียว</b> — <code>80001 เงินอุดหนุน</code> ในแผนงานจัดการศึกษาเป็นคนละประเภทกับในแผนงานวิจัย
+                <b>คีย์ผสม 4 ระดับ ไม่ใช่รหัสหมวดเดียว</b> — <code>80001 เงินอุดหนุน</code>{' '}
+                ในแผนงานจัดการศึกษาเป็นคนละประเภทกับในแผนงานวิจัย
                 ถ้าตั้งด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน
               </Alert>
               <Alert severity="warning">
-                <b>กติกาเจาะจงหน่วยงานมาก่อนกติกากลางเสมอ</b> — ค่าวัสดุการศึกษาของคณะแพทยศาสตร์ตั้ง 15:85 ทับกติกากลาง 35:65
+                <b>กติกาเจาะจงหน่วยงานมาก่อนกติกากลางเสมอ</b> — ค่าวัสดุการศึกษาของคณะแพทยศาสตร์ตั้ง
+                15:85 ทับกติกากลาง 35:65
               </Alert>
               <Alert severity="warning">
-                <b>UNCLASSIFIED ไม่ใช่ค่าว่าง</b> — เป็นสถานะที่ตั้งใจ ระบบจะพักเงินไว้ที่หน่วยงานและติดธงไปที่รายการค้างตรวจ ไม่เดาแทน
+                <b>UNCLASSIFIED ไม่ใช่ค่าว่าง</b> — เป็นสถานะที่ตั้งใจ
+                ระบบจะพักเงินไว้ที่หน่วยงานและติดธงไปที่รายการค้างตรวจ ไม่เดาแทน
               </Alert>
               <Alert severity="info">
-                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงหากติกาปกติไม่เจอ — กำหนดผ่านค่าตั้ง <code>depreciation_behavior</code> ที่หน้านโยบายการคำนวณแทน
+                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงหากติกาปกติไม่เจอ — กำหนดผ่านค่าตั้ง{' '}
+                <code>depreciation_behavior</code> ที่หน้านโยบายการคำนวณแทน
               </Alert>
               <Alert severity="success">
-                การแก้กติกาต้องผ่านการอนุมัติ และ run ที่คำนวณไปแล้วจะ<b>ล็อกเวอร์ชันกติกาไว้</b> คำนวณซ้ำได้ตัวเลขเดิมเป๊ะ
+                การแก้กติกาต้องผ่านการอนุมัติ และ run ที่คำนวณไปแล้วจะ<b>ล็อกเวอร์ชันกติกาไว้</b>{' '}
+                คำนวณซ้ำได้ตัวเลขเดิมเป๊ะ
               </Alert>
             </Box>
           </CardContent>

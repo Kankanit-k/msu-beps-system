@@ -9,13 +9,12 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav';
 import { useRole, useIsAdmin } from '@/hooks/useRole';
+import { roleDisplay } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
-const roleOptions: { value: AppRole; label: string; icon: string }[] = [
-  { value: 'user', label: 'ผู้ใช้ทั่วไป', icon: 'ri-user-line' },
-  { value: 'deptAdmin', label: 'ผู้ดูแลหน่วยงาน', icon: 'ri-shield-user-line' },
-  { value: 'universityAdmin', label: 'ผู้ดูแลมหาวิทยาลัย', icon: 'ri-government-line' },
-];
+// Order shown in the toggle; labels/icons come from the shared roleDisplay map
+// so the navbar profile (UserDropdown) shows exactly the same wording.
+const roleOrder: AppRole[] = ['user', 'deptAdmin', 'universityAdmin'];
 
 // Developer credits shown at the bottom of the sidebar.
 // Replace the placeholder names below with the real ones.
@@ -81,10 +80,10 @@ const SidebarFooter = () => {
               },
             }}
           >
-            {roleOptions.map((opt) => (
-              <ToggleButton key={opt.value} value={opt.value}>
-                <i className={opt.icon} style={{ fontSize: '1rem' }} />
-                {opt.label}
+            {roleOrder.map((value) => (
+              <ToggleButton key={value} value={value}>
+                <i className={roleDisplay[value].icon} style={{ fontSize: '1rem' }} />
+                {roleDisplay[value].label}
               </ToggleButton>
             ))}
           </ToggleButtonGroup>

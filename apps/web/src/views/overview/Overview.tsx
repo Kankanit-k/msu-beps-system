@@ -25,7 +25,7 @@ import type { ApexOptions } from 'apexcharts';
 
 // Component Imports
 import { DotTitle, LegendItem } from '@components/ChartBits';
-import DataCaveatNotes from '@components/DataCaveatNotes';
+import DataCaveatNotes, { SHOW_OVERVIEW_NOTES } from '@components/DataCaveatNotes';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
@@ -42,6 +42,9 @@ import {
 } from '@views/breakeven/calc';
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
+
+const TR_COLOR = '#3492ec';
+const TC_COLOR = '#e64981';
 
 const Overview = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
@@ -81,8 +84,12 @@ const Overview = () => {
 
   const barOptions: ApexOptions = {
     chart: { type: 'bar', toolbar: { show: false }, parentHeightOffset: 0 },
-    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '82%' } },
-    colors: ['var(--mui-palette-primary-main)', 'var(--mui-palette-error-main)'],
+    // borderRadiusApplication 'end' = โค้งเฉพาะปลายแท่ง ฐานฝั่งซ้ายเป็นมุมตรง
+    plotOptions: {
+      bar: { horizontal: true, borderRadius: 4, borderRadiusApplication: 'end', barHeight: '82%' },
+    },
+    colors: [TR_COLOR, TC_COLOR],
+    fill: { opacity: 1 }, // ค่าเริ่มต้น 0.85 ทำให้สีจางกว่าที่กำหนด
     dataLabels: { enabled: false },
     stroke: { width: 0 },
     xaxis: {
@@ -139,9 +146,13 @@ const Overview = () => {
         profit={uni.profit}
       />
 
-      <DataCaveatNotes profit={uni.profit} />
+      {SHOW_OVERVIEW_NOTES && (
+        <>
+          <DataCaveatNotes profit={uni.profit} />
 
-      <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
+          <NoteBar severity="info">{REVENUE_MODE_NOTE[mode]}</NoteBar>
+        </>
+      )}
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
@@ -162,7 +173,12 @@ const Overview = () => {
           />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard label="ต้นทุนรวม (TC)" value={fmtMillion(uni.tc)} unit="ล้านบาท" accent="secondary" />
+          <KpiCard
+            label="ต้นทุนรวม (TC)"
+            value={fmtMillion(uni.tc)}
+            unit="ล้านบาท"
+            accent="secondary"
+          />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
@@ -197,31 +213,37 @@ const Overview = () => {
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <Card>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardHeader
               title={<DotTitle color="primary.main">รายได้ (TR) เทียบ ต้นทุน (TC) รายคณะ</DotTitle>}
               subheader="เรียงตามจำนวนนิสิต · หน่วยล้านบาท"
             />
-            <CardContent>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
                 <LegendItem
-                  color="primary.main"
+                  color={TR_COLOR}
                   label={mode === 'with_government' ? 'รายได้รวม (TR)' : 'เงินรายได้'}
                 />
-                <LegendItem color="error.main" label="ต้นทุนรวม (TC)" />
+                <LegendItem color={TC_COLOR} label="ต้นทุนรวม (TC)" />
               </Box>
-              <AppReactApexCharts
-                type="bar"
-                height={520}
-                width="100%"
-                options={barOptions}
-                series={barSeries}
-              />
+              {/* กราฟวางแบบ absolute เพื่อไม่ดันความสูงแถว — การ์ดนี้จึงสูงเท่าการ์ดโครงสร้างต้นทุน */}
+              <Box sx={{ flex: 1, position: 'relative', minHeight: 360 }}>
+                <Box sx={{ position: 'absolute', inset: 0 }}>
+                  <AppReactApexCharts
+                    type="bar"
+                    height="100%"
+                    width="100%"
+                    options={barOptions}
+                    series={barSeries}
+                    boxProps={{ sx: { height: '100%' } }}
+                  />
+                </Box>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid size={{ xs: 12, md: 5 }}>
-          <Card>
+          <Card sx={{ height: '100%' }}>
             <CardHeader
               title={<DotTitle color="success.main">โครงสร้างต้นทุนรวม</DotTitle>}
               subheader="คงที่ (TFC) เทียบ ผันแปร (TVC)"

@@ -33,19 +33,34 @@ import { EXCEPTIONS, EXC_FLAG_META, RECON_METHODS, surplusCaveatText } from '@/d
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
-const short = (s: string) => s.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
-const fmtM = (v: number) => (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const bahtF = (v: number) => v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const short = (s: string) =>
+  s.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
+const fmtM = (v: number) =>
+  (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const bahtF = (v: number) =>
+  v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const confidence = (pct: number): { label: string; color: 'success' | 'warning' | 'error' } =>
-  pct < 25 ? { label: 'สูง', color: 'success' } : pct < 45 ? { label: 'ปานกลาง', color: 'warning' } : { label: 'ต่ำ', color: 'error' };
+  pct < 25
+    ? { label: 'สูง', color: 'success' }
+    : pct < 45
+      ? { label: 'ปานกลาง', color: 'warning' }
+      : { label: 'ต่ำ', color: 'error' };
 
 const ReconciliationView = () => {
   const TOT = RAW.UNI.TC;
   const allocTot = RECON_METHODS.filter((m) => m.alloc).reduce((a, m) => a + m.value, 0);
   const directTot = TOT - allocTot;
 
-  const byFlag = new Map<string, { label: string; color: (typeof EXC_FLAG_META)[keyof typeof EXC_FLAG_META]['color']; n: number; amt: number }>();
+  const byFlag = new Map<
+    string,
+    {
+      label: string;
+      color: (typeof EXC_FLAG_META)[keyof typeof EXC_FLAG_META]['color'];
+      n: number;
+      amt: number;
+    }
+  >();
   EXCEPTIONS.forEach((e) => {
     const meta = EXC_FLAG_META[e.flag];
     const g = byFlag.get(e.flag) ?? { label: meta.label, color: meta.color, n: 0, amt: 0 };
@@ -64,7 +79,9 @@ const ReconciliationView = () => {
 
   const chartOptions: ApexOptions = {
     chart: { type: 'bar', toolbar: { show: false }, parentHeightOffset: 0 },
-    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%', distributed: true } },
+    plotOptions: {
+      bar: { horizontal: true, borderRadius: 4, barHeight: '55%', distributed: true },
+    },
     colors: RECON_METHODS.map((m) => m.color),
     dataLabels: { enabled: false },
     legend: { show: false },
@@ -77,7 +94,9 @@ const ReconciliationView = () => {
       },
     },
   };
-  const chartSeries = [{ name: 'มูลค่า', data: RECON_METHODS.map((m) => Number((m.value / 1e6).toFixed(2))) }];
+  const chartSeries = [
+    { name: 'มูลค่า', data: RECON_METHODS.map((m) => Number((m.value / 1e6).toFixed(2))) },
+  ];
 
   return (
     <Grid container spacing={6}>
@@ -122,8 +141,9 @@ const ReconciliationView = () => {
               </Box>
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 4 }}>
-              เครื่องปันส่วนใช้วิธี <strong>largest-remainder</strong> จึงบังคับให้ยอดตรงพอดีทุกบาทได้ — ถ้าตั้งเกณฑ์ยอมรับหลวมกว่า 0
-              จะกลบข้อผิดพลาดจริง (ตั้งค่าที่ W15)
+              เครื่องปันส่วนใช้วิธี <strong>largest-remainder</strong>{' '}
+              จึงบังคับให้ยอดตรงพอดีทุกบาทได้ — ถ้าตั้งเกณฑ์ยอมรับหลวมกว่า 0 จะกลบข้อผิดพลาดจริง
+              (ตั้งค่าที่ W15)
             </Typography>
           </CardContent>
         </Card>
@@ -131,7 +151,10 @@ const ReconciliationView = () => {
 
       <Grid size={{ xs: 12, lg: 5 }}>
         <Card sx={{ height: '100%' }}>
-          <CardHeader title="ที่มาของต้นทุนรวม" subheader="ต้นทุนที่ผูกหลักสูตรได้โดยตรง เทียบ ต้นทุนที่ต้องปันส่วน" />
+          <CardHeader
+            title="ที่มาของต้นทุนรวม"
+            subheader="ต้นทุนที่ผูกหลักสูตรได้โดยตรง เทียบ ต้นทุนที่ต้องปันส่วน"
+          />
           <CardContent>
             <LinearProgress
               variant="determinate"
@@ -147,12 +170,30 @@ const ReconciliationView = () => {
                 ปันส่วน {((allocTot / TOT) * 100).toFixed(0)}% — {fmtM(allocTot)} ลบ.
               </Typography>
             </Stack>
-            <Stack spacing={3} divider={<Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', m: 0 }} />}>
+            <Stack
+              spacing={3}
+              divider={
+                <Box
+                  component="hr"
+                  sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', m: 0 }}
+                />
+              }
+            >
               {RECON_METHODS.map((m) => (
                 <Box key={m.label}>
                   <Stack direction="row" justifyContent="space-between" alignItems="baseline">
                     <Typography variant="body2" fontWeight={600}>
-                      <Box component="span" sx={{ display: 'inline-block', width: 9, height: 9, borderRadius: '2px', bgcolor: m.color, mr: 2 }} />
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          width: 9,
+                          height: 9,
+                          borderRadius: '2px',
+                          bgcolor: m.color,
+                          mr: 2,
+                        }}
+                      />
                       {m.label}
                     </Typography>
                     <Typography variant="body2" fontWeight={700}>
@@ -213,12 +254,14 @@ const ReconciliationView = () => {
               </Table>
             </TableContainer>
             <Alert severity="info" sx={{ mt: 4 }}>
-              รวม <strong>{fmtM(excAmt)} ลบ.</strong> คิดเป็น <strong>{((excAmt / TOT) * 100).toFixed(2)}%</strong> ของต้นทุนรวม —
+              รวม <strong>{fmtM(excAmt)} ลบ.</strong> คิดเป็น{' '}
+              <strong>{((excAmt / TOT) * 100).toFixed(2)}%</strong> ของต้นทุนรวม —
               ยังอยู่ในเกณฑ์ที่ยอมรับได้ แต่ควรตามแก้ให้หมดก่อนปิดปีงบ
             </Alert>
             <Alert severity="warning" sx={{ mt: 3 }}>
-              <strong>ที่ยังไม่ปรากฏในตารางนี้</strong> — ค่าเสื่อมราคาอาคารที่ยังไม่มีข้อมูลเลย ไม่ใช่ &ldquo;ปันส่วนผิด&rdquo; แต่เป็น
-              &ldquo;ไม่มีให้ปัน&rdquo; จึงตรวจยอดผ่านทั้งที่ต้นทุนจริงยังขาดอยู่
+              <strong>ที่ยังไม่ปรากฏในตารางนี้</strong> — ค่าเสื่อมราคาอาคารที่ยังไม่มีข้อมูลเลย
+              ไม่ใช่ &ldquo;ปันส่วนผิด&rdquo; แต่เป็น &ldquo;ไม่มีให้ปัน&rdquo;
+              จึงตรวจยอดผ่านทั้งที่ต้นทุนจริงยังขาดอยู่
             </Alert>
           </CardContent>
         </Card>
@@ -230,10 +273,12 @@ const ReconciliationView = () => {
             title="สัดส่วนที่มาข้อมูล รายคณะ"
             subheader={
               <>
-                คณะที่สัดส่วนปันส่วนสูง = ตัวเลขพึ่งการปันส่วนมาก ต้องระวังการตีความ · เรียงตามสัดส่วนที่ปันส่วน
+                คณะที่สัดส่วนปันส่วนสูง = ตัวเลขพึ่งการปันส่วนมาก ต้องระวังการตีความ ·
+                เรียงตามสัดส่วนที่ปันส่วน
                 <br />
                 <Typography component="span" variant="caption" color="text.disabled">
-                  หมายเหตุสำหรับผู้พัฒนา — mockup นี้ใช้ <code>tfcOffice</code> เป็นตัวแทนของยอดที่ปันส่วน ระบบจริงต้องอ่านจาก{' '}
+                  หมายเหตุสำหรับผู้พัฒนา — mockup นี้ใช้ <code>tfcOffice</code>{' '}
+                  เป็นตัวแทนของยอดที่ปันส่วน ระบบจริงต้องอ่านจาก{' '}
                   <code>cost_allocation_line.method</code>
                 </Typography>
               </>
@@ -269,7 +314,11 @@ const ReconciliationView = () => {
                       </TableCell>
                       <TableCell align="right">{fmtM(r.TC)}</TableCell>
                       <TableCell>
-                        <Chip size="small" color={c.color} label={`${c.label} · ปันส่วน ${r.pct.toFixed(0)}%`} />
+                        <Chip
+                          size="small"
+                          color={c.color}
+                          label={`${c.label} · ปันส่วน ${r.pct.toFixed(0)}%`}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -282,9 +331,18 @@ const ReconciliationView = () => {
 
       <Grid size={12}>
         <Card>
-          <CardHeader title="ต้นทุนที่ปันส่วน แยกตามวิธี" subheader="วิธีที่ใช้กำหนดจากกติกาผังบัญชี (W14) · วิธีที่แม่นน้อยกว่าควรมีสัดส่วนน้อยที่สุด" />
+          <CardHeader
+            title="ต้นทุนที่ปันส่วน แยกตามวิธี"
+            subheader="วิธีที่ใช้กำหนดจากกติกาผังบัญชี (W14) · วิธีที่แม่นน้อยกว่าควรมีสัดส่วนน้อยที่สุด"
+          />
           <CardContent>
-            <AppReactApexCharts type="bar" height={230} width="100%" options={chartOptions} series={chartSeries} />
+            <AppReactApexCharts
+              type="bar"
+              height={230}
+              width="100%"
+              options={chartOptions}
+              series={chartSeries}
+            />
           </CardContent>
         </Card>
       </Grid>
@@ -295,18 +353,21 @@ const ReconciliationView = () => {
           <CardContent>
             <Stack spacing={3}>
               <Alert severity="error">
-                <strong>ต้นทุนสำนักงานเลขานุการที่ปันด้วย PROGRAM_SHARE</strong> ทำให้หลักสูตรที่มีนิสิตหลักหน่วยมี AVC สูงผิดปกติ —
-                เป็นข้อจำกัดของวิธีปันส่วน ไม่ใช่หลักสูตรนั้นแพงจริง
+                <strong>ต้นทุนสำนักงานเลขานุการที่ปันด้วย PROGRAM_SHARE</strong>{' '}
+                ทำให้หลักสูตรที่มีนิสิตหลักหน่วยมี AVC สูงผิดปกติ — เป็นข้อจำกัดของวิธีปันส่วน
+                ไม่ใช่หลักสูตรนั้นแพงจริง
               </Alert>
               <Alert severity="warning">
-                คณะที่มีสัดส่วนปันส่วนสูง ตัวเลขจุดคุ้มทุนจะ<strong>อ่อนไหวต่อการเปลี่ยนกติกา</strong>มากกว่าคณะอื่น
+                คณะที่มีสัดส่วนปันส่วนสูง ตัวเลขจุดคุ้มทุนจะ
+                <strong>อ่อนไหวต่อการเปลี่ยนกติกา</strong>มากกว่าคณะอื่น
               </Alert>
               <Alert severity="success">
-                ส่วนต่างตรวจยอดเป็น <strong>0.00 บาท</strong> แปลว่าไม่มีเงินหายระหว่างปันส่วน — แต่ไม่ได้แปลว่าข้อมูลต้นทางครบ
-                ({surplusCaveatText})
+                ส่วนต่างตรวจยอดเป็น <strong>0.00 บาท</strong> แปลว่าไม่มีเงินหายระหว่างปันส่วน —
+                แต่ไม่ได้แปลว่าข้อมูลต้นทางครบ ({surplusCaveatText})
               </Alert>
               <Alert severity="info">
-                ทุกตัวเลขในหน้า W1–W5 คำนวณจาก run เดียวกันนี้ ถ้าอนุมัติ run ใหม่ ตัวเลขทุกหน้าจะเปลี่ยนพร้อมกัน
+                ทุกตัวเลขในหน้า W1–W5 คำนวณจาก run เดียวกันนี้ ถ้าอนุมัติ run ใหม่
+                ตัวเลขทุกหน้าจะเปลี่ยนพร้อมกัน
               </Alert>
             </Stack>
           </CardContent>

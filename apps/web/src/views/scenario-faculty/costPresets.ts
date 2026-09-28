@@ -35,4 +35,5 @@ export interface CostRow {
 let seq = 0;
 export const newCostRow = (label = '', amount = 0): CostRow => ({ id: `c${++seq}`, label, amount });
 
-export const sumCostRows = (rows: CostRow[]) => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+export const sumCostRows = (rows: CostRow[]) =>
+  rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);

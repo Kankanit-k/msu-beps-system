@@ -48,6 +48,7 @@ import StepperCustomDot from '@components/stepper-dot';
 // Calc Imports
 import { computeBreakEven, fmtInt, fmtMillion } from '@views/breakeven/calc';
 
+import CostComposition from './CostComposition';
 import MethodCards from './MethodCards';
 import PercentTable, { parsePct, pctSum, roundPct } from './PercentTable';
 import type { Bucket } from './PercentTable';
@@ -457,6 +458,10 @@ const FixedCostPolicyView = () => {
               </Stack>
             </CardContent>
           </Card>
+        </Grid>
+
+        <Grid size={12}>
+          <CostComposition faculty={faculty} pool={pool} year={year} />
         </Grid>
 
         <Grid size={12}>

@@ -71,8 +71,20 @@ const PERIODS = [
 // เพื่อให้ยอดรวมตรงกับจำนวนนิสิตของงวดเสมอ ไม่ว่าจะโหลดชุดข้อมูลใด (ดูตรรกะเดียวกันใน mockup/assets/master-data.js)
 const STUDENT_TYPE_DEFS = [
   { code: 'REG-TH', grp: 'ภาคปกติ', nat: 'ไทย' as const, share: 0.9078, note: 'ประเภทหลัก' },
-  { code: 'REG-INT', grp: 'ภาคปกติ', nat: 'ต่างชาติ' as const, share: 0.0126, note: 'ค่าธรรมเนียมคนละอัตรากับนิสิตไทย' },
-  { code: 'SPC-TH', grp: 'ภาคพิเศษ', nat: 'ไทย' as const, share: 0.078, note: 'ส่วนใหญ่เป็นบัณฑิตศึกษา' },
+  {
+    code: 'REG-INT',
+    grp: 'ภาคปกติ',
+    nat: 'ต่างชาติ' as const,
+    share: 0.0126,
+    note: 'ค่าธรรมเนียมคนละอัตรากับนิสิตไทย',
+  },
+  {
+    code: 'SPC-TH',
+    grp: 'ภาคพิเศษ',
+    nat: 'ไทย' as const,
+    share: 0.078,
+    note: 'ส่วนใหญ่เป็นบัณฑิตศึกษา',
+  },
   { code: 'SPC-INT', grp: 'ภาคพิเศษ', nat: 'ต่างชาติ' as const, share: 0.0016, note: '' },
 ];
 
@@ -108,8 +120,9 @@ const MasterDataView = () => {
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
         <Alert severity="info">
-          ข้อมูลหลักสามชุดนี้ถูกอ้างโดยทุกตารางที่เก็บตัวเลขในระบบ — ถ้าตั้งผิดหรือเปลี่ยนย้อนหลัง ตัวเลขทั้งระบบจะเปลี่ยนตาม ·
-          ส่วนทะเบียนหลักสูตรอยู่ที่ <Link href="/programs">หน้าโปรแกรม</Link>
+          ข้อมูลหลักสามชุดนี้ถูกอ้างโดยทุกตารางที่เก็บตัวเลขในระบบ — ถ้าตั้งผิดหรือเปลี่ยนย้อนหลัง
+          ตัวเลขทั้งระบบจะเปลี่ยนตาม · ส่วนทะเบียนหลักสูตรอยู่ที่{' '}
+          <Link href="/programs">หน้าโปรแกรม</Link>
         </Alert>
       </Grid>
 
@@ -129,13 +142,21 @@ const MasterDataView = () => {
                     ทะเบียนหน่วยงาน 3 ระดับ
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                    มหาวิทยาลัย → คณะ/วิทยาลัย → ระดับการศึกษา — ใช้ระดับการศึกษาแทนภาควิชา เพราะชุดข้อมูลต้นฉบับไม่มีคอลัมน์ภาควิชา
+                    มหาวิทยาลัย → คณะ/วิทยาลัย → ระดับการศึกษา — ใช้ระดับการศึกษาแทนภาควิชา
+                    เพราะชุดข้อมูลต้นฉบับไม่มีคอลัมน์ภาควิชา
                     และตรงกับวิธีที่ปันส่วนต้นทุนสำนักงานเลขานุการอยู่แล้ว
                   </Typography>
 
                   <Box display="flex" gap={4} flexWrap="wrap" mb={4}>
-                    <Chip label={`${facultyCount} คณะ/วิทยาลัย ในทะเบียน`} color="primary" variant="tonal" />
-                    <Chip label="จัดการทะเบียนหน่วยงานแบบเต็มที่หน้าจัดการหน่วยงาน" variant="outlined" />
+                    <Chip
+                      label={`${facultyCount} คณะ/วิทยาลัย ในทะเบียน`}
+                      color="primary"
+                      variant="tonal"
+                    />
+                    <Chip
+                      label="จัดการทะเบียนหน่วยงานแบบเต็มที่หน้าจัดการหน่วยงาน"
+                      variant="outlined"
+                    />
                   </Box>
 
                   <Button component={Link} href="/admin/university/units" variant="contained">
@@ -145,8 +166,10 @@ const MasterDataView = () => {
 
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Alert severity="warning">
-                    <b>หลักสูตรผูกที่ระดับการศึกษา ไม่ใช่ระดับคณะ</b> — เพราะต้นทุนสำนักงานเลขานุการปันแยกตรี/บัณฑิตศึกษา
-                    การแก้ไข/เพิ่มหน่วยงานทำได้ที่หน้า <code>/admin/university/units</code> เพื่อไม่ให้ทะเบียนซ้ำกันสองที่
+                    <b>หลักสูตรผูกที่ระดับการศึกษา ไม่ใช่ระดับคณะ</b> —
+                    เพราะต้นทุนสำนักงานเลขานุการปันแยกตรี/บัณฑิตศึกษา
+                    การแก้ไข/เพิ่มหน่วยงานทำได้ที่หน้า <code>/admin/university/units</code>{' '}
+                    เพื่อไม่ให้ทะเบียนซ้ำกันสองที่
                   </Alert>
                 </Grid>
               </Grid>
@@ -157,7 +180,11 @@ const MasterDataView = () => {
                 <Grid size={{ xs: 12, md: 8 }}>
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={4}>
                     <Typography variant="h6">งวดปีงบประมาณ</Typography>
-                    <Button size="small" variant="contained" onClick={() => setToast('ฟีเจอร์เพิ่มงวดใหม่ยังไม่เชื่อมต่อระบบจริง')}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => setToast('ฟีเจอร์เพิ่มงวดใหม่ยังไม่เชื่อมต่อระบบจริง')}
+                    >
                       + เพิ่มงวด
                     </Button>
                   </Box>
@@ -209,11 +236,12 @@ const MasterDataView = () => {
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Alert severity="error" sx={{ mb: 3 }}>
-                    <b>ปีงบประมาณ ≠ ปีการศึกษา</b> — ต้นทุนมาเป็นปีงบประมาณ (ต.ค.–ก.ย.) แต่จำนวนนิสิตและค่าธรรมเนียมเป็นปีการศึกษา
-                    ทุกงวดต้องระบุทั้งสองค่า
+                    <b>ปีงบประมาณ ≠ ปีการศึกษา</b> — ต้นทุนมาเป็นปีงบประมาณ (ต.ค.–ก.ย.)
+                    แต่จำนวนนิสิตและค่าธรรมเนียมเป็นปีการศึกษา ทุกงวดต้องระบุทั้งสองค่า
                   </Alert>
                   <Alert severity="warning">
-                    <b>วันตัดยอดนิสิตล็อกติดกับรอบคำนวณ</b> — Q เป็นตัวหารของทั้ง R และ AVC ตัดยอดคนละวันทำให้ Q* เปลี่ยนทั้งระบบ
+                    <b>วันตัดยอดนิสิตล็อกติดกับรอบคำนวณ</b> — Q เป็นตัวหารของทั้ง R และ AVC
+                    ตัดยอดคนละวันทำให้ Q* เปลี่ยนทั้งระบบ
                   </Alert>
                 </Grid>
               </Grid>
@@ -224,7 +252,11 @@ const MasterDataView = () => {
                 <Grid size={{ xs: 12, md: 8 }}>
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={4}>
                     <Typography variant="h6">ประเภทนิสิต</Typography>
-                    <Button size="small" variant="contained" onClick={() => setToast('ฟีเจอร์เพิ่มประเภทนิสิตยังไม่เชื่อมต่อระบบจริง')}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => setToast('ฟีเจอร์เพิ่มประเภทนิสิตยังไม่เชื่อมต่อระบบจริง')}
+                    >
                       + เพิ่มประเภท
                     </Button>
                   </Box>
@@ -247,7 +279,12 @@ const MasterDataView = () => {
                             </TableCell>
                             <TableCell>{s.grp}</TableCell>
                             <TableCell>
-                              <Chip label={s.nat} size="small" color={s.nat === 'ไทย' ? 'primary' : 'success'} variant="tonal" />
+                              <Chip
+                                label={s.nat}
+                                size="small"
+                                color={s.nat === 'ไทย' ? 'primary' : 'success'}
+                                variant="tonal"
+                              />
                             </TableCell>
                             <TableCell align="right">
                               <Typography fontWeight={700}>{fmtN(s.n)}</Typography>
@@ -284,11 +321,12 @@ const MasterDataView = () => {
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Alert severity="info" sx={{ mb: 3 }}>
-                    <b>อัตราค่าธรรมเนียม</b> — หลักสูตรเดียวกันมีได้หลายอัตราตามประเภทนิสิต เช่น หลักสูตรนานาชาติคิดนิสิตไทยและ
-                    ต่างชาติคนละอัตรา
+                    <b>อัตราค่าธรรมเนียม</b> — หลักสูตรเดียวกันมีได้หลายอัตราตามประเภทนิสิต เช่น
+                    หลักสูตรนานาชาติคิดนิสิตไทยและ ต่างชาติคนละอัตรา
                   </Alert>
                   <Alert severity="warning">
-                    <b>ห้ามเพิ่มประเภทนิสิตย้อนหลังในงวดที่ปิดแล้ว</b> — ยอดรวมนิสิตของงวดจะไม่ตรงกับที่เคยคำนวณ
+                    <b>ห้ามเพิ่มประเภทนิสิตย้อนหลังในงวดที่ปิดแล้ว</b> —
+                    ยอดรวมนิสิตของงวดจะไม่ตรงกับที่เคยคำนวณ
                   </Alert>
                 </Grid>
               </Grid>
@@ -297,7 +335,12 @@ const MasterDataView = () => {
         </Card>
       </Grid>
 
-      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)} message={toast} />
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={4000}
+        onClose={() => setToast(null)}
+        message={toast}
+      />
     </Grid>
   );
 };

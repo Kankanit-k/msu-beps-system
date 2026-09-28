@@ -50,8 +50,10 @@ import {
   type AllocationRun,
 } from '@/data/mockup/opsData';
 
-const fmtM = (v: number) => (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtN = (v: number) => v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtM = (v: number) =>
+  (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtN = (v: number) =>
+  v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const AllocationRunView = () => {
   const [runs, setRuns] = useState<AllocationRun[]>(RUNS);
@@ -73,7 +75,12 @@ const AllocationRunView = () => {
       setRuns((prev) =>
         prev.map((r) =>
           r.id === run.id
-            ? { ...r, state: 'APPROVED', appr: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', at: new Date().toLocaleString('th-TH') }
+            ? {
+                ...r,
+                state: 'APPROVED',
+                appr: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์',
+                at: new Date().toLocaleString('th-TH'),
+              }
             : r,
         ),
       );
@@ -86,8 +93,9 @@ const AllocationRunView = () => {
     <Grid container spacing={6}>
       <Grid size={12}>
         <Alert severity="info">
-          รอบคำนวณเป็น <strong>immutable</strong> — คำนวณใหม่คือสร้าง run ใหม่ ไม่ทับของเก่า ทุกหน้าวิเคราะห์จึงต้องบอกได้ว่ากำลังดูผลของ
-          run ไหน · run หนึ่งล็อกไว้ทั้ง งวด · ขอบเขต · ฐานต้นทุน · เวอร์ชันกติกา เพื่อให้ย้อนกลับไปอธิบายตัวเลขเก่าได้เสมอ
+          รอบคำนวณเป็น <strong>immutable</strong> — คำนวณใหม่คือสร้าง run ใหม่ ไม่ทับของเก่า
+          ทุกหน้าวิเคราะห์จึงต้องบอกได้ว่ากำลังดูผลของ run ไหน · run หนึ่งล็อกไว้ทั้ง งวด · ขอบเขต ·
+          ฐานต้นทุน · เวอร์ชันกติกา เพื่อให้ย้อนกลับไปอธิบายตัวเลขเก่าได้เสมอ
         </Alert>
       </Grid>
 
@@ -108,7 +116,9 @@ const AllocationRunView = () => {
               <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 6 }}>
                 {RUN_FLOW.map((s) => (
                   <Step key={s}>
-                    <StepLabel StepIconComponent={StepperCustomDot}>{RUN_STATE_META[s].label}</StepLabel>
+                    <StepLabel StepIconComponent={StepperCustomDot}>
+                      {RUN_STATE_META[s].label}
+                    </StepLabel>
                   </Step>
                 ))}
               </Stepper>
@@ -162,7 +172,8 @@ const AllocationRunView = () => {
                     {EXCEPTIONS.length}
                   </Typography>
                   <Typography variant="caption" color="text.disabled">
-                    รายการ · {fmtM(exceptionsAmount)} ลบ. ({((exceptionsAmount / RAW.UNI.TC) * 100).toFixed(2)}%)
+                    รายการ · {fmtM(exceptionsAmount)} ลบ. (
+                    {((exceptionsAmount / RAW.UNI.TC) * 100).toFixed(2)}%)
                   </Typography>
                 </Grid>
               </Grid>
@@ -170,13 +181,23 @@ const AllocationRunView = () => {
               <Divider sx={{ my: 4 }} />
 
               <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="center">
-                <Button component={Link} href="/admin/reconciliation" variant="outlined" size="small">
+                <Button
+                  component={Link}
+                  href="/admin/reconciliation"
+                  variant="outlined"
+                  size="small"
+                >
                   🧾 ดูผลตรวจยอด
                 </Button>
                 <Button component={Link} href="/admin/exceptions" variant="outlined" size="small">
                   🚩 ดูรายการค้างตรวจ
                 </Button>
-                <Button variant="outlined" size="small" onClick={() => setCompareOpen(true)} disabled={!previous}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setCompareOpen(true)}
+                  disabled={!previous}
+                >
                   ⇄ เทียบกับรอบก่อน
                 </Button>
                 <Box flexGrow={1} />
@@ -234,7 +255,10 @@ const AllocationRunView = () => {
                         </TableCell>
                         <TableCell align="right">{fmtM(r.tc)}</TableCell>
                         <TableCell align="right">
-                          <Typography fontWeight={700} color={r.diff ? 'error.main' : 'success.main'}>
+                          <Typography
+                            fontWeight={700}
+                            color={r.diff ? 'error.main' : 'success.main'}
+                          >
                             {r.diff ? fmtN(r.diff) : '0.00'}
                           </Typography>
                         </TableCell>
@@ -255,12 +279,21 @@ const AllocationRunView = () => {
                               color="success"
                               disabled={isApproving}
                               onClick={() => handleApprove(r)}
-                              startIcon={isApproving ? <CircularProgress size={14} color="inherit" /> : undefined}
+                              startIcon={
+                                isApproving ? (
+                                  <CircularProgress size={14} color="inherit" />
+                                ) : undefined
+                              }
                             >
                               {isApproving ? 'กำลังอนุมัติ…' : '✓ อนุมัติ'}
                             </Button>
                           ) : r.state === 'FAILED' ? (
-                            <Button size="small" variant="outlined" color="error" onClick={() => setDetailRun(r)}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => setDetailRun(r)}
+                            >
                               ดูสาเหตุ
                             </Button>
                           ) : (
@@ -278,7 +311,10 @@ const AllocationRunView = () => {
           </Card>
 
           <Card>
-            <CardHeader title="บันทึกเหตุการณ์ของรอบ #1042" subheader="ตอบได้ว่าใครสั่ง ใครอนุมัติ และเกิดอะไรระหว่างคำนวณ" />
+            <CardHeader
+              title="บันทึกเหตุการณ์ของรอบ #1042"
+              subheader="ตอบได้ว่าใครสั่ง ใครอนุมัติ และเกิดอะไรระหว่างคำนวณ"
+            />
             <CardContent>
               <Stack spacing={3} divider={<Divider flexItem />}>
                 {RUN_LOG.map((l) => (
@@ -304,7 +340,10 @@ const AllocationRunView = () => {
       <Grid size={{ xs: 12, lg: 5 }}>
         <Stack spacing={6}>
           <Card>
-            <CardHeader title="สร้างรอบคำนวณใหม่" subheader="ค่าที่เลือกจะถูกล็อกติดไปกับ run ตลอดไป" />
+            <CardHeader
+              title="สร้างรอบคำนวณใหม่"
+              subheader="ค่าที่เลือกจะถูกล็อกติดไปกับ run ตลอดไป"
+            />
             <CardContent>
               <Stack spacing={4}>
                 <TextField select label="ปีงบประมาณ" defaultValue="2568" size="small" fullWidth>
@@ -322,9 +361,7 @@ const AllocationRunView = () => {
                   size="small"
                   fullWidth
                   helperText={
-                    <>
-                      ยังรอมติผู้บริหารว่าจะใช้ฐานไหนเป็นตัวหลัก · ตั้งค่าเริ่มต้นได้ที่ W15
-                    </>
+                    <>ยังรอมติผู้บริหารว่าจะใช้ฐานไหนเป็นตัวหลัก · ตั้งค่าเริ่มต้นได้ที่ W15</>
                   }
                 >
                   <MenuItem value="ACTUAL">ACTUAL — ยอดใช้จ่ายจริง</MenuItem>
@@ -344,7 +381,8 @@ const AllocationRunView = () => {
               </Stack>
 
               <Alert severity="error" sx={{ mt: 4 }}>
-                <strong>สร้าง run ไม่ได้ตอนนี้</strong> — มี {RUN_BLOCKERS.length} ปัญหาที่ปิดกั้นอยู่ที่หน้าข้อมูลต้นทุน:
+                <strong>สร้าง run ไม่ได้ตอนนี้</strong> — มี {RUN_BLOCKERS.length}{' '}
+                ปัญหาที่ปิดกั้นอยู่ที่หน้าข้อมูลต้นทุน:
                 <Stack component="ul" sx={{ pl: 4, m: 0, mt: 1 }} spacing={0.5}>
                   {RUN_BLOCKERS.map((b) => (
                     <li key={b.title}>
@@ -366,7 +404,12 @@ const AllocationRunView = () => {
             <CardHeader title="กติกาการอนุมัติ" />
             <CardContent>
               <Stack spacing={3} divider={<Divider flexItem />}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  spacing={2}
+                >
                   <div>
                     <Typography variant="body2" fontWeight={600}>
                       ผู้สร้างอนุมัติเองไม่ได้
@@ -377,7 +420,12 @@ const AllocationRunView = () => {
                   </div>
                   <Chip size="small" color="error" label="บังคับ" />
                 </Stack>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  spacing={2}
+                >
                   <div>
                     <Typography variant="body2" fontWeight={600}>
                       อนุมัติได้เฉพาะเมื่อตรวจยอดผ่าน
@@ -388,7 +436,12 @@ const AllocationRunView = () => {
                   </div>
                   <Chip size="small" color="error" label="บังคับ" />
                 </Stack>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  spacing={2}
+                >
                   <div>
                     <Typography variant="body2" fontWeight={600}>
                       รอบที่อนุมัติแล้วแก้ไม่ได้
@@ -399,7 +452,12 @@ const AllocationRunView = () => {
                   </div>
                   <Chip size="small" color="default" label="immutable" />
                 </Stack>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  spacing={2}
+                >
                   <div>
                     <Typography variant="body2" fontWeight={600}>
                       มีได้ครั้งละหนึ่งรอบอ้างอิง
@@ -436,11 +494,13 @@ const AllocationRunView = () => {
                 <Typography variant="body2">รายการค้างตรวจ: {detailRun.exc} รายการ</Typography>
                 <Typography variant="body2">สั่งคำนวณโดย: {detailRun.by}</Typography>
                 <Typography variant="body2">เวลา: {detailRun.at}</Typography>
-                {detailRun.appr && <Typography variant="body2">อนุมัติโดย: {detailRun.appr}</Typography>}
+                {detailRun.appr && (
+                  <Typography variant="body2">อนุมัติโดย: {detailRun.appr}</Typography>
+                )}
                 {detailRun.state === 'FAILED' && (
                   <Alert severity="error">
-                    ตรวจยอดกลับต้นทางไม่ผ่าน — ส่วนต่าง {fmtN(detailRun.diff)} บาท เกินเกณฑ์ยอมรับ 0.00 · ต้องแก้ไขข้อมูลต้นทางแล้วสร้าง
-                    run ใหม่ แก้ไข run เดิมไม่ได้
+                    ตรวจยอดกลับต้นทางไม่ผ่าน — ส่วนต่าง {fmtN(detailRun.diff)} บาท เกินเกณฑ์ยอมรับ
+                    0.00 · ต้องแก้ไขข้อมูลต้นทางแล้วสร้าง run ใหม่ แก้ไข run เดิมไม่ได้
                   </Alert>
                 )}
               </Stack>
@@ -472,7 +532,10 @@ const AllocationRunView = () => {
                     <TableCell align="right">{fmtM(current.tc)}</TableCell>
                     <TableCell align="right">{fmtM(previous.tc)}</TableCell>
                     <TableCell align="right">
-                      <Typography color={current.tc >= previous.tc ? 'success.main' : 'error.main'} fontWeight={700}>
+                      <Typography
+                        color={current.tc >= previous.tc ? 'success.main' : 'error.main'}
+                        fontWeight={700}
+                      >
                         {current.tc >= previous.tc ? '+' : '−'}
                         {fmtM(Math.abs(current.tc - previous.tc))}
                       </Typography>
@@ -494,15 +557,26 @@ const AllocationRunView = () => {
                     <TableCell>รายการค้างตรวจ</TableCell>
                     <TableCell align="right">{current.exc}</TableCell>
                     <TableCell align="right">{previous.exc}</TableCell>
-                    <TableCell align="right">{current.exc - previous.exc >= 0 ? '+' : ''}{current.exc - previous.exc}</TableCell>
+                    <TableCell align="right">
+                      {current.exc - previous.exc >= 0 ? '+' : ''}
+                      {current.exc - previous.exc}
+                    </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>สถานะ</TableCell>
                     <TableCell align="right">
-                      <Chip size="small" color={RUN_STATE_META[current.state].color} label={RUN_STATE_META[current.state].label} />
+                      <Chip
+                        size="small"
+                        color={RUN_STATE_META[current.state].color}
+                        label={RUN_STATE_META[current.state].label}
+                      />
                     </TableCell>
                     <TableCell align="right">
-                      <Chip size="small" color={RUN_STATE_META[previous.state].color} label={RUN_STATE_META[previous.state].label} />
+                      <Chip
+                        size="small"
+                        color={RUN_STATE_META[previous.state].color}
+                        label={RUN_STATE_META[previous.state].label}
+                      />
                     </TableCell>
                     <TableCell align="right">—</TableCell>
                   </TableRow>

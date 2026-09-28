@@ -4,10 +4,13 @@ import dynamic from 'next/dynamic';
 
 import type { ApexOptions } from 'apexcharts';
 
-const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'), { ssr: false });
+const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'), {
+  ssr: false,
+});
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
-const fmtM = (v: number) => (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const fmtM = (v: number) =>
+  (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 interface Props {
   q: number;
@@ -58,7 +61,10 @@ const BreakEvenChart = ({ q, tfc, avc, rPerHead, qStar }: Props) => {
                 x: qStar,
                 y: Number(((qStar * rPerHead) / 1e6).toFixed(3)),
                 marker: { size: 6, fillColor: '#5938e0', strokeColor: '#fff' },
-                label: { text: `Q*=${fmtN(qStar)}`, style: { background: '#5938e0', color: '#fff' } },
+                label: {
+                  text: `Q*=${fmtN(qStar)}`,
+                  style: { background: '#5938e0', color: '#fff' },
+                },
               },
             ]
           : []),

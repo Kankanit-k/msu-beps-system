@@ -41,23 +41,46 @@ import type { ProgRow } from '@/data/mockup';
 
 type ProgramStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'ACTIVE' | 'REVISING' | 'SUSPENDED' | 'CLOSED';
 
-const STATUS_META: Record<ProgramStatus, { label: string; color: ThemeColor; calc: boolean; why: string }> = {
-  DRAFT: { label: 'ร่างข้อเสนอ', color: 'secondary', calc: false, why: 'ยังไม่ยื่นเข้าสภาวิชาการ · ไม่เข้าสู่การคำนวณจุดคุ้มทุน' },
+const STATUS_META: Record<
+  ProgramStatus,
+  { label: string; color: ThemeColor; calc: boolean; why: string }
+> = {
+  DRAFT: {
+    label: 'ร่างข้อเสนอ',
+    color: 'secondary',
+    calc: false,
+    why: 'ยังไม่ยื่นเข้าสภาวิชาการ · ไม่เข้าสู่การคำนวณจุดคุ้มทุน',
+  },
   PENDING_APPROVAL: {
     label: 'รออนุมัติ',
     color: 'warning',
     calc: false,
     why: 'รอมติสภาวิชาการ/สภามหาวิทยาลัย · ไม่เข้าสู่การคำนวณ',
   },
-  ACTIVE: { label: 'เปิดสอน', color: 'success', calc: true, why: 'เข้าสู่การคำนวณจุดคุ้มทุนตามปกติ' },
+  ACTIVE: {
+    label: 'เปิดสอน',
+    color: 'success',
+    calc: true,
+    why: 'เข้าสู่การคำนวณจุดคุ้มทุนตามปกติ',
+  },
   REVISING: {
     label: 'กำลังปรับปรุง มคอ.',
     color: 'info',
     calc: true,
     why: 'รุ่นที่ใช้อยู่ยังคำนวณตามปกติ · รุ่นใหม่มีผลเมื่อสภาวิชาการอนุมัติ',
   },
-  SUSPENDED: { label: 'งดรับนิสิต', color: 'warning', calc: true, why: 'ยังมีนิสิตคงค้างและมีต้นทุน จึงยังต้องคำนวณต่อ' },
-  CLOSED: { label: 'ปิดหลักสูตร', color: 'error', calc: false, why: 'ไม่มีนิสิตและไม่มีต้นทุนแล้ว · เก็บไว้เป็นประวัติเทียบข้ามปี' },
+  SUSPENDED: {
+    label: 'งดรับนิสิต',
+    color: 'warning',
+    calc: true,
+    why: 'ยังมีนิสิตคงค้างและมีต้นทุน จึงยังต้องคำนวณต่อ',
+  },
+  CLOSED: {
+    label: 'ปิดหลักสูตร',
+    color: 'error',
+    calc: false,
+    why: 'ไม่มีนิสิตและไม่มีต้นทุนแล้ว · เก็บไว้เป็นประวัติเทียบข้ามปี',
+  },
 };
 
 const STATUS_FLOW: ProgramStatus[] = ['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'REVISING', 'CLOSED'];
@@ -81,10 +104,12 @@ const LEVEL_CODE: Record<string, string> = {
   ประกาศนียบัตร: 'C',
 };
 
-const programCode = (p: ProgRow, i: number) => `${LEVEL_CODE[p.lvl] ?? 'X'}-${String(i + 1).padStart(3, '0')}`;
+const programCode = (p: ProgRow, i: number) =>
+  `${LEVEL_CODE[p.lvl] ?? 'X'}-${String(i + 1).padStart(3, '0')}`;
 
 const fmtN = (n: number) => Math.round(n).toLocaleString('th-TH');
-const fmtM = (n: number) => `${(n / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ลบ.`;
+const fmtM = (n: number) =>
+  `${(n / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ลบ.`;
 
 type LogEntry = { time: string; program: string; text: string };
 
@@ -138,7 +163,9 @@ const ProgramsView = () => {
   const notify = (msg: string) => setToast(msg);
 
   const logChange = (program: string, text: string) => {
-    setLog((prev) => [{ time: new Date().toLocaleString('th-TH'), program, text }, ...prev].slice(0, 20));
+    setLog((prev) =>
+      [{ time: new Date().toLocaleString('th-TH'), program, text }, ...prev].slice(0, 20),
+    );
   };
 
   const transition = (index: number, next: ProgramStatus) => {
@@ -162,8 +189,16 @@ const ProgramsView = () => {
     return [
       { ok: true, label: 'มีรหัสอ้างอิงหลักสูตร', detail: programCode(p, selected) },
       { ok: true, label: 'ผูกคณะและระดับการศึกษาแล้ว', detail: `${p.fac} — ${p.lvl}` },
-      { ok: p.Q > 0, label: 'มีจำนวนนิสิตจากระบบทะเบียน', detail: p.Q > 0 ? `${fmtN(p.Q)} คน` : 'Q = 0 — คำนวณ R และ AVC ไม่ได้' },
-      { ok: p.TR > 0, label: 'มีรายได้ค่าธรรมเนียมที่นับได้', detail: p.TR > 0 ? `${fmtM(p.TR)}/ปี` : 'ยังไม่มีรายได้ค่าธรรมเนียม' },
+      {
+        ok: p.Q > 0,
+        label: 'มีจำนวนนิสิตจากระบบทะเบียน',
+        detail: p.Q > 0 ? `${fmtN(p.Q)} คน` : 'Q = 0 — คำนวณ R และ AVC ไม่ได้',
+      },
+      {
+        ok: p.TR > 0,
+        label: 'มีรายได้ค่าธรรมเนียมที่นับได้',
+        detail: p.TR > 0 ? `${fmtM(p.TR)}/ปี` : 'ยังไม่มีรายได้ค่าธรรมเนียม',
+      },
     ];
   }, [selectedProgram, selected]);
 
@@ -236,7 +271,10 @@ const ProgramsView = () => {
       {/* วงจรชีวิตหลักสูตร */}
       <Grid size={{ xs: 12 }}>
         <Card>
-          <CardHeader title="วงจรชีวิตหลักสูตรในระบบ" subheader="สถานะกำหนดว่าหลักสูตรนั้นเข้าสู่การคำนวณจุดคุ้มทุนหรือไม่" />
+          <CardHeader
+            title="วงจรชีวิตหลักสูตรในระบบ"
+            subheader="สถานะกำหนดว่าหลักสูตรนั้นเข้าสู่การคำนวณจุดคุ้มทุนหรือไม่"
+          />
           <CardContent>
             <Box display="flex" flexWrap="wrap" alignItems="center" gap={2}>
               {STATUS_FLOW.map((s, i) => (
@@ -250,9 +288,7 @@ const ProgramsView = () => {
                     label={STATUS_META[s].label}
                     color={s === selectedStatus ? STATUS_META[s].color : 'default'}
                     variant={s === selectedStatus ? 'filled' : 'outlined'}
-                    icon={
-                      <span style={{ fontSize: 12 }}>{STATUS_META[s].calc ? '📈' : '○'}</span>
-                    }
+                    icon={<span style={{ fontSize: 12 }}>{STATUS_META[s].calc ? '📈' : '○'}</span>}
                   />
                 </Box>
               ))}
@@ -269,13 +305,21 @@ const ProgramsView = () => {
             subheader={`คลิกแถวเพื่อดูรายละเอียดและเปลี่ยนสถานะ · ${filtered.length} จาก ${programs.length} หลักสูตร`}
             action={
               <Stack direction="row" spacing={2}>
-                <Button size="small" variant="outlined" onClick={() => notify('ต้องเชื่อมต่อระบบทะเบียนกลางก่อนจึงจะนำเข้าอัตโนมัติได้')}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => notify('ต้องเชื่อมต่อระบบทะเบียนกลางก่อนจึงจะนำเข้าอัตโนมัติได้')}
+                >
                   นำเข้าจากระบบทะเบียน
                 </Button>
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() => notify('การเปิดหลักสูตรใหม่ต้องเสนอผ่านสภาวิชาการ — ฟีเจอร์นี้ยังไม่เชื่อมต่อระบบจริง')}
+                  onClick={() =>
+                    notify(
+                      'การเปิดหลักสูตรใหม่ต้องเสนอผ่านสภาวิชาการ — ฟีเจอร์นี้ยังไม่เชื่อมต่อระบบจริง',
+                    )
+                  }
                 >
                   + เปิดหลักสูตรใหม่
                 </Button>
@@ -355,7 +399,9 @@ const ProgramsView = () => {
                         <TableCell>
                           <Typography variant="body2" fontWeight={600} component="span">
                             {p.prog}
-                            {p.deg.includes('นานาชาติ') && <Chip label="นานาชาติ" size="small" sx={{ ml: 2 }} />}
+                            {p.deg.includes('นานาชาติ') && (
+                              <Chip label="นานาชาติ" size="small" sx={{ ml: 2 }} />
+                            )}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {p.fac}
@@ -372,9 +418,15 @@ const ProgramsView = () => {
                         </TableCell>
                         <TableCell align="center">
                           {st.calc ? (
-                            <i className="ri-checkbox-circle-line" style={{ color: 'var(--mui-palette-success-main)' }} />
+                            <i
+                              className="ri-checkbox-circle-line"
+                              style={{ color: 'var(--mui-palette-success-main)' }}
+                            />
                           ) : (
-                            <i className="ri-subtract-line" style={{ color: 'var(--mui-palette-text-disabled)' }} />
+                            <i
+                              className="ri-subtract-line"
+                              style={{ color: 'var(--mui-palette-text-disabled)' }}
+                            />
                           )}
                         </TableCell>
                       </TableRow>
@@ -403,10 +455,19 @@ const ProgramsView = () => {
             <CardHeader
               title={selectedProgram.prog}
               subheader={`${programCode(selectedProgram, selected)} · ${selectedProgram.fac} · ${selectedProgram.lvl}`}
-              action={<Chip label={STATUS_META[selectedStatus].label} color={STATUS_META[selectedStatus].color} size="small" />}
+              action={
+                <Chip
+                  label={STATUS_META[selectedStatus].label}
+                  color={STATUS_META[selectedStatus].color}
+                  size="small"
+                />
+              }
             />
             <CardContent>
-              <Alert severity={STATUS_META[selectedStatus].calc ? 'success' : 'info'} sx={{ mb: 4 }}>
+              <Alert
+                severity={STATUS_META[selectedStatus].calc ? 'success' : 'info'}
+                sx={{ mb: 4 }}
+              >
                 {STATUS_META[selectedStatus].why}
               </Alert>
 
@@ -456,7 +517,12 @@ const ProgramsView = () => {
                 >
                   อนุมัติเปิดหลักสูตร
                 </Button>
-                <Button size="small" variant="outlined" disabled={!canRevise} onClick={() => transition(selected, 'REVISING')}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={!canRevise}
+                  onClick={() => transition(selected, 'REVISING')}
+                >
                   ปรับปรุงหลักสูตร (รุ่นใหม่)
                 </Button>
                 <Button
@@ -500,7 +566,13 @@ const ProgramsView = () => {
           <CardContent>
             <Typography variant="body2" sx={{ mb: 3 }}>
               <b>{selectedProgram.prog}</b> ({selectedProgram.lvl}) — ผ่าน{' '}
-              <b style={{ color: readiness.every((c) => c.ok) ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-warning-main)' }}>
+              <b
+                style={{
+                  color: readiness.every((c) => c.ok)
+                    ? 'var(--mui-palette-success-main)'
+                    : 'var(--mui-palette-warning-main)',
+                }}
+              >
                 {readiness.filter((c) => c.ok).length}/{readiness.length}
               </b>{' '}
               ข้อ
@@ -510,10 +582,18 @@ const ProgramsView = () => {
                 <Box key={c.label} display="flex" alignItems="flex-start" gap={2}>
                   <i
                     className={c.ok ? 'ri-checkbox-circle-fill' : 'ri-close-circle-fill'}
-                    style={{ color: c.ok ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)' }}
+                    style={{
+                      color: c.ok
+                        ? 'var(--mui-palette-success-main)'
+                        : 'var(--mui-palette-error-main)',
+                    }}
                   />
                   <Box>
-                    <Typography variant="body2" fontWeight={600} color={c.ok ? 'text.primary' : 'error'}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      color={c.ok ? 'text.primary' : 'error'}
+                    >
                       {c.label}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -529,7 +609,10 @@ const ProgramsView = () => {
 
       <Grid size={{ xs: 12, md: 6 }}>
         <Card>
-          <CardHeader title="บันทึกการเปลี่ยนแปลงทะเบียน" subheader="เฉพาะการเปลี่ยนแปลงในหน้าจอนี้ (ยังไม่บันทึกลงระบบจริง)" />
+          <CardHeader
+            title="บันทึกการเปลี่ยนแปลงทะเบียน"
+            subheader="เฉพาะการเปลี่ยนแปลงในหน้าจอนี้ (ยังไม่บันทึกลงระบบจริง)"
+          />
           <CardContent>
             {log.length === 0 ? (
               <Typography color="text.disabled">— ยังไม่มีการเปลี่ยนแปลงในเซสชันนี้ —</Typography>
@@ -551,7 +634,12 @@ const ProgramsView = () => {
         </Card>
       </Grid>
 
-      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)} message={toast} />
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={4000}
+        onClose={() => setToast(null)}
+        message={toast}
+      />
     </Grid>
   );
 };

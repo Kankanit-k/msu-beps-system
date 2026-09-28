@@ -133,8 +133,10 @@ const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
           </LogoEyebrow>
         ) : null}
         <LogoTitle color={color}>{themeConfig.templateName}</LogoTitle>
-        {themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle ? (
-          <LogoSubtitle>{themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle}</LogoSubtitle>
+        {(themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle) ? (
+          <LogoSubtitle>
+            {themeConfig.templateSubtitleTh ?? themeConfig.templateSubtitle}
+          </LogoSubtitle>
         ) : null}
       </LogoText>
     </div>

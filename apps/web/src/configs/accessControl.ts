@@ -35,7 +35,6 @@ export const accessLevelRank: Record<AccessLevel, number> = {
 export const publicRoutes: string[] = [
   '/login',
   '/overview', // example: a public-facing dashboard
-  '/users', // example: a public table
   '/api/log', // client-side error reporting endpoint (must work on the login page too)
 ];
 
@@ -46,6 +45,7 @@ export const routeAccessRules: { prefix: string; level: AccessLevel }[] = [
   // real `tsc --noEmit` output, which is the source of truth here.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   ...publicRoutes.map((prefix) => ({ prefix, level: 'public' as AccessLevel })),
+  { prefix: '/users', level: 'universityAdmin' }, // W18 ผู้ใช้และสิทธิ์ — admin เท่านั้น
   { prefix: '/admin/university', level: 'universityAdmin' },
   { prefix: '/admin', level: 'deptAdmin' },
 ];
@@ -85,4 +85,15 @@ export const resolveUserLevel = (token: Record<string, any> | null): AccessLevel
 
   // Authenticated but no admin claim → regular user.
   return 'user';
+};
+
+/**
+ * Display label + icon for each viewable role.
+ * Shared by the sidebar role toggle (SidebarFooter) and the navbar profile (UserDropdown)
+ * so both always show the same wording for the currently viewed role.
+ */
+export const roleDisplay: Record<AppRole, { label: string; icon: string }> = {
+  user: { label: 'ผู้ใช้ทั่วไป', icon: 'ri-user-line' },
+  deptAdmin: { label: 'ผู้ดูแลหน่วยงาน', icon: 'ri-shield-user-line' },
+  universityAdmin: { label: 'ผู้ดูแลมหาวิทยาลัย', icon: 'ri-government-line' },
 };

@@ -1,11 +1,9 @@
 'use client';
 
 // MUI Imports
-import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import FormControl from '@mui/material/FormControl';
-import Link from '@mui/material/Link';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -29,7 +27,6 @@ export const MOCK_RUN = {
   computedAt: '11 ก.ค. 2569 14:32',
   method: 'v3 - ฐาน ACTUAL',
   approved: true,
-  approver: { name: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', role: 'ผู้อนุมัติ' },
 };
 
 type Props = {
@@ -46,7 +43,7 @@ type Props = {
 };
 
 /**
- * แถบหัวหน้าจอ — ชื่อหน้า + บริบทรอบคำนวณ + สวิตช์ฐานรายได้ + ชิปสรุป + ผู้อนุมัติ
+ * แถบหัวหน้าจอ — ชื่อหน้า + บริบทรอบคำนวณ + สวิตช์ฐานรายได้ + ชิปสรุป
  * ใช้ร่วมกันทุกหน้าที่อ่านตัวเลขจากรอบคำนวณเดียวกัน เพื่อไม่ให้แต่ละหน้าประกอบหัวเอง
  */
 const PageHeaderBar = ({ title, code, mode, onModeChange, q, profit }: Props) => (
@@ -129,24 +126,6 @@ const PageHeaderBar = ({ title, code, mode, onModeChange, q, profit }: Props) =>
         variant="tonal"
         label={`${profit >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtMillion(Math.abs(profit))} ลบ.`}
       />
-
-      {/* ชิดขวาเสมอแม้แถวจะห่อลงบรรทัดใหม่เมื่อจอแคบ */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginInlineStart: 'auto' }}>
-        <Avatar sx={{ width: 30, height: 30, fontSize: '0.8125rem' }}>
-          {MOCK_RUN.approver.name.charAt(0)}
-        </Avatar>
-        <Box>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.35 }}>
-            {MOCK_RUN.approver.name}
-          </Typography>
-          <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.35 }} color="text.secondary">
-            {MOCK_RUN.approver.role} ·{' '}
-            <Link component="button" underline="hover" sx={{ fontSize: 'inherit' }}>
-              เปลี่ยนผู้ใช้
-            </Link>
-          </Typography>
-        </Box>
-      </Box>
     </Box>
   </Box>
 );

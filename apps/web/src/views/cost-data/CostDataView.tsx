@@ -95,7 +95,10 @@ const SOURCES: SourceRow[] = [
   },
 ];
 
-const SRC_STATE_META: Record<SourceState, { label: string; color: 'success' | 'warning' | 'error' }> = {
+const SRC_STATE_META: Record<
+  SourceState,
+  { label: string; color: 'success' | 'warning' | 'error' }
+> = {
   OK: { label: 'ครบถ้วน', color: 'success' },
   PARTIAL: { label: 'ไม่ครบ', color: 'warning' },
   MISSING: { label: 'ยังไม่มีข้อมูล', color: 'error' },
@@ -161,7 +164,10 @@ const VALIDATIONS: ValidationRow[] = [
   },
 ];
 
-const SEV_META: Record<ValidationSeverity, { icon: string; label: string; color: 'error' | 'warning' | 'info' }> = {
+const SEV_META: Record<
+  ValidationSeverity,
+  { icon: string; label: string; color: 'error' | 'warning' | 'info' }
+> = {
   block: { icon: '⛔', label: 'ปิดกั้นการคำนวณ', color: 'error' },
   warn: { icon: '⚠️', label: 'เตือน', color: 'warning' },
   info: { icon: 'ℹ️', label: 'ทราบไว้', color: 'info' },
@@ -191,7 +197,8 @@ const IMPORT_LOG = [
 ];
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
-const fmtM = (v: number) => (v / 1_000_000).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtM = (v: number) =>
+  (v / 1_000_000).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 const CostDataView = () => {
   const [toast, setToast] = useState<string | null>(null);
@@ -203,8 +210,9 @@ const CostDataView = () => {
     <Grid container spacing={6}>
       <Grid size={12}>
         <Alert severity="info">
-          หน้านี้ดูแล<strong>ข้อมูลต้นทางอย่างเดียว</strong> — การกำหนดว่ารายการไหนเป็น TFC หรือ TVC อยู่ที่กติกาผังบัญชี
-          (W14) และปุ่มสั่งคำนวณย้ายไปที่รอบคำนวณ (W11) เพราะการคำนวณคือการสร้าง run ที่ต้องมีผู้อนุมัติ ไม่ใช่ปุ่มกดเล่นได้
+          หน้านี้ดูแล<strong>ข้อมูลต้นทางอย่างเดียว</strong> — การกำหนดว่ารายการไหนเป็น TFC หรือ TVC
+          อยู่ที่กติกาผังบัญชี (W14) และปุ่มสั่งคำนวณย้ายไปที่รอบคำนวณ (W11)
+          เพราะการคำนวณคือการสร้าง run ที่ต้องมีผู้อนุมัติ ไม่ใช่ปุ่มกดเล่นได้
         </Alert>
       </Grid>
 
@@ -318,8 +326,16 @@ const CostDataView = () => {
                           {s.mode}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">{s.rows ? fmtN(s.rows) : <Typography color="text.disabled">—</Typography>}</TableCell>
-                      <TableCell align="right">{s.amount ? fmtM(s.amount) : <Typography color="text.disabled">—</Typography>}</TableCell>
+                      <TableCell align="right">
+                        {s.rows ? fmtN(s.rows) : <Typography color="text.disabled">—</Typography>}
+                      </TableCell>
+                      <TableCell align="right">
+                        {s.amount ? (
+                          fmtM(s.amount)
+                        ) : (
+                          <Typography color="text.disabled">—</Typography>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {s.at ? (
                           <Typography variant="body2" color="text.secondary">
@@ -360,7 +376,13 @@ const CostDataView = () => {
                 const meta = SEV_META[v.sev];
 
                 return (
-                  <Stack key={v.title} direction="row" spacing={3} alignItems="flex-start" sx={{ py: 3 }}>
+                  <Stack
+                    key={v.title}
+                    direction="row"
+                    spacing={3}
+                    alignItems="flex-start"
+                    sx={{ py: 3 }}
+                  >
                     <Box
                       sx={{
                         width: 28,
@@ -400,7 +422,11 @@ const CostDataView = () => {
 
             <Divider sx={{ my: 3 }} />
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={3}
+              alignItems={{ sm: 'center' }}
+            >
               <Button variant="contained" disabled>
                 สร้างรอบคำนวณใหม่
               </Button>
@@ -415,7 +441,10 @@ const CostDataView = () => {
       <Grid size={{ xs: 12, md: 5 }}>
         <Stack spacing={6}>
           <Card>
-            <CardHeader title="นำเข้าด้วยไฟล์ Excel" subheader="สำรองไว้สำหรับแหล่งที่ยังไม่มี API" />
+            <CardHeader
+              title="นำเข้าด้วยไฟล์ Excel"
+              subheader="สำรองไว้สำหรับแหล่งที่ยังไม่มี API"
+            />
             <CardContent>
               <Box
                 sx={{
@@ -447,8 +476,8 @@ const CostDataView = () => {
                 </Box>
               </Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3 }}>
-                ระบบจะ<strong>ตรวจก่อนบันทึกเสมอ</strong> — ตรวจหัวคอลัมน์ ตรวจว่าหน่วยงานมีอยู่จริง ตรวจว่ายอดรวมตรงกับ
-                หน้าสรุปของไฟล์ ถ้าไม่ผ่านจะไม่เขียนลงฐานข้อมูลแม้แต่แถวเดียว
+                ระบบจะ<strong>ตรวจก่อนบันทึกเสมอ</strong> — ตรวจหัวคอลัมน์ ตรวจว่าหน่วยงานมีอยู่จริง
+                ตรวจว่ายอดรวมตรงกับ หน้าสรุปของไฟล์ ถ้าไม่ผ่านจะไม่เขียนลงฐานข้อมูลแม้แต่แถวเดียว
               </Typography>
             </CardContent>
           </Card>
@@ -482,16 +511,19 @@ const CostDataView = () => {
           <CardContent>
             <Stack spacing={3}>
               <Alert severity="info">
-                เดิม W9 รวมการตั้งค่า TFC/TVC ไว้ด้วย — <strong>ย้ายไป W14</strong> เพราะกติกาต้องมีช่วงปีที่มีผลและต้องอนุมัติ
-                ไม่ใช่ช่องติ๊กในหน้านำเข้า
+                เดิม W9 รวมการตั้งค่า TFC/TVC ไว้ด้วย — <strong>ย้ายไป W14</strong>{' '}
+                เพราะกติกาต้องมีช่วงปีที่มีผลและต้องอนุมัติ ไม่ใช่ช่องติ๊กในหน้านำเข้า
               </Alert>
               <Alert severity="info">
-                ปุ่ม &ldquo;คำนวณผลใหม่ทั้งระบบ&rdquo; <strong>ย้ายไป W11</strong> — การคำนวณสร้าง run ที่ทับของเก่าไม่ได้
-                และต้องมีผู้อนุมัติ
+                ปุ่ม &ldquo;คำนวณผลใหม่ทั้งระบบ&rdquo; <strong>ย้ายไป W11</strong> — การคำนวณสร้าง
+                run ที่ทับของเก่าไม่ได้ และต้องมีผู้อนุมัติ
               </Alert>
               <Alert severity="error">
                 บล็อกตรวจความพร้อมเป็นของใหม่ทั้งหมด prototype ไม่มีเพราะข้อมูลถูก fix มาแล้ว —{' '}
-                <strong>ค่าเสื่อมราคาอาคารที่ยังไม่มีข้อมูล เป็นตัวอย่างจริงที่กระทบตัวเลขทั้งระบบอยู่ตอนนี้</strong>
+                <strong>
+                  ค่าเสื่อมราคาอาคารที่ยังไม่มีข้อมูล
+                  เป็นตัวอย่างจริงที่กระทบตัวเลขทั้งระบบอยู่ตอนนี้
+                </strong>
               </Alert>
             </Stack>
           </CardContent>

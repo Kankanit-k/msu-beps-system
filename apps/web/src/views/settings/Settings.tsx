@@ -31,12 +31,12 @@ const Settings = () => {
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   const valueOf = (s: CalcSetting) => draft[s.key] ?? s.cur ?? s.def;
-  const dirtyKeys = Object.keys(draft).filter(k => {
-    const s = SETTINGS.find(x => x.key === k);
+  const dirtyKeys = Object.keys(draft).filter((k) => {
+    const s = SETTINGS.find((x) => x.key === k);
     return s && draft[k] !== (s.cur ?? s.def);
   });
 
-  const selected = SETTINGS.find(s => s.key === sel) ?? SETTINGS[0]!;
+  const selected = SETTINGS.find((s) => s.key === sel) ?? SETTINGS[0]!;
   const selectedValue = valueOf(selected);
   const impactRows: Array<[string, string]> =
     selected.type === 'enum' && selected.opts
@@ -44,7 +44,7 @@ const Settings = () => {
       : [[selectedValue, selected.impact['*'] ?? '']];
 
   const handleChange = (s: CalcSetting, value: string) => {
-    setDraft(prev => ({ ...prev, [s.key]: value }));
+    setDraft((prev) => ({ ...prev, [s.key]: value }));
     setSel(s.key);
   };
 
@@ -54,15 +54,18 @@ const Settings = () => {
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
         <Alert severity="info">
-          ค่าเหล่านี้เคย<b>ฝังอยู่ในโค้ด</b>ของ prototype ทำให้กองแผนงานเปลี่ยนเองไม่ได้ และหน้าจอคนละหน้าใช้กติกาต่างกันจนได้ตัวเลขไม่ตรงกัน
-          · ตอนนี้เป็นค่าตั้งที่<b>มีเวอร์ชันรายปีและต้องอนุมัติ</b> ทุกส่วนของระบบอ่านจากค่าเดียวกัน
+          ค่าเหล่านี้เคย<b>ฝังอยู่ในโค้ด</b>ของ prototype ทำให้กองแผนงานเปลี่ยนเองไม่ได้
+          และหน้าจอคนละหน้าใช้กติกาต่างกันจนได้ตัวเลขไม่ตรงกัน · ตอนนี้เป็นค่าตั้งที่
+          <b>มีเวอร์ชันรายปีและต้องอนุมัติ</b> ทุกส่วนของระบบอ่านจากค่าเดียวกัน
         </Alert>
       </Grid>
       <Grid size={{ xs: 12 }}>
         <Alert severity="warning">
-          <b>ปีการศึกษา 2568 ยังไม่มีมติกำหนดค่าใดเลย</b> — ทุกค่ายังใช้ค่าเริ่มต้นจากนิยามระบบ รายการที่ยังรอมติที่ประชุม:{' '}
-          <code>cm_le_zero_policy</code> · <code>qstar_primary_method</code> · <code>qstar_rounding</code> ·{' '}
-          <code>profit_pct_basis</code> ตัวเลขที่นำเสนออยู่ตอนนี้จึงเป็นผลของ<b>ค่าเริ่มต้น</b> ไม่ใช่นโยบายที่ผ่านการรับรอง
+          <b>ปีการศึกษา 2568 ยังไม่มีมติกำหนดค่าใดเลย</b> — ทุกค่ายังใช้ค่าเริ่มต้นจากนิยามระบบ
+          รายการที่ยังรอมติที่ประชุม: <code>cm_le_zero_policy</code> ·{' '}
+          <code>qstar_primary_method</code> · <code>qstar_rounding</code> ·{' '}
+          <code>profit_pct_basis</code> ตัวเลขที่นำเสนออยู่ตอนนี้จึงเป็นผลของ<b>ค่าเริ่มต้น</b>{' '}
+          ไม่ใช่นโยบายที่ผ่านการรับรอง
         </Alert>
       </Grid>
 
@@ -74,9 +77,9 @@ const Settings = () => {
               labelId="settings-year-label"
               label="มีผลตั้งแต่ปีการศึกษา"
               value={year}
-              onChange={e => setYear(Number(e.target.value))}
+              onChange={(e) => setYear(Number(e.target.value))}
             >
-              {YEARS.map(y => (
+              {YEARS.map((y) => (
                 <MenuItem key={y} value={y}>
                   {y}
                 </MenuItem>
@@ -84,16 +87,23 @@ const Settings = () => {
             </Select>
           </FormControl>
           <Box flexGrow={1} />
-          <Chip variant="outlined" color="warning" label="⚡ กระทบตัวเลข = เปลี่ยนแล้วต้องสั่งคำนวณใหม่" />
+          <Chip
+            variant="outlined"
+            color="warning"
+            label="⚡ กระทบตัวเลข = เปลี่ยนแล้วต้องสั่งคำนวณใหม่"
+          />
         </Box>
       </Grid>
 
       <Grid size={{ xs: 12, md: 7 }}>
         <Card>
-          <CardHeader title="รายการค่าตั้ง" subheader="คลิกชื่อค่าตั้งเพื่อดูผลกระทบ · ค่าที่ไม่ได้ตั้งทับจะใช้ค่าเริ่มต้นจากนิยามระบบ" />
+          <CardHeader
+            title="รายการค่าตั้ง"
+            subheader="คลิกชื่อค่าตั้งเพื่อดูผลกระทบ · ค่าที่ไม่ได้ตั้งทับจะใช้ค่าเริ่มต้นจากนิยามระบบ"
+          />
           <CardContent>
             <Box display="flex" flexDirection="column" gap={3}>
-              {SETTINGS.map(s => {
+              {SETTINGS.map((s) => {
                 const v = valueOf(s);
                 const isDirty = draft[s.key] !== undefined && draft[s.key] !== (s.cur ?? s.def);
                 return (
@@ -118,7 +128,14 @@ const Settings = () => {
                         <Typography variant="caption" component="code" color="text.secondary">
                           {s.key}
                         </Typography>
-                        {s.affects && <Chip size="small" color="warning" variant="outlined" label="⚡ กระทบตัวเลข" />}
+                        {s.affects && (
+                          <Chip
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            label="⚡ กระทบตัวเลข"
+                          />
+                        )}
                         {isDirty && <Chip size="small" color="success" label="แก้แล้ว" />}
                       </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -142,11 +159,11 @@ const Settings = () => {
                         )}
                       </Typography>
                     </Box>
-                    <Box onClick={e => e.stopPropagation()} minWidth={160}>
+                    <Box onClick={(e) => e.stopPropagation()} minWidth={160}>
                       {s.type === 'enum' ? (
                         <FormControl size="small" fullWidth>
-                          <Select value={v} onChange={e => handleChange(s, e.target.value)}>
-                            {s.opts?.map(o => (
+                          <Select value={v} onChange={(e) => handleChange(s, e.target.value)}>
+                            {s.opts?.map((o) => (
                               <MenuItem key={o} value={o}>
                                 {o}
                               </MenuItem>
@@ -157,7 +174,7 @@ const Settings = () => {
                         <TextField
                           size="small"
                           value={v}
-                          onChange={e => handleChange(s, e.target.value)}
+                          onChange={(e) => handleChange(s, e.target.value)}
                           sx={{ width: 110 }}
                         />
                       )}
@@ -177,7 +194,9 @@ const Settings = () => {
               </Button>
               <Box flexGrow={1} />
               <Typography variant="body2" color="text.secondary">
-                {dirtyKeys.length > 0 ? `แก้ไข ${dirtyKeys.length} ค่า — ยังไม่มีผลจนกว่าจะผ่านการอนุมัติ` : 'ยังไม่มีการเปลี่ยนแปลง'}
+                {dirtyKeys.length > 0
+                  ? `แก้ไข ${dirtyKeys.length} ค่า — ยังไม่มีผลจนกว่าจะผ่านการอนุมัติ`
+                  : 'ยังไม่มีการเปลี่ยนแปลง'}
               </Typography>
             </Box>
           </CardContent>
@@ -193,9 +212,19 @@ const Settings = () => {
                 subheader={`${selected.name} · ประเมินจากข้อมูลปีการศึกษา 2568 · 230 หลักสูตร`}
                 action={
                   selected.affects ? (
-                    <Chip size="small" color="warning" variant="outlined" label="⚡ ต้องคำนวณใหม่" />
+                    <Chip
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                      label="⚡ ต้องคำนวณใหม่"
+                    />
                   ) : (
-                    <Chip size="small" color="success" variant="outlined" label="ไม่ต้องคำนวณใหม่" />
+                    <Chip
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      label="ไม่ต้องคำนวณใหม่"
+                    />
                   )
                 }
               />
@@ -214,7 +243,9 @@ const Settings = () => {
                         <Typography component="code" fontWeight={700} fontSize={12}>
                           {o}
                         </Typography>
-                        {o === selectedValue && <Chip size="small" color="success" label="ค่าที่ใช้อยู่" />}
+                        {o === selectedValue && (
+                          <Chip size="small" color="success" label="ค่าที่ใช้อยู่" />
+                        )}
                       </Box>
                       <Typography variant="body2" color="text.secondary">
                         {txt}
@@ -224,7 +255,8 @@ const Settings = () => {
                 </Box>
                 {selected.affects && (
                   <Alert severity="warning" sx={{ mt: 3 }}>
-                    ⚡ เปลี่ยนค่านี้แล้ว ตัวเลขในหน้าวิเคราะห์<b>จะยังไม่เปลี่ยน</b>จนกว่าจะสร้างและอนุมัติรอบคำนวณใหม่
+                    ⚡ เปลี่ยนค่านี้แล้ว ตัวเลขในหน้าวิเคราะห์<b>จะยังไม่เปลี่ยน</b>
+                    จนกว่าจะสร้างและอนุมัติรอบคำนวณใหม่
                   </Alert>
                 )}
               </CardContent>
@@ -233,7 +265,10 @@ const Settings = () => {
 
           <Grid size={{ xs: 12 }}>
             <Card>
-              <CardHeader title="ประวัติการเปลี่ยนค่าตั้ง" subheader="ตอบได้ว่าตัวเลขปีไหนคำนวณด้วยกติกาใด" />
+              <CardHeader
+                title="ประวัติการเปลี่ยนค่าตั้ง"
+                subheader="ตอบได้ว่าตัวเลขปีไหนคำนวณด้วยกติกาใด"
+              />
               <CardContent>
                 <Box display="flex" flexDirection="column" gap={3}>
                   {SETTING_LOG.map((l, i) => (
@@ -264,14 +299,16 @@ const Settings = () => {
                 เพราะไม่รู้ว่าแต่ละปีคำนวณด้วยกติกาใด
               </Alert>
               <Alert severity="warning">
-                ค่าที่ติดป้าย <b>กระทบตัวเลข</b> เปลี่ยนแล้วต้องสร้างรอบคำนวณใหม่ — ตัวเลขเก่าจะไม่เปลี่ยนตามเอง
+                ค่าที่ติดป้าย <b>กระทบตัวเลข</b> เปลี่ยนแล้วต้องสร้างรอบคำนวณใหม่ —
+                ตัวเลขเก่าจะไม่เปลี่ยนตามเอง
               </Alert>
               <Alert severity="info">
-                <code>qstar_primary_method</code> ต่างกันถึง <b>5,441 คน</b> ในระดับมหาวิทยาลัย — ไม่ใช่รายละเอียดปลีกย่อย
-                แต่เป็นเรื่องที่ต้องมีมติ
+                <code>qstar_primary_method</code> ต่างกันถึง <b>5,441 คน</b> ในระดับมหาวิทยาลัย —
+                ไม่ใช่รายละเอียดปลีกย่อย แต่เป็นเรื่องที่ต้องมีมติ
               </Alert>
               <Alert severity="success">
-                ระบบ<b>คำนวณเก็บไว้ทั้ง 2 วิธีเสมอ</b> ค่าตั้งนี้เลือกแค่ว่าตัวไหนเป็นตัวหลักในรายงาน จึงสลับได้โดยไม่ต้องคำนวณใหม่
+                ระบบ<b>คำนวณเก็บไว้ทั้ง 2 วิธีเสมอ</b>{' '}
+                ค่าตั้งนี้เลือกแค่ว่าตัวไหนเป็นตัวหลักในรายงาน จึงสลับได้โดยไม่ต้องคำนวณใหม่
               </Alert>
             </Box>
           </CardContent>

@@ -37,12 +37,16 @@ import { ACCOUNTS, BEH, METHOD, ruleAt } from '../account-rules/data';
 
 const YEARS = [2568, 2569, 2570];
 type RuleFilter = 'all' | 'has' | 'none';
-const RULE_FILTER_LABEL: Record<RuleFilter, string> = { all: 'ทั้งหมด', has: 'มีกติกาแล้ว', none: 'ยังไม่มีกติกา' };
+const RULE_FILTER_LABEL: Record<RuleFilter, string> = {
+  all: 'ทั้งหมด',
+  has: 'มีกติกาแล้ว',
+  none: 'ยังไม่มีกติกา',
+};
 
 const fmtM = (n: number) => (n / 1_000_000).toLocaleString('th-TH', { maximumFractionDigits: 1 });
 const fmtN = (n: number) => n.toLocaleString('th-TH');
 
-const ruleOf = (a: (typeof ERP_ACCOUNTS)[number]) => ACCOUNTS.find(x => x.key === a.ruleKey);
+const ruleOf = (a: (typeof ERP_ACCOUNTS)[number]) => ACCOUNTS.find((x) => x.key === a.ruleKey);
 
 const ErpAccounts = () => {
   const [year, setYear] = useState(2568);
@@ -53,15 +57,17 @@ const ErpAccounts = () => {
   const rows = useMemo(
     () =>
       ERP_ACCOUNTS.map((a, i) => ({ a, i }))
-        .filter(x => inYear(x.a, year))
-        .filter(x => fRule === 'all' || (fRule === 'has' ? !!x.a.ruleKey : !x.a.ruleKey))
-        .filter(x => !q || (keyOf(x.a) + x.a.name).toLowerCase().includes(q.trim().toLowerCase())),
-    [year, fRule, q]
+        .filter((x) => inYear(x.a, year))
+        .filter((x) => fRule === 'all' || (fRule === 'has' ? !!x.a.ruleKey : !x.a.ruleKey))
+        .filter(
+          (x) => !q || (keyOf(x.a) + x.a.name).toLowerCase().includes(q.trim().toLowerCase()),
+        ),
+    [year, fRule, q],
   );
 
-  const live = useMemo(() => ERP_ACCOUNTS.filter(a => inYear(a, year)), [year]);
-  const withRule = live.filter(a => a.ruleKey);
-  const without = live.filter(a => !a.ruleKey);
+  const live = useMemo(() => ERP_ACCOUNTS.filter((a) => inYear(a, year)), [year]);
+  const withRule = live.filter((a) => a.ruleKey);
+  const without = live.filter((a) => !a.ruleKey);
 
   const account = ERP_ACCOUNTS[sel] ?? ERP_ACCOUNTS[0]!;
   const rule = ruleOf(account);
@@ -76,7 +82,8 @@ const ErpAccounts = () => {
           <Link component={NextLink} href="/admin/university/account-rules">
             กติกาผังบัญชี TFC/TVC
           </Link>{' '}
-          — แยกกันเพราะ<b>บัญชีหนึ่งใบมีกติกาได้หลายช่วงปี</b> และกติกาต้องผ่านการอนุมัติ ส่วนตัวบัญชีมาจาก ERP
+          — แยกกันเพราะ<b>บัญชีหนึ่งใบมีกติกาได้หลายช่วงปี</b> และกติกาต้องผ่านการอนุมัติ
+          ส่วนตัวบัญชีมาจาก ERP
         </Alert>
       </Grid>
 
@@ -143,34 +150,41 @@ const ErpAccounts = () => {
 
       <Grid size={{ xs: 12 }}>
         <Card sx={{ bgcolor: 'background.default' }}>
-          <CardHeader title="ทำไมคีย์ต้องเป็น 4 ระดับ" subheader="พิสูจน์จากข้อมูลจริง — mockup/MAPPING.md หัวข้อ 2" />
+          <CardHeader
+            title="ทำไมคีย์ต้องเป็น 4 ระดับ"
+            subheader="พิสูจน์จากข้อมูลจริง — mockup/MAPPING.md หัวข้อ 2"
+          />
           <CardContent>
             <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={3}>
-              {['แผนงาน\nplan_code', 'หมวดงบประมาณ\nbudget_category_code', 'หมวดรายจ่าย\nexpenditure_category_code', 'หมวดย่อย\nsubcategory_code'].map(
-                (step, i, arr) => (
-                  <Box key={step} display="flex" alignItems="center" gap={2}>
-                    <Chip
-                      label={
-                        <Box textAlign="center">
-                          <Typography variant="caption" display="block">
-                            {step.split('\n')[0]}
-                          </Typography>
-                          <Typography variant="caption" component="code" display="block">
-                            {step.split('\n')[1]}
-                          </Typography>
-                        </Box>
-                      }
-                      variant="outlined"
-                    />
-                    <Typography>{i < arr.length - 1 ? '+' : '='}</Typography>
-                  </Box>
-                )
-              )}
+              {[
+                'แผนงาน\nplan_code',
+                'หมวดงบประมาณ\nbudget_category_code',
+                'หมวดรายจ่าย\nexpenditure_category_code',
+                'หมวดย่อย\nsubcategory_code',
+              ].map((step, i, arr) => (
+                <Box key={step} display="flex" alignItems="center" gap={2}>
+                  <Chip
+                    label={
+                      <Box textAlign="center">
+                        <Typography variant="caption" display="block">
+                          {step.split('\n')[0]}
+                        </Typography>
+                        <Typography variant="caption" component="code" display="block">
+                          {step.split('\n')[1]}
+                        </Typography>
+                      </Box>
+                    }
+                    variant="outlined"
+                  />
+                  <Typography>{i < arr.length - 1 ? '+' : '='}</Typography>
+                </Box>
+              ))}
               <Chip label="1 บัญชี" color="primary" />
             </Box>
             <Typography variant="body2" color="text.secondary">
-              รหัสหมวดรายจ่ายเดียวกันเป็นคนละบัญชีได้เมื่ออยู่คนละแผนงาน — ดู <code>800:80001 เงินอุดหนุน</code> สองแถวในตาราง
-              แผนงาน <b>2</b> เป็นเงินอุดหนุนทั่วไป (ยังไม่จำแนก) ส่วนแผนงาน <b>3</b> เป็นเงินอุดหนุนโครงการวิจัย (คงที่) ·{' '}
+              รหัสหมวดรายจ่ายเดียวกันเป็นคนละบัญชีได้เมื่ออยู่คนละแผนงาน — ดู{' '}
+              <code>800:80001 เงินอุดหนุน</code> สองแถวในตาราง แผนงาน <b>2</b> เป็นเงินอุดหนุนทั่วไป
+              (ยังไม่จำแนก) ส่วนแผนงาน <b>3</b> เป็นเงินอุดหนุนโครงการวิจัย (คงที่) ·{' '}
               <b>ถ้าตั้งคีย์ด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน</b>
             </Typography>
           </CardContent>
@@ -181,16 +195,26 @@ const ErpAccounts = () => {
         <Box display="flex" flexWrap="wrap" alignItems="center" gap={4}>
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel id="erp-year-label">ปีงบประมาณที่ดู</InputLabel>
-            <Select labelId="erp-year-label" label="ปีงบประมาณที่ดู" value={year} onChange={e => setYear(Number(e.target.value))}>
-              {YEARS.map(y => (
+            <Select
+              labelId="erp-year-label"
+              label="ปีงบประมาณที่ดู"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+            >
+              {YEARS.map((y) => (
                 <MenuItem key={y} value={y}>
                   {y}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-          <ToggleButtonGroup size="small" exclusive value={fRule} onChange={(_, v) => v && setFRule(v)}>
-            {(Object.keys(RULE_FILTER_LABEL) as RuleFilter[]).map(f => (
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={fRule}
+            onChange={(_, v) => v && setFRule(v)}
+          >
+            {(Object.keys(RULE_FILTER_LABEL) as RuleFilter[]).map((f) => (
               <ToggleButton key={f} value={f}>
                 {RULE_FILTER_LABEL[f]}
               </ToggleButton>
@@ -200,8 +224,10 @@ const ErpAccounts = () => {
             size="small"
             placeholder="ค้นหารหัส / ชื่อบัญชี..."
             value={q}
-            onChange={e => setQ(e.target.value)}
-            slotProps={{ input: { startAdornment: <InputAdornment position="start">🔍</InputAdornment> } }}
+            onChange={(e) => setQ(e.target.value)}
+            slotProps={{
+              input: { startAdornment: <InputAdornment position="start">🔍</InputAdornment> },
+            }}
             sx={{ minWidth: 220 }}
           />
           <Box flexGrow={1} />
@@ -213,7 +239,10 @@ const ErpAccounts = () => {
 
       <Grid size={{ xs: 12, md: 7 }}>
         <Card>
-          <CardHeader title="ผังบัญชี" subheader="คลิกแถวเพื่อดูรายละเอียดและกติกาที่ผูกอยู่ · ตัวอย่าง 11 บัญชีจากทั้งหมด 412 บัญชี" />
+          <CardHeader
+            title="ผังบัญชี"
+            subheader="คลิกแถวเพื่อดูรายละเอียดและกติกาที่ผูกอยู่ · ตัวอย่าง 11 บัญชีจากทั้งหมด 412 บัญชี"
+          />
           <TableContainer sx={{ maxHeight: 520 }}>
             <Table size="small" stickyHeader>
               <TableHead>
@@ -241,7 +270,13 @@ const ErpAccounts = () => {
                   const cur = r ? ruleAt(r, year) : null;
                   const b = cur ? BEH[cur.beh] : null;
                   return (
-                    <TableRow key={keyOf(a)} hover selected={i === sel} onClick={() => setSel(i)} sx={{ cursor: 'pointer', opacity: a.to ? 0.6 : 1 }}>
+                    <TableRow
+                      key={keyOf(a)}
+                      hover
+                      selected={i === sel}
+                      onClick={() => setSel(i)}
+                      sx={{ cursor: 'pointer', opacity: a.to ? 0.6 : 1 }}
+                    >
                       <TableCell align="right">
                         <code>{a.plan}</code>
                       </TableCell>
@@ -269,7 +304,16 @@ const ErpAccounts = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        {b ? <Chip size="small" color={b.color} label={b.label} /> : <Chip size="small" color="error" variant="outlined" label="ยังไม่มีกติกา" />}
+                        {b ? (
+                          <Chip size="small" color={b.color} label={b.label} />
+                        ) : (
+                          <Chip
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            label="ยังไม่มีกติกา"
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -298,16 +342,40 @@ const ErpAccounts = () => {
               <CardContent>
                 <Grid container spacing={3} mb={4}>
                   <Grid size={{ xs: 6 }}>
-                    <TextField label="แผนงาน" size="small" fullWidth value={account.plan} slotProps={{ input: { readOnly: true } }} />
+                    <TextField
+                      label="แผนงาน"
+                      size="small"
+                      fullWidth
+                      value={account.plan}
+                      slotProps={{ input: { readOnly: true } }}
+                    />
                   </Grid>
                   <Grid size={{ xs: 6 }}>
-                    <TextField label="หมวดงบประมาณ" size="small" fullWidth value={account.bud} slotProps={{ input: { readOnly: true } }} />
+                    <TextField
+                      label="หมวดงบประมาณ"
+                      size="small"
+                      fullWidth
+                      value={account.bud}
+                      slotProps={{ input: { readOnly: true } }}
+                    />
                   </Grid>
                   <Grid size={{ xs: 6 }}>
-                    <TextField label="หมวดรายจ่าย" size="small" fullWidth value={account.exp} slotProps={{ input: { readOnly: true } }} />
+                    <TextField
+                      label="หมวดรายจ่าย"
+                      size="small"
+                      fullWidth
+                      value={account.exp}
+                      slotProps={{ input: { readOnly: true } }}
+                    />
                   </Grid>
                   <Grid size={{ xs: 6 }}>
-                    <TextField label="หมวดรายจ่ายย่อย" size="small" fullWidth value={account.sub} slotProps={{ input: { readOnly: true } }} />
+                    <TextField
+                      label="หมวดรายจ่ายย่อย"
+                      size="small"
+                      fullWidth
+                      value={account.sub}
+                      slotProps={{ input: { readOnly: true } }}
+                    />
                   </Grid>
                 </Grid>
 
@@ -323,7 +391,13 @@ const ErpAccounts = () => {
 
                 <Grid container spacing={3} mb={4}>
                   <Grid size={{ xs: 6 }}>
-                    <TextField label="เริ่มมีผล (ปีงบ)" size="small" fullWidth value={account.from} slotProps={{ input: { readOnly: true } }} />
+                    <TextField
+                      label="เริ่มมีผล (ปีงบ)"
+                      size="small"
+                      fullWidth
+                      value={account.from}
+                      slotProps={{ input: { readOnly: true } }}
+                    />
                   </Grid>
                   <Grid size={{ xs: 6 }}>
                     <TextField
@@ -344,11 +418,17 @@ const ErpAccounts = () => {
                       กติกา TFC/TVC ในปีงบ {year}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {curRule ? `${curRule.note || 'ไม่มีหมายเหตุ'} · ปันส่วน${METHOD[curRule.m]}` : 'ยังไม่มีกติกา — เงินจะถูกพักไว้ที่หน่วยงานและติดธง UNCLASSIFIED'}
+                      {curRule
+                        ? `${curRule.note || 'ไม่มีหมายเหตุ'} · ปันส่วน${METHOD[curRule.m]}`
+                        : 'ยังไม่มีกติกา — เงินจะถูกพักไว้ที่หน่วยงานและติดธง UNCLASSIFIED'}
                     </Typography>
                   </Box>
                   {curRule ? (
-                    <Chip size="small" color={BEH[curRule.beh].color} label={BEH[curRule.beh].label} />
+                    <Chip
+                      size="small"
+                      color={BEH[curRule.beh].color}
+                      label={BEH[curRule.beh].label}
+                    />
                   ) : (
                     <Chip size="small" color="error" variant="outlined" label="ไม่มี" />
                   )}
@@ -359,10 +439,16 @@ const ErpAccounts = () => {
                       จำนวนช่วงปีของกติกา
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {rule ? `บัญชีนี้มีกติกา ${rule.rules.length} ช่วงปี — เปลี่ยนประเภทตามปีได้` : 'ยังไม่เคยตั้งกติกาให้บัญชีนี้'}
+                      {rule
+                        ? `บัญชีนี้มีกติกา ${rule.rules.length} ช่วงปี — เปลี่ยนประเภทตามปีได้`
+                        : 'ยังไม่เคยตั้งกติกาให้บัญชีนี้'}
                     </Typography>
                   </Box>
-                  <Chip size="small" color={rule ? 'info' : 'error'} label={rule ? rule.rules.length : 0} />
+                  <Chip
+                    size="small"
+                    color={rule ? 'info' : 'error'}
+                    label={rule ? rule.rules.length : 0}
+                  />
                 </Box>
 
                 <Divider sx={{ my: 3 }} />
@@ -398,11 +484,27 @@ const ErpAccounts = () => {
               <CardContent>
                 <Box display="flex" flexDirection="column" gap={3}>
                   {[
-                    { ic: '1️⃣', t: 'ระบบไม่เดาแทน', d: 'รายการถูกจัดเป็น UNCLASSIFIED ไม่ใช่เดาว่าเป็นต้นทุนคงที่' },
-                    { ic: '2️⃣', t: 'เงินถูกพักไว้ที่หน่วยงาน', d: 'ไม่ปันลงหลักสูตร — ยอดรวมไม่หาย แต่ไม่เข้าไปในต้นทุนรายหลักสูตร' },
-                    { ic: '3️⃣', t: 'ติดธงไปที่รายการค้างตรวจ', d: 'ปรากฏที่หน้ารายการค้างตรวจ พร้อมมูลค่าและผู้รับผิดชอบ' },
-                    { ic: '4️⃣', t: 'ตรวจยอดยังผ่าน', d: 'เพราะเงินไม่หาย — นี่คือเหตุผลที่ต้องดูรายการค้างตรวจคู่กับผลตรวจยอดเสมอ' },
-                  ].map(item => (
+                    {
+                      ic: '1️⃣',
+                      t: 'ระบบไม่เดาแทน',
+                      d: 'รายการถูกจัดเป็น UNCLASSIFIED ไม่ใช่เดาว่าเป็นต้นทุนคงที่',
+                    },
+                    {
+                      ic: '2️⃣',
+                      t: 'เงินถูกพักไว้ที่หน่วยงาน',
+                      d: 'ไม่ปันลงหลักสูตร — ยอดรวมไม่หาย แต่ไม่เข้าไปในต้นทุนรายหลักสูตร',
+                    },
+                    {
+                      ic: '3️⃣',
+                      t: 'ติดธงไปที่รายการค้างตรวจ',
+                      d: 'ปรากฏที่หน้ารายการค้างตรวจ พร้อมมูลค่าและผู้รับผิดชอบ',
+                    },
+                    {
+                      ic: '4️⃣',
+                      t: 'ตรวจยอดยังผ่าน',
+                      d: 'เพราะเงินไม่หาย — นี่คือเหตุผลที่ต้องดูรายการค้างตรวจคู่กับผลตรวจยอดเสมอ',
+                    },
+                  ].map((item) => (
                     <Box key={item.t} display="flex" gap={3}>
                       <Typography fontSize={14}>{item.ic}</Typography>
                       <Box>
@@ -428,19 +530,24 @@ const ErpAccounts = () => {
           <CardContent>
             <Box display="flex" flexDirection="column" gap={2}>
               <Alert severity="error">
-                <b>ห้ามแก้รหัสของบัญชีที่คำนวณไปแล้ว</b> — ต้นทุนในรอบคำนวณเก่าอ้างบัญชีนี้อยู่ ถ้าเปลี่ยนรหัสจะตามกลับไม่ได้ว่าเงินก้อนนั้นมาจากไหน
+                <b>ห้ามแก้รหัสของบัญชีที่คำนวณไปแล้ว</b> — ต้นทุนในรอบคำนวณเก่าอ้างบัญชีนี้อยู่
+                ถ้าเปลี่ยนรหัสจะตามกลับไม่ได้ว่าเงินก้อนนั้นมาจากไหน
               </Alert>
               <Alert severity="warning">
-                <b>บัญชียกเลิกให้ตั้งวันที่สิ้นสุด ไม่ใช่ลบทิ้ง</b> — รายงานปีเก่ายังต้องอ่านชื่อบัญชีได้
+                <b>บัญชียกเลิกให้ตั้งวันที่สิ้นสุด ไม่ใช่ลบทิ้ง</b> —
+                รายงานปีเก่ายังต้องอ่านชื่อบัญชีได้
               </Alert>
               <Alert severity="warning">
-                <b>บัญชีใหม่ต้องผูกกติกาที่หน้ากติกาผังบัญชีก่อนรอบคำนวณถัดไป</b> ไม่งั้นเงินก้อนนั้นจะไม่เข้าต้นทุนรายหลักสูตรทั้งปี
+                <b>บัญชีใหม่ต้องผูกกติกาที่หน้ากติกาผังบัญชีก่อนรอบคำนวณถัดไป</b>{' '}
+                ไม่งั้นเงินก้อนนั้นจะไม่เข้าต้นทุนรายหลักสูตรทั้งปี
               </Alert>
               <Alert severity="info">
-                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงไม่อยู่ในตารางนี้ — กำหนดประเภทผ่านค่าตั้ง <code>depreciation_behavior</code> ที่หน้านโยบายการคำนวณ
+                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงไม่อยู่ในตารางนี้ — กำหนดประเภทผ่านค่าตั้ง{' '}
+                <code>depreciation_behavior</code> ที่หน้านโยบายการคำนวณ
               </Alert>
               <Alert severity="success">
-                ผังบัญชีปกติมาจาก ERP ผ่านการนำเข้า หน้านี้ใช้แก้รายกรณีและเพิ่มบัญชีที่ ERP ยังไม่ส่งมา
+                ผังบัญชีปกติมาจาก ERP ผ่านการนำเข้า หน้านี้ใช้แก้รายกรณีและเพิ่มบัญชีที่ ERP
+                ยังไม่ส่งมา
               </Alert>
             </Box>
           </CardContent>

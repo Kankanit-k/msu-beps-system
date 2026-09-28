@@ -92,7 +92,10 @@ export const RUNS: AllocationRun[] = [
   },
 ];
 
-export const RUN_STATE_META: Record<RunState, { label: string; color: 'default' | 'info' | 'warning' | 'success' | 'error' }> = {
+export const RUN_STATE_META: Record<
+  RunState,
+  { label: string; color: 'default' | 'info' | 'warning' | 'success' | 'error' }
+> = {
   DRAFT: { label: 'ร่าง', color: 'default' },
   RUNNING: { label: 'กำลังคำนวณ', color: 'info' },
   CALCULATED: { label: 'คำนวณเสร็จ', color: 'warning' },
@@ -192,12 +195,7 @@ export const RECON_METHODS: ReconMethod[] = [
 /* ---------- exception queue (W13) ---------- */
 
 export type ExceptionFlag =
-  | 'MISSING_SOURCE'
-  | 'UNCLASSIFIED'
-  | 'MISSING_DRIVER'
-  | 'NO_FEE'
-  | 'Q_ZERO'
-  | 'ESTIMATED';
+  'MISSING_SOURCE' | 'UNCLASSIFIED' | 'MISSING_DRIVER' | 'NO_FEE' | 'Q_ZERO' | 'ESTIMATED';
 
 export type ExceptionState = 'OPEN' | 'IN_PROGRESS' | 'ACCEPTED' | 'RESOLVED';
 
@@ -215,7 +213,11 @@ export interface ExceptionItem {
 
 /** ต้นทุนที่ขาดไปทำให้ผลลัพธ์ดูดีเกินจริงเสมอ — ถ้ากำไรก็สูงเกินจริง ถ้าขาดทุนก็ขาดทุนน้อยกว่าจริง */
 const surplus = RAW.UNI.TR - RAW.UNI.TC;
-const fmtM1 = (v: number) => (Math.abs(v) / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtM1 = (v: number) =>
+  (Math.abs(v) / 1e6).toLocaleString('th-TH', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 export const surplusCaveatText =
   surplus >= 0
     ? `ส่วนเกิน +${fmtM1(surplus)} ลบ. สูงเกินจริง`
@@ -312,7 +314,10 @@ export const EXCEPTIONS: ExceptionItem[] = [
   },
 ];
 
-export const EXC_FLAG_META: Record<ExceptionFlag, { label: string; color: 'default' | 'info' | 'warning' | 'error' | 'secondary' }> = {
+export const EXC_FLAG_META: Record<
+  ExceptionFlag,
+  { label: string; color: 'default' | 'info' | 'warning' | 'error' | 'secondary' }
+> = {
   MISSING_SOURCE: { label: 'ไม่มีข้อมูลต้นทาง', color: 'error' },
   UNCLASSIFIED: { label: 'ยังไม่จำแนก', color: 'warning' },
   MISSING_DRIVER: { label: 'ไม่มีตัวขับ', color: 'secondary' },
@@ -321,7 +326,10 @@ export const EXC_FLAG_META: Record<ExceptionFlag, { label: string; color: 'defau
   ESTIMATED: { label: 'ประมาณการ', color: 'secondary' },
 };
 
-export const EXC_STATE_META: Record<ExceptionState, { label: string; color: 'default' | 'info' | 'warning' | 'success' | 'error' }> = {
+export const EXC_STATE_META: Record<
+  ExceptionState,
+  { label: string; color: 'default' | 'info' | 'warning' | 'success' | 'error' }
+> = {
   OPEN: { label: 'ยังไม่แก้', color: 'error' },
   IN_PROGRESS: { label: 'กำลังตาม', color: 'warning' },
   ACCEPTED: { label: 'ยอมรับแล้ว', color: 'default' },

@@ -25,6 +25,10 @@ import Button from '@mui/material/Button';
 // Hook Imports
 import { useSettings } from '@core/hooks/useSettings';
 import { useAuthUser, useAuthMethod } from '@/hooks/AuthHooks';
+import { useRole, useIsAdmin } from '@/hooks/useRole';
+
+// Config Imports
+import { roleDisplay } from '@/configs/accessControl';
 
 // Styled component for badge content
 const BadgeContentSpan = styled('span')({
@@ -47,6 +51,14 @@ const UserDropdown = () => {
   const router = useRouter();
   const { user } = useAuthUser();
   const { logout } = useAuthMethod();
+  const { role } = useRole();
+  const isAdmin = useIsAdmin();
+
+  // Accounts that may switch views show the role picked in the sidebar footer, so the
+  // navbar and the sidebar never disagree about "which permission am I viewing as".
+  const roleLabel = isAdmin
+    ? roleDisplay[role].label
+    : user?.SCOPES?.groupname || roleDisplay.user.label;
 
   const { settings } = useSettings();
 
@@ -92,7 +104,7 @@ const UserDropdown = () => {
           {user?.STAFFNAME || 'ผู้ใช้งาน'}
         </Typography>
         <Typography variant="caption" color="text.secondary" noWrap>
-          {user?.SCOPES?.groupname || 'ผู้ใช้งานทั่วไป'}
+          {roleLabel}
         </Typography>
       </Box>
       <Badge
@@ -139,7 +151,10 @@ const UserDropdown = () => {
                       <Typography className="font-medium" color="text.primary">
                         {user?.STAFFNAME} {user?.STAFFSURNAME}
                       </Typography>
-                      <Typography variant="caption">{user?.SCOPES?.groupname}</Typography>
+                      <Typography variant="caption" className="flex items-center gap-1">
+                        <i className={roleDisplay[role].icon} style={{ fontSize: '0.9rem' }} />
+                        {roleLabel}
+                      </Typography>
                     </div>
                   </div>
                   <Divider className="mlb-1" />

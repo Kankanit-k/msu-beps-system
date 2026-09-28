@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 // MUI Imports
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
@@ -37,7 +38,8 @@ import type { RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
 import { DotTitle, LegendItem } from '@components/ChartBits';
-import DataCaveatNotes from '@components/DataCaveatNotes';
+import DataCaveatNotes, { SHOW_OVERVIEW_NOTES } from '@components/DataCaveatNotes';
+import FacultyFilter from '@components/FacultyFilter';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
@@ -53,6 +55,8 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 
 // หน่วยวิจัยขนาดเล็กมาก (นิสิต < 30 คน) ทำให้ ATC/หัว สูงผิดปกติจนกราฟอ่านยาก — กันออกจากกราฟ แต่ยังอยู่ในตาราง
 const OUTLIER_MIN_Q = 30;
+
+const FAC_NAMES = RAW.FACS.map((f) => f.name);
 
 // จัดรูปแบบ/ย่อชื่อใช้ตัวเดียวกับหน้าอื่น (ดู @views/breakeven/calc)
 const short = shortFacName;
@@ -89,13 +93,42 @@ const PerheadView = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ok' | 'loss'>('all');
+  const [selectedFacs, setSelectedFacs] = useState<string[]>([]);
+  const isFiltered = selectedFacs.length > 0;
 
   const uni = useMemo(() => calcFor({ ...RAW.UNI, name: 'มหาวิทยาลัย' }, mode), [mode]);
 
   // ส่วนเกิน/ขาดทุนระดับมหาวิทยาลัย — ใช้กับชิปสรุปและแถบข้อจำกัดข้อมูลบนหัวหน้าจอ
   const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
 
-  const allRows = useMemo(() => RAW.FACS.map((f) => calcFor(f, mode)), [mode]);
+  // ไม่เลือกคณะ = แสดงทุกคณะ — ทุกกราฟ/ตาราง/ประเด็นสำคัญใช้ allRows ชุดนี้
+  const allRows = useMemo(
+    () =>
+      RAW.FACS.filter((f) => !isFiltered || selectedFacs.includes(f.name)).map((f) =>
+        calcFor(f, mode),
+      ),
+    [mode, isFiltered, selectedFacs],
+  );
+
+  // ค่าเฉลี่ยต่อหัวของคณะที่เลือก (รวมยอดแล้วหารด้วยนิสิตรวม) — ไม่เลือก = ระดับมหาวิทยาลัย
+  const sel = useMemo(() => {
+    if (!isFiltered) return uni;
+    const sum = (k: 'Q' | 'st' | 'own' | 'TFC' | 'TVC') =>
+      allRows.reduce((acc, d) => acc + d[k], 0);
+
+    return calcFor(
+      {
+        ...RAW.UNI,
+        name: 'คณะที่เลือก',
+        Q: sum('Q'),
+        st: sum('st'),
+        own: sum('own'),
+        TFC: sum('TFC'),
+        TVC: sum('TVC'),
+      },
+      mode,
+    );
+  }, [isFiltered, uni, allRows, mode]);
   const chartRows = useMemo(() => allRows.filter((d) => d.Q >= OUTLIER_MIN_Q), [allRows]);
   const outlierRows = useMemo(() => allRows.filter((d) => d.Q < OUTLIER_MIN_Q), [allRows]);
   const sortedRows = useMemo(() => [...allRows].sort((a, b) => b.diff - a.diff), [allRows]);
@@ -116,15 +149,15 @@ const PerheadView = () => {
   }, [sortedRows, search, statusFilter]);
 
   // ===== กราฟหลัก: R / ATC / AVC รายคณะ =====
+  // โทนน้ำเงินไล่เข้ม → อ่อน โดยมี #1c83d4 เป็นสีหลัก
+  const BAR_COLORS = ['#0f4f82', '#1c83d4', '#8cc3ee'] as const;
   const barCategories = chartRows.map((d) => short(d.name));
   const barOptions: ApexOptions = {
     chart: { type: 'bar', toolbar: { show: false }, parentHeightOffset: 0 },
-    plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '68%' } },
-    colors: [
-      'var(--mui-palette-success-main)',
-      'var(--mui-palette-warning-main)',
-      'var(--mui-palette-primary-main)',
-    ],
+    plotOptions: {
+      bar: { horizontal: true, borderRadius: 3, borderRadiusApplication: 'end', barHeight: '68%' },
+    },
+    colors: [...BAR_COLORS],
     dataLabels: { enabled: false },
     grid: { borderColor: 'var(--mui-palette-divider)', xaxis: { lines: { show: true } } },
     legend: { show: false },
@@ -289,19 +322,48 @@ const PerheadView = () => {
         profit={uniRes.profit}
       />
 
-      <DataCaveatNotes profit={uniRes.profit} />
+      {SHOW_OVERVIEW_NOTES && (
+        <>
+          <DataCaveatNotes profit={uniRes.profit} />
 
-      <NoteBar severity="info">
-        <b>ATC (ต้นทุนรวม/หัว) และ AVC ไม่เปลี่ยนตามฐานรายได้</b> — เปลี่ยนเฉพาะ <b>R</b> · โหมด:{' '}
-        <b>{REVENUE_MODE_LABEL[mode]}</b> → R เฉลี่ย {fmtB(uni.r)} เทียบ ATC {fmtB(uni.atc)} บาท/คน
-      </NoteBar>
+          <NoteBar severity="info">
+            <b>ATC (ต้นทุนรวม/หัว) และ AVC ไม่เปลี่ยนตามฐานรายได้</b> — เปลี่ยนเฉพาะ <b>R</b> · โหมด:{' '}
+            <b>{REVENUE_MODE_LABEL[mode]}</b> → R เฉลี่ย {fmtB(uni.r)} เทียบ ATC {fmtB(uni.atc)} บาท/คน
+          </NoteBar>
+        </>
+      )}
+
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+            <FacultyFilter options={FAC_NAMES} value={selectedFacs} onChange={setSelectedFacs} />
+            <Typography variant="body2" color="text.secondary">
+              {isFiltered
+                ? `กำลังแสดง ${allRows.length} จาก ${RAW.FACS.length} คณะ · ค่าต่อหัวในการ์ดสรุปเป็นค่าเฉลี่ยของคณะที่เลือก`
+                : `แสดงทุกคณะ (${RAW.FACS.length}) · ค่าต่อหัวในการ์ดสรุปเป็นระดับมหาวิทยาลัย`}
+            </Typography>
+            {isFiltered && (
+              <Button
+                size="small"
+                variant="text"
+                color="secondary"
+                startIcon={<i className="ri-close-line" />}
+                onClick={() => setSelectedFacs([])}
+                sx={{ marginInlineStart: 'auto' }}
+              >
+                ล้างตัวกรอง
+              </Button>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
             label="รายได้ต่อหัว (R)"
-            value={fmtB(uni.r)}
-            unit="บาท/คน · เฉลี่ยทั้งมหาวิทยาลัย"
+            value={fmtB(sel.r)}
+            unit={`บาท/คน · ${isFiltered ? 'เฉลี่ยคณะที่เลือก' : 'เฉลี่ยทั้งมหาวิทยาลัย'}`}
             accent="success"
             valueColor="var(--mui-palette-success-main)"
           />
@@ -309,7 +371,7 @@ const PerheadView = () => {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
             label="ต้นทุนรวมต่อหัว (ATC)"
-            value={fmtB(uni.atc)}
+            value={fmtB(sel.atc)}
             unit="บาท/คน · TC / Q"
             accent="warning"
             valueColor="var(--mui-palette-warning-main)"
@@ -318,11 +380,11 @@ const PerheadView = () => {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
             label="ส่วนต่าง R − ATC"
-            value={`${uni.diff >= 0 ? '+' : '−'}${fmtB(Math.abs(uni.diff))}`}
-            unit={`บาท/คน · ${uni.diff >= 0 ? 'กำไรต่อหัว' : 'ขาดทุนต่อหัว'}`}
-            accent={uni.diff >= 0 ? 'success' : 'error'}
+            value={`${sel.diff >= 0 ? '+' : '−'}${fmtB(Math.abs(sel.diff))}`}
+            unit={`บาท/คน · ${sel.diff >= 0 ? 'กำไรต่อหัว' : 'ขาดทุนต่อหัว'}`}
+            accent={sel.diff >= 0 ? 'success' : 'error'}
             valueColor={
-              uni.diff >= 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)'
+              sel.diff >= 0 ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)'
             }
           />
         </Grid>
@@ -351,9 +413,9 @@ const PerheadView = () => {
             />
             <CardContent>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
-                <LegendItem color="success.main" label="รายได้/หัว (R)" />
-                <LegendItem color="warning.main" label="ต้นทุนรวม/หัว (ATC)" />
-                <LegendItem color="primary.main" label="ต้นทุนผันแปร/หัว (AVC)" />
+                <LegendItem color={BAR_COLORS[0]} label="รายได้/หัว (R)" />
+                <LegendItem color={BAR_COLORS[1]} label="ต้นทุนรวม/หัว (ATC)" />
+                <LegendItem color={BAR_COLORS[2]} label="ต้นทุนผันแปร/หัว (AVC)" />
               </Box>
               <AppReactApexCharts
                 type="bar"

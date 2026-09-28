@@ -39,7 +39,8 @@ import {
   type ExceptionItem,
 } from '@/data/mockup/opsData';
 
-const fmtM = (v: number) => (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtM = (v: number) =>
+  (v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 type FlagFilter = 'all' | ExceptionFlag;
 
@@ -57,7 +58,9 @@ const exportCsv = (rows: ExceptionItem[]) => {
   const header = ['ธง', 'รายการ', 'หน่วยงาน', 'มูลค่าที่กระทบ', 'ผู้รับผิดชอบ', 'ตั้งแต่', 'สถานะ'];
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = rows.map((e) =>
-    [e.flag, e.item, e.org, e.amount ?? '', e.owner, e.since, EXC_STATE_META[e.state].label].map((v) => escape(String(v))).join(','),
+    [e.flag, e.item, e.org, e.amount ?? '', e.owner, e.since, EXC_STATE_META[e.state].label]
+      .map((v) => escape(String(v)))
+      .join(','),
   );
   const csv = ['﻿' + header.map(escape).join(','), ...lines].join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -70,11 +73,26 @@ const exportCsv = (rows: ExceptionItem[]) => {
 };
 
 const FLAG_MEANING: { flag: ExceptionFlag; desc: string }[] = [
-  { flag: 'MISSING_SOURCE', desc: 'ไม่มีข้อมูลจากระบบต้นทางเลย — ระบบคำนวณโดยไม่มีตัวเลขนี้ ผลลัพธ์จึงต่ำกว่าความจริง' },
-  { flag: 'UNCLASSIFIED', desc: 'มีเงินแต่ยังไม่รู้ว่าเป็น TFC หรือ TVC — พักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร' },
-  { flag: 'MISSING_DRIVER', desc: 'กติกาสั่งให้ปันตามการใช้จริง แต่ไม่มีข้อมูลการใช้ — ตกไปใช้วิธีสำรอง และติดธง ESTIMATED' },
-  { flag: 'NO_FEE', desc: 'ยังไม่มีอัตราค่าธรรมเนียมที่อนุมัติ — TR คำนวณไม่ได้ กันหลักสูตรออกจากยอดรวม' },
-  { flag: 'Q_ZERO', desc: 'หลักสูตรเปิดแต่ไม่มีนิสิต — R และ AVC เป็น null หา Q* ไม่ได้ แต่ต้นทุนยังเกิดขึ้นจริง' },
+  {
+    flag: 'MISSING_SOURCE',
+    desc: 'ไม่มีข้อมูลจากระบบต้นทางเลย — ระบบคำนวณโดยไม่มีตัวเลขนี้ ผลลัพธ์จึงต่ำกว่าความจริง',
+  },
+  {
+    flag: 'UNCLASSIFIED',
+    desc: 'มีเงินแต่ยังไม่รู้ว่าเป็น TFC หรือ TVC — พักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร',
+  },
+  {
+    flag: 'MISSING_DRIVER',
+    desc: 'กติกาสั่งให้ปันตามการใช้จริง แต่ไม่มีข้อมูลการใช้ — ตกไปใช้วิธีสำรอง และติดธง ESTIMATED',
+  },
+  {
+    flag: 'NO_FEE',
+    desc: 'ยังไม่มีอัตราค่าธรรมเนียมที่อนุมัติ — TR คำนวณไม่ได้ กันหลักสูตรออกจากยอดรวม',
+  },
+  {
+    flag: 'Q_ZERO',
+    desc: 'หลักสูตรเปิดแต่ไม่มีนิสิต — R และ AVC เป็น null หา Q* ไม่ได้ แต่ต้นทุนยังเกิดขึ้นจริง',
+  },
 ];
 
 const ExceptionsView = () => {
@@ -101,7 +119,13 @@ const ExceptionsView = () => {
     if (!assignTarget) return;
     setItems((prev) =>
       prev.map((e) =>
-        e === assignTarget ? { ...e, owner: assignName || e.owner, state: e.state === 'OPEN' ? 'IN_PROGRESS' : e.state } : e,
+        e === assignTarget
+          ? {
+              ...e,
+              owner: assignName || e.owner,
+              state: e.state === 'OPEN' ? 'IN_PROGRESS' : e.state,
+            }
+          : e,
       ),
     );
     setToast(`มอบหมาย "${assignTarget.item}" ให้ ${assignName || assignTarget.owner} แล้ว`);
@@ -112,7 +136,8 @@ const ExceptionsView = () => {
     <Grid container spacing={6}>
       <Grid size={12}>
         <Alert severity="info">
-          รายการที่ระบบ<strong>คำนวณต่อไปได้แต่ไม่มั่นใจ</strong> จะถูกติดธงไว้ที่นี่แทนที่จะรวมเงียบๆ · ทุกธงมีผู้รับผิดชอบและมูลค่าที่กระทบ
+          รายการที่ระบบ<strong>คำนวณต่อไปได้แต่ไม่มั่นใจ</strong>{' '}
+          จะถูกติดธงไว้ที่นี่แทนที่จะรวมเงียบๆ · ทุกธงมีผู้รับผิดชอบและมูลค่าที่กระทบ
           เพื่อให้ตามแก้ได้จริง ไม่ใช่รู้ว่ามีปัญหาแต่ไม่รู้ว่าของใคร
         </Alert>
       </Grid>
@@ -153,7 +178,9 @@ const ExceptionsView = () => {
             <Typography variant="body2" color="text.secondary">
               ยอมรับแล้ว
             </Typography>
-            <Typography variant="h4">{items.filter((e) => e.state === 'ACCEPTED').length}</Typography>
+            <Typography variant="h4">
+              {items.filter((e) => e.state === 'ACCEPTED').length}
+            </Typography>
             <Typography variant="caption" color="text.disabled">
               รายการ · รับทราบข้อจำกัด
             </Typography>
@@ -178,14 +205,20 @@ const ExceptionsView = () => {
 
       <Grid size={12}>
         <Alert severity="warning">
-          <strong>รายการที่ร้ายแรงที่สุดไม่ได้วัดเป็นบาทได้</strong> — ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว ทำให้ TFC และ TC
-          ต่ำกว่าความจริงทั้งระบบ ({surplusCaveatText}) และ Q* ทุกระดับ<strong>ต่ำกว่าที่ควรเป็น</strong> —
+          <strong>รายการที่ร้ายแรงที่สุดไม่ได้วัดเป็นบาทได้</strong> —
+          ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ
+          ({surplusCaveatText}) และ Q* ทุกระดับ<strong>ต่ำกว่าที่ควรเป็น</strong> —
           ต้องกำกับข้อจำกัดนี้ทุกครั้งที่นำเสนอตัวเลขชุดปี 2568
         </Alert>
       </Grid>
 
       <Grid size={12}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }} flexWrap="wrap">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={3}
+          alignItems={{ sm: 'center' }}
+          flexWrap="wrap"
+        >
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -203,7 +236,11 @@ const ExceptionsView = () => {
           <Typography variant="body2" color="text.secondary">
             {rows.length} จาก {items.length} รายการ
           </Typography>
-          <Button variant="outlined" startIcon={<i className="ri-download-2-line" />} onClick={() => exportCsv(rows)}>
+          <Button
+            variant="outlined"
+            startIcon={<i className="ri-download-2-line" />}
+            onClick={() => exportCsv(rows)}
+          >
             ⬇ ส่งออกเป็น Excel
           </Button>
         </Stack>
@@ -288,7 +325,10 @@ const ExceptionsView = () => {
 
       <Grid size={{ xs: 12, md: 6 }}>
         <Card>
-          <CardHeader title="ธงแต่ละประเภทหมายความว่าอะไร" subheader="ระบบทำอะไรต่อกับรายการที่ติดธงนั้น" />
+          <CardHeader
+            title="ธงแต่ละประเภทหมายความว่าอะไร"
+            subheader="ระบบทำอะไรต่อกับรายการที่ติดธงนั้น"
+          />
           <TableContainer>
             <Table size="small">
               <TableBody>
@@ -310,7 +350,10 @@ const ExceptionsView = () => {
 
       <Grid size={{ xs: 12, md: 6 }}>
         <Card>
-          <CardHeader title="สัดส่วนเทียบต้นทุนรวม" subheader="ประเมินว่าปัญหาคุณภาพข้อมูลใหญ่แค่ไหนเมื่อเทียบกับตัวเลขทั้งหมด" />
+          <CardHeader
+            title="สัดส่วนเทียบต้นทุนรวม"
+            subheader="ประเมินว่าปัญหาคุณภาพข้อมูลใหญ่แค่ไหนเมื่อเทียบกับตัวเลขทั้งหมด"
+          />
           <CardContent>
             <Grid container spacing={4} sx={{ mb: 4 }}>
               <Grid size={4}>
@@ -364,7 +407,8 @@ const ExceptionsView = () => {
             </Stack>
 
             <Alert severity="warning" sx={{ mt: 4 }}>
-              ตัวเลข <strong>{pct.toFixed(2)}%</strong> ดูน้อย แต่<strong>ไม่ได้นับค่าเสื่อมราคาอาคารที่หายไปทั้งก้อน</strong>
+              ตัวเลข <strong>{pct.toFixed(2)}%</strong> ดูน้อย แต่
+              <strong>ไม่ได้นับค่าเสื่อมราคาอาคารที่หายไปทั้งก้อน</strong>
               เพราะวัดเป็นบาทไม่ได้จนกว่าจะมีข้อมูล — สัดส่วนที่แท้จริงจึงสูงกว่านี้
             </Alert>
           </CardContent>

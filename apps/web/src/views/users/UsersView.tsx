@@ -40,38 +40,42 @@ import { RAW } from '@/data/mockup';
 // บทบาทมาจาก RoleName ของ @beps/shared-types (schema จริงที่ SA.md กำหนดไว้) — ยังไม่มี backend/ตาราง app_user จริง
 // รายชื่อผู้ใช้ ประวัติการเปลี่ยนสิทธิ์ และการแก้ไขในหน้านี้จึงเป็นข้อมูลตัวอย่าง/สาธิตเท่านั้น
 
-const ROLES: { key: RoleName; label: string; desc: string; scoped: boolean; color: ThemeColor }[] = [
-  {
-    key: 'viewer',
-    label: 'ผู้ดูข้อมูล',
-    desc: 'อธิการบดี · รองอธิการบดี · คณบดี · กรรมการ — ดูอย่างเดียว ไม่แก้อะไรได้',
-    scoped: false,
-    color: 'secondary',
-  },
-  {
-    key: 'faculty_officer',
-    label: 'เจ้าหน้าที่คณะ',
-    desc: 'เห็นเฉพาะหน่วยงานที่ผูกไว้ · เสนอข้อมูลของคณะตัวเองได้',
-    scoped: true,
-    color: 'success',
-  },
-  {
-    key: 'budget_office',
-    label: 'กองแผนงาน',
-    desc: 'แก้ข้อมูลหลักและเสนออนุมัติได้ทั้งมหาวิทยาลัย · สั่งสร้างรอบคำนวณได้',
-    scoped: false,
-    color: 'primary',
-  },
-  {
-    key: 'admin',
-    label: 'ผู้ดูแลระบบ',
-    desc: 'อนุมัติทุกอย่าง · ตั้งค่าระบบ · จัดการผู้ใช้และสิทธิ์ · ดู audit log ทั้งหมด',
-    scoped: false,
-    color: 'error',
-  },
-];
+const ROLES: { key: RoleName; label: string; desc: string; scoped: boolean; color: ThemeColor }[] =
+  [
+    {
+      key: 'viewer',
+      label: 'ผู้ดูข้อมูล',
+      desc: 'อธิการบดี · รองอธิการบดี · คณบดี · กรรมการ — ดูอย่างเดียว ไม่แก้อะไรได้',
+      scoped: false,
+      color: 'secondary',
+    },
+    {
+      key: 'faculty_officer',
+      label: 'เจ้าหน้าที่คณะ',
+      desc: 'เห็นเฉพาะหน่วยงานที่ผูกไว้ · เสนอข้อมูลของคณะตัวเองได้',
+      scoped: true,
+      color: 'success',
+    },
+    {
+      key: 'budget_office',
+      label: 'กองแผนงาน',
+      desc: 'แก้ข้อมูลหลักและเสนออนุมัติได้ทั้งมหาวิทยาลัย · สั่งสร้างรอบคำนวณได้',
+      scoped: false,
+      color: 'primary',
+    },
+    {
+      key: 'admin',
+      label: 'ผู้ดูแลระบบ',
+      desc: 'อนุมัติทุกอย่าง · ตั้งค่าระบบ · จัดการผู้ใช้และสิทธิ์ · ดู audit log ทั้งหมด',
+      scoped: false,
+      color: 'error',
+    },
+  ];
 
-const ROLE_META = Object.fromEntries(ROLES.map((r) => [r.key, r])) as Record<RoleName, (typeof ROLES)[number]>;
+const ROLE_META = Object.fromEntries(ROLES.map((r) => [r.key, r])) as Record<
+  RoleName,
+  (typeof ROLES)[number]
+>;
 
 type Access = 'y' | 'p' | 'n';
 
@@ -79,9 +83,21 @@ type RbacRow = { screen: string; action?: string; label: string; access: Record<
 
 // y = ทำได้ · p = ได้เฉพาะขอบเขตที่ผูกไว้ · n = ไม่เห็นเมนูเลย
 const RBAC: RbacRow[] = [
-  { screen: 'W1–W5', label: 'หน้าวิเคราะห์ทั้งหมด', access: { viewer: 'y', faculty_officer: 'p', budget_office: 'y', admin: 'y' } },
-  { screen: 'W6–W7', label: 'จำลองแผน (Scenario)', access: { viewer: 'y', faculty_officer: 'p', budget_office: 'y', admin: 'y' } },
-  { screen: 'W10', label: 'สูตร & หลักวิชาการ', access: { viewer: 'y', faculty_officer: 'y', budget_office: 'y', admin: 'y' } },
+  {
+    screen: 'W1–W5',
+    label: 'หน้าวิเคราะห์ทั้งหมด',
+    access: { viewer: 'y', faculty_officer: 'p', budget_office: 'y', admin: 'y' },
+  },
+  {
+    screen: 'W6–W7',
+    label: 'จำลองแผน (Scenario)',
+    access: { viewer: 'y', faculty_officer: 'p', budget_office: 'y', admin: 'y' },
+  },
+  {
+    screen: 'W10',
+    label: 'สูตร & หลักวิชาการ',
+    access: { viewer: 'y', faculty_officer: 'y', budget_office: 'y', admin: 'y' },
+  },
   {
     screen: 'W12–W13',
     label: 'ผลตรวจยอด · รายการค้างตรวจ',
@@ -99,8 +115,17 @@ const RBAC: RbacRow[] = [
     label: 'ค่าธรรมเนียม — อนุมัติ',
     access: { viewer: 'n', faculty_officer: 'n', budget_office: 'n', admin: 'y' },
   },
-  { screen: 'W9', label: 'นำเข้าข้อมูลต้นทาง', access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' } },
-  { screen: 'W11', action: 'สร้าง', label: 'สร้างรอบคำนวณ', access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' } },
+  {
+    screen: 'W9',
+    label: 'นำเข้าข้อมูลต้นทาง',
+    access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' },
+  },
+  {
+    screen: 'W11',
+    action: 'สร้าง',
+    label: 'สร้างรอบคำนวณ',
+    access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' },
+  },
   {
     screen: 'W11',
     action: 'อนุมัติ',
@@ -124,10 +149,26 @@ const RBAC: RbacRow[] = [
     label: 'ทะเบียนหน่วยงาน · งวด · ประเภทนิสิต',
     access: { viewer: 'n', faculty_officer: 'n', budget_office: 'n', admin: 'y' },
   },
-  { screen: 'W19', label: 'ผังบัญชี 4 ระดับ', access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' } },
-  { screen: 'W14', label: 'กติกาผังบัญชี TFC/TVC', access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' } },
-  { screen: 'W15', label: 'นโยบายการคำนวณ', access: { viewer: 'n', faculty_officer: 'n', budget_office: 'n', admin: 'y' } },
-  { screen: 'W18', label: 'ผู้ใช้และสิทธิ์', access: { viewer: 'n', faculty_officer: 'n', budget_office: 'n', admin: 'y' } },
+  {
+    screen: 'W19',
+    label: 'ผังบัญชี 4 ระดับ',
+    access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' },
+  },
+  {
+    screen: 'W14',
+    label: 'กติกาผังบัญชี TFC/TVC',
+    access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' },
+  },
+  {
+    screen: 'W15',
+    label: 'นโยบายการคำนวณ',
+    access: { viewer: 'n', faculty_officer: 'n', budget_office: 'n', admin: 'y' },
+  },
+  {
+    screen: 'W18',
+    label: 'ผู้ใช้และสิทธิ์',
+    access: { viewer: 'n', faculty_officer: 'n', budget_office: 'n', admin: 'y' },
+  },
 ];
 
 const ACCESS_LABEL: Record<Access, string> = { y: '✓', p: '◑', n: '−' };
@@ -149,7 +190,14 @@ type AppUser = {
 
 // app_user — ตัวอย่างผู้ใช้ในระบบ (ยังไม่มี backend จริง จึงเป็นข้อมูลสาธิต)
 const INITIAL_USERS: AppUser[] = [
-  { name: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์', email: 'piyapat.b@msu.ac.th', role: 'admin', org: null, last: '06 ก.ย. 2569 08:41', active: true },
+  {
+    name: 'ผศ.ดร.ปิยภัทร บุษบาบดินทร์',
+    email: 'piyapat.b@msu.ac.th',
+    role: 'admin',
+    org: null,
+    last: '06 ก.ย. 2569 08:41',
+    active: true,
+  },
   {
     name: 'นางสาวสิริมา ศรีสุภาพ',
     email: 'sirima.s@msu.ac.th',
@@ -190,7 +238,14 @@ const INITIAL_USERS: AppUser[] = [
     last: '28 ส.ค. 2569 13:30',
     active: true,
   },
-  { name: 'รศ.ดร.สมชาย ใจดี', email: 'somchai.j@msu.ac.th', role: 'viewer', org: null, last: '05 ก.ย. 2569 07:55', active: true },
+  {
+    name: 'รศ.ดร.สมชาย ใจดี',
+    email: 'somchai.j@msu.ac.th',
+    role: 'viewer',
+    org: null,
+    last: '05 ก.ย. 2569 07:55',
+    active: true,
+  },
   {
     name: 'นายวิทยา คงเจริญ',
     email: 'wittaya.k@msu.ac.th',
@@ -254,8 +309,14 @@ const UsersView = () => {
 
     if (!u) return;
 
-    setUsers((prev) => prev.map((x, i) => (i === index ? { ...x, role, org: ROLE_META[role].scoped ? x.org : null } : x)));
-    logChange(`เปลี่ยนสิทธิ์ <b>${u.name}</b> จาก ${ROLE_META[u.role].label} เป็น ${ROLE_META[role].label}`);
+    setUsers((prev) =>
+      prev.map((x, i) =>
+        i === index ? { ...x, role, org: ROLE_META[role].scoped ? x.org : null } : x,
+      ),
+    );
+    logChange(
+      `เปลี่ยนสิทธิ์ <b>${u.name}</b> จาก ${ROLE_META[u.role].label} เป็น ${ROLE_META[role].label}`,
+    );
     setToast(`บันทึกการเปลี่ยนสิทธิ์ของ ${u.name} แล้ว (ตัวอย่าง — ยังไม่เชื่อมต่อระบบจริง)`);
   };
 
@@ -266,7 +327,9 @@ const UsersView = () => {
 
     setUsers((prev) => prev.map((x, i) => (i === index ? { ...x, active: !x.active } : x)));
     logChange(`${u.active ? 'ระงับ' : 'ปลดระงับ'}บัญชี <b>${u.name}</b>`);
-    setToast(`${u.active ? 'ระงับ' : 'ปลดระงับ'}บัญชี ${u.name} แล้ว (ตัวอย่าง — ยังไม่เชื่อมต่อระบบจริง)`);
+    setToast(
+      `${u.active ? 'ระงับ' : 'ปลดระงับ'}บัญชี ${u.name} แล้ว (ตัวอย่าง — ยังไม่เชื่อมต่อระบบจริง)`,
+    );
   };
 
   return (
@@ -291,10 +354,12 @@ const UsersView = () => {
 
       <Grid size={{ xs: 12 }}>
         <Alert severity="warning">
-          <b>ต้องตัดสินใจก่อนเริ่มเขียนโค้ด</b> — บทบาทตอนนี้มี 4 ค่าตายตัว (
-          <code>admin</code> · <code>budget_office</code> · <code>faculty_officer</code> · <code>viewer</code>) และ
-          <b>ไม่มีบทบาท &quot;ผู้อนุมัติ&quot; แยก</b> ทั้งที่ผู้เสนอไม่ควรกดอนุมัติเรื่องของตัวเองได้ — ตอนนี้จึงตกเป็นภาระของ{' '}
-          <code>admin</code> ซึ่งมีอำนาจอนุมัติเชิงนโยบายด้วย ถ้าไม่ต้องการแบบนี้ต้องเพิ่ม role <code>approver</code> ใน schema ก่อน
+          <b>ต้องตัดสินใจก่อนเริ่มเขียนโค้ด</b> — บทบาทตอนนี้มี 4 ค่าตายตัว (<code>admin</code> ·{' '}
+          <code>budget_office</code> · <code>faculty_officer</code> · <code>viewer</code>) และ
+          <b>ไม่มีบทบาท &quot;ผู้อนุมัติ&quot; แยก</b>{' '}
+          ทั้งที่ผู้เสนอไม่ควรกดอนุมัติเรื่องของตัวเองได้ — ตอนนี้จึงตกเป็นภาระของ{' '}
+          <code>admin</code> ซึ่งมีอำนาจอนุมัติเชิงนโยบายด้วย ถ้าไม่ต้องการแบบนี้ต้องเพิ่ม role{' '}
+          <code>approver</code> ใน schema ก่อน
         </Alert>
       </Grid>
 
@@ -305,13 +370,21 @@ const UsersView = () => {
             subheader={`คลิกแถวเพื่อดูสิทธิ์ที่ได้จริง · ${filtered.length} จาก ${users.length} คน`}
             action={
               <Stack direction="row" spacing={2}>
-                <Button size="small" variant="outlined" onClick={() => setToast('การซิงก์บัญชียังไม่เชื่อมต่อ MSU Account (SSO)')}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setToast('การซิงก์บัญชียังไม่เชื่อมต่อ MSU Account (SSO)')}
+                >
                   ซิงก์จาก MSU Account
                 </Button>
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() => setToast('การเชิญผู้ใช้ยังไม่เชื่อมต่อระบบจริง — ต้องต่อกับ MSU Account (SSO) ก่อน')}
+                  onClick={() =>
+                    setToast(
+                      'การเชิญผู้ใช้ยังไม่เชื่อมต่อระบบจริง — ต้องต่อกับ MSU Account (SSO) ก่อน',
+                    )
+                  }
                 >
                   + เชิญผู้ใช้
                 </Button>
@@ -391,7 +464,12 @@ const UsersView = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip label={ROLE_META[u.role].label} size="small" color={ROLE_META[u.role].color} variant="tonal" />
+                        <Chip
+                          label={ROLE_META[u.role].label}
+                          size="small"
+                          color={ROLE_META[u.role].color}
+                          variant="tonal"
+                        />
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
@@ -427,7 +505,13 @@ const UsersView = () => {
             <CardHeader
               title={selectedUser.name}
               subheader={selectedUser.email}
-              action={<Chip label={ROLE_META[selectedUser.role].label} color={ROLE_META[selectedUser.role].color} size="small" />}
+              action={
+                <Chip
+                  label={ROLE_META[selectedUser.role].label}
+                  color={ROLE_META[selectedUser.role].color}
+                  size="small"
+                />
+              }
             />
             <CardContent>
               <FormControl fullWidth size="small" sx={{ mb: 4 }}>
@@ -449,14 +533,23 @@ const UsersView = () => {
                 </Typography>
               </FormControl>
 
-              <FormControl fullWidth size="small" sx={{ mb: 4 }} disabled={!ROLE_META[selectedUser.role].scoped}>
+              <FormControl
+                fullWidth
+                size="small"
+                sx={{ mb: 4 }}
+                disabled={!ROLE_META[selectedUser.role].scoped}
+              >
                 <InputLabel id="org-select-label">ขอบเขตหน่วยงาน (org_unit_id)</InputLabel>
                 <Select
                   labelId="org-select-label"
                   label="ขอบเขตหน่วยงาน (org_unit_id)"
                   value={selectedUser.org ?? ''}
                   onChange={(e) =>
-                    setUsers((prev) => prev.map((x, i) => (i === selected ? { ...x, org: e.target.value || null } : x)))
+                    setUsers((prev) =>
+                      prev.map((x, i) =>
+                        i === selected ? { ...x, org: e.target.value || null } : x,
+                      ),
+                    )
                   }
                 >
                   <MenuItem value="">— ทุกหน่วยงาน (NULL) —</MenuItem>
@@ -478,7 +571,9 @@ const UsersView = () => {
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="body2">อนุมัติได้หรือไม่</Typography>
                 <Chip
-                  label={selectedUser.role === 'admin' ? 'ได้ (ยกเว้นเรื่องที่ตัวเองเสนอ)' : 'ไม่ได้'}
+                  label={
+                    selectedUser.role === 'admin' ? 'ได้ (ยกเว้นเรื่องที่ตัวเองเสนอ)' : 'ไม่ได้'
+                  }
                   color={selectedUser.role === 'admin' ? 'success' : 'default'}
                   size="small"
                 />
@@ -493,7 +588,12 @@ const UsersView = () => {
                 >
                   {selectedUser.active ? 'ระงับบัญชี' : 'ปลดระงับ'}
                 </Button>
-                <Button size="small" variant="outlined" disabled title="ลบไม่ได้ — ยังถูกอ้างในประวัติการอนุมัติ">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled
+                  title="ลบไม่ได้ — ยังถูกอ้างในประวัติการอนุมัติ"
+                >
                   ลบผู้ใช้
                 </Button>
               </Stack>
@@ -501,7 +601,10 @@ const UsersView = () => {
           </Card>
 
           <Card>
-            <CardHeader title="บันทึกการเปลี่ยนสิทธิ์" subheader="การให้และเพิกถอนสิทธิ์ต้องตรวจย้อนหลังได้เสมอ" />
+            <CardHeader
+              title="บันทึกการเปลี่ยนสิทธิ์"
+              subheader="การให้และเพิกถอนสิทธิ์ต้องตรวจย้อนหลังได้เสมอ"
+            />
             <CardContent>
               <Stack divider={<Divider />} spacing={2}>
                 {log.map((l, i) => (
@@ -522,7 +625,7 @@ const UsersView = () => {
         <Card>
           <CardHeader
             title="ตารางสิทธิ์เต็ม"
-            subheader='✓ = ทำได้ · ◑ = ได้เฉพาะหน่วยงานที่ผูกไว้ · − = ไม่เห็นเมนูเลย · คลิกหัวคอลัมน์เพื่อเน้นบทบาทนั้น'
+            subheader="✓ = ทำได้ · ◑ = ได้เฉพาะหน่วยงานที่ผูกไว้ · − = ไม่เห็นเมนูเลย · คลิกหัวคอลัมน์เพื่อเน้นบทบาทนั้น"
           />
           <CardContent>
             <TableContainer>
@@ -535,7 +638,10 @@ const UsersView = () => {
                         key={r.key}
                         align="center"
                         onClick={() => setHiCol(hiCol === r.key ? null : r.key)}
-                        sx={{ cursor: 'pointer', bgcolor: hiCol === r.key ? 'action.selected' : undefined }}
+                        sx={{
+                          cursor: 'pointer',
+                          bgcolor: hiCol === r.key ? 'action.selected' : undefined,
+                        }}
                       >
                         {r.label}
                         <br />
@@ -564,7 +670,10 @@ const UsersView = () => {
                         <TableCell
                           key={r.key}
                           align="center"
-                          sx={{ bgcolor: hiCol === r.key ? 'action.hover' : undefined, color: ACCESS_COLOR[row.access[r.key]] }}
+                          sx={{
+                            bgcolor: hiCol === r.key ? 'action.hover' : undefined,
+                            color: ACCESS_COLOR[row.access[r.key]],
+                          }}
                         >
                           {ACCESS_LABEL[row.access[r.key]]}
                         </TableCell>
@@ -578,7 +687,12 @@ const UsersView = () => {
         </Card>
       </Grid>
 
-      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)} message={toast} />
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={4000}
+        onClose={() => setToast(null)}
+        message={toast}
+      />
     </Grid>
   );
 };

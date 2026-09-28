@@ -30,7 +30,10 @@ export interface AccountBehaviorEntry {
   rules: AccountRule[];
 }
 
-export const BEH: Record<Behavior, { label: string; color: 'info' | 'warning' | 'success' | 'error' }> = {
+export const BEH: Record<
+  Behavior,
+  { label: string; color: 'info' | 'warning' | 'success' | 'error' }
+> = {
   TFC: { label: 'คงที่', color: 'info' },
   TVC: { label: 'ผันแปร', color: 'warning' },
   MIXED: { label: 'แบ่งสัดส่วน', color: 'success' },
@@ -51,7 +54,15 @@ export const ACCOUNTS: AccountBehaviorEntry[] = [
     org: null,
     amount: 612400000,
     rules: [
-      { from: 2500, to: null, beh: 'TFC', f: 1, v: 0, m: 'STUDENT_HEADCOUNT', note: 'เงินเดือนไม่แปรตามจำนวนนิสิต' },
+      {
+        from: 2500,
+        to: null,
+        beh: 'TFC',
+        f: 1,
+        v: 0,
+        m: 'STUDENT_HEADCOUNT',
+        note: 'เงินเดือนไม่แปรตามจำนวนนิสิต',
+      },
     ],
   },
   {
@@ -67,7 +78,15 @@ export const ACCOUNTS: AccountBehaviorEntry[] = [
     org: null,
     amount: 96600000,
     rules: [
-      { from: 2500, to: null, beh: 'TVC', f: 0, v: 1, m: 'ACTUAL_USAGE', note: 'มีมิเตอร์แยกอาคาร จึงปันตามการใช้จริง' },
+      {
+        from: 2500,
+        to: null,
+        beh: 'TVC',
+        f: 0,
+        v: 1,
+        m: 'ACTUAL_USAGE',
+        note: 'มีมิเตอร์แยกอาคาร จึงปันตามการใช้จริง',
+      },
     ],
   },
   {
@@ -76,10 +95,42 @@ export const ACCOUNTS: AccountBehaviorEntry[] = [
     org: null,
     amount: 482300,
     rules: [
-      { from: 2500, to: 2568, beh: 'UNCLASSIFIED', f: 0, v: 0, m: 'PROGRAM_SHARE', note: 'ยังไม่เคยตีความ — ติดธงรอตามแก้' },
-      { from: 2569, to: 2569, beh: 'TFC', f: 1, v: 0, m: 'STUDENT_HEADCOUNT', note: 'มติที่ประชุม: ปี 2569 ตีเป็นต้นทุนคงที่' },
-      { from: 2570, to: 2570, beh: 'TVC', f: 0, v: 1, m: 'STUDENT_HEADCOUNT', note: 'ปี 2570 เปลี่ยนเป็นผันแปรตามนิสิต' },
-      { from: 2571, to: null, beh: 'MIXED', f: 0.5, v: 0.5, m: 'STUDENT_HEADCOUNT', note: 'ปี 2571 เป็นต้นไป แบ่งคนละครึ่ง' },
+      {
+        from: 2500,
+        to: 2568,
+        beh: 'UNCLASSIFIED',
+        f: 0,
+        v: 0,
+        m: 'PROGRAM_SHARE',
+        note: 'ยังไม่เคยตีความ — ติดธงรอตามแก้',
+      },
+      {
+        from: 2569,
+        to: 2569,
+        beh: 'TFC',
+        f: 1,
+        v: 0,
+        m: 'STUDENT_HEADCOUNT',
+        note: 'มติที่ประชุม: ปี 2569 ตีเป็นต้นทุนคงที่',
+      },
+      {
+        from: 2570,
+        to: 2570,
+        beh: 'TVC',
+        f: 0,
+        v: 1,
+        m: 'STUDENT_HEADCOUNT',
+        note: 'ปี 2570 เปลี่ยนเป็นผันแปรตามนิสิต',
+      },
+      {
+        from: 2571,
+        to: null,
+        beh: 'MIXED',
+        f: 0.5,
+        v: 0.5,
+        m: 'STUDENT_HEADCOUNT',
+        note: 'ปี 2571 เป็นต้นไป แบ่งคนละครึ่ง',
+      },
     ],
   },
   {
@@ -105,7 +156,15 @@ export const ACCOUNTS: AccountBehaviorEntry[] = [
     org: null,
     amount: 148900000,
     rules: [
-      { from: 2500, to: null, beh: 'MIXED', f: 0.35, v: 0.65, m: 'STUDENT_HEADCOUNT', note: 'ส่วนคงที่คือวัสดุห้องปฏิบัติการพื้นฐาน' },
+      {
+        from: 2500,
+        to: null,
+        beh: 'MIXED',
+        f: 0.35,
+        v: 0.65,
+        m: 'STUDENT_HEADCOUNT',
+        note: 'ส่วนคงที่คือวัสดุห้องปฏิบัติการพื้นฐาน',
+      },
     ],
   },
   {
@@ -130,7 +189,17 @@ export const ACCOUNTS: AccountBehaviorEntry[] = [
     name: 'ค่าจดลิขสิทธิ์ / ค่าฐานข้อมูล',
     org: null,
     amount: 1120400,
-    rules: [{ from: 2500, to: null, beh: 'UNCLASSIFIED', f: 0, v: 0, m: 'PROGRAM_SHARE', note: 'รอกองคลังยืนยันวิธีตีความ' }],
+    rules: [
+      {
+        from: 2500,
+        to: null,
+        beh: 'UNCLASSIFIED',
+        f: 0,
+        v: 0,
+        m: 'PROGRAM_SHARE',
+        note: 'รอกองคลังยืนยันวิธีตีความ',
+      },
+    ],
   },
   {
     key: '2 · 2 · 600 · 60001',
@@ -159,4 +228,4 @@ export const ACCOUNTS: AccountBehaviorEntry[] = [
 ];
 
 export const ruleAt = (a: AccountBehaviorEntry, y: number): AccountRule | null =>
-  a.rules.find(r => y >= r.from && (r.to === null || y <= r.to)) ?? null;
+  a.rules.find((r) => y >= r.from && (r.to === null || y <= r.to)) ?? null;

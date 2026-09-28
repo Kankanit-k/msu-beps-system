@@ -231,7 +231,10 @@ const FEE_LOG = [
   },
 ];
 
-const STATUS_META: Record<ApprovalStatus, { label: string; color: 'success' | 'warning' | 'default' | 'error' }> = {
+const STATUS_META: Record<
+  ApprovalStatus,
+  { label: string; color: 'success' | 'warning' | 'default' | 'error' }
+> = {
   approved: { label: 'อนุมัติแล้ว', color: 'success' },
   pending: { label: 'รออนุมัติ', color: 'warning' },
   draft: { label: 'ร่าง', color: 'default' },
@@ -274,14 +277,18 @@ const TuitionView = () => {
   const meta = STATUS_META[fee.status];
   const isPending = fee.status === 'pending';
   const isDraft = fee.status === 'draft';
-  const activeStep = fee.status === 'rejected' ? 1 : STEPS.indexOf(fee.status === 'pending' ? 'pending' : fee.status);
+  const activeStep =
+    fee.status === 'rejected'
+      ? 1
+      : STEPS.indexOf(fee.status === 'pending' ? 'pending' : fee.status);
 
   return (
     <Grid container spacing={6}>
       <Grid size={12}>
         <Alert severity="info">
-          ค่าธรรมเนียมเป็น<strong>ต้นทางของ TR ทั้งระบบ</strong> — อัตราที่ยัง<strong>ไม่ผ่านอนุมัติ</strong>{' '}
-          จะไม่ถูกนำไปคำนวณ รอบคำนวณจะข้ามหลักสูตรนั้นและติดธงไว้ที่รายการค้างตรวจ · แต่ละอัตรามีช่วงปีที่มีผล
+          ค่าธรรมเนียมเป็น<strong>ต้นทางของ TR ทั้งระบบ</strong> — อัตราที่ยัง
+          <strong>ไม่ผ่านอนุมัติ</strong> จะไม่ถูกนำไปคำนวณ
+          รอบคำนวณจะข้ามหลักสูตรนั้นและติดธงไว้ที่รายการค้างตรวจ · แต่ละอัตรามีช่วงปีที่มีผล
           เปลี่ยนอัตราปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม
         </Alert>
       </Grid>
@@ -346,8 +353,19 @@ const TuitionView = () => {
       </Grid>
 
       <Grid size={12}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }} flexWrap="wrap">
-          <TextField select size="small" value={year} onChange={(e) => setYear(e.target.value)} sx={{ minWidth: 180 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={3}
+          alignItems={{ sm: 'center' }}
+          flexWrap="wrap"
+        >
+          <TextField
+            select
+            size="small"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            sx={{ minWidth: 180 }}
+          >
             <MenuItem value="2568">ปีการศึกษา 2568</MenuItem>
             <MenuItem value="2569">ปีการศึกษา 2569</MenuItem>
             <MenuItem value="2570">ปีการศึกษา 2570</MenuItem>
@@ -383,7 +401,11 @@ const TuitionView = () => {
           >
             นำเข้าจาก Excel
           </Button>
-          <Button variant="contained" startIcon={<i className="ri-add-line" />} onClick={() => setToast('เปิดฟอร์มเพิ่มอัตราใหม่ — ยังไม่เปิดใช้งานในตัวอย่างนี้')}>
+          <Button
+            variant="contained"
+            startIcon={<i className="ri-add-line" />}
+            onClick={() => setToast('เปิดฟอร์มเพิ่มอัตราใหม่ — ยังไม่เปิดใช้งานในตัวอย่างนี้')}
+          >
             เพิ่มอัตราใหม่
           </Button>
         </Stack>
@@ -458,7 +480,11 @@ const TuitionView = () => {
                             เท่าเดิม
                           </Typography>
                         ) : (
-                          <Typography variant="body2" fontWeight={700} color={d > 0 ? 'success.main' : 'error.main'}>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            color={d > 0 ? 'success.main' : 'error.main'}
+                          >
                             {d > 0 ? '+' : '−'}
                             {fmtBaht(Math.abs(d))} ({d > 0 ? '+' : '−'}
                             {((Math.abs(d) / f.prev!) * 100).toFixed(1)}%)
@@ -483,7 +509,9 @@ const TuitionView = () => {
             <CardHeader
               title={fee.prog}
               subheader={`${fee.fac} · ${fee.lvl} · ${fee.st}`}
-              action={<Chip size="small" color={meta.color} label={meta.label} sx={{ mt: 2, mr: 2 }} />}
+              action={
+                <Chip size="small" color={meta.color} label={meta.label} sx={{ mt: 2, mr: 2 }} />
+              }
             />
             <CardContent>
               <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 5 }}>
@@ -548,7 +576,11 @@ const TuitionView = () => {
                       {fee.by ? `${fee.by} · ${fee.at}` : 'ยังไม่มีผู้อนุมัติ'}
                     </Typography>
                   </div>
-                  <Chip size="small" color={fee.by ? 'success' : 'warning'} label={fee.by ? 'ครบ' : 'รอ'} />
+                  <Chip
+                    size="small"
+                    color={fee.by ? 'success' : 'warning'}
+                    label={fee.by ? 'ครบ' : 'รอ'}
+                  />
                 </Stack>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <div>
@@ -561,7 +593,11 @@ const TuitionView = () => {
                         : 'ยังไม่ถูกนำไปคำนวณ — หลักสูตรนี้จะติดธง NO_FEE'}
                     </Typography>
                   </div>
-                  <Chip size="small" color={fee.status === 'approved' ? 'success' : 'error'} label={fee.status === 'approved' ? 'ใช้งาน' : 'ยังไม่ใช้'} />
+                  <Chip
+                    size="small"
+                    color={fee.status === 'approved' ? 'success' : 'error'}
+                    label={fee.status === 'approved' ? 'ใช้งาน' : 'ยังไม่ใช้'}
+                  />
                 </Stack>
               </Stack>
 
@@ -590,7 +626,9 @@ const TuitionView = () => {
                   color="success"
                   disabled={!isPending}
                   onClick={() => setToast('อนุมัติอัตราแล้ว')}
-                  title={isPending ? 'ผู้อนุมัติต้องไม่ใช่ผู้เสนอ' : 'ต้องอยู่ที่สถานะรออนุมัติก่อน'}
+                  title={
+                    isPending ? 'ผู้อนุมัติต้องไม่ใช่ผู้เสนอ' : 'ต้องอยู่ที่สถานะรออนุมัติก่อน'
+                  }
                 >
                   อนุมัติ
                 </Button>
@@ -632,18 +670,20 @@ const TuitionView = () => {
           <CardContent>
             <Stack spacing={3}>
               <Alert severity="error">
-                <strong>prototype เดิมไม่มีหน้านี้</strong> เพราะค่าธรรมเนียมถูก fix มาในไฟล์ Excel แล้ว
-                ระบบจริงต้องมีที่ให้กรอกและอนุมัติ
+                <strong>prototype เดิมไม่มีหน้านี้</strong> เพราะค่าธรรมเนียมถูก fix มาในไฟล์ Excel
+                แล้ว ระบบจริงต้องมีที่ให้กรอกและอนุมัติ
               </Alert>
               <Alert severity="warning">
-                อัตราที่ยังไม่อนุมัติ <strong>ห้ามเข้าไปในการคำนวณ</strong> — ถ้าปล่อยผ่านจะได้ TR ที่ยังไม่มีใครรับรอง
-                แล้วผู้บริหารเอาไปตัดสินใจ
+                อัตราที่ยังไม่อนุมัติ <strong>ห้ามเข้าไปในการคำนวณ</strong> — ถ้าปล่อยผ่านจะได้ TR
+                ที่ยังไม่มีใครรับรอง แล้วผู้บริหารเอาไปตัดสินใจ
               </Alert>
               <Alert severity="info">
-                คนที่เสนออัตราและคนที่อนุมัติ<strong>ต้องเป็นคนละคน</strong> ปุ่มอนุมัติจะถูกปิดถ้าผู้ใช้ปัจจุบันเป็นผู้เสนอเอง
+                คนที่เสนออัตราและคนที่อนุมัติ<strong>ต้องเป็นคนละคน</strong>{' '}
+                ปุ่มอนุมัติจะถูกปิดถ้าผู้ใช้ปัจจุบันเป็นผู้เสนอเอง
               </Alert>
               <Alert severity="success">
-                ทุกอัตรามี<strong>ช่วงปีที่มีผล</strong> — ขึ้นค่าเทอมปี 2569 แล้วรายงานปี 2568 ต้องไม่เปลี่ยนตาม
+                ทุกอัตรามี<strong>ช่วงปีที่มีผล</strong> — ขึ้นค่าเทอมปี 2569 แล้วรายงานปี 2568
+                ต้องไม่เปลี่ยนตาม
               </Alert>
             </Stack>
           </CardContent>
