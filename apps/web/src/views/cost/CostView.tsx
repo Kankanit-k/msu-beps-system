@@ -83,7 +83,11 @@ const moneyTooltip = {
 const BASE_RGB = [0x1c, 0x83, 0xd4];
 const shadeOfBase = (t: number) => {
   const [target, amt] = t < 0.5 ? [255, (0.5 - t) * 2 * 0.75] : [0, (t - 0.5) * 2 * 0.55];
-  const hex = BASE_RGB.map((c) => Math.round(c + (target - c) * amt).toString(16).padStart(2, '0'));
+  const hex = BASE_RGB.map((c) =>
+    Math.round(c + (target - c) * amt)
+      .toString(16)
+      .padStart(2, '0'),
+  );
   return `#${hex.join('')}`;
 };
 
@@ -124,10 +128,11 @@ const CostView = () => {
   const composition = useMemo(() => composeCost(progs), [progs]);
   // เรียงน้อย→มาก แล้วไล่เฉดจากอ่อน→เข้มรอบสีหลัก #1c83d4
   const visibleParts = useMemo(() => {
-    const parts = composition.parts
-      .filter((p) => p.amount > 0)
-      .sort((a, b) => a.amount - b.amount);
-    return parts.map((p, i) => ({ ...p, color: shadeOfBase(parts.length < 2 ? 0.5 : i / (parts.length - 1)) }));
+    const parts = composition.parts.filter((p) => p.amount > 0).sort((a, b) => a.amount - b.amount);
+    return parts.map((p, i) => ({
+      ...p,
+      color: shadeOfBase(parts.length < 2 ? 0.5 : i / (parts.length - 1)),
+    }));
   }, [composition]);
 
   const donutOptions: ApexOptions = useMemo(
@@ -235,7 +240,8 @@ const CostView = () => {
 
           <NoteBar severity="info">
             <b>ต้นทุนไม่เปลี่ยนตามฐานรายได้</b> — ต้นทุนคงที่ (TFC) ไม่เปลี่ยนตามจำนวนนิสิต ·
-            ต้นทุนผันแปร (TVC) เปลี่ยนตามจำนวนนิสิต · AVC = TVC / Q · ATC = TC / Q
+            ต้นทุนผันแปร (TVC) เปลี่ยนตามจำนวนนิสิต · ต้นทุนผันแปรต่อหัว (AVC) = ต้นทุนผันแปร ÷
+            จำนวนนิสิต · ต้นทุนรวมต่อหัว (ATC) = ต้นทุนรวม ÷ จำนวนนิสิต
           </NoteBar>
         </>
       )}
@@ -287,7 +293,7 @@ const CostView = () => {
           <KpiCard
             label="ต้นทุนคงที่ (TFC)"
             value={fmtMillion(scope.TFC)}
-            unit={`ล้านบาท · ${pctLabel(scope.TFC, TC)} ของ TC`}
+            unit={`ล้านบาท · ${pctLabel(scope.TFC, TC)} ของต้นทุนรวม`}
             accent="primary"
             valueColor="var(--mui-palette-primary-main)"
           />
@@ -296,7 +302,7 @@ const CostView = () => {
           <KpiCard
             label="ต้นทุนผันแปร (TVC)"
             value={fmtMillion(scope.TVC)}
-            unit={`ล้านบาท · ${pctLabel(scope.TVC, TC)} ของ TC`}
+            unit={`ล้านบาท · ${pctLabel(scope.TVC, TC)} ของต้นทุนรวม`}
             accent="warning"
             valueColor="var(--mui-palette-warning-main)"
           />

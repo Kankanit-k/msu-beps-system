@@ -57,7 +57,7 @@ export function statusOf(res: BreakEvenResult): BEStatus {
 export const STATUS_LABEL: Record<BEStatus, string> = {
   ok: 'คุ้มทุนแล้ว',
   loss: 'ยังไม่คุ้มทุน',
-  fcr: 'R ≤ AVC',
+  fcr: 'รายได้/หัว ≤ ผันแปร/หัว',
   none: 'ไม่มีข้อมูล',
 };
 

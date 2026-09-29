@@ -28,6 +28,7 @@ import { calcBreakEvenBothModes, type BreakEvenResult, type RevenueMode } from '
 // Component Imports
 import { DotTitle } from '@components/ChartBits';
 import DataCaveatNotes from '@components/DataCaveatNotes';
+import NumberTextField from '@components/NumberTextField';
 import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
@@ -184,12 +185,12 @@ const ScenarioFacultyView = () => {
         <Grid container spacing={2}>
           <Grid size={6}>
             <Typography variant="body2">
-              R/หัว: <b>{fmtB(r.r ?? 0)}</b>
+              รายได้/หัว (R): <b>{fmtB(r.r ?? 0)}</b>
             </Typography>
           </Grid>
           <Grid size={6}>
             <Typography variant="body2">
-              CM/หัว:{' '}
+              ส่วนเกิน/หัว (CM):{' '}
               <b
                 style={{
                   color:
@@ -204,14 +205,14 @@ const ScenarioFacultyView = () => {
           </Grid>
           <Grid size={6}>
             <Typography variant="body2">
-              Q*:{' '}
+              จุดคุ้มทุน (Q*):{' '}
               <b style={{ color: 'var(--mui-palette-error-main)' }}>
                 {r.qStar ? `${fmtN(r.qStar)} คน` : '—'}
               </b>{' '}
               {full && (
                 <Chip
                   size="small"
-                  label="TC/R"
+                  label="คืนทุนเต็ม (TC/R)"
                   color="warning"
                   variant="tonal"
                   sx={{ height: 18, fontSize: 10 }}
@@ -221,7 +222,7 @@ const ScenarioFacultyView = () => {
           </Grid>
           <Grid size={6}>
             <Typography variant="body2">
-              ส่วนเกิน:{' '}
+              กำไร/ขาดทุน:{' '}
               <b
                 style={{
                   color:
@@ -242,7 +243,7 @@ const ScenarioFacultyView = () => {
         >
           {!r.qStar
             ? '⚠ คำนวณไม่ได้'
-            : `${full ? '⚠ CM≤0 · ใช้ TC/R · ' : ''}${
+            : `${full ? '⚠ ไม่คุ้มทุน (CM ≤ 0) · ใช้เป้าคืนทุนเต็ม (TC/R) · ' : ''}${
                 isOk
                   ? `✓ เกินจุดคุ้มทุน +${fmtN(q - r.qStar)} คน`
                   : `⚠ ขาดอีก ${fmtN(r.qStar - q)} คน`
@@ -290,33 +291,30 @@ const ScenarioFacultyView = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 4, md: 2.4 }}>
-              <TextField
+              <NumberTextField
                 fullWidth
-                type="number"
                 label="จำนวนนิสิต (Q)"
-                value={q || ''}
+                value={q}
                 placeholder="0"
-                onChange={(e) => setQ(Number(e.target.value) || 0)}
+                onChange={setQ}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 4, md: 2.8 }}>
-              <TextField
+              <NumberTextField
                 fullWidth
-                type="number"
                 label="งบเงินแผ่นดิน (บาท)"
-                value={govBudget || ''}
+                value={govBudget}
                 placeholder="0"
-                onChange={(e) => setGovBudget(Number(e.target.value) || 0)}
+                onChange={setGovBudget}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 4, md: 2.8 }}>
-              <TextField
+              <NumberTextField
                 fullWidth
-                type="number"
                 label="งบเงินรายได้ (บาท)"
-                value={incomeBudget || ''}
+                value={incomeBudget}
                 placeholder="0"
-                onChange={(e) => setIncomeBudget(Number(e.target.value) || 0)}
+                onChange={setIncomeBudget}
               />
             </Grid>
           </Grid>
@@ -337,11 +335,11 @@ const ScenarioFacultyView = () => {
                 fontWeight: 500,
               }}
             >
-              ✓ ดึงจากระบบ — Q = {fmtN(picked.Q)} คน · แผ่นดิน {fmtB(picked.st)} + รายได้{' '}
-              {fmtB(picked.own)} = TR {fmtB(picked.TR)} บ. · TFC {fmtB(picked.TFC)} · TVC{' '}
-              {fmtB(picked.TVC)} บ. | <b>Q* ระบบ:</b> รวมแผ่นดิน{' '}
-              {picked.Qin ? fmtN(picked.Qin) : '—'} คน · ไม่รวม{' '}
-              {picked.Qex ? `${fmtN(picked.Qex)} คน` : 'ไม่มี (CM≤0)'}
+              ✓ ดึงจากระบบ — นิสิต (Q) {fmtN(picked.Q)} คน · แผ่นดิน {fmtB(picked.st)} + รายได้{' '}
+              {fmtB(picked.own)} = รายได้รวม (TR) {fmtB(picked.TR)} บ. · ต้นทุนคงที่ (TFC){' '}
+              {fmtB(picked.TFC)} · ต้นทุนผันแปร (TVC) {fmtB(picked.TVC)} บ. |{' '}
+              <b>จุดคุ้มทุน (Q*) จากระบบ:</b> รวมแผ่นดิน {picked.Qin ? fmtN(picked.Qin) : '—'} คน ·
+              ไม่รวม {picked.Qex ? `${fmtN(picked.Qex)} คน` : 'ไม่มี — ไม่คุ้มทุน (CM ≤ 0)'}
             </Box>
           )}
         </CardContent>
@@ -353,7 +351,9 @@ const ScenarioFacultyView = () => {
             <CardHeader
               title={<DotTitle color="primary.main">ขั้นตอนที่ 2 — ต้นทุนคงที่ (TFC)</DotTitle>}
               subheader="เลือกหมวดจากรายการ หรือกรอกเอง"
-              action={<Chip size="small" variant="tonal" color="primary" label="TFC" />}
+              action={
+                <Chip size="small" variant="tonal" color="primary" label="ต้นทุนคงที่ (TFC)" />
+              }
             />
             <CardContent>
               <CostRowsEditor
@@ -361,8 +361,8 @@ const ScenarioFacultyView = () => {
                 presets={TFC_PRESETS}
                 onChange={setTfcRows}
                 heading="รายการต้นทุนคงที่"
-                totalLabel="รวม TFC"
-                addLabel="+ เพิ่มรายการ TFC"
+                totalLabel="รวมต้นทุนคงที่ (TFC)"
+                addLabel="+ เพิ่มรายการต้นทุนคงที่"
                 color="primary"
               />
             </CardContent>
@@ -373,7 +373,9 @@ const ScenarioFacultyView = () => {
             <CardHeader
               title={<DotTitle color="success.main">ขั้นตอนที่ 3 — ต้นทุนผันแปร (TVC)</DotTitle>}
               subheader="เลือกหมวดจากรายการ หรือกรอกเอง"
-              action={<Chip size="small" variant="tonal" color="success" label="TVC" />}
+              action={
+                <Chip size="small" variant="tonal" color="success" label="ต้นทุนผันแปร (TVC)" />
+              }
             />
             <CardContent>
               <CostRowsEditor
@@ -381,8 +383,8 @@ const ScenarioFacultyView = () => {
                 presets={TVC_PRESETS}
                 onChange={setTvcRows}
                 heading="รายการต้นทุนผันแปร"
-                totalLabel="รวม TVC"
-                addLabel="+ เพิ่มรายการ TVC"
+                totalLabel="รวมต้นทุนผันแปร (TVC)"
+                addLabel="+ เพิ่มรายการต้นทุนผันแปร"
                 color="success"
               />
             </CardContent>
@@ -398,12 +400,12 @@ const ScenarioFacultyView = () => {
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 {(
                   [
-                    ['Q (นิสิต)', q > 0 ? fmtN(q) : '—', 'primary.main'],
-                    ['TR รวม', tr > 0 ? fmtB(tr) : '—', 'primary.main'],
-                    ['TC รวม', tc > 0 ? fmtB(tc) : '—', undefined],
-                    ['TFC', tfc > 0 ? fmtB(tfc) : '—', 'primary.main'],
-                    ['TVC', tvc > 0 ? fmtB(tvc) : '—', 'warning.main'],
-                    ['AVC/หัว', avc > 0 ? fmtB(avc) : '—', 'warning.main'],
+                    ['จำนวนนิสิต (Q)', q > 0 ? fmtN(q) : '—', 'primary.main'],
+                    ['รายได้รวม (TR)', tr > 0 ? fmtB(tr) : '—', 'primary.main'],
+                    ['ต้นทุนรวม (TC)', tc > 0 ? fmtB(tc) : '—', undefined],
+                    ['ต้นทุนคงที่รวม (TFC)', tfc > 0 ? fmtB(tfc) : '—', 'primary.main'],
+                    ['ต้นทุนผันแปรรวม (TVC)', tvc > 0 ? fmtB(tvc) : '—', 'warning.main'],
+                    ['ต้นทุนผันแปรต่อหัว (AVC)', avc > 0 ? fmtB(avc) : '—', 'warning.main'],
                   ] as [string, string, string | undefined][]
                 ).map(([label, value, color]) => (
                   <Grid key={label} size={{ xs: 6, sm: 4 }}>
@@ -414,7 +416,7 @@ const ScenarioFacultyView = () => {
               <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <StatBox
-                    label="R/หัว — รวมแผ่นดิน"
+                    label="รายได้ต่อหัว — รวมเงินแผ่นดิน (R)"
                     value={rIn > 0 ? fmtB(rIn) : '—'}
                     color="primary.main"
                     bgcolor="primary.lighterOpacity"
@@ -422,7 +424,7 @@ const ScenarioFacultyView = () => {
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <StatBox
-                    label="R/หัว — ไม่รวมแผ่นดิน"
+                    label="รายได้ต่อหัว — ไม่รวมเงินแผ่นดิน (R)"
                     value={rEx > 0 ? fmtB(rEx) : '—'}
                     color="warning.main"
                     bgcolor="warning.lighterOpacity"
@@ -456,8 +458,8 @@ const ScenarioFacultyView = () => {
                     {facultyName || 'ไม่ระบุชื่อ'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: -2 }}>
-                    นิสิต {fmtN(q)} คน · TFC {fmtM(tfc)} ล. · TVC {fmtM(tvc)} ล. · AVC {fmtB(avc)}{' '}
-                    บ./คน
+                    นิสิต {fmtN(q)} คน · ต้นทุนคงที่ (TFC) {fmtM(tfc)} ล. · ต้นทุนผันแปร (TVC){' '}
+                    {fmtM(tvc)} ล. · ผันแปร/หัว (AVC) {fmtB(avc)} บ./คน
                   </Typography>
                   {renderResultCard(
                     'กรณีรวมเงินแผ่นดิน',
@@ -507,11 +509,11 @@ const ScenarioFacultyView = () => {
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>ชื่อ</TableCell>
-                    <TableCell align="right">Q</TableCell>
-                    <TableCell align="right">TFC(ล.)</TableCell>
-                    <TableCell align="right">AVC/หัว</TableCell>
-                    <TableCell align="right">Q* รวมแผ่นดิน</TableCell>
-                    <TableCell align="right">Q* ไม่รวม</TableCell>
+                    <TableCell align="right">นิสิต (Q)</TableCell>
+                    <TableCell align="right">ต้นทุนคงที่ (TFC) ล.</TableCell>
+                    <TableCell align="right">ผันแปร/หัว (AVC)</TableCell>
+                    <TableCell align="right">จุดคุ้มทุน (Q*) รวมแผ่นดิน</TableCell>
+                    <TableCell align="right">จุดคุ้มทุน (Q*) ไม่รวมแผ่นดิน</TableCell>
                     <TableCell align="right">สถานะ</TableCell>
                   </TableRow>
                 </TableHead>

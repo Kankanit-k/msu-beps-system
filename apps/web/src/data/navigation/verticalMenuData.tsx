@@ -102,7 +102,11 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       label: 'การวิเคราะห์',
       isSection: true,
       children: [
-        { label: 'Cross Analysis', href: '/cross', icon: 'ri-grid-line' },
+        {
+          label: 'วิเคราะห์เชิงเปรียบเทียบ (Cross Analysis)',
+          href: '/cross',
+          icon: 'ri-grid-line',
+        },
         { label: 'สูตร & หลักวิชาการ', href: '/method', icon: 'ri-book-read-line' },
       ],
     },

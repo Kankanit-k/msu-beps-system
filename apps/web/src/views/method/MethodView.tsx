@@ -66,19 +66,19 @@ const FormulaCard = ({ title, eq, eqColor = 'default', children }: FormulaCardPr
 const VAR_DEFS = (bothModes: ReturnType<typeof calcBreakEvenBothModes>) => [
   {
     sym: 'Q / Q*',
-    name: 'จำนวนนิสิตจริง / ณ จุดคุ้มทุน · Q = ลงทะเบียนจริง, Q* = TFC / (R − AVC)',
+    name: 'จำนวนนิสิตจริง / จำนวนนิสิต ณ จุดคุ้มทุน · จำนวนนิสิต (Q) = ลงทะเบียนจริง, จุดคุ้มทุน (Q*) = ต้นทุนคงที่ ÷ (รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว)',
     unit: 'คน',
     value: `รวม ${fmtN(RAW.UNI.Q)} คน`,
   },
   {
     sym: 'TR',
-    name: 'รายได้รวม (Total Revenue = R × Q) · งบแผ่นดิน + งบเงินรายได้ (ค่าธรรมเนียม)',
+    name: 'รายได้รวม = รายได้ต่อหัว × จำนวนนิสิต (Total Revenue) · งบแผ่นดิน + งบเงินรายได้ (ค่าธรรมเนียม)',
     unit: 'บาท',
     value: `${fmtM(bothModes.with_government.tr)} ล้านบาท`,
   },
   {
     sym: 'TC',
-    name: 'ต้นทุนรวม (Total Cost = TFC + TVC) · ต้นทุนทางตรงและทางอ้อมที่ปันส่วนมา',
+    name: 'ต้นทุนรวม = ต้นทุนคงที่ + ต้นทุนผันแปร (Total Cost) · ต้นทุนทางตรงและทางอ้อมที่ปันส่วนมา',
     unit: 'บาท',
     value: `${fmtM(RAW.UNI.TC)} ล้านบาท`,
   },
@@ -90,19 +90,19 @@ const VAR_DEFS = (bothModes: ReturnType<typeof calcBreakEvenBothModes>) => [
   },
   {
     sym: 'TVC / AVC',
-    name: 'ต้นทุนผันแปร / ต่อหน่วย · AVC = TVC / Q',
+    name: 'ต้นทุนผันแปรรวม / ต้นทุนผันแปรต่อหัว · ต่อหัว = ต้นทุนผันแปรรวม ÷ จำนวนนิสิต',
     unit: 'บาท / บาท/คน',
     value: `${fmtM(RAW.UNI.TVC)} ล้าน (${pct(RAW.UNI.TVC, RAW.UNI.TC)})`,
   },
   {
     sym: 'R',
-    name: 'รายได้ต่อหน่วย (Revenue per Student = TR / Q)',
+    name: 'รายได้ต่อหัว = รายได้รวม ÷ จำนวนนิสิต (Revenue per Student)',
     unit: 'บาท/คน',
     value: `${fmtN(bothModes.with_government.r ?? 0)} บ. (เฉลี่ย)`,
   },
   {
     sym: 'π',
-    name: 'กำไร/ขาดทุน · π > 0 = ส่วนเกิน, π = 0 = BEP, π < 0 = ขาดทุน',
+    name: 'กำไร/ขาดทุน · มากกว่า 0 = ส่วนเกิน, เท่ากับ 0 = จุดคุ้มทุน (BEP), น้อยกว่า 0 = ขาดทุน',
     unit: 'บาท',
     value: `${bothModes.with_government.profit >= 0 ? '+' : '−'}${fmtM(Math.abs(bothModes.with_government.profit))} ล้านบาท`,
   },
@@ -167,28 +167,32 @@ const MethodView = () => {
 
       <Grid size={{ xs: 12, md: 6 }}>
         <FormulaCard title="📌 สูตรที่ 1 — จุดคุ้มทุน" eq="Q* = TFC / ( R − AVC )">
-          จุดคุ้มทุน (BEP) คือจำนวนนิสิตขั้นต่ำ Q* ที่ทำให้ TR = TC พอดี (π = 0) ส่วนต่าง (R − AVC)
-          คือ <strong>Contribution Margin (CM)</strong> — รายได้ส่วนที่นำไปชดเชย TFC ยิ่ง CM สูง
-          จุดคุ้มทุนยิ่งต่ำ
+          จุดคุ้มทุน (BEP) คือจำนวนนิสิตขั้นต่ำ (Q*) ที่ทำให้รายได้รวม (TR) เท่ากับต้นทุนรวม (TC)
+          พอดี (กำไร/ขาดทุน = 0) ส่วนต่างระหว่างรายได้ต่อหัว (R) กับต้นทุนผันแปรต่อหัว (AVC) คือ{' '}
+          <strong>กำไรส่วนเกินต่อหัว (CM)</strong> — รายได้ต่อหัวที่เหลือไว้ชดเชยต้นทุนคงที่ (TFC)
+          ยิ่งส่วนเกินต่อหัวสูง จุดคุ้มทุนยิ่งต่ำ
         </FormulaCard>
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
         <FormulaCard title="📌 สูตรที่ 2 — ต้นทุนรวม" eq="TC = TFC + ( AVC × Q )">
-          ต้นทุนรวมมี 2 ส่วน คือ TFC (ไม่เปลี่ยนตาม Q) และ TVC = AVC × Q (แปรผันตาม Q) มมส.
-          มีสัดส่วน TFC สูงถึง <strong>{pct(RAW.UNI.TFC, RAW.UNI.TC)}</strong> ทำให้ ATC ลดลงเมื่อ Q
-          เพิ่ม (<strong>Economies of Scale</strong>)
+          ต้นทุนรวมมี 2 ส่วน คือ ต้นทุนคงที่ (TFC) ซึ่งไม่เปลี่ยนตามจำนวนนิสิต และต้นทุนผันแปร (TVC)
+          = ต้นทุนผันแปรต่อหัว × จำนวนนิสิต (แปรผันตามจำนวนนิสิต) มมส. มีสัดส่วนต้นทุนคงที่สูงถึง{' '}
+          <strong>{pct(RAW.UNI.TFC, RAW.UNI.TC)}</strong> ทำให้ต้นทุนรวมต่อหัว (ATC)
+          ลดลงเมื่อนิสิตเพิ่ม (<strong>การประหยัดจากขนาด (Economies of Scale)</strong>)
         </FormulaCard>
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
         <FormulaCard title="📌 สูตรที่ 3 — กำไร / ขาดทุน" eq="π = TR − TC = (R − AVC) × Q − TFC">
-          ส่วนเกิน/ขาดทุน (π): เมื่อ Q &gt; Q* กำไรเพิ่มในอัตรา CM ต่อหน่วย · เมื่อ Q &lt; Q*
+          กำไร/ขาดทุน (π): เมื่อนิสิตเกินจุดคุ้มทุน (Q &gt; Q*)
+          กำไรเพิ่มขึ้นคนละเท่ากับกำไรส่วนเกินต่อหัว (CM) · เมื่อนิสิตไม่ถึงจุดคุ้มทุน (Q &lt; Q*)
           จะขาดทุน
         </FormulaCard>
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
         <FormulaCard title="📌 สูตรที่ 4 — รายได้ ณ จุดคุ้มทุน" eq="BE Revenue = Q* × R">
           รายได้ขั้นต่ำเพื่อไม่ขาดทุน ใช้วางแผนงบประมาณและกำหนดเป้ารับนิสิต ·{' '}
-          <strong>Margin of Safety</strong> = TR จริง − BE Rev — ยิ่งกว้างยิ่งมั่นคง
+          <strong>ส่วนเผื่อความปลอดภัย (Margin of Safety)</strong> = รายได้รวมจริง − รายได้ ณ
+          จุดคุ้มทุน — ยิ่งกว้างยิ่งมั่นคง
         </FormulaCard>
       </Grid>
 
@@ -242,8 +246,8 @@ const MethodView = () => {
               {fmtN(bothModes.without_government.r ?? 0)} บ./คน
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              ต้นทุน (TFC, TVC, AVC) เท่ากันทั้ง 2 กรณี — เปลี่ยนเฉพาะฝั่งรายได้ ทำให้ CM และ Q*
-              ต่างกัน
+              ต้นทุน (ต้นทุนคงที่ ต้นทุนผันแปร และต้นทุนผันแปรต่อหัว) เท่ากันทั้ง 2 กรณี —
+              เปลี่ยนเฉพาะฝั่งรายได้ ทำให้กำไรส่วนเกินต่อหัว (CM) และจุดคุ้มทุน (Q*) ต่างกัน
             </Typography>
           </CardContent>
         </Card>
@@ -270,13 +274,13 @@ const MethodView = () => {
               วิธีหลัก: Q*คณะ = Σ Q*หลักสูตร i
             </Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              <strong>วิธีผลรวมรายหลักสูตร (ค่าหลัก)</strong> — หา Q* ของแต่ละหลักสูตรก่อน
-              แล้วนำมาบวกกัน แต่ละหลักสูตร ต้องคุ้มต้นทุนคงที่ของตัวเอง ชดเชยข้ามหลักสูตรไม่ได้ →
-              เข้มงวดและตรงกับการบริหารจริง
+              <strong>วิธีผลรวมรายหลักสูตร (ค่าหลัก)</strong> — หาจุดคุ้มทุน (Q*)
+              ของแต่ละหลักสูตรก่อน แล้วนำมาบวกกัน แต่ละหลักสูตร ต้องคุ้มต้นทุนคงที่ของตัวเอง
+              ชดเชยข้ามหลักสูตรไม่ได้ → เข้มงวดและตรงกับการบริหารจริง
             </Typography>
             <Typography variant="body2" color="text.disabled">
-              <strong>วิธีเทียบ</strong> Q* = TFCคณะ / (R − AVC) ใช้ยอดรวมทั้งคณะ
-              ยอมให้หลักสูตรกำไรอุ้มหลักสูตรขาดทุน → ได้ Q* ต่ำกว่าจริง
+              <strong>วิธีเทียบ (คำนวณจากยอดรวม)</strong> Q* = TFCคณะ / (R − AVC) ใช้ยอดรวมทั้งคณะ
+              ยอมให้หลักสูตรกำไรอุ้มหลักสูตรขาดทุน → ได้จุดคุ้มทุนต่ำกว่าจริง
             </Typography>
           </CardContent>
         </Card>
@@ -285,7 +289,7 @@ const MethodView = () => {
         <Card variant="outlined" sx={{ height: '100%' }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-              📌 สูตรที่ 7 — กรณี CM ≤ 0
+              📌 สูตรที่ 7 — กรณีรายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0)
             </Typography>
             <Box
               sx={{
@@ -302,17 +306,18 @@ const MethodView = () => {
               ถ้า (R − AVC) ≤ 0 → Q* = TC / R
             </Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              เมื่อ AVC &gt; R (ต้นทุนผันแปรต่อหัวสูงกว่าค่าเทอมต่อหัว) ตัวส่วนของสูตรมาตรฐานจะติดลบ
-              ได้ Q* ติดลบซึ่งไม่มี ความหมาย จึงใช้หลัก <strong>Full-Cost Recovery</strong> —
+              เมื่อต้นทุนผันแปรต่อหัวสูงกว่าค่าเทอมต่อหัว (AVC &gt; R) ตัวส่วนของสูตรมาตรฐานจะติดลบ
+              ได้จุดคุ้มทุนติดลบซึ่งไม่มีความหมาย จึงใช้หลัก{' '}
+              <strong>การคืนทุนเต็มจำนวน (Full-Cost Recovery)</strong> —
               หาว่าต้องรับนิสิตกี่คนค่าเทอมรวมจึงครอบคลุมต้นทุน ทั้งหมด
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>ตัวอย่าง</strong> — เคมี (คณะวิทยาศาสตร์): TC ≈ 2.16 ล้านบาท · ค่าเทอม ≈
-              93,000 บ./คน → Q* = 2,163,604 / 93,311 ≈ <strong>23 คน</strong>
+              <strong>ตัวอย่าง</strong> — เคมี (คณะวิทยาศาสตร์): ต้นทุนรวม ≈ 2.16 ล้านบาท · ค่าเทอม
+              ≈ 93,000 บ./คน → Q* = 2,163,604 / 93,311 ≈ <strong>23 คน</strong>
             </Typography>
             <Alert severity="warning" sx={{ mt: 1 }}>
-              ค่าที่ได้เป็นเป้าหมายขั้นต่ำ ไม่ใช่จุดคุ้มทุนจริง — ทางแก้ที่ยั่งยืนคือลด AVC
-              หรือขึ้นค่าธรรมเนียม
+              ค่าที่ได้เป็นเป้าหมายขั้นต่ำ ไม่ใช่จุดคุ้มทุนจริง —
+              ทางแก้ที่ยั่งยืนคือลดต้นทุนผันแปรต่อหัว หรือขึ้นค่าธรรมเนียม
             </Alert>
           </CardContent>
         </Card>
@@ -322,7 +327,7 @@ const MethodView = () => {
         <Card variant="outlined">
           <CardHeader
             title="📖 คำนิยามตัวแปรในสูตร"
-            subheader="ตัวเลขคอลัมน์ขวาสุดคำนวณสดจากชุดข้อมูลที่โหลดอยู่ (RAW.UNI)"
+            subheader="ตัวเลขคอลัมน์ขวาสุดคำนวณสดจากข้อมูลระดับมหาวิทยาลัยที่โหลดอยู่"
           />
           <TableContainer>
             <Table size="small">
@@ -364,7 +369,7 @@ const MethodView = () => {
           <CardHeader title="🗂️ การจำแนกประเภทต้นทุน (Cost Classification)" />
           <CardContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              ตามหมวดรายจ่ายในไฟล์ต้นฉบับ · สัดส่วนจริง TFC : TVC ={' '}
+              ตามหมวดรายจ่ายในไฟล์ต้นฉบับ · สัดส่วนจริง ต้นทุนคงที่ : ต้นทุนผันแปร ={' '}
               <strong>
                 {pct(RAW.UNI.TFC, RAW.UNI.TC)} : {pct(RAW.UNI.TVC, RAW.UNI.TC)}
               </strong>
@@ -392,9 +397,9 @@ const MethodView = () => {
               </Grid>
             </Grid>
             <Alert severity="warning" sx={{ mt: 4 }}>
-              TVC ในไฟล์ใหม่รวม <strong>ค่าธรรมเนียมรายการหลัก</strong> และ{' '}
+              ต้นทุนผันแปร (TVC) ในไฟล์ใหม่รวม <strong>ค่าธรรมเนียมรายการหลัก</strong> และ{' '}
               <strong>หักสมทบมหาวิทยาลัย (2,235 บ./คน/เทอม)</strong> ซึ่งคิดตามรายหัวนิสิต
-              จึงทำให้สัดส่วน TVC สูงกว่าการ คำนวณแบบเดิม
+              จึงทำให้สัดส่วนต้นทุนผันแปรสูงกว่าการคำนวณแบบเดิม
             </Alert>
           </CardContent>
         </Card>
@@ -408,7 +413,8 @@ const MethodView = () => {
               ระบบรวมข้อมูลจากล่างขึ้นบน: <strong>หลักสูตร (230)</strong> →{' '}
               <strong>ระดับการศึกษาในแต่ละคณะ (ปริญญาตรี / บัณฑิตศึกษา)</strong> →{' '}
               <strong>คณะ (20)</strong> → <strong>มหาวิทยาลัย</strong> ทุกตัวเลขระดับบนคือผลรวมของ
-              หน่วยย่อย ส่วน R, AVC, Q* คำนวณใหม่จากยอดรวมของหน่วยนั้น
+              หน่วยย่อย ส่วนรายได้ต่อหัว (R) ต้นทุนผันแปรต่อหัว (AVC) และจุดคุ้มทุน (Q*)
+              คำนวณใหม่จากยอดรวมของหน่วยนั้น
             </Typography>
             <Typography variant="body2" color="text.secondary">
               ชุดข้อมูลนี้ไม่มีคอลัมน์ &ldquo;ภาควิชา&rdquo; โดยตรง ระบบจึงใช้{' '}
@@ -433,7 +439,7 @@ const MethodView = () => {
             </Stack>
             <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 4 }}>
               แหล่งข้อมูล: ไฟล์ &ldquo;20260711_จุดคุ้มทุน update.xlsx&rdquo; — ชีต 1.รายได้ และ
-              2.ค่าใช้จ่าย · ปรับปรุงจาก แอป breakeven_app v7
+              2.ค่าใช้จ่าย · ปรับปรุงจากแอปวิเคราะห์จุดคุ้มทุนรุ่นก่อน
             </Typography>
           </CardContent>
         </Card>

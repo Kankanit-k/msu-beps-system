@@ -42,7 +42,9 @@ const horizontalMenuData = (role: AppRole = 'user'): HorizontalMenuDataType[] =>
     });
   }
 
-  menu.push({ label: 'เกี่ยวกับเรา', href: '/about', icon: 'ri-information-line' });
+  if (rank >= accessLevelRank.deptAdmin) {
+    menu.push({ label: 'เกี่ยวกับเรา', href: '/about', icon: 'ri-information-line' });
+  }
 
   return menu;
 };

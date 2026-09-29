@@ -34,178 +34,7 @@ import type { ApprovalStatus } from '@beps/shared-types';
 // Component Imports
 import StepperCustomDot from '@components/stepper-dot';
 
-interface FeeRow {
-  fac: string;
-  prog: string;
-  lvl: string;
-  st: string;
-  rate: number;
-  prev: number | null;
-  status: ApprovalStatus;
-  by: string | null;
-  at: string | null;
-}
-
-/**
- * ข้อมูลตัวอย่างอัตราค่าธรรมเนียม — พอร์ตจาก mockup/assets/master-data.js (FEES)
- * ยังไม่มีตารางนี้ใน RAW เพราะ RAW เก็บเฉพาะยอดรวมที่คำนวณแล้ว ไม่ใช่อัตรารายหลักสูตรก่อนอนุมัติ
- */
-const FEES: FeeRow[] = [
-  {
-    fac: 'คณะการบัญชีและการจัดการ',
-    prog: 'บัญชีบัณฑิต',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 36000,
-    prev: 34000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะการบัญชีและการจัดการ',
-    prog: 'ธุรกิจระหว่างประเทศ (นานาชาติ)',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 90000,
-    prev: 90000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะการบัญชีและการจัดการ',
-    prog: 'ธุรกิจระหว่างประเทศ (นานาชาติ)',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ต่างชาติ',
-    rate: 110000,
-    prev: 110000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะการบัญชีและการจัดการ',
-    prog: 'บัญชีมหาบัณฑิต',
-    lvl: 'ปริญญาโท',
-    st: 'ภาคพิเศษ · ไทย',
-    rate: 100000,
-    prev: 95000,
-    status: 'pending',
-    by: null,
-    at: null,
-  },
-  {
-    fac: 'คณะวิทยาศาสตร์',
-    prog: 'เคมี',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 30000,
-    prev: 30000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะวิทยาศาสตร์',
-    prog: 'เคมี',
-    lvl: 'ปริญญาโท',
-    st: 'ภาคปกติ · ไทย',
-    rate: 93311,
-    prev: 88000,
-    status: 'pending',
-    by: null,
-    at: null,
-  },
-  {
-    fac: 'คณะวิทยาศาสตร์',
-    prog: 'เคมี',
-    lvl: 'ปริญญาเอก',
-    st: 'ภาคปกติ · ไทย',
-    rate: 143311,
-    prev: 143311,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะวิทยาศาสตร์',
-    prog: 'ชีววิทยา',
-    lvl: 'ปริญญาโท',
-    st: 'ภาคปกติ · ไทย',
-    rate: 93311,
-    prev: 88000,
-    status: 'draft',
-    by: null,
-    at: null,
-  },
-  {
-    fac: 'คณะแพทยศาสตร์',
-    prog: 'แพทยศาสตรบัณฑิต',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 62444,
-    prev: 60000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะแพทยศาสตร์',
-    prog: 'วิทยาศาสตร์สุขภาพ (นานาชาติ)',
-    lvl: 'ปริญญาเอก',
-    st: 'ภาคปกติ · ต่างชาติ',
-    rate: 100000,
-    prev: 100000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะนิติศาสตร์',
-    prog: 'นิติศาสตรบัณฑิต',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 30000,
-    prev: 28000,
-    status: 'approved',
-    by: 'สภามหาวิทยาลัย',
-    at: '18 มี.ค. 2568',
-  },
-  {
-    fac: 'คณะพยาบาลศาสตร์',
-    prog: 'ประกาศนียบัตรผู้ช่วยพยาบาล',
-    lvl: 'ประกาศนียบัตร',
-    st: 'ภาคปกติ · ไทย',
-    rate: 45000,
-    prev: 45000,
-    status: 'draft',
-    by: null,
-    at: null,
-  },
-  {
-    fac: 'คณะวิศวกรรมศาสตร์',
-    prog: 'วิศวกรรมรถไฟความเร็วสูง',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 40000,
-    prev: null,
-    status: 'pending',
-    by: null,
-    at: null,
-  },
-  {
-    fac: 'วิทยาลัยดุริยางคศิลป์',
-    prog: 'ดุริยางคศาสตรบัณฑิต',
-    lvl: 'ปริญญาตรี',
-    st: 'ภาคปกติ · ไทย',
-    rate: 38000,
-    prev: 38000,
-    status: 'rejected',
-    by: 'คณะกรรมการการเงิน',
-    at: '02 เม.ย. 2568',
-  },
-];
+import { FEES, STATUS_META } from './feeData';
 
 /** ประวัติการเสนอ/อนุมัติของแถวที่เลือกอยู่ (ตาราง fee_approval_log) */
 const FEE_LOG = [
@@ -230,16 +59,6 @@ const FEE_LOG = [
     h: 'คณะการบัญชีและการจัดการ สร้างร่างอัตราใหม่สำหรับปีการศึกษา 2568',
   },
 ];
-
-const STATUS_META: Record<
-  ApprovalStatus,
-  { label: string; color: 'success' | 'warning' | 'default' | 'error' }
-> = {
-  approved: { label: 'อนุมัติแล้ว', color: 'success' },
-  pending: { label: 'รออนุมัติ', color: 'warning' },
-  draft: { label: 'ร่าง', color: 'default' },
-  rejected: { label: 'ไม่อนุมัติ', color: 'error' },
-};
 
 const STEPS: ApprovalStatus[] = ['draft', 'pending', 'approved'];
 
@@ -286,7 +105,7 @@ const TuitionView = () => {
     <Grid container spacing={6}>
       <Grid size={12}>
         <Alert severity="info">
-          ค่าธรรมเนียมเป็น<strong>ต้นทางของ TR ทั้งระบบ</strong> — อัตราที่ยัง
+          ค่าธรรมเนียมเป็น<strong>ต้นทางของรายได้รวม (TR) ทั้งระบบ</strong> — อัตราที่ยัง
           <strong>ไม่ผ่านอนุมัติ</strong> จะไม่ถูกนำไปคำนวณ
           รอบคำนวณจะข้ามหลักสูตรนั้นและติดธงไว้ที่รายการค้างตรวจ · แต่ละอัตรามีช่วงปีที่มีผล
           เปลี่ยนอัตราปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม
@@ -346,7 +165,7 @@ const TuitionView = () => {
               4
             </Typography>
             <Typography variant="caption" color="text.disabled">
-              หลักสูตร · TR คำนวณไม่ได้
+              หลักสูตร · คำนวณรายได้รวม (TR) ไม่ได้
             </Typography>
           </CardContent>
         </Card>
@@ -589,8 +408,8 @@ const TuitionView = () => {
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {fee.status === 'approved'
-                        ? 'ถูกนำไปคำนวณ TR ของหลักสูตรนี้ในรอบคำนวณถัดไป'
-                        : 'ยังไม่ถูกนำไปคำนวณ — หลักสูตรนี้จะติดธง NO_FEE'}
+                        ? 'ถูกนำไปคำนวณรายได้รวม (TR) ของหลักสูตรนี้ในรอบคำนวณถัดไป'
+                        : 'ยังไม่ถูกนำไปคำนวณ — หลักสูตรนี้จะติดธง “ไม่มีค่าธรรมเนียม”'}
                     </Typography>
                   </div>
                   <Chip
@@ -642,7 +461,7 @@ const TuitionView = () => {
           </Card>
 
           <Card>
-            <CardHeader title="ประวัติการเสนอ / อนุมัติ" subheader="ตาราง fee_approval_log" />
+            <CardHeader title="ประวัติการเสนอ / อนุมัติ" />
             <CardContent>
               <Stack spacing={3} divider={<Divider flexItem />}>
                 {FEE_LOG.map((l) => (
@@ -670,12 +489,12 @@ const TuitionView = () => {
           <CardContent>
             <Stack spacing={3}>
               <Alert severity="error">
-                <strong>prototype เดิมไม่มีหน้านี้</strong> เพราะค่าธรรมเนียมถูก fix มาในไฟล์ Excel
-                แล้ว ระบบจริงต้องมีที่ให้กรอกและอนุมัติ
+                <strong>แบบร่างเดิมไม่มีหน้านี้</strong> เพราะค่าธรรมเนียมถูกกำหนดตายตัวมาในไฟล์
+                Excel แล้ว ระบบจริงต้องมีที่ให้กรอกและอนุมัติ
               </Alert>
               <Alert severity="warning">
-                อัตราที่ยังไม่อนุมัติ <strong>ห้ามเข้าไปในการคำนวณ</strong> — ถ้าปล่อยผ่านจะได้ TR
-                ที่ยังไม่มีใครรับรอง แล้วผู้บริหารเอาไปตัดสินใจ
+                อัตราที่ยังไม่อนุมัติ <strong>ห้ามเข้าไปในการคำนวณ</strong> —
+                ถ้าปล่อยผ่านจะได้รายได้รวม (TR) ที่ยังไม่มีใครรับรอง แล้วผู้บริหารเอาไปตัดสินใจ
               </Alert>
               <Alert severity="info">
                 คนที่เสนออัตราและคนที่อนุมัติ<strong>ต้องเป็นคนละคน</strong>{' '}

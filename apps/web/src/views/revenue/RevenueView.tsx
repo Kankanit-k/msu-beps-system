@@ -123,7 +123,7 @@ const COVERAGE_LABEL: Record<Coverage, string> = {
 const PROG_STATUS_LABEL: Record<BEStatus, string> = {
   ok: 'คุ้มทุน',
   loss: 'ต่ำกว่าจุดคุ้มทุน',
-  fcr: 'R ≤ AVC',
+  fcr: 'รายได้/หัว ≤ ผันแปร/หัว',
   none: 'ไม่มีข้อมูล',
 };
 
@@ -382,7 +382,7 @@ const RevenueView = () => {
       },
     },
     stroke: { lineCap: 'round' },
-    labels: [qRatio === null ? 'ไม่มีจุดคุ้มทุน' : `Q/Q* · ${COVERAGE_LABEL[qCoverage]}`],
+    labels: [qRatio === null ? 'ไม่มีจุดคุ้มทุน' : `${COVERAGE_LABEL[qCoverage]} (Q/Q*)`],
   };
   const gaugeSeries = [qRatio === null ? 0 : Math.min(qRatio, 100)];
 
@@ -514,7 +514,7 @@ const RevenueView = () => {
           <KpiCard
             label="รายได้เฉลี่ย / นิสิต (R)"
             value={fmtInt(scopeRes.r)}
-            unit={`บาท/คน · ต้นทุน/หัว ${fmtInt(scopeRes.atc)} บาท`}
+            unit={`บาท/คน · ต้นทุน/หัว (ATC) ${fmtInt(scopeRes.atc)} บาท`}
             accent="success"
             valueColor="var(--mui-palette-success-main)"
           />
@@ -808,7 +808,7 @@ const RevenueView = () => {
                 <TableCell align="right">ต้นทุน</TableCell>
                 <TableCell align="right">ส่วนต่าง</TableCell>
                 <TableCell align="right">อัตราคุ้มทุน</TableCell>
-                <TableCell align="right">Q*</TableCell>
+                <TableCell align="right">จุดคุ้มทุน (Q*)</TableCell>
                 <TableCell>สถานะ</TableCell>
               </TableRow>
             </TableHead>

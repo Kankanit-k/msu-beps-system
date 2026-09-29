@@ -220,7 +220,7 @@ const CostSimulator = ({ base, mode, scopeLabel }: Props) => {
               value={fmtInt(sim.qStar)}
               unit={
                 isFcr
-                  ? 'คน · R ≤ AVC จึงไม่ใช่จุดคุ้มทุน'
+                  ? 'คน · รายได้ต่อหัวต่ำกว่าต้นทุนผันแปรต่อหัว (R ≤ AVC) จึงไม่มีจุดคุ้มทุน'
                   : baseRes.qStar !== null
                     ? `คน · เดิม ${fmtInt(baseRes.qStar)} คน`
                     : 'คน'

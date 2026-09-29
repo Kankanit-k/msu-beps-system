@@ -128,7 +128,7 @@ export const ERP_ACCOUNTS: ErpAccount[] = [
     to: null,
     amount: 0,
     ruleKey: null,
-    note: 'บัญชีใหม่ปีงบ 2569 — ยังไม่มีกติกา TFC/TVC',
+    note: 'บัญชีใหม่ปีงบ 2569 — ยังไม่มีกติกาต้นทุนคงที่/ผันแปร (TFC/TVC)',
   },
   {
     plan: '2',

@@ -171,45 +171,76 @@ const PerheadView = () => {
   };
   const barSeries = [
     { name: 'รายได้/หัว (R)', data: chartRows.map((d) => Math.round(d.r)) },
-    { name: 'ต้นทุนรวม/หัว (ATC)', data: chartRows.map((d) => Math.round(d.atc)) },
-    { name: 'ต้นทุนผันแปร/หัว (AVC)', data: chartRows.map((d) => Math.round(d.avc)) },
+    { name: 'ต้นทุน/หัว (ATC)', data: chartRows.map((d) => Math.round(d.atc)) },
+    { name: 'ผันแปร/หัว (AVC)', data: chartRows.map((d) => Math.round(d.avc)) },
   ];
-  const barHeight = Math.max(360, chartRows.length * 30);
+  const barHeight = Math.max(320, chartRows.length * 24);
 
   // ===== กราฟประสิทธิภาพ: R เทียบ ATC (scatter) =====
   const okPts = chartRows.filter((d) => d.diff >= 0);
   const lossPts = chartRows.filter((d) => d.diff < 0);
+  // เก็บข้อมูลคณะไว้ในจุดเอง (meta) — tooltip จะได้ไม่พึ่ง index ที่อาจคลาดเคลื่อน
+  const toPoint = (d: (typeof chartRows)[number]) => ({
+    x: Math.round(d.atc),
+    y: Math.round(d.r),
+    meta: d,
+  });
   const scatterSeries = [
-    { name: 'คุ้มทุนต่อหัว', data: okPts.map((d) => [Math.round(d.atc), Math.round(d.r)]) },
-    { name: 'ขาดทุนต่อหัว', data: lossPts.map((d) => [Math.round(d.atc), Math.round(d.r)]) },
+    { name: 'คุ้มทุนต่อหัว', data: okPts.map(toPoint) },
+    { name: 'ขาดทุนต่อหัว', data: lossPts.map(toPoint) },
   ];
+  // เผื่อขอบแกน ~8% — จุดที่อยู่ชิดขอบพื้นที่กราฟพอดี ApexCharts จะไม่แสดง tooltip (เมาส์ถูกมองว่าอยู่นอกกราฟ)
+  const padRange = (vals: number[]) => {
+    if (!vals.length) return {};
+    const lo = Math.min(...vals);
+    const hi = Math.max(...vals);
+    const pad = (hi - lo || hi || 1) * 0.08;
+
+    return { min: Math.max(0, lo - pad), max: hi + pad };
+  };
+  const xRange = padRange(chartRows.map((d) => d.atc));
+  const yRange = padRange(chartRows.map((d) => d.r));
   const scatterOptions: ApexOptions = {
     chart: { type: 'scatter', toolbar: { show: false }, parentHeightOffset: 0 },
     colors: ['var(--mui-palette-success-main)', 'var(--mui-palette-error-main)'],
+    // ApexCharts ใช้ขอบเขตของเส้น grid เป็น "พื้นที่ hover" — ต้องมีเส้นทั้งสองแกนให้คลุมทั้งกราฟ
+    // ไม่งั้นจุดที่อยู่นอกกรอบเส้น grid (บน/ล่าง/ขวาสุด) จะไม่แสดง tooltip
+    grid: {
+      borderColor: 'var(--mui-palette-divider)',
+      xaxis: { lines: { show: true } },
+      yaxis: { lines: { show: true } },
+    },
     xaxis: {
-      title: { text: 'ต้นทุน/หัว ATC (บาท) →' },
+      title: { text: 'ต้นทุน/หัว (ATC) บาท →' },
+      ...xRange,
+      tickAmount: 6,
       labels: { formatter: (v) => `${(Number(v) / 1000).toFixed(0)}k` },
     },
     yaxis: {
-      title: { text: 'รายได้/หัว R (บาท) →' },
+      title: { text: 'รายได้/หัว (R) บาท →' },
+      ...yRange,
       labels: { formatter: (v) => `${(Number(v) / 1000).toFixed(0)}k` },
     },
-    markers: { size: 7 },
+    markers: { size: 7, hover: { sizeOffset: 3 } },
     legend: { show: false },
     tooltip: {
+      // intersect: แสดง tooltip ของจุดที่เมาส์ชี้อยู่จริง (ค่า default ของ scatter จะเดาจุดที่ "ใกล้สุด" ข้ามทุก series ทำให้บางจุดไม่แสดง)
+      intersect: true,
+      shared: false,
       custom: ({
         seriesIndex,
         dataPointIndex,
+        w,
       }: {
         seriesIndex: number;
         dataPointIndex: number;
+        w: { config: { series: { data: { meta?: (typeof chartRows)[number] }[] }[] } };
       }) => {
-        const pts = seriesIndex === 0 ? okPts : lossPts;
-        const d = pts[dataPointIndex];
+        const d = w.config.series[seriesIndex]?.data[dataPointIndex]?.meta;
 
         if (!d) return '';
 
-        return `<div style="padding:8px 10px"><b>${d.name}</b><br/>R ${fmtB(d.r)} · ATC ${fmtB(d.atc)} บาท/คน<br/>นิสิต ${fmtN(d.Q)} คน</div>`;
+        return `<div style="padding:8px 10px"><b>${d.name}</b><br/>รายได้/หัว ${fmtB(d.r)} · ต้นทุน/หัว ${fmtB(d.atc)} บาท/คน<br/>นิสิต ${fmtN(d.Q)} คน</div>`;
       },
     },
   };
@@ -270,8 +301,8 @@ const PerheadView = () => {
       sev: 'success',
       text: (
         <>
-          คุ้มค่าที่สุดต่อหัว: <b>{short(good[0]!.name)}</b> +{fmtB(good[0]!.diff)} บาท/คน (R{' '}
-          {fmtB(good[0]!.r)} · ATC {fmtB(good[0]!.atc)})
+          คุ้มค่าที่สุดต่อหัว: <b>{short(good[0]!.name)}</b> +{fmtB(good[0]!.diff)} บาท/คน
+          (รายได้/หัว {fmtB(good[0]!.r)} · ต้นทุน/หัว {fmtB(good[0]!.atc)})
         </>
       ),
     });
@@ -289,9 +320,9 @@ const PerheadView = () => {
         sev: 'info',
         text: (
           <>
-            <b>Economies of Scale</b>: คณะใหญ่ (≥3,000 คน) ต้นทุน/หัวมัธยฐาน <b>{fmtB(ab)}</b> บาท ·
-            คณะเล็ก (&lt;1,000 คน) <b>{fmtB(as)}</b> บาท — สูงกว่า <b>{(as / ab).toFixed(1)}×</b>{' '}
-            เพราะต้นทุนคงที่กระจายบน นิสิตจำนวนน้อย
+            <b>การประหยัดจากขนาด (Economies of Scale)</b>: คณะใหญ่ (≥3,000 คน) ต้นทุน/หัวมัธยฐาน{' '}
+            <b>{fmtB(ab)}</b> บาท · คณะเล็ก (&lt;1,000 คน) <b>{fmtB(as)}</b> บาท — สูงกว่า{' '}
+            <b>{(as / ab).toFixed(1)}×</b> เพราะต้นทุนคงที่กระจายบนนิสิตจำนวนน้อย
           </>
         ),
       });
@@ -304,7 +335,7 @@ const PerheadView = () => {
       text: (
         <>
           <b>{f.name}</b> มีนิสิตเพียง <b>{fmtN(f.Q)} คน</b> แต่ต้นทุนรวม {(f.TC / 1e6).toFixed(1)}{' '}
-          ล้านบาท → ต้นทุน /หัว {fmtB(f.atc)} บาท ({(f.atc / uni.atc).toFixed(0)}× ค่าเฉลี่ย) —
+          ล้านบาท → ต้นทุน/หัว {fmtB(f.atc)} บาท ({(f.atc / uni.atc).toFixed(0)}× ค่าเฉลี่ย) —
           เป็นหน่วยวิจัย จึงกันออกจากกราฟ
         </>
       ),
@@ -327,8 +358,9 @@ const PerheadView = () => {
           <DataCaveatNotes profit={uniRes.profit} />
 
           <NoteBar severity="info">
-            <b>ATC (ต้นทุนรวม/หัว) และ AVC ไม่เปลี่ยนตามฐานรายได้</b> — เปลี่ยนเฉพาะ <b>R</b> · โหมด:{' '}
-            <b>{REVENUE_MODE_LABEL[mode]}</b> → R เฉลี่ย {fmtB(uni.r)} เทียบ ATC {fmtB(uni.atc)} บาท/คน
+            <b>ต้นทุนรวมต่อหัว (ATC) และต้นทุนผันแปรต่อหัว (AVC) ไม่เปลี่ยนตามฐานรายได้</b> —
+            เปลี่ยนเฉพาะ <b>รายได้ต่อหัว (R)</b> · โหมด: <b>{REVENUE_MODE_LABEL[mode]}</b> →
+            รายได้ต่อหัวเฉลี่ย {fmtB(uni.r)} เทียบต้นทุนรวมต่อหัว {fmtB(uni.atc)} บาท/คน
           </NoteBar>
         </>
       )}
@@ -372,14 +404,14 @@ const PerheadView = () => {
           <KpiCard
             label="ต้นทุนรวมต่อหัว (ATC)"
             value={fmtB(sel.atc)}
-            unit="บาท/คน · TC / Q"
+            unit="บาท/คน · ต้นทุนรวม ÷ จำนวนนิสิต"
             accent="warning"
             valueColor="var(--mui-palette-warning-main)"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
-            label="ส่วนต่าง R − ATC"
+            label="ส่วนต่างต่อหัว (R − ATC)"
             value={`${sel.diff >= 0 ? '+' : '−'}${fmtB(Math.abs(sel.diff))}`}
             unit={`บาท/คน · ${sel.diff >= 0 ? 'กำไรต่อหัว' : 'ขาดทุนต่อหัว'}`}
             accent={sel.diff >= 0 ? 'success' : 'error'}
@@ -390,9 +422,9 @@ const PerheadView = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
-            label="คณะที่ R ≥ ATC"
+            label="คณะที่รายได้ครอบคลุมต้นทุนต่อหัว (R ≥ ATC)"
             value={`${nOk}/${allRows.length}`}
-            unit="คณะ · รายได้/หัว คุ้มต้นทุน/หัว"
+            unit="คณะ · รายได้ต่อหัวคุ้มต้นทุนรวมต่อหัว"
             accent="primary"
             valueColor="var(--mui-palette-primary-main)"
           />
@@ -404,19 +436,23 @@ const PerheadView = () => {
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardHeader
+              sx={{ pb: 0 }}
               title={<DotTitle color="success.main">รายได้/หัว เทียบ ต้นทุน/หัว รายคณะ</DotTitle>}
               subheader={
                 outlierRows.length
-                  ? `ไม่รวม ${outlierRows.length} หน่วยที่นิสิต < ${OUTLIER_MIN_Q} คน (ATC สูงผิดปกติ) — ดูในตารางด้านล่าง`
+                  ? `ไม่รวม ${outlierRows.length} หน่วยที่นิสิต < ${OUTLIER_MIN_Q} คน (ต้นทุนต่อหัวสูงผิดปกติ) — ดูในตารางด้านล่าง`
                   : 'บาท/คน ต่อคณะ'
               }
+              subheaderTypographyProps={{ variant: 'caption' }}
+              action={
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, pt: 1 }}>
+                  <LegendItem color={BAR_COLORS[0]} label="รายได้/หัว (R)" />
+                  <LegendItem color={BAR_COLORS[1]} label="ต้นทุน/หัว (ATC)" />
+                  <LegendItem color={BAR_COLORS[2]} label="ผันแปร/หัว (AVC)" />
+                </Box>
+              }
             />
-            <CardContent>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
-                <LegendItem color={BAR_COLORS[0]} label="รายได้/หัว (R)" />
-                <LegendItem color={BAR_COLORS[1]} label="ต้นทุนรวม/หัว (ATC)" />
-                <LegendItem color={BAR_COLORS[2]} label="ต้นทุนผันแปร/หัว (AVC)" />
-              </Box>
+            <CardContent sx={{ pt: 0 }}>
               <AppReactApexCharts
                 type="bar"
                 height={barHeight}
@@ -432,8 +468,12 @@ const PerheadView = () => {
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ height: '100%' }}>
             <CardHeader
-              title={<DotTitle color="primary.main">แผนภาพประสิทธิภาพ — R เทียบ ATC</DotTitle>}
-              subheader="แต่ละจุด = 1 คณะ · สีเขียว = คุ้มทุนต่อหัว (R ≥ ATC) · สีแดง = ขาดทุนต่อหัว"
+              title={
+                <DotTitle color="primary.main">
+                  กราฟการกระจาย (Scatter) — รายได้/หัว เทียบ ต้นทุน/หัว
+                </DotTitle>
+              }
+              subheader="แต่ละจุด = 1 คณะ · สีเขียว = รายได้ต่อหัวครอบคลุมต้นทุนรวมต่อหัว (R ≥ ATC) · สีแดง = ขาดทุนต่อหัว"
             />
             <CardContent>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
@@ -453,7 +493,7 @@ const PerheadView = () => {
         <Grid size={{ xs: 12, md: 5 }}>
           <Card sx={{ height: '100%' }}>
             <CardHeader
-              title={<DotTitle color="error.main">ต้นทุน/หัว สูงสุด (Top 8)</DotTitle>}
+              title={<DotTitle color="error.main">ต้นทุน/หัว สูงสุด 8 อันดับ</DotTitle>}
               subheader="เทียบกับค่าเฉลี่ยมหาวิทยาลัย"
             />
             <CardContent>
@@ -488,7 +528,7 @@ const PerheadView = () => {
           <Card>
             <CardHeader
               title={<DotTitle color="warning.main">ตารางเปรียบเทียบต่อหัว รายคณะ</DotTitle>}
-              subheader="เรียงตามส่วนต่าง R − ATC · หน่วย: บาท/คน"
+              subheader="เรียงตามส่วนต่างต่อหัว (R − ATC) · หน่วย: บาท/คน"
               action={
                 <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
                   <TextField
@@ -526,11 +566,11 @@ const PerheadView = () => {
                     <TableCell>#</TableCell>
                     <TableCell>คณะ / วิทยาลัย</TableCell>
                     <TableCell align="right">นิสิต</TableCell>
-                    <TableCell align="right">R/หัว</TableCell>
-                    <TableCell align="right">ATC/หัว</TableCell>
-                    <TableCell align="right">AVC/หัว</TableCell>
-                    <TableCell align="right">CM/หัว</TableCell>
-                    <TableCell align="right">R−ATC</TableCell>
+                    <TableCell align="right">รายได้/หัว (R)</TableCell>
+                    <TableCell align="right">ต้นทุน/หัว (ATC)</TableCell>
+                    <TableCell align="right">ผันแปร/หัว (AVC)</TableCell>
+                    <TableCell align="right">ส่วนเกิน/หัว (CM)</TableCell>
+                    <TableCell align="right">ส่วนต่าง/หัว (R − ATC)</TableCell>
                     <TableCell align="right">สถานะ</TableCell>
                   </TableRow>
                 </TableHead>

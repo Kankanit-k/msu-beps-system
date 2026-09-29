@@ -21,7 +21,7 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
 // Data Imports
-import { SETTINGS, SETTING_LOG, type CalcSetting } from './data';
+import { SETTINGS, SETTING_LOG, optLabel, type CalcSetting } from './data';
 
 const YEARS = [2568, 2569, 2570];
 
@@ -144,17 +144,17 @@ const Settings = () => {
                       <Typography variant="body2" sx={{ mt: 1 }}>
                         {s.cur === null ? (
                           <>
-                            ยังไม่ตั้งทับ · ใช้ค่าเริ่มต้น <b>{s.def}</b>
+                            ยังไม่ตั้งทับ · ใช้ค่าเริ่มต้น <b>{optLabel(s.def)}</b>
                           </>
                         ) : (
                           <>
-                            {s.def} → {s.cur}
+                            {optLabel(s.def)} → {optLabel(s.cur)}
                           </>
                         )}
                         {isDirty && (
                           <>
                             {' '}
-                            · แก้เป็น <b>{draft[s.key]}</b>
+                            · แก้เป็น <b>{optLabel(draft[s.key]!)}</b>
                           </>
                         )}
                       </Typography>
@@ -165,7 +165,7 @@ const Settings = () => {
                           <Select value={v} onChange={(e) => handleChange(s, e.target.value)}>
                             {s.opts?.map((o) => (
                               <MenuItem key={o} value={o}>
-                                {o}
+                                {optLabel(o)}
                               </MenuItem>
                             ))}
                           </Select>
@@ -240,8 +240,8 @@ const Settings = () => {
                       bgcolor={o === selectedValue ? 'action.selected' : 'background.default'}
                     >
                       <Box display="flex" alignItems="center" gap={2} mb={1}>
-                        <Typography component="code" fontWeight={700} fontSize={12}>
-                          {o}
+                        <Typography fontWeight={700} fontSize={12}>
+                          {optLabel(o)}
                         </Typography>
                         {o === selectedValue && (
                           <Chip size="small" color="success" label="ค่าที่ใช้อยู่" />

@@ -36,6 +36,7 @@ import PageHeaderBar from '@components/PageHeaderBar';
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import { computeBreakEven } from '@views/breakeven/calc';
+import { feesForProgram, STATUS_META } from '@views/tuition/feeData';
 
 import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
@@ -64,8 +65,8 @@ const ProgramRefNote = ({ p, fac }: { p: ProgRow; fac: string }) => {
       <Box component="span" sx={{ color, fontWeight: 700 }}>
         ● {label}:
       </Box>{' '}
-      R=<b>{fmtB(r)}</b> · CM=<b>{fmtB(r - p.AVC)}</b> ·{' '}
-      <b>Q*={qStar ? `${fmtN(qStar)} คน` : 'ไม่มี (CM≤0)'}</b>{' '}
+      รายได้/หัว (R) <b>{fmtB(r)}</b> · ส่วนเกิน/หัว (CM) <b>{fmtB(r - p.AVC)}</b> ·{' '}
+      <b>จุดคุ้มทุน (Q*) {qStar ? `${fmtN(qStar)} คน` : 'ไม่มี — ไม่คุ้มทุน (CM ≤ 0)'}</b>{' '}
       {qStar > 0 && (
         <Box
           component="span"
@@ -97,10 +98,88 @@ const ProgramRefNote = ({ p, fac }: { p: ProgRow; fac: string }) => {
       </Box>{' '}
       · {p.lvl} · {fac}
       <Box component="div">
-        AVC = <b>{fmtB(p.AVC)}</b> บ./คน | นิสิตจริง <b>{fmtN(p.Q)}</b> คน
+        ต้นทุนผันแปรต่อหัว (AVC) <b>{fmtB(p.AVC)}</b> บ./คน | นิสิตจริง <b>{fmtN(p.Q)}</b> คน
       </Box>
       {line('รวมแผ่นดิน', 'primary.main', p.Rin, p.Qin)}
       {line('ไม่รวมแผ่นดิน', 'warning.main', p.Rex, p.Qex)}
+    </Box>
+  );
+};
+
+/** อัตราค่าธรรมเนียมการศึกษาของหลักสูตรที่เลือก แยกตามประเภทนิสิต (ข้อมูลจากหน้า W8) */
+const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
+  const fees = feesForProgram(p.fac, p.prog, p.lvl);
+
+  return (
+    <Box
+      sx={{
+        mt: 3,
+        borderRadius: 1,
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        overflow: 'hidden',
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ display: 'block', px: 3, pt: 2, fontWeight: 700, color: 'primary.main' }}
+      >
+        💵 อัตราค่าธรรมเนียมการศึกษา (บาท/ปี)
+      </Typography>
+      {fees.length === 0 ? (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', px: 3, pb: 2 }}
+        >
+          ยังไม่มีอัตราค่าธรรมเนียมในระบบสำหรับหลักสูตรนี้ —
+          ติดต่อผู้ดูแลให้บันทึกอัตราที่หน้าค่าธรรมเนียม
+        </Typography>
+      ) : (
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>ประเภทนิสิต</TableCell>
+                <TableCell align="right">อัตราปีนี้</TableCell>
+                <TableCell align="right">อัตราเดิม</TableCell>
+                <TableCell align="right">สถานะ</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {fees.map((f) => (
+                <TableRow key={f.st}>
+                  <TableCell>{f.st}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    {fmtB(f.rate)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary' }}>
+                    {f.prev === null ? '—' : fmtB(f.prev)}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Chip
+                      size="small"
+                      label={STATUS_META[f.status].label}
+                      color={STATUS_META[f.status].color}
+                      sx={{ height: 18, fontSize: 10 }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+      {fees.some((f) => f.status !== 'approved') && (
+        <Typography
+          variant="caption"
+          color="warning.main"
+          sx={{ display: 'block', px: 3, py: 1.5 }}
+        >
+          ⚠ อัตราที่ยังไม่อนุมัติจะไม่ถูกนำไปคำนวณรายได้ในรอบคำนวณ
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -387,7 +466,7 @@ const ScenarioProgramView = () => {
                   <TextField
                     fullWidth
                     type="number"
-                    label="TFC รวม"
+                    label="ต้นทุนคงที่รวม (TFC)"
                     value={tfc || ''}
                     onChange={(e) => setTfc(Number(e.target.value) || 0)}
                   />
@@ -396,7 +475,7 @@ const ScenarioProgramView = () => {
                   <TextField
                     fullWidth
                     type="number"
-                    label="TVC รวม"
+                    label="ต้นทุนผันแปรรวม (TVC)"
                     value={tvc || ''}
                     onChange={(e) => setTvc(Number(e.target.value) || 0)}
                   />
@@ -404,6 +483,7 @@ const ScenarioProgramView = () => {
               </Grid>
 
               {progSel && progSel.Q > 0 && <ProgramRefNote p={progSel} fac={facSel ?? ''} />}
+              {progSel && <ProgramFeeRates p={progSel} />}
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
@@ -457,7 +537,7 @@ const ScenarioProgramView = () => {
                             `${(latest.tvc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
                             'text.primary',
                           ],
-                          ['AVC ต่อหน่วย', `${fmtB(latest.avc)} บ./คน`, 'text.primary'],
+                          ['ผันแปร/หัว (AVC)', `${fmtB(latest.avc)} บ./คน`, 'text.primary'],
                           ['นิสิตจริง (Q)', `${fmtN(latest.q)} คน`, 'text.primary'],
                         ] as const
                       ).map(([label, val, color]) => (
@@ -512,12 +592,12 @@ const ScenarioProgramView = () => {
                           <Grid container spacing={1}>
                             <Grid size={6}>
                               <Typography variant="body2">
-                                R/หัว: <b>{fmtB(r.r ?? 0)}</b> บ.
+                                รายได้/หัว (R): <b>{fmtB(r.r ?? 0)}</b> บ.
                               </Typography>
                             </Grid>
                             <Grid size={6}>
                               <Typography variant="body2">
-                                CM/หัว:{' '}
+                                ส่วนเกิน/หัว (CM):{' '}
                                 <b
                                   style={{
                                     color:
@@ -533,14 +613,14 @@ const ScenarioProgramView = () => {
                             </Grid>
                             <Grid size={6}>
                               <Typography variant="body2">
-                                Q*:{' '}
+                                จุดคุ้มทุน (Q*):{' '}
                                 <b style={{ color: 'var(--mui-palette-error-main)' }}>
                                   {r.qStar ? `${fmtN(r.qStar)} คน` : '—'}
                                 </b>{' '}
                                 {full && (
                                   <Chip
                                     size="small"
-                                    label="TC/R"
+                                    label="คืนทุนเต็ม (TC/R)"
                                     color="warning"
                                     sx={{ height: 16, fontSize: 10 }}
                                   />
@@ -574,7 +654,7 @@ const ScenarioProgramView = () => {
                           >
                             {!r.qStar
                               ? '⚠ คำนวณไม่ได้'
-                              : `${full ? '⚠ CM≤0 · ใช้ TC/R · ' : ''}${
+                              : `${full ? '⚠ ไม่คุ้มทุน (CM ≤ 0) · ใช้เป้าคืนทุนเต็ม (TC/R) · ' : ''}${
                                   isOk
                                     ? `✓ เกินจุดคุ้มทุน +${fmtN(latest.q - r.qStar)} คน`
                                     : `⚠ ต้องเพิ่มอีก ${fmtN(r.qStar - latest.q)} คน`
@@ -632,10 +712,10 @@ const ScenarioProgramView = () => {
                         <TableCell>หลักสูตร</TableCell>
                         <TableCell>ระดับ</TableCell>
                         <TableCell>ประเภท</TableCell>
-                        <TableCell align="right">Q</TableCell>
-                        <TableCell align="right">AVC</TableCell>
-                        <TableCell align="right">Q* รวมแผ่นดิน</TableCell>
-                        <TableCell align="right">Q* ไม่รวม</TableCell>
+                        <TableCell align="right">นิสิต (Q)</TableCell>
+                        <TableCell align="right">ผันแปร/หัว (AVC)</TableCell>
+                        <TableCell align="right">จุดคุ้มทุน (Q*) รวมแผ่นดิน</TableCell>
+                        <TableCell align="right">จุดคุ้มทุน (Q*) ไม่รวมแผ่นดิน</TableCell>
                         <TableCell align="right">สถานะ</TableCell>
                       </TableRow>
                     </TableHead>

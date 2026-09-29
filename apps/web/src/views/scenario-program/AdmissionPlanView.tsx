@@ -114,7 +114,7 @@ const AdmissionPlanView = () => {
             sx={{ mb: 3 }}
           >
             <ToggleButton value="saved">เลือกจากผลคำนวณที่บันทึกไว้</ToggleButton>
-            <ToggleButton value="manual">กรอก Q* เอง</ToggleButton>
+            <ToggleButton value="manual">กรอกจุดคุ้มทุน (Q*) เอง</ToggleButton>
           </ToggleButtonGroup>
 
           {history === null ? (
@@ -131,7 +131,7 @@ const AdmissionPlanView = () => {
                 }
               >
                 ยังไม่มีผลคำนวณที่บันทึกไว้ในเครื่องนี้ — คำนวณที่หน้า
-                &quot;จุดคุ้มทุนรายหลักสูตร&quot; ก่อน หรือสลับไปโหมดกรอก Q* เอง
+                &quot;จุดคุ้มทุนรายหลักสูตร&quot; ก่อน หรือสลับไปโหมดกรอกจุดคุ้มทุน (Q*) เอง
               </Alert>
             ) : (
               <Autocomplete
@@ -182,7 +182,7 @@ const AdmissionPlanView = () => {
         history !== null && (
           <Alert severity="info" variant="outlined">
             {source === 'saved' && selected
-              ? 'ผลคำนวณรายการนี้หาจุดคุ้มทุนไม่ได้ในโหมดที่เลือก (CM ≤ 0) — ลองสลับโหมดรายได้'
+              ? 'ผลคำนวณรายการนี้หาจุดคุ้มทุนไม่ได้ในโหมดที่เลือก เพราะรายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0) — ลองสลับโหมดรายได้'
               : 'เลือกหรือกรอกจุดคุ้มทุนรวม (Q*) ก่อน เพื่อแตกยอดตามแผนการรับนิสิต'}
           </Alert>
         )

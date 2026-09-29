@@ -66,7 +66,7 @@ const ROLES: { key: RoleName; label: string; desc: string; scoped: boolean; colo
     {
       key: 'admin',
       label: 'ผู้ดูแลระบบ',
-      desc: 'อนุมัติทุกอย่าง · ตั้งค่าระบบ · จัดการผู้ใช้และสิทธิ์ · ดู audit log ทั้งหมด',
+      desc: 'อนุมัติทุกอย่าง · ตั้งค่าระบบ · จัดการผู้ใช้และสิทธิ์ · ดูบันทึกการใช้งาน (audit log) ทั้งหมด',
       scoped: false,
       color: 'error',
     },
@@ -156,7 +156,7 @@ const RBAC: RbacRow[] = [
   },
   {
     screen: 'W14',
-    label: 'กติกาผังบัญชี TFC/TVC',
+    label: 'กติกาผังบัญชีต้นทุนคงที่/ผันแปร (TFC/TVC)',
     access: { viewer: 'n', faculty_officer: 'n', budget_office: 'y', admin: 'y' },
   },
   {
@@ -268,11 +268,11 @@ const INITIAL_USERS: AppUser[] = [
 const INITIAL_LOG = [
   {
     time: '06 ก.ย. 2569 08:30',
-    text: '<b>ผศ.ดร.ปิยภัทร บุษบาบดินทร์</b> เชิญ นางสาวปาริชาต ดวงแก้ว เข้าใช้ระบบ สิทธิ์ admin',
+    text: '<b>ผศ.ดร.ปิยภัทร บุษบาบดินทร์</b> เชิญ นางสาวปาริชาต ดวงแก้ว เข้าใช้ระบบ สิทธิ์ผู้ดูแลระบบ',
   },
   {
     time: '01 ก.ย. 2569 15:12',
-    text: 'เปลี่ยนสิทธิ์ นายอัครินทร์ บุพผา จาก faculty_officer เป็น budget_office',
+    text: 'เปลี่ยนสิทธิ์ นายอัครินทร์ บุพผา จากเจ้าหน้าที่คณะ เป็นกองแผนงาน',
   },
   { time: '20 ส.ค. 2569 09:00', text: 'ระงับบัญชี นายวิทยา คงเจริญ — ไม่เข้าใช้เกิน 180 วัน' },
 ];
@@ -345,7 +345,7 @@ const UsersView = () => {
                 {users.filter((u) => u.role === r.key).length}
               </Typography>
               <Typography variant="caption" color="text.disabled">
-                <code>{r.key}</code> · {r.scoped ? 'จำกัดขอบเขต' : 'เห็นทุกหน่วยงาน'}
+                {r.scoped ? 'จำกัดขอบเขต' : 'เห็นทุกหน่วยงาน'}
               </Typography>
             </CardContent>
           </Card>
@@ -354,12 +354,11 @@ const UsersView = () => {
 
       <Grid size={{ xs: 12 }}>
         <Alert severity="warning">
-          <b>ต้องตัดสินใจก่อนเริ่มเขียนโค้ด</b> — บทบาทตอนนี้มี 4 ค่าตายตัว (<code>admin</code> ·{' '}
-          <code>budget_office</code> · <code>faculty_officer</code> · <code>viewer</code>) และ
-          <b>ไม่มีบทบาท &quot;ผู้อนุมัติ&quot; แยก</b>{' '}
-          ทั้งที่ผู้เสนอไม่ควรกดอนุมัติเรื่องของตัวเองได้ — ตอนนี้จึงตกเป็นภาระของ{' '}
-          <code>admin</code> ซึ่งมีอำนาจอนุมัติเชิงนโยบายด้วย ถ้าไม่ต้องการแบบนี้ต้องเพิ่ม role{' '}
-          <code>approver</code> ใน schema ก่อน
+          <b>ต้องตัดสินใจก่อนพัฒนาต่อ</b> — บทบาทตอนนี้มี 4 แบบตายตัว (ผู้ดูแลระบบ · กองแผนงาน ·
+          เจ้าหน้าที่คณะ · ผู้ดูข้อมูล) และ<b>ไม่มีบทบาท &quot;ผู้อนุมัติ&quot; แยก</b>{' '}
+          ทั้งที่ผู้เสนอไม่ควรกดอนุมัติเรื่องของตัวเองได้ — ตอนนี้จึงตกเป็นภาระของผู้ดูแลระบบ
+          ซึ่งมีอำนาจอนุมัติเชิงนโยบายด้วย ถ้าไม่ต้องการแบบนี้ต้องเพิ่มบทบาท &quot;ผู้อนุมัติ&quot;
+          ในระบบก่อน
         </Alert>
       </Grid>
 
@@ -515,10 +514,10 @@ const UsersView = () => {
             />
             <CardContent>
               <FormControl fullWidth size="small" sx={{ mb: 4 }}>
-                <InputLabel id="role-select-label">บทบาท (app_role_id)</InputLabel>
+                <InputLabel id="role-select-label">บทบาท</InputLabel>
                 <Select
                   labelId="role-select-label"
-                  label="บทบาท (app_role_id)"
+                  label="บทบาท"
                   value={selectedUser.role}
                   onChange={(e) => setRole(selected, e.target.value)}
                 >
@@ -539,10 +538,10 @@ const UsersView = () => {
                 sx={{ mb: 4 }}
                 disabled={!ROLE_META[selectedUser.role].scoped}
               >
-                <InputLabel id="org-select-label">ขอบเขตหน่วยงาน (org_unit_id)</InputLabel>
+                <InputLabel id="org-select-label">ขอบเขตหน่วยงาน</InputLabel>
                 <Select
                   labelId="org-select-label"
-                  label="ขอบเขตหน่วยงาน (org_unit_id)"
+                  label="ขอบเขตหน่วยงาน"
                   value={selectedUser.org ?? ''}
                   onChange={(e) =>
                     setUsers((prev) =>
@@ -552,7 +551,7 @@ const UsersView = () => {
                     )
                   }
                 >
-                  <MenuItem value="">— ทุกหน่วยงาน (NULL) —</MenuItem>
+                  <MenuItem value="">— ทุกหน่วยงาน —</MenuItem>
                   {RAW.FACS.map((f) => (
                     <MenuItem key={f.name} value={f.name}>
                       {f.name}
@@ -561,7 +560,7 @@ const UsersView = () => {
                 </Select>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
                   {ROLE_META[selectedUser.role].scoped
-                    ? 'บทบาทนี้ต้องผูกหน่วยงาน — ระบบกรองข้อมูลที่ระดับ query ทุกครั้ง'
+                    ? 'บทบาทนี้ต้องผูกหน่วยงาน — ระบบกรองข้อมูลตามหน่วยงานทุกครั้งที่ดึงข้อมูล'
                     : 'บทบาทนี้เห็นทุกหน่วยงานเสมอ จึงตั้งขอบเขตไม่ได้'}
                 </Typography>
               </FormControl>
@@ -644,10 +643,6 @@ const UsersView = () => {
                         }}
                       >
                         {r.label}
-                        <br />
-                        <Typography variant="caption" color="text.secondary">
-                          {r.key}
-                        </Typography>
                       </TableCell>
                     ))}
                   </TableRow>
@@ -655,17 +650,7 @@ const UsersView = () => {
                 <TableBody>
                   {RBAC.map((row) => (
                     <TableRow key={`${row.screen}-${row.action ?? ''}`}>
-                      <TableCell>
-                        <Typography component="span" fontWeight={700} color="primary">
-                          {row.screen}
-                        </Typography>{' '}
-                        {row.action && (
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            ({row.action})
-                          </Typography>
-                        )}{' '}
-                        {row.label}
-                      </TableCell>
+                      <TableCell>{row.label}</TableCell>
                       {ROLES.map((r) => (
                         <TableCell
                           key={r.key}

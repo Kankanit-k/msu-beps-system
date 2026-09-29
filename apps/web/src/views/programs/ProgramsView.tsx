@@ -192,7 +192,10 @@ const ProgramsView = () => {
       {
         ok: p.Q > 0,
         label: 'มีจำนวนนิสิตจากระบบทะเบียน',
-        detail: p.Q > 0 ? `${fmtN(p.Q)} คน` : 'Q = 0 — คำนวณ R และ AVC ไม่ได้',
+        detail:
+          p.Q > 0
+            ? `${fmtN(p.Q)} คน`
+            : 'ไม่มีนิสิต (Q = 0) — คำนวณรายได้ต่อหัว (R) และต้นทุนผันแปรต่อหัว (AVC) ไม่ได้',
       },
       {
         ok: p.TR > 0,
@@ -490,7 +493,7 @@ const ProgramsView = () => {
                 </Grid>
                 <Grid size={4}>
                   <Typography variant="caption" color="text.secondary" display="block">
-                    ต้นทุน/หัว (AVC)
+                    ผันแปร/หัว (AVC)
                   </Typography>
                   <Typography variant="body1" fontWeight={700}>
                     {fmtN(selectedProgram.AVC)}

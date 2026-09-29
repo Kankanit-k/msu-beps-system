@@ -78,9 +78,10 @@ const ErpAccounts = () => {
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
         <Alert severity="info">
-          หน้านี้เก็บ<b>ตัวบัญชี</b> (erp_account) ส่วนการกำหนดว่าบัญชีนั้นเป็น TFC หรือ TVC อยู่ที่{' '}
+          หน้านี้เก็บ<b>ตัวบัญชี ERP</b> ส่วนการกำหนดว่าบัญชีนั้นเป็นต้นทุนคงที่ (TFC)
+          หรือต้นทุนผันแปร (TVC) อยู่ที่{' '}
           <Link component={NextLink} href="/admin/university/account-rules">
-            กติกาผังบัญชี TFC/TVC
+            หน้ากติกาผังบัญชี
           </Link>{' '}
           — แยกกันเพราะ<b>บัญชีหนึ่งใบมีกติกาได้หลายช่วงปี</b> และกติกาต้องผ่านการอนุมัติ
           ส่วนตัวบัญชีมาจาก ERP
@@ -106,7 +107,7 @@ const ErpAccounts = () => {
         <Card>
           <CardContent>
             <Typography variant="body2" color="text.secondary">
-              ผูกกติกา TFC/TVC แล้ว
+              ผูกกติกาต้นทุนคงที่/ผันแปร (TFC/TVC) แล้ว
             </Typography>
             <Typography variant="h4" color="success.main">
               {fmtN(withRule.length)}
@@ -150,17 +151,14 @@ const ErpAccounts = () => {
 
       <Grid size={{ xs: 12 }}>
         <Card sx={{ bgcolor: 'background.default' }}>
-          <CardHeader
-            title="ทำไมคีย์ต้องเป็น 4 ระดับ"
-            subheader="พิสูจน์จากข้อมูลจริง — mockup/MAPPING.md หัวข้อ 2"
-          />
+          <CardHeader title="ทำไมคีย์ต้องเป็น 4 ระดับ" subheader="พิสูจน์จากข้อมูลจริงในผังบัญชี" />
           <CardContent>
             <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={3}>
               {[
-                'แผนงาน\nplan_code',
-                'หมวดงบประมาณ\nbudget_category_code',
-                'หมวดรายจ่าย\nexpenditure_category_code',
-                'หมวดย่อย\nsubcategory_code',
+                'แผนงาน\nระดับ 1',
+                'หมวดงบประมาณ\nระดับ 2',
+                'หมวดรายจ่าย\nระดับ 3',
+                'หมวดย่อย\nระดับ 4',
               ].map((step, i, arr) => (
                 <Box key={step} display="flex" alignItems="center" gap={2}>
                   <Chip
@@ -254,7 +252,7 @@ const ErpAccounts = () => {
                   <TableCell>ชื่อบัญชี</TableCell>
                   <TableCell align="right">ยอด (ลบ.)</TableCell>
                   <TableCell>ช่วงปี</TableCell>
-                  <TableCell>กติกา TFC/TVC</TableCell>
+                  <TableCell>กติกาคงที่/ผันแปร (TFC/TVC)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -385,7 +383,7 @@ const ErpAccounts = () => {
                   fullWidth
                   value={account.name}
                   slotProps={{ input: { readOnly: true } }}
-                  helperText="ทั้ง 4 รหัสรวมกันเป็น UNIQUE key คู่กับปีเริ่มมีผล — แก้รหัสของบัญชีที่คำนวณไปแล้วไม่ได้"
+                  helperText="ทั้ง 4 รหัสรวมกับปีเริ่มมีผลต้องไม่ซ้ำกับบัญชีอื่น — แก้รหัสของบัญชีที่คำนวณไปแล้วไม่ได้"
                   sx={{ mb: 4 }}
                 />
 
@@ -415,12 +413,12 @@ const ErpAccounts = () => {
                 <Box display="flex" justifyContent="space-between" alignItems="center" py={2}>
                   <Box>
                     <Typography fontWeight={600} fontSize={13}>
-                      กติกา TFC/TVC ในปีงบ {year}
+                      กติกาต้นทุนคงที่/ผันแปร (TFC/TVC) ในปีงบ {year}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {curRule
                         ? `${curRule.note || 'ไม่มีหมายเหตุ'} · ปันส่วน${METHOD[curRule.m]}`
-                        : 'ยังไม่มีกติกา — เงินจะถูกพักไว้ที่หน่วยงานและติดธง UNCLASSIFIED'}
+                        : 'ยังไม่มีกติกา — เงินจะถูกพักไว้ที่หน่วยงานและติดธง “ยังไม่จำแนก”'}
                     </Typography>
                   </Box>
                   {curRule ? (
@@ -462,7 +460,9 @@ const ErpAccounts = () => {
                     variant={account.ruleKey ? 'outlined' : 'contained'}
                     size="small"
                   >
-                    {account.ruleKey ? '⚖ ดูกติกาที่หน้ากติกาผังบัญชี' : '+ ตั้งกติกา TFC/TVC'}
+                    {account.ruleKey
+                      ? '⚖ ดูกติกาที่หน้ากติกาผังบัญชี'
+                      : '+ ตั้งกติกาต้นทุนคงที่/ผันแปร'}
                   </Button>
                   {retired ? (
                     <Button variant="outlined" color="success" size="small">
@@ -487,7 +487,7 @@ const ErpAccounts = () => {
                     {
                       ic: '1️⃣',
                       t: 'ระบบไม่เดาแทน',
-                      d: 'รายการถูกจัดเป็น UNCLASSIFIED ไม่ใช่เดาว่าเป็นต้นทุนคงที่',
+                      d: 'รายการถูกจัดเป็น “ยังไม่จำแนก” ไม่ใช่เดาว่าเป็นต้นทุนคงที่',
                     },
                     {
                       ic: '2️⃣',
@@ -542,8 +542,8 @@ const ErpAccounts = () => {
                 ไม่งั้นเงินก้อนนั้นจะไม่เข้าต้นทุนรายหลักสูตรทั้งปี
               </Alert>
               <Alert severity="info">
-                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงไม่อยู่ในตารางนี้ — กำหนดประเภทผ่านค่าตั้ง{' '}
-                <code>depreciation_behavior</code> ที่หน้านโยบายการคำนวณ
+                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงไม่อยู่ในตารางนี้ — กำหนดประเภทผ่านค่าตั้ง
+                &ldquo;ประเภทต้นทุนของค่าเสื่อมราคา&rdquo; ที่หน้านโยบายการคำนวณ
               </Alert>
               <Alert severity="success">
                 ผังบัญชีปกติมาจาก ERP ผ่านการนำเข้า หน้านี้ใช้แก้รายกรณีและเพิ่มบัญชีที่ ERP

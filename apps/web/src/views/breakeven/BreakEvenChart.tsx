@@ -183,15 +183,15 @@ const buildRecommendations = (
   if (status === 'fcr' || status === 'none') {
     P.push({
       t: 'crit',
-      h: `ราคาต่อหัว (R ${fmtInt(res.r)}) ต่ำกว่าต้นทุนผันแปรต่อหัว (AVC ${fmtInt(res.avc)}) — รับนิสิตเพิ่มยิ่งขาดทุน ควรชะลอการขยายจนกว่าจะปรับโครงสร้างราคา/ต้นทุน`,
+      h: `รายได้ต่อหัว (R) ${fmtInt(res.r)} บ. ต่ำกว่าต้นทุนผันแปรต่อหัว (AVC) ${fmtInt(res.avc)} บ. — รับนิสิตเพิ่มยิ่งขาดทุน ควรชะลอการขยายจนกว่าจะปรับโครงสร้างราคา/ต้นทุน`,
     });
     P.push({
       t: 'warn',
-      h: `ตั้งเป้าให้ R สูงกว่า AVC: ทบทวนอัตราค่าธรรมเนียม หรือลดต้นทุนผันแปรต่อหัวให้ต่ำกว่า ${fmtInt(res.r)} บ./คน`,
+      h: `ตั้งเป้าให้รายได้ต่อหัว (R) สูงกว่าต้นทุนผันแปรต่อหัว (AVC): ทบทวนอัตราค่าธรรมเนียม หรือลดต้นทุนผันแปรต่อหัวให้ต่ำกว่า ${fmtInt(res.r)} บ./คน`,
     });
     P.push({
       t: 'info',
-      h: `แนวทาง Full-Cost Recovery: ต้องมีนิสิตราว ${fmtInt(fcr)} คน ค่าเทอมรวมจึงครอบคลุมต้นทุน (ปัจจุบัน ${fmtInt(q)} คน)`,
+      h: `แนวทางการคืนทุนเต็มจำนวน (Full-Cost Recovery): ต้องมีนิสิตราว ${fmtInt(fcr)} คน ค่าเทอมรวมจึงครอบคลุมต้นทุน (ปัจจุบัน ${fmtInt(q)} คน)`,
     });
   } else if (status === 'loss') {
     P.push({
@@ -200,12 +200,12 @@ const buildRecommendations = (
     });
     P.push({
       t: 'info',
-      h: `หรือเพิ่ม CM ต่อหัว ด้วยการขึ้นค่าธรรมเนียม/เพิ่มรายได้เสริม หรือลด AVC และลดต้นทุนคงที่ (TFC ${fmtMillion(res.tfc)} ลบ.) โดยใช้ทรัพยากรร่วมกับหลักสูตรอื่น`,
+      h: `หรือเพิ่มกำไรส่วนเกินต่อหัว (CM) ด้วยการขึ้นค่าธรรมเนียม/เพิ่มรายได้เสริม หรือลดต้นทุนผันแปรต่อหัว (AVC) และลดต้นทุนคงที่ (TFC) ${fmtMillion(res.tfc)} ลบ. โดยใช้ทรัพยากรร่วมกับหลักสูตรอื่น`,
     });
   } else {
     P.push({
       t: 'ok',
-      h: `คุ้มทุนแล้ว มี Margin of Safety ${fmtInt(mos)} คน (${q ? ((mos / q) * 100).toFixed(0) : 0}% ของนิสิตปัจจุบัน)`,
+      h: `คุ้มทุนแล้ว มีส่วนเผื่อความปลอดภัย (Margin of Safety) ${fmtInt(mos)} คน (${q ? ((mos / q) * 100).toFixed(0) : 0}% ของนิสิตปัจจุบัน)`,
     });
     P.push({
       t: 'info',
@@ -371,13 +371,13 @@ const BreakEvenChart = () => {
     {
       label: 'จุดคุ้มทุน (Q*)',
       value: qStar !== null ? fmtInt(qStar) : 'ไม่มี',
-      unit: qStar !== null ? 'คน' : 'CM ≤ 0',
+      unit: qStar !== null ? 'คน' : 'ไม่คุ้มทุน (CM ≤ 0)',
       accent: 'error',
     },
     { label: 'รายได้/หัว (R)', value: fmtInt(res.r), unit: 'บาท/คน', accent: 'warning' },
     { label: 'ต้นทุนผันแปร/หัว (AVC)', value: fmtInt(res.avc), unit: 'บาท/คน', accent: 'warning' },
     {
-      label: 'กำไรส่วนเกิน/หัว (R−AVC)',
+      label: 'ส่วนเกิน/หัว (CM)',
       value: fmtInt(r - avc),
       unit: 'บาท/คน',
       accent: 'success',

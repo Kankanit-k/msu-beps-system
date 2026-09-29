@@ -27,6 +27,7 @@ import {
   clearDraft,
   loadDraft,
   loadPlans,
+  mixShares,
   saveDraft,
   savePlans,
 } from './admissionPlanStore';
@@ -34,6 +35,8 @@ import {
 /** ยังไม่ได้แตะอะไรเลย = ไม่ต้องเซฟ draft และไม่มีอะไรให้ล้าง */
 export const isPristine = (mix: AdmissionMix, segmented: SegmentedInputs) =>
   CATEGORY_KEYS.every((k) => !mix.enabled[k] && !mix.pct[k]) &&
+  mix.thaiRegularPct === undefined &&
+  !mix.thaiRegularOff &&
   segmented.tfc === 0 &&
   Object.values(segmented.rates).every((r) => !r.fee && !r.gov && !r.avc);
 
@@ -103,30 +106,38 @@ export const useAdmissionPlan = (
     setMix((prev) => ({ ...prev, pct: { ...prev.pct, [key]: clamped } }));
   }, []);
 
+  /** `undefined` = ล้างช่อง กลับไปคิดเป็นส่วนที่เหลืออัตโนมัติ */
+  const setThaiRegularPct = useCallback((value: number | undefined) => {
+    const clamped =
+      value === undefined ? undefined : Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+
+    setMix((prev) => ({ ...prev, thaiRegularPct: clamped }));
+  }, []);
+
   const toggleCategory = useCallback((key: CategoryKey, on: boolean) => {
     setMix((prev) => ({
+      ...prev,
       enabled: { ...prev.enabled, [key]: on },
       pct: on ? prev.pct : { ...prev.pct, [key]: 0 },
     }));
   }, []);
 
-  /** สัดส่วนที่ใช้งานจริง — นิสิตไทยภาคปกติเป็นส่วนที่เหลือเสมอ */
-  const shares = useMemo(() => {
-    const activeKeys = CATEGORY_KEYS.filter((k) => mix.enabled[k]);
-    const otherTotal = activeKeys.reduce((sum, k) => sum + (mix.pct[k] || 0), 0);
+  const toggleThaiRegular = useCallback((on: boolean) => {
+    setMix((prev) => ({
+      ...prev,
+      thaiRegularOff: !on,
+      thaiRegularPct: undefined,
+    }));
+  }, []);
 
-    return {
-      activeKeys,
-      otherTotal,
-      thaiRegularPct: Math.max(0, 100 - otherTotal),
-      overAllocated: otherTotal > 100,
-    };
-  }, [mix]);
+  const shares = useMemo(() => mixShares(mix), [mix]);
 
-  /** กลุ่มที่มีสัดส่วนจริง — ไทยภาคปกติเป็นส่วนที่เหลือเสมอจึงติดมาทุกครั้ง */
+  /** กลุ่มที่มีสัดส่วนจริง — ไทยภาคปกติติดมาด้วยเมื่อเปิดอยู่ (กรอกเองหรือเป็นส่วนที่เหลือ) */
   const activeSegments = useMemo<{ key: SegmentKey; share: number }[]>(
     () => [
-      { key: 'thaiRegular', share: shares.thaiRegularPct },
+      ...(shares.thaiRegularOn
+        ? [{ key: 'thaiRegular' as SegmentKey, share: shares.thaiRegularPct }]
+        : []),
       ...shares.activeKeys.map((k) => ({ key: k, share: mix.pct[k] || 0 })),
     ],
     [shares, mix.pct],
@@ -162,6 +173,8 @@ export const useAdmissionPlan = (
         savedAt: new Date().toLocaleString('th-TH'),
         enabled: { ...mix.enabled },
         pct: { ...mix.pct },
+        thaiRegularPct: mix.thaiRegularPct,
+        thaiRegularOff: mix.thaiRegularOff,
         segmented: { tfc: segmented.tfc, rates: { ...segmented.rates } },
         segmentedQStar: segmentedResult.qStar,
       };
@@ -185,7 +198,12 @@ export const useAdmissionPlan = (
 
       if (!plan) return;
 
-      setMix({ enabled: { ...plan.enabled }, pct: { ...plan.pct } });
+      setMix({
+        enabled: { ...plan.enabled },
+        pct: { ...plan.pct },
+        thaiRegularPct: plan.thaiRegularPct,
+        thaiRegularOff: plan.thaiRegularOff,
+      });
       if (plan.segmented)
         setSegmented({ tfc: plan.segmented.tfc, rates: { ...plan.segmented.rates } });
 
@@ -232,7 +250,9 @@ export const useAdmissionPlan = (
     toast,
     setToast,
     setCategoryPct,
+    setThaiRegularPct,
     toggleCategory,
+    toggleThaiRegular,
     savePlan,
     applyPlan,
     deletePlan,

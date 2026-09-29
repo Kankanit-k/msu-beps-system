@@ -62,7 +62,7 @@ const BreakEvenChart = ({ q, tfc, avc, rPerHead, qStar }: Props) => {
                 y: Number(((qStar * rPerHead) / 1e6).toFixed(3)),
                 marker: { size: 6, fillColor: '#5938e0', strokeColor: '#fff' },
                 label: {
-                  text: `Q*=${fmtN(qStar)}`,
+                  text: `จุดคุ้มทุน (Q*) ${fmtN(qStar)}`,
                   style: { background: '#5938e0', color: '#fff' },
                 },
               },
@@ -79,9 +79,9 @@ const BreakEvenChart = ({ q, tfc, avc, rPerHead, qStar }: Props) => {
   };
 
   const series = [
-    { name: 'TR', data: trSeries },
-    { name: 'TC', data: tcSeries },
-    { name: 'TFC', data: tfcSeries },
+    { name: 'รายได้รวม (TR)', data: trSeries },
+    { name: 'ต้นทุนรวม (TC)', data: tcSeries },
+    { name: 'ต้นทุนคงที่ (TFC)', data: tfcSeries },
   ];
 
   return <AppReactApexCharts type="line" height={280} series={series} options={options} />;

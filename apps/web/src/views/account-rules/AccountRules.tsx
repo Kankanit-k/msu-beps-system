@@ -193,7 +193,7 @@ const AccountRules = () => {
                   <TableCell>ชื่อบัญชี</TableCell>
                   <TableCell align="right">ยอด (ลบ.)</TableCell>
                   <TableCell>ประเภท</TableCell>
-                  <TableCell align="right">F : V</TableCell>
+                  <TableCell align="right">คงที่ : ผันแปร</TableCell>
                   <TableCell>วิธีปันส่วน</TableCell>
                 </TableRow>
               </TableHead>
@@ -322,8 +322,9 @@ const AccountRules = () => {
                           </Box>
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                          ยอด {fmtM(account.amount)} ลบ. → TFC {fmtM(account.amount * rule.f)} ลบ. ·
-                          TVC {fmtM(account.amount * rule.v)} ลบ.
+                          ยอด {fmtM(account.amount)} ลบ. → คงที่ (TFC){' '}
+                          {fmtM(account.amount * rule.f)} ลบ. · ผันแปร (TVC){' '}
+                          {fmtM(account.amount * rule.v)} ลบ.
                         </Typography>
                       </Box>
                     )}
@@ -446,15 +447,15 @@ const AccountRules = () => {
                 15:85 ทับกติกากลาง 35:65
               </Alert>
               <Alert severity="warning">
-                <b>UNCLASSIFIED ไม่ใช่ค่าว่าง</b> — เป็นสถานะที่ตั้งใจ
+                <b>&ldquo;ยังไม่จำแนก&rdquo; ไม่ใช่ค่าว่าง</b> — เป็นสถานะที่ตั้งใจ
                 ระบบจะพักเงินไว้ที่หน่วยงานและติดธงไปที่รายการค้างตรวจ ไม่เดาแทน
               </Alert>
               <Alert severity="info">
-                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงหากติกาปกติไม่เจอ — กำหนดผ่านค่าตั้ง{' '}
-                <code>depreciation_behavior</code> ที่หน้านโยบายการคำนวณแทน
+                <b>ค่าเสื่อมราคาไม่มีรหัสผังบัญชี</b> จึงหากติกาปกติไม่เจอ — กำหนดผ่านค่าตั้ง
+                &ldquo;ประเภทต้นทุนของค่าเสื่อมราคา&rdquo; ที่หน้านโยบายการคำนวณแทน
               </Alert>
               <Alert severity="success">
-                การแก้กติกาต้องผ่านการอนุมัติ และ run ที่คำนวณไปแล้วจะ<b>ล็อกเวอร์ชันกติกาไว้</b>{' '}
+                การแก้กติกาต้องผ่านการอนุมัติ และรอบคำนวณที่ทำไปแล้วจะ<b>ล็อกเวอร์ชันกติกาไว้</b>{' '}
                 คำนวณซ้ำได้ตัวเลขเดิมเป๊ะ
               </Alert>
             </Box>

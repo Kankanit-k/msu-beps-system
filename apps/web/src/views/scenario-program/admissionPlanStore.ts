@@ -10,7 +10,7 @@
  * (ดู ADMISSION-PLAN-API.md) เปลี่ยนแค่ข้างในไฟล์นี้ ไม่ต้องแก้หน้าจอที่เรียกใช้
  */
 
-/** กลุ่มที่ผู้ใช้เปิด/ปิดได้ — นิสิตไทยภาคปกติเป็นส่วนที่เหลือเสมอ จึงไม่อยู่ในนี้ */
+/** กลุ่มที่เลือกเปิดเพิ่มได้ — นิสิตไทยภาคปกติเก็บแยก (AdmissionMix.thaiRegularPct / thaiRegularOff) */
 export type CategoryKey = 'thaiSpecial' | 'foreignRegular' | 'foreignSpecial' | 'continuing';
 
 /** ทุกกลุ่มรวมนิสิตไทยภาคปกติ — ใช้กับการคำนวณแยกรายกลุ่มที่ต้องมีอัตราครบทุกกลุ่ม */
@@ -37,7 +37,37 @@ export const SEGMENT_LABELS: Record<SegmentKey, string> = {
 export interface AdmissionMix {
   enabled: Record<CategoryKey, boolean>;
   pct: Record<CategoryKey, number>;
+  /** สัดส่วนนิสิตไทยภาคปกติที่กรอกเอง — ว่าง (undefined) = คิดเป็นส่วนที่เหลือให้อัตโนมัติ */
+  thaiRegularPct?: number;
+  /** ปิดกลุ่มนิสิตไทยภาคปกติ (สัดส่วน 0) — ไม่มีฟิลด์ = เปิด ให้แผนเก่าที่บันทึกไว้ยังใช้ได้ */
+  thaiRegularOff?: boolean;
 }
+
+/** สัดส่วนที่ใช้งานจริงของ mix หนึ่ง — กรอกนิสิตไทยภาคปกติเองแล้วรวมทุกกลุ่มต้องได้ 100% พอดี */
+export const mixShares = (mix: AdmissionMix) => {
+  const activeKeys = CATEGORY_KEYS.filter((k) => mix.enabled[k]);
+  const otherTotal = activeKeys.reduce((sum, k) => sum + (mix.pct[k] || 0), 0);
+  const thaiRegularOn = !mix.thaiRegularOff;
+  const manual = thaiRegularOn && mix.thaiRegularPct !== undefined;
+  const thaiRegularPct = !thaiRegularOn
+    ? 0
+    : manual
+      ? (mix.thaiRegularPct as number)
+      : Math.max(0, 100 - otherTotal);
+  // ปิดไทยภาคปกติ = ไม่มีส่วนที่เหลือให้เติม กลุ่มที่เปิดต้องรวมกันได้ 100% เอง
+  const total = !thaiRegularOn || manual ? thaiRegularPct + otherTotal : Math.max(100, otherTotal);
+
+  return {
+    activeKeys,
+    thaiRegularOn,
+    otherTotal,
+    thaiRegularPct,
+    manual,
+    total,
+    /** ทศนิยมจากการกรอก เช่น 33.3 x 3 — ยอมให้คลาดได้นิดหน่อย */
+    invalid: Math.abs(total - 100) > 0.01,
+  };
+};
 
 /** อัตราต่อหัวของกลุ่มหนึ่ง — ตรงกับ fee_schedule / per_student_charge ใน db/01_schema.sql */
 export interface SegmentRates {

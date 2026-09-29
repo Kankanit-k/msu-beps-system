@@ -65,6 +65,8 @@ const CostRowsEditor = ({
             gap: 3,
             maxHeight: 280,
             overflowY: 'auto',
+            // เว้นขอบบนให้ label ที่ลอยขึ้นของ TextField ไม่โดนกล่อง scroll ตัด
+            pt: 1.5,
           }}
         >
           {rows.map((row) => (

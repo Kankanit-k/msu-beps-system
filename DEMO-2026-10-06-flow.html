@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>MSU-BEPS — ลำดับการนำเสนอ 6 ต.ค. 2569</title>
+<!--
+  แผนภาพลำดับการนำเสนอ — สร้างจาก DEMO-2026-10-06.md
+  แก้ข้อความในไฟล์นี้แล้ว render เป็น PNG ใหม่ด้วย:
+
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+    --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 \
+    --window-size=1560,2030 --screenshot=DEMO-2026-10-06-flow.png \
+    "file://$PWD/DEMO-2026-10-06-flow.html"
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --ink:#241C36; --ink2:#5A5169; --ink3:#8B8397; --line:#E3E0EC; --bg:#F7F6FB;
+    --purple:#6D4CFF; --purpleD:#5334D6; --purpleBg:#F1EDFF;
+    --amber:#C97A00; --amberBg:#FFF4E0;
+    --pink:#C2185B; --pinkBg:#FDECF3;
+    --slate:#4A5568; --slateBg:#EEF1F6;
+    --red:#D32F2F; --redBg:#FDECEC;
+    --green:#2E7D32; --greenBg:#EAF6EA;
+  }
+  body{
+    inline-size:1560px; background:#fff; color:var(--ink);
+    font-family:'Sarabun','IBM Plex Sans Thai','Noto Sans Thai','Thonburi',sans-serif;
+    font-size:15px; line-height:1.55; padding:36px 40px 44px;
+  }
+
+  /* ---------- header ---------- */
+  header{ border-block-end:3px solid var(--purple); padding-block-end:16px; margin-block-end:26px; }
+  h1{ font-size:30px; font-weight:800; letter-spacing:-.4px; }
+  h1 span{ color:var(--purple); }
+  .sub{ color:var(--ink2); font-size:14.5px; margin-block-start:6px; }
+  .metarow{ display:flex; gap:8px; margin-block-start:12px; flex-wrap:wrap; }
+  .pill{ font-size:12.5px; font-weight:700; padding:4px 12px; border-radius:20px;
+         background:var(--bg); color:var(--ink2); border:1px solid var(--line); }
+  .pill.hi{ background:var(--purpleBg); color:var(--purpleD); border-color:#CFC2FF; }
+
+  /* ---------- layout ---------- */
+  .wrap{ display:grid; grid-template-columns:1010px 1fr; gap:34px; align-items:start; }
+
+  /* ---------- stage card ---------- */
+  .stage{ border:1.5px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
+  .stage > .head{ display:flex; align-items:center; gap:10px; padding:11px 16px; color:#fff; }
+  .stage > .head .n{ font-weight:800; font-size:16px; }
+  .stage > .head .t{ font-weight:700; font-size:16px; flex:1; }
+  .stage > .head .time{ font-size:12.5px; font-weight:700; background:rgba(255,255,255,.22);
+                        padding:3px 11px; border-radius:20px; }
+  .stage > .head .role{ font-size:12.5px; font-weight:700; background:#fff;
+                        padding:3px 11px; border-radius:20px; }
+  .body{ padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+
+  .s-prep > .head{ background:var(--slate); } .s-prep .role{ color:var(--slate); }
+  .s-user > .head{ background:var(--purple); } .s-user .role{ color:var(--purpleD); }
+  .s-dept > .head{ background:var(--amber); } .s-dept .role{ color:var(--amber); }
+  .s-uni  > .head{ background:var(--pink);  } .s-uni  .role{ color:var(--pink); }
+  .s-end  > .head{ background:var(--ink);   }
+
+  /* ---------- page row ---------- */
+  .row{ display:grid; grid-template-columns:230px 1fr; gap:14px; align-items:start;
+        padding:11px 13px; border-radius:9px; background:var(--bg); border:1px solid var(--line); }
+  .row .name{ font-weight:700; font-size:14.5px; }
+  .row .path{ font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--ink3);
+              margin-block-start:3px; word-break:break-all; }
+  .row .say{ font-size:14px; color:var(--ink2); }
+  .row .say b{ color:var(--ink); }
+  .row.key{ background:var(--purpleBg); border-color:#CFC2FF; }
+  .s-dept .row.key{ background:var(--amberBg); border-color:#F3D9AC; }
+  .s-uni  .row.key{ background:var(--pinkBg);  border-color:#F2C4D8; }
+  .row.opt{ background:#fff; border-style:dashed; }
+  .row.opt .name, .row.opt .say{ color:var(--ink3); }
+
+  .tag{ display:inline-block; font-size:11.5px; font-weight:800; padding:2px 8px;
+        border-radius:6px; margin-inline-end:6px; vertical-align:2px; }
+  .tag.ask{ background:var(--pink); color:#fff; }
+  .tag.out{ background:var(--green); color:#fff; }
+
+  ul{ list-style:none; display:flex; flex-direction:column; gap:7px; }
+  li{ font-size:14px; color:var(--ink2); padding-inline-start:20px; position:relative; }
+  li::before{ content:'□'; position:absolute; inset-inline-start:0; color:var(--ink3); }
+  li b{ color:var(--ink); }
+
+  /* ---------- arrow ---------- */
+  .arrow{ display:flex; align-items:center; gap:14px; padding-block:6px; padding-inline-start:30px; }
+  .conn{ display:flex; flex-direction:column; align-items:center; }
+  .conn .stem{ inline-size:3px; block-size:26px; background:#C7C0DA; }
+  .conn .tip{ inline-size:0; block-size:0; border-inline-start:8px solid transparent;
+              border-inline-end:8px solid transparent; border-block-start:11px solid #C7C0DA; }
+  .arrow .lbl{ font-size:13.5px; font-weight:700; color:var(--ink2);
+               background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:4px 13px; }
+  .arrow.switch .conn .stem{ background:var(--pink); }
+  .arrow.switch .conn .tip{ border-block-start-color:var(--pink); }
+  .arrow.switch .lbl{ background:var(--pinkBg); border-color:#F2C4D8; color:var(--pink); font-weight:800; }
+
+  /* ---------- right rail ---------- */
+  .rail{ display:flex; flex-direction:column; gap:18px; }
+  .note{ border:1.5px solid var(--line); border-radius:12px; overflow:hidden; }
+  .note .nh{ padding:10px 14px; font-weight:700; font-size:14.5px; }
+  .note .nb{ padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
+  .note.warn{ border-color:#F2BFBF; } .note.warn .nh{ background:var(--redBg); color:var(--red); }
+  .note.ask{ border-color:#F2C4D8; }  .note.ask  .nh{ background:var(--pinkBg); color:var(--pink); }
+  .note.gap{ border-color:#E3E0EC; }  .note.gap  .nh{ background:var(--bg); color:var(--ink2); }
+  .note p{ font-size:13.5px; color:var(--ink2); }
+  .note p b{ color:var(--ink); }
+  .note code{ font-family:ui-monospace,Menlo,monospace; font-size:11.5px;
+              background:var(--bg); padding:1px 5px; border-radius:4px; color:var(--ink2); }
+  .num{ display:flex; gap:9px; font-size:13.5px; color:var(--ink2); }
+  .num .i{ flex:none; inline-size:19px; block-size:19px; border-radius:50%; background:var(--pink);
+           color:#fff; font-size:11.5px; font-weight:800; text-align:center; line-height:19px; }
+
+  footer{ margin-block-start:26px; padding-block-start:14px; border-block-start:1px solid var(--line);
+          font-size:12.5px; color:var(--ink3); display:flex; justify-content:space-between; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MSU-BEPS — ลำดับการนำเสนอ <span>6 ต.ค. 2569</span></h1>
+  <div class="sub">ผู้ฟัง: รองอธิการบดีฝ่ายนโยบายและแผนงาน · ผู้ช่วยอธิการบดีฝ่ายพัฒนาหลักสูตรฯ · รองคณบดีฝ่ายบริหารและแผนพัฒนาองค์กร</div>
+  <div class="metarow">
+    <span class="pill hi">รวม ~26 นาที</span>
+    <span class="pill">เข้าระบบเป็น “ผู้ดูแลมหาวิทยาลัย” แล้วใช้ตัวสลับมุมมองสิทธิ์ (มุมล่างซ้าย sidebar)</span>
+    <span class="pill">ตรวจ 27 หน้าด้วย Playwright 28 ก.ย. 2569 — ไม่มี JS error</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- ============ main spine ============ -->
+  <div>
+
+    <section class="stage s-prep">
+      <div class="head"><span class="n">0</span><span class="t">เตรียมก่อนวันจริง</span>
+        <span class="time">ภายใน 5 ต.ค.</span></div>
+      <div class="body">
+        <ul>
+          <li><b>ตัดสินใจเรื่องตัวเลข</b> — ตอนนี้เป็นข้อมูลตัวอย่างที่สุ่มรบกวนแล้ว เลือก (ก) ใช้ตัวอย่างต่อ + ประกาศตั้งแต่สไลด์แรก หรือ (ข) ใส่ข้อมูลจริงเฉพาะเครื่องนำเสนอ (ห้าม commit)</li>
+          <li>เปิดจาก <b>เครื่องตัวเอง</b> หรือ Vercel preview — <b>ห้ามใช้ URL production</b> (login ยังไม่ส่ง role ทุกคนจะติดที่ “ผู้ใช้ทั่วไป”)</li>
+          <li>เปิดทุกหน้าหนึ่งรอบก่อนเริ่ม — dev mode compile ครั้งแรกช้า (~4 วิ.)</li>
+          <li>ตั้งมุมมองเริ่มต้นเป็น <b>ผู้ใช้ทั่วไป</b> ก่อนต่อจอ · ปิดแท็บอื่น/notification · ซูม 110–125%</li>
+          <li>สำรอง: ภาพหน้าจอใน <b>demo-shots/</b> หรือเปิด mockup/index.html โดยไม่ต้องรัน server</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="arrow"><div class="conn"><div class="stem"></div><div class="tip"></div></div></div>
+
+    <section class="stage s-user">
+      <div class="head"><span class="n">1</span><span class="t">มุมมองผู้บริหาร — ภาพรวมทั้งมหาวิทยาลัย</span>
+        <span class="role">ผู้ใช้ทั่วไป</span><span class="time">8 นาที</span></div>
+      <div class="body">
+        <div class="row key">
+          <div><div class="name">W1 ภาพรวมมหาวิทยาลัย</div><div class="path">/overview</div></div>
+          <div class="say">รายได้ · ต้นทุน · ส่วนเกิน/ขาดทุน · จำนวนนิสิตที่จุดคุ้มทุน ในหน้าเดียว — ทุกตัวเลขบอกที่มา (<b>Run #1042 · อนุมัติแล้ว</b>)<br>ชี้ toggle <b>รวม/ไม่รวมเงินแผ่นดิน</b> — “คณะอยู่ได้ด้วยตัวเองไหม ตอบได้ด้วยปุ่มเดียว”</div>
+        </div>
+        <div class="row">
+          <div><div class="name">W2 คณะ · ระดับ · หลักสูตร</div><div class="path">/breakeven</div></div>
+          <div class="say">เจาะ 3 ชั้น กรองเฉพาะหลักสูตรที่ยังไม่คุ้ม · กดขยายคณะหนึ่ง · ชี้การ์ด <b>R ≤ AVC</b> — “รับเพิ่มเท่าไหร่ก็ไม่คุ้ม ต้องแก้ค่าธรรมเนียมหรือโครงสร้างต้นทุน”</div>
+        </div>
+        <div class="row">
+          <div><div class="name">W3 กราฟจุดคุ้มทุน</div><div class="path">/breakeven/chart</div></div>
+          <div class="say">สั้น ๆ — ให้เห็นจุดตัด TR/TC</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="arrow"><div class="conn"><div class="stem"></div><div class="tip"></div></div>
+      <span class="lbl">สิทธิ์เดิม — เปลี่ยนมุมเล่าเป็นระดับหลักสูตร</span></div>
+
+    <section class="stage s-user">
+      <div class="head"><span class="n">2</span><span class="t">ระดับหลักสูตร → ผู้ช่วยอธิการบดีฝ่ายพัฒนาหลักสูตรฯ</span>
+        <span class="role">ผู้ใช้ทั่วไป</span><span class="time">7 นาที</span></div>
+      <div class="body">
+        <div class="row key">
+          <div><div class="name">W7 จุดคุ้มทุนรายหลักสูตร</div><div class="path">/scenario/program</div></div>
+          <div class="say">“ตอนเสนอเปิดหรือปรับปรุงหลักสูตร ต้องประมาณว่าต้องรับกี่คนถึงคุ้ม”<br>
+            เลือก <b>หลักสูตรเดิม → คณะ → หลักสูตร</b> (ตัวเลขดึงจากระบบเอง) → กด <b>คำนวณ</b> → ชี้ Q* ทั้ง 2 กรณี + กราฟ<br>
+            → <b>ลดจำนวนนิสิตแล้วคำนวณใหม่</b> ให้เห็นว่ากลายเป็นไม่คุ้ม → <span class="tag out">ผลลัพธ์</span>ปุ่ม <b>ออกรายงาน PDF</b> แนบเอกสารเสนอหลักสูตรได้เลย<br>
+            → สลับเป็น <b>หลักสูตรใหม่</b>: “หลักสูตรที่ยังไม่มีข้อมูล กรอกประมาณการเองได้”</div>
+        </div>
+        <div class="row opt">
+          <div><div class="name">แผนการรับนิสิต <i>(ถ้ามีเวลา)</i></div><div class="path">/scenario/admission-plan</div></div>
+          <div class="say">แตก Q* เป็นกลุ่มนิสิตไทย / ต่างชาติ / ภาคพิเศษ</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="arrow switch"><div class="conn"><div class="stem"></div><div class="tip"></div></div>
+      <span class="lbl">สลับมุมมองสิทธิ์ → ผู้ดูแลหน่วยงาน</span></div>
+
+    <section class="stage s-dept">
+      <div class="head"><span class="n">3</span><span class="t">มุมมองคณะ → รองคณบดีฝ่ายบริหารและแผน</span>
+        <span class="role">ผู้ดูแลหน่วยงาน</span><span class="time">5 นาที</span></div>
+      <div class="body">
+        <div class="row key">
+          <div><div class="name">ชี้ sidebar ก่อน</div><div class="path">— เมนูเปลี่ยนตามสิทธิ์ —</div></div>
+          <div class="say">“เมนู <b>ปันส่วนต้นทุน</b> เพิ่งโผล่ขึ้นมาเมื่อเป็นผู้ดูแลหน่วยงาน — สิทธิ์เป็นตัวกำหนดว่าเห็นอะไร”</div>
+        </div>
+        <div class="row">
+          <div><div class="name">ค่าธรรมเนียมการศึกษา</div><div class="path">/tuition</div></div>
+          <div class="say">คลิกแถวหนึ่ง → ชี้ stepper <b>ร่าง → เสนออนุมัติ → อนุมัติ</b> — “คณะเสนอ กองแผนงานอนุมัติ อัตราที่ยังไม่อนุมัติจะไม่ถูกนำไปคำนวณ”</div>
+        </div>
+        <div class="row">
+          <div><div class="name">นโยบายต้นทุนคงที่</div><div class="path">/admin/fixed-cost-policy</div></div>
+          <div class="say">“คณะเลือกวิธีกระจายต้นทุนคงที่ของตัวเองแล้วเสนอ”</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="arrow switch"><div class="conn"><div class="stem"></div><div class="tip"></div></div>
+      <span class="lbl">สลับมุมมองสิทธิ์ → ผู้ดูแลมหาวิทยาลัย</span></div>
+
+    <section class="stage s-uni">
+      <div class="head"><span class="n">4</span><span class="t">ระดับนโยบาย → รองอธิการบดีฝ่ายนโยบายและแผนงาน</span>
+        <span class="role">ผู้ดูแลมหาวิทยาลัย</span><span class="time">5 นาที</span></div>
+      <div class="body">
+        <div class="row">
+          <div><div class="name">คอนโซลรอบคำนวณ</div><div class="path">/admin/allocation-run</div></div>
+          <div class="say">ชี้ stepper 5 ขั้น — “ทุกรอบเก็บถาวร ไม่ทับของเก่า ย้อนดูได้ว่าตัวเลขปีไหนมาจากกติกาไหน · <b>คนสั่งคำนวณอนุมัติเองไม่ได้</b>”<br>
+            ชี้กล่องแดง “สร้าง run ไม่ได้ — ค่าเสื่อมราคาอาคารยังไม่มีข้อมูล” → “ระบบกันไม่ให้คำนวณจากข้อมูลไม่ครบ”</div>
+        </div>
+        <div class="row key">
+          <div><div class="name"><span class="tag ask">จุดขอมติ</span>นโยบายการคำนวณ</div><div class="path">/admin/university/settings</div></div>
+          <div class="say">“ปี 2568 ยังไม่มีมติ 4 ข้อ ระบบเลยใช้ค่าเริ่มต้นอยู่”<br>
+            ชี้การ์ดผลกระทบ <b>sum_of_programs vs pooled</b> — “เลือกวิธีต่างกัน Q* ทั้งมหาวิทยาลัยต่างกัน <b>~5,400 คน</b> ขอให้ท่านรองฯ พิจารณาว่าใช้วิธีไหนเป็นค่าหลัก”</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="arrow"><div class="conn"><div class="stem"></div><div class="tip"></div></div></div>
+
+    <section class="stage s-end">
+      <div class="head"><span class="n">5</span><span class="t">ปิดการนำเสนอ</span><span class="time">1 นาที</span></div>
+      <div class="body">
+        <div class="row">
+          <div><div class="name">สรุปเส้นเรื่อง</div><div class="path">— 4 ขั้น —</div></div>
+          <div class="say">เห็นภาพรวม → เจาะถึงหลักสูตร → จำลองก่อนเปิดหลักสูตร → มี workflow อนุมัติและ audit<br>
+            แล้วปิดด้วย <b>ขอมติ 3 ข้อ</b> (ดูกล่องขวา)</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============ right rail ============ -->
+  <div class="rail">
+
+    <div class="note ask">
+      <div class="nh">สิ่งที่ต้องขอจากที่ประชุม</div>
+      <div class="nb">
+        <div class="num"><span class="i">1</span><span>มติค่าตั้งปีการศึกษา 2568 — วิธี Q* ระดับคณะ (<code>sum_of_programs</code> / <code>pooled</code>) และกรณี <b>CM ≤ 0</b></span></div>
+        <div class="num"><span class="i">2</span><span>ใครเป็นผู้ใช้ W7 ตอนเสนอหลักสูตร (ประธานหลักสูตรเข้าเอง หรือผ่านเจ้าหน้าที่คณะ) → กำหนดว่าต้องเพิ่ม role ไหม</span></div>
+        <div class="num"><span class="i">3</span><span>อนุญาตใช้ข้อมูลการเงินจริง + ระบุเจ้าของข้อมูลค่าเสื่อมราคาอาคาร</span></div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <div class="nh">ห้ามเปิดระหว่างนำเสนอ</div>
+      <div class="nb">
+        <p><code>/admin/users</code> · <code>/admin/university/units</code> · <code>/about</code><br><b>ยังเป็นหน้า template เปล่า</b></p>
+        <p><code>/admin/university/master-data</code><br><b>มีแค่กล่องลิงก์ไปหน้าที่ยังเปล่า</b></p>
+        <p><code>/tuition</code> · <code>/programs</code> <b>ในโหมดผู้ใช้ทั่วไป</b><br>ปุ่มแก้ไขยังกดได้ ขัดกับหลัก “ผู้ใช้ทั่วไปดูอย่างเดียว” — เปิดเฉพาะช่วง 3 ขึ้นไป</p>
+      </div>
+    </div>
+
+    <div class="note gap">
+      <div class="nh">คำถามที่น่าจะโดน + คำตอบ</div>
+      <div class="nb">
+        <p><b>“ตัวเลขนี้ของจริงไหม”</b><br>ข้อมูลสาธิตที่รบกวนตัวเลขแล้ว แต่สูตรและความสัมพันธ์ถูกต้องทั้งหมด</p>
+        <p><b>“คณะผมเห็นคณะอื่นไหม”</b><br>ไม่เห็น บังคับที่ฝั่งเซิร์ฟเวอร์ — <b>อย่าสาธิตสด</b> ยังไม่ได้ทำการกรองจริง</p>
+        <p><b>“ใครใช้ได้บ้าง”</b><br>บัญชีมหาวิทยาลัย แบ่ง 4 role ตาม SA</p>
+        <p><b>“ค่าเสื่อมอาคารล่ะ”</b><br>ยังไม่ครบ ระบบกันไม่ให้สร้างรอบคำนวณใหม่ · TFC จึงต่ำกว่าจริง</p>
+        <p><b>“ดึงข้อมูลอัตโนมัติไหม”</b><br>ระยะแรกนำเข้าจาก Excel ต่อ API ภายหลังได้โดยไม่ต้องแก้โครงสร้าง</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <span>สร้างจาก DEMO-2026-10-06.md · MSU-BEPS</span>
+  <span>ช่วงเวลา: 8 + 7 + 5 + 5 + 1 = 26 นาที</span>
+</footer>
+
+</body>
+</html>

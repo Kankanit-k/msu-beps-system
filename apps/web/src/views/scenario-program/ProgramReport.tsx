@@ -148,13 +148,13 @@ const ProgramReport = ({ entry }: Props) => {
             <TableCell align="right">{fmtM(r.tvc)}</TableCell>
           </TableRow>
           <TableRow sx={{ bgcolor: '#f0ecff' }}>
-            <TableCell sx={{ fontWeight: 700 }}>Contribution Margin/หน่วย (CM)</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>กำไรส่วนเกินต่อหัว (CM)</TableCell>
             <TableCell align="right" colSpan={2} sx={{ fontWeight: 700 }}>
               {fmtB(r.cm ?? 0)} บ./คน
             </TableCell>
           </TableRow>
           <TableRow sx={{ bgcolor: r.profit >= 0 ? '#e6f8d9' : '#ffe4e5' }}>
-            <TableCell sx={{ fontWeight: 700 }}>ส่วนเกิน / ขาดทุน (π)</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>กำไร/ขาดทุน (π)</TableCell>
             <TableCell align="right" colSpan={2} sx={{ fontWeight: 700 }}>
               {r.profit >= 0 ? '+' : ''}
               {fmtB(r.profit)} ({fmtM(r.profit)} ล.)
@@ -162,7 +162,9 @@ const ProgramReport = ({ entry }: Props) => {
           </TableRow>
           {r.qStar && (
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Margin of Safety (MoS)</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>
+                ส่วนเผื่อความปลอดภัย (Margin of Safety)
+              </TableCell>
               <TableCell align="right" colSpan={2} sx={{ fontWeight: 700 }}>
                 {fmtB(mos)}
               </TableCell>

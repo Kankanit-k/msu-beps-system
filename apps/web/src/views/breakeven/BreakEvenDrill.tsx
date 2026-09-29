@@ -48,14 +48,14 @@ const QUICK_FILTERS: { value: QuickFilter; label: string }[] = [
   { value: 'all', label: 'ทั้งหมด' },
   { value: 'ok', label: 'คุ้มทุน' },
   { value: 'loss', label: 'ยังไม่คุ้ม' },
-  { value: 'fcr', label: 'R ≤ AVC' },
+  { value: 'fcr', label: 'รายได้/หัว ≤ ผันแปร/หัว' },
 ];
 
 /** ป้ายสถานะในตาราง — ใช้คำสั้นแบบ .st-badge ของ mockup (ต่างจาก STATUS_LABEL ที่ใช้ในการ์ดสรุป W3) */
 const BADGE_LABEL: Record<BEStatus, string> = {
   ok: 'คุ้มทุน',
   loss: 'ยังไม่คุ้ม',
-  fcr: 'R≤AVC',
+  fcr: 'รายได้/หัว ≤ ผันแปร/หัว',
   none: 'ไม่มีข้อมูล',
 };
 
@@ -258,7 +258,8 @@ const BreakEvenDrill = () => {
         <>
           จาก {RAW.PROGS.length} หลักสูตร มี <b>{fmtInt(counts.ok)}</b> หลักสูตรที่คุ้มทุนแล้ว,{' '}
           <b>{fmtInt(counts.loss)}</b> ยังไม่ถึงจุดคุ้มทุน และ <b>{fmtInt(counts.fcrOrNone)}</b>{' '}
-          หลักสูตรที่ R ≤ AVC (ไม่มีจุดคุ้มทุน ณ ราคาปัจจุบัน)
+          หลักสูตรที่รายได้ต่อหัวต่ำกว่าต้นทุนผันแปรต่อหัว (R ≤ AVC) (ไม่มีจุดคุ้มทุน ณ
+          ราคาปัจจุบัน)
         </>
       ),
     });
@@ -338,7 +339,7 @@ const BreakEvenDrill = () => {
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
-            label="หลักสูตรคุ้มทุน (Q ≥ Q*)"
+            label="หลักสูตรคุ้มทุน (นิสิตถึงจุดคุ้มทุน)"
             value={fmtInt(counts.ok)}
             unit={`จาก ${RAW.PROGS.length} หลักสูตร`}
             accent="primary"
@@ -348,13 +349,13 @@ const BreakEvenDrill = () => {
           <KpiCard
             label="หลักสูตรยังไม่คุ้มทุน"
             value={fmtInt(counts.loss + counts.fcrOrNone)}
-            unit="Q < Q* หรือ R ≤ AVC"
+            unit="นิสิตไม่ถึงจุดคุ้มทุน หรือ รายได้/หัว ≤ ผันแปร/หัว"
             accent="error"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
-            label="หลักสูตร R ≤ AVC"
+            label="หลักสูตรรายได้/หัว ≤ ผันแปร/หัว (R ≤ AVC)"
             value={fmtInt(counts.fcrOrNone)}
             unit="ไม่มีจุดคุ้มทุน (ผันแปรสูงกว่ารายรับ)"
             accent="warning"
@@ -485,10 +486,10 @@ const BreakEvenDrill = () => {
 
 const HEAD_CELLS = [
   'นิสิต (Q)',
-  'จุดคุ้มทุน Q*',
-  'รายได้/หัว R',
-  'AVC',
-  'TR (ลบ.)',
+  'จุดคุ้มทุน (Q*)',
+  'รายได้/หัว (R)',
+  'ผันแปร/หัว (AVC)',
+  'รายได้รวม (TR) ลบ.',
   'ส่วนเกิน (ลบ.)',
   'สถานะ',
 ];

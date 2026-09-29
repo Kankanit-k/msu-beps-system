@@ -36,22 +36,23 @@ import { distributeHeads } from '@beps/calc-engine';
 
 import { downloadCsv } from '@/utils/csv';
 
-import type { AdmissionPlan, SegmentKey } from './admissionPlanStore';
-import { CATEGORY_KEYS, SEGMENT_KEYS, SEGMENT_LABELS } from './admissionPlanStore';
+import type { AdmissionPlan, CategoryKey, SegmentKey } from './admissionPlanStore';
+import { CATEGORY_KEYS, SEGMENT_KEYS, SEGMENT_LABELS, mixShares } from './admissionPlanStore';
 import type { AdmissionPlanState } from './useAdmissionPlan';
 
 /** จำนวนคอลัมน์ที่ยังอ่านรู้เรื่องบนจอเดียว — มากกว่านี้ต้องเลื่อนแนวนอนจนเทียบไม่ไหว */
 const MAX_COMPARE = 4;
 
-/** สัดส่วนรายกลุ่มของแผนหนึ่ง รวมนิสิตไทยภาคปกติที่เป็นส่วนที่เหลือ */
+/** สัดส่วนรายกลุ่มของแผนหนึ่ง รวมนิสิตไทยภาคปกติ */
 const planShares = (plan: AdmissionPlan): Record<SegmentKey, number> => {
-  const others = CATEGORY_KEYS.reduce(
-    (acc, k) => ({ ...acc, [k]: plan.enabled[k] ? plan.pct[k] || 0 : 0 }),
-    {} as Record<SegmentKey, number>,
-  );
-  const otherTotal = CATEGORY_KEYS.reduce((sum, k) => sum + (others[k] || 0), 0);
+  const { thaiRegularPct } = mixShares(plan);
 
-  return { ...others, thaiRegular: Math.max(0, 100 - otherTotal) };
+  return {
+    thaiRegular: thaiRegularPct,
+    ...(Object.fromEntries(
+      CATEGORY_KEYS.map((k) => [k, plan.enabled[k] ? plan.pct[k] || 0 : 0]),
+    ) as Record<CategoryKey, number>),
+  };
 };
 
 const PlanComparison = ({ state }: { state: AdmissionPlanState }) => {

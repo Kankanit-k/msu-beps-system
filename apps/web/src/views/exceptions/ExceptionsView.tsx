@@ -48,9 +48,9 @@ const FLAG_FILTERS: { value: FlagFilter; label: string }[] = [
   { value: 'all', label: 'ทั้งหมด' },
   { value: 'MISSING_SOURCE', label: 'ไม่มีข้อมูลต้นทาง' },
   { value: 'UNCLASSIFIED', label: 'ยังไม่จำแนก' },
-  { value: 'MISSING_DRIVER', label: 'ไม่มีตัวขับ' },
+  { value: 'MISSING_DRIVER', label: 'ไม่มีข้อมูลเกณฑ์ปันส่วน' },
   { value: 'NO_FEE', label: 'ไม่มีค่าธรรมเนียม' },
-  { value: 'Q_ZERO', label: 'Q = 0' },
+  { value: 'Q_ZERO', label: 'ไม่มีนิสิต (Q = 0)' },
 ];
 
 /** สร้างไฟล์ CSV จากรายการที่กรองอยู่แล้วสั่งดาวน์โหลดในเบราว์เซอร์ — ไม่มี backend จริงจึงทำฝั่ง client ทั้งหมด */
@@ -58,7 +58,15 @@ const exportCsv = (rows: ExceptionItem[]) => {
   const header = ['ธง', 'รายการ', 'หน่วยงาน', 'มูลค่าที่กระทบ', 'ผู้รับผิดชอบ', 'ตั้งแต่', 'สถานะ'];
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = rows.map((e) =>
-    [e.flag, e.item, e.org, e.amount ?? '', e.owner, e.since, EXC_STATE_META[e.state].label]
+    [
+      EXC_FLAG_META[e.flag].label,
+      e.item,
+      e.org,
+      e.amount ?? '',
+      e.owner,
+      e.since,
+      EXC_STATE_META[e.state].label,
+    ]
       .map((v) => escape(String(v)))
       .join(','),
   );
@@ -79,19 +87,19 @@ const FLAG_MEANING: { flag: ExceptionFlag; desc: string }[] = [
   },
   {
     flag: 'UNCLASSIFIED',
-    desc: 'มีเงินแต่ยังไม่รู้ว่าเป็น TFC หรือ TVC — พักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร',
+    desc: 'มีเงินแต่ยังไม่รู้ว่าเป็นต้นทุนคงที่ (TFC) หรือต้นทุนผันแปร (TVC) — พักไว้ที่หน่วยงาน ไม่ปันลงหลักสูตร',
   },
   {
     flag: 'MISSING_DRIVER',
-    desc: 'กติกาสั่งให้ปันตามการใช้จริง แต่ไม่มีข้อมูลการใช้ — ตกไปใช้วิธีสำรอง และติดธง ESTIMATED',
+    desc: 'กติกาสั่งให้ปันตามการใช้จริง แต่ไม่มีข้อมูลการใช้ — ตกไปใช้วิธีสำรอง และติดธง “ประมาณการ”',
   },
   {
     flag: 'NO_FEE',
-    desc: 'ยังไม่มีอัตราค่าธรรมเนียมที่อนุมัติ — TR คำนวณไม่ได้ กันหลักสูตรออกจากยอดรวม',
+    desc: 'ยังไม่มีอัตราค่าธรรมเนียมที่อนุมัติ — คำนวณรายได้รวม (TR) ไม่ได้ กันหลักสูตรออกจากยอดรวม',
   },
   {
     flag: 'Q_ZERO',
-    desc: 'หลักสูตรเปิดแต่ไม่มีนิสิต — R และ AVC เป็น null หา Q* ไม่ได้ แต่ต้นทุนยังเกิดขึ้นจริง',
+    desc: 'หลักสูตรเปิดแต่ไม่มีนิสิต — คำนวณรายได้ต่อหัว (R) และต้นทุนผันแปรต่อหัว (AVC) ไม่ได้ จึงหาจุดคุ้มทุน (Q*) ไม่ได้ แต่ต้นทุนยังเกิดขึ้นจริง',
   },
 ];
 
@@ -206,9 +214,9 @@ const ExceptionsView = () => {
       <Grid size={12}>
         <Alert severity="warning">
           <strong>รายการที่ร้ายแรงที่สุดไม่ได้วัดเป็นบาทได้</strong> —
-          ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว ทำให้ TFC และ TC ต่ำกว่าความจริงทั้งระบบ
-          ({surplusCaveatText}) และ Q* ทุกระดับ<strong>ต่ำกว่าที่ควรเป็น</strong> —
-          ต้องกำกับข้อจำกัดนี้ทุกครั้งที่นำเสนอตัวเลขชุดปี 2568
+          ค่าเสื่อมราคาอาคารยังไม่มีข้อมูลเลยแม้แต่แถวเดียว ทำให้ต้นทุนคงที่ (TFC) และต้นทุนรวม (TC)
+          ต่ำกว่าความจริงทั้งระบบ ({surplusCaveatText}) และจุดคุ้มทุน (Q*) ทุกระดับ
+          <strong>ต่ำกว่าที่ควรเป็น</strong> — ต้องกำกับข้อจำกัดนี้ทุกครั้งที่นำเสนอตัวเลขชุดปี 2568
         </Alert>
       </Grid>
 
@@ -276,7 +284,7 @@ const ExceptionsView = () => {
                   return (
                     <TableRow key={`${e.flag}-${e.item}`} hover>
                       <TableCell>
-                        <Chip size="small" color={flagMeta.color} label={e.flag} />
+                        <Chip size="small" color={flagMeta.color} label={flagMeta.label} />
                       </TableCell>
                       <TableCell sx={{ maxWidth: 320 }}>
                         <Typography variant="body2" fontWeight={600}>
@@ -335,7 +343,11 @@ const ExceptionsView = () => {
                 {FLAG_MEANING.map((f) => (
                   <TableRow key={f.flag}>
                     <TableCell sx={{ width: 160 }}>
-                      <Chip size="small" color={EXC_FLAG_META[f.flag].color} label={f.flag} />
+                      <Chip
+                        size="small"
+                        color={EXC_FLAG_META[f.flag].color}
+                        label={EXC_FLAG_META[f.flag].label}
+                      />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">{f.desc}</Typography>

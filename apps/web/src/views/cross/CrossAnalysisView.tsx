@@ -50,10 +50,10 @@ type SortKey = 'profitPct' | 'util' | 'CM' | 'profitM' | 'avcRRatio';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'profitPct', label: 'กำไร %' },
-  { key: 'util', label: 'Utilization' },
-  { key: 'CM', label: 'CM/หัว' },
-  { key: 'profitM', label: 'ส่วนเกิน' },
-  { key: 'avcRRatio', label: 'AVC/R%' },
+  { key: 'util', label: 'นิสิตจริง/จุดคุ้มทุน (Utilization)' },
+  { key: 'CM', label: 'ส่วนเกิน/หัว (CM)' },
+  { key: 'profitM', label: 'กำไร/ขาดทุน' },
+  { key: 'avcRRatio', label: 'ผันแปร/รายได้ % (AVC/R)' },
 ];
 
 const CrossAnalysisView = () => {
@@ -93,7 +93,10 @@ const CrossAnalysisView = () => {
 
   const scatter1Options: ApexOptions = {
     chart: { type: 'scatter', toolbar: { show: false }, parentHeightOffset: 0 },
-    xaxis: { title: { text: 'Q* จุดคุ้มทุน (คน)' }, labels: { formatter: (v) => fmtN(Number(v)) } },
+    xaxis: {
+      title: { text: 'จุดคุ้มทุน (Q*) — คน' },
+      labels: { formatter: (v) => fmtN(Number(v)) },
+    },
     yaxis: {
       title: { text: 'กำไร %' },
       labels: { formatter: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}%` },
@@ -104,7 +107,7 @@ const CrossAnalysisView = () => {
         const p = w.config.series[seriesIndex].data[dataPointIndex];
         const d = valid[dataPointIndex];
 
-        return `<div style="padding:6px 10px;font-size:12px">${d?.short}: Q*=${fmtN(p.x)} คน, กำไร ${p.y >= 0 ? '+' : ''}${p.y}%</div>`;
+        return `<div style="padding:6px 10px;font-size:12px">${d?.short}: จุดคุ้มทุน (Q*) ${fmtN(p.x)} คน, กำไร ${p.y >= 0 ? '+' : ''}${p.y}%</div>`;
       },
     },
   };
@@ -124,11 +127,11 @@ const CrossAnalysisView = () => {
   const scatter2Options: ApexOptions = {
     chart: { type: 'scatter', toolbar: { show: false }, parentHeightOffset: 0 },
     xaxis: {
-      title: { text: 'AVC/R Ratio (%) — ต่ำ = ดี' },
+      title: { text: 'ผันแปร/รายได้ % (AVC/R) — ต่ำ = ดี' },
       labels: { formatter: (v) => `${Math.round(Number(v))}%` },
     },
     yaxis: {
-      title: { text: 'Utilization Q/Q* (%)' },
+      title: { text: 'นิสิตจริง/จุดคุ้มทุน % (Q/Q*)' },
       labels: { formatter: (v) => `${Math.round(v)}%` },
     },
     markers: { size: 7 },
@@ -137,7 +140,7 @@ const CrossAnalysisView = () => {
         const p = w.config.series[seriesIndex].data[dataPointIndex];
         const d = valid[dataPointIndex];
 
-        return `<div style="padding:6px 10px;font-size:12px">${d?.short}: AVC/R=${p.x}%, Util=${p.y}%</div>`;
+        return `<div style="padding:6px 10px;font-size:12px">${d?.short}: ผันแปร/รายได้ (AVC/R) ${p.x}%, นิสิตจริง/จุดคุ้มทุน (Utilization) ${p.y}%</div>`;
       },
     },
   };
@@ -152,11 +155,11 @@ const CrossAnalysisView = () => {
   const bubbleOptions: ApexOptions = {
     chart: { type: 'bubble', toolbar: { show: false }, parentHeightOffset: 0 },
     xaxis: {
-      title: { text: 'Utilization Q/Q* (%)' },
+      title: { text: 'นิสิตจริง/จุดคุ้มทุน % (Q/Q*)' },
       labels: { formatter: (v) => `${Math.round(Number(v))}%` },
     },
     yaxis: {
-      title: { text: 'กำไร % (Profit Margin)' },
+      title: { text: 'อัตรากำไร % (Profit Margin)' },
       labels: { formatter: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}%` },
     },
     legend: { show: false },
@@ -168,7 +171,7 @@ const CrossAnalysisView = () => {
 
         if (!d) return '';
 
-        return `<div style="padding:6px 10px;font-size:12px">${d.short}: Util=${d.util}%, กำไร ${d.profitPct >= 0 ? '+' : ''}${d.profitPct}%, TR=${fmtM(d.trM)} ลบ.</div>`;
+        return `<div style="padding:6px 10px;font-size:12px">${d.short}: นิสิตจริง/จุดคุ้มทุน (Utilization) ${d.util}%, กำไร ${d.profitPct >= 0 ? '+' : ''}${d.profitPct}%, รายได้รวม (TR) ${fmtM(d.trM)} ลบ.</div>`;
       },
     },
   };
@@ -187,17 +190,19 @@ const CrossAnalysisView = () => {
   const insights: Insight[] = [
     {
       severity: 'info',
-      html: `จัดกลุ่ม 4 กลุ่ม: ⭐ Stars <b>${stars.length}</b> · 📈 Growth <b>${growth.length}</b> · 🔄 Recover <b>${recover.length}</b> · ⚠️ Risk <b>${risk.length}</b>${invalid.length ? ` · ไม่มี Q* <b>${invalid.length}</b>` : ''}`,
+      html: `จัดกลุ่ม 4 กลุ่ม: ⭐ ดาวเด่น (Stars) <b>${stars.length}</b> · 📈 กำลังเติบโต (Growth) <b>${growth.length}</b> · 🔄 ต้องฟื้นฟู (Recover) <b>${recover.length}</b> · ⚠️ เสี่ยง (Risk) <b>${risk.length}</b>${invalid.length ? ` · ไม่มีจุดคุ้มทุน (Q*) <b>${invalid.length}</b>` : ''}`,
     },
   ];
 
   if (risk.length) {
     insights.push({
       severity: 'error',
-      html: `⚠ กลุ่ม Risk — ${risk.length} คณะ (นิสิตไม่ถึง Q* และขาดทุน): ${[...risk]
+      html: `⚠ กลุ่มเสี่ยง (Risk) — ${risk.length} คณะ (นิสิตไม่ถึงจุดคุ้มทุน (Q*) และขาดทุน): ${[
+        ...risk,
+      ]
         .sort((a, b) => a.profitPct - b.profitPct)
         .slice(0, 3)
-        .map((d) => `${d.short} (Util ${d.util}% · ${d.profitPct}%)`)
+        .map((d) => `${d.short} (นิสิตจริง/จุดคุ้มทุน ${d.util}% · กำไร ${d.profitPct}%)`)
         .join(', ')}`,
     });
   }
@@ -205,14 +210,16 @@ const CrossAnalysisView = () => {
   if (invalid.length) {
     insights.push({
       severity: 'error',
-      html: `${invalid.length} คณะมี CM ≤ 0: ${invalid.map((d) => `${d.short} (CM ${fmtB(d.CM)})`).join(', ')} → Q* ใช้ TC / ค่าเทอม · ควรขึ้นค่าธรรมเนียมหรือลดต้นทุนผันแปร`,
+      html: `${invalid.length} คณะมีรายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0): ${invalid.map((d) => `${d.short} (ส่วนเกิน/หัว ${fmtB(d.CM)})`).join(', ')} → ใช้เป้าหมายคืนทุนเต็มจำนวน (TC/R) แทนจุดคุ้มทุน · ควรขึ้นค่าธรรมเนียมหรือลดต้นทุนผันแปร`,
     });
   }
 
   if (stars.length) {
     insights.push({
       severity: 'success',
-      html: `⭐ กลุ่ม Stars — ${stars.length} คณะ (เกิน Q* และมีกำไร): ${[...stars]
+      html: `⭐ กลุ่มดาวเด่น (Stars) — ${stars.length} คณะ (นิสิตเกินจุดคุ้มทุน (Q*) และมีกำไร): ${[
+        ...stars,
+      ]
         .sort((a, b) => b.profitPct - a.profitPct)
         .slice(0, 3)
         .map((d) => `${d.short} (+${d.profitPct}%)`)
@@ -223,7 +230,7 @@ const CrossAnalysisView = () => {
   if (hiAVC.length) {
     insights.push({
       severity: 'warning',
-      html: `${hiAVC.length} คณะมี AVC/R ≥ 50% (ต้นทุนผันแปรกินรายได้เกินครึ่ง) — ขาดทุน <b>${hiAVC.filter((d) => d.profitPct < 0).length}/${hiAVC.length}</b> คณะ`,
+      html: `${hiAVC.length} คณะมีสัดส่วนต้นทุนผันแปรต่อรายได้ (AVC/R) ≥ 50% (ต้นทุนผันแปรกินรายได้เกินครึ่ง) — ขาดทุน <b>${hiAVC.filter((d) => d.profitPct < 0).length}/${hiAVC.length}</b> คณะ`,
     });
   }
 
@@ -239,7 +246,7 @@ const CrossAnalysisView = () => {
       {/* หัวหน้าจอชุดเดียวกับหน้าอื่น — ตัด mb ของแถบสุดท้ายออก เพราะคอนเทนเนอร์นี้เว้นระยะด้วย gap แล้ว */}
       <Box sx={{ '& > :last-child': { mb: 0 } }}>
         <PageHeaderBar
-          title="Cross Analysis & Heatmap"
+          title="วิเคราะห์เชิงเปรียบเทียบ (Cross Analysis) & ตารางสีเปรียบเทียบ (Heatmap)"
           code="W5"
           mode={mode}
           onModeChange={setMode}
@@ -250,15 +257,20 @@ const CrossAnalysisView = () => {
         <DataCaveatNotes profit={uniRes.profit} />
 
         <NoteBar severity="info">
-          {REVENUE_MODE_NOTE[mode]} · Utilization = Q / Q* (Q* = ผลรวมรายหลักสูตร) · คณะที่ CM ≤ 0
-          จะไม่มี Q* (แสดง —)
+          {REVENUE_MODE_NOTE[mode]} · นิสิตจริงเทียบจุดคุ้มทุน (Utilization = Q/Q*) โดยจุดคุ้มทุน
+          (Q*) = ผลรวมรายหลักสูตร · คณะที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0)
+          จะไม่มีจุดคุ้มทุน (แสดง —)
         </NoteBar>
       </Box>
 
       {/* Heatmap */}
       <Card>
         <CardHeader
-          title={<DotTitle color="primary.main">Heatmap — ตัวชี้วัดสำคัญรายคณะ</DotTitle>}
+          title={
+            <DotTitle color="primary.main">
+              ตารางสีเปรียบเทียบ (Heatmap) — ตัวชี้วัดสำคัญรายคณะ
+            </DotTitle>
+          }
           subheader="เขียว = ดี · แดง = ต้องปรับปรุง (ปรับตามทิศทางของแต่ละตัวชี้วัด)"
           action={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pr: 2 }}>
@@ -341,10 +353,14 @@ const CrossAnalysisView = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardHeader
-              title={<DotTitle color="warning.main">Scatter: Q* เทียบ กำไร%</DotTitle>}
+              title={
+                <DotTitle color="warning.main">
+                  กราฟการกระจาย (Scatter): จุดคุ้มทุน (Q*) เทียบ กำไร %
+                </DotTitle>
+              }
               subheader={
                 excludedCount > 0
-                  ? `กราฟไม่รวม ${excludedCount} คณะที่ CM ≤ 0 (ไม่มีจุดคุ้มทุน) — ดูในตาราง`
+                  ? `กราฟไม่รวม ${excludedCount} คณะที่ไม่คุ้มทุน (CM ≤ 0) (ไม่มีจุดคุ้มทุน) — ดูในตาราง`
                   : undefined
               }
               subheaderTypographyProps={{ color: 'error' }}
@@ -362,7 +378,11 @@ const CrossAnalysisView = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardHeader
-              title={<DotTitle color="error.main">Scatter: AVC/R% เทียบ Utilization%</DotTitle>}
+              title={
+                <DotTitle color="error.main">
+                  กราฟการกระจาย (Scatter): ผันแปร/รายได้ % (AVC/R) เทียบ นิสิตจริง/จุดคุ้มทุน %
+                </DotTitle>
+              }
             />
             <CardContent>
               <AppReactApexCharts
@@ -380,9 +400,11 @@ const CrossAnalysisView = () => {
       <Card>
         <CardHeader
           title={
-            <DotTitle color="primary.main">Quadrant Analysis — จัดกลุ่มคณะตามประสิทธิภาพ</DotTitle>
+            <DotTitle color="primary.main">
+              จัดกลุ่ม 4 ส่วน (Quadrant) — จัดกลุ่มคณะตามประสิทธิภาพ
+            </DotTitle>
           }
-          subheader="แกน X = Utilization Q/Q* (%) · แกน Y = กำไร % · ขนาดฟอง = รายได้รวม"
+          subheader="แกน X = นิสิตจริงเทียบจุดคุ้มทุน % (Utilization = Q/Q*) · แกน Y = กำไร % · ขนาดฟอง = รายได้รวม"
         />
         <CardContent>
           <AppReactApexCharts
@@ -393,16 +415,16 @@ const CrossAnalysisView = () => {
           />
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mt: 2 }}>
             <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 700 }}>
-              ⭐ Stars (Util สูง · กำไรสูง)
+              ⭐ ดาวเด่น (Stars) — นิสิตถึงจุดคุ้มทุน · มีกำไร
             </Typography>
             <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 700 }}>
-              🔄 Recover (Util ต่ำ · กำไรสูง)
+              🔄 ต้องฟื้นฟู (Recover) — นิสิตไม่ถึงจุดคุ้มทุน · มีกำไร
             </Typography>
             <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700 }}>
-              📈 Growth (Util สูง · กำไรต่ำ)
+              📈 กำลังเติบโต (Growth) — นิสิตถึงจุดคุ้มทุน · ขาดทุน
             </Typography>
             <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 700 }}>
-              ⚠️ Risk (Util ต่ำ · กำไรต่ำ)
+              ⚠️ เสี่ยง (Risk) — นิสิตไม่ถึงจุดคุ้มทุน · ขาดทุน
             </Typography>
           </Box>
         </CardContent>
@@ -435,14 +457,14 @@ const CrossAnalysisView = () => {
                 <TableRow>
                   <TableCell>#</TableCell>
                   <TableCell>คณะ / วิทยาลัย</TableCell>
-                  <TableCell align="right">Q จริง</TableCell>
-                  <TableCell align="right">Q*</TableCell>
-                  <TableCell align="right">Util%</TableCell>
+                  <TableCell align="right">นิสิตจริง (Q)</TableCell>
+                  <TableCell align="right">จุดคุ้มทุน (Q*)</TableCell>
+                  <TableCell align="right">นิสิตจริง/จุดคุ้มทุน %</TableCell>
                   <TableCell align="right">หลักสูตรคุ้ม</TableCell>
-                  <TableCell align="right">กำไร%</TableCell>
-                  <TableCell align="right">CM/หัว</TableCell>
-                  <TableCell align="right">AVC/R%</TableCell>
-                  <TableCell align="right">ส่วนเกิน(ลบ.)</TableCell>
+                  <TableCell align="right">กำไร %</TableCell>
+                  <TableCell align="right">ส่วนเกิน/หัว (CM)</TableCell>
+                  <TableCell align="right">ผันแปร/รายได้ % (AVC/R)</TableCell>
+                  <TableCell align="right">กำไร/ขาดทุน (ลบ.)</TableCell>
                   <TableCell align="right">สถานะ</TableCell>
                 </TableRow>
               </TableHead>
@@ -530,7 +552,7 @@ const CrossAnalysisView = () => {
                       <TableCell align="right">
                         <Chip
                           size="small"
-                          label={bad ? '⚠ CM≤0' : d.isOk ? '✓ ผ่าน' : '⚠ ไม่ผ่าน'}
+                          label={bad ? '⚠ ไม่คุ้มทุน (CM ≤ 0)' : d.isOk ? '✓ ผ่าน' : '⚠ ไม่ผ่าน'}
                           color={bad ? 'error' : d.isOk ? 'success' : 'warning'}
                         />
                       </TableCell>
@@ -545,7 +567,7 @@ const CrossAnalysisView = () => {
 
       {/* Insights */}
       <Card sx={{ borderInlineStart: 3, borderInlineStartColor: 'primary.main' }}>
-        <CardHeader title="ประเด็นสำคัญ — Cross Analysis" />
+        <CardHeader title="ประเด็นสำคัญ — วิเคราะห์เชิงเปรียบเทียบ (Cross Analysis)" />
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {insights.map((ins, i) => (
             <Alert key={i} severity={ins.severity} variant="outlined">

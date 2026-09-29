@@ -55,6 +55,13 @@ const fmtM = (v: number) =>
 const fmtN = (v: number) =>
   v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/** ป้ายภาษาไทยของฐานต้นทุนและเวอร์ชันกติกา — ค่าในข้อมูลเป็นรหัสภายใน */
+const BASIS_LABEL: Record<AllocationRun['basis'], string> = {
+  ACTUAL: 'ยอดใช้จ่ายจริง',
+  BUDGET: 'ยอดงบที่ได้รับจัดสรร',
+};
+const ruleLabel = (v: string) => `ฉบับที่ ${v.replace(/^v/, '')}`;
+
 const AllocationRunView = () => {
   const [runs, setRuns] = useState<AllocationRun[]>(RUNS);
   const [approvingId, setApprovingId] = useState<number | null>(null);
@@ -93,8 +100,8 @@ const AllocationRunView = () => {
     <Grid container spacing={6}>
       <Grid size={12}>
         <Alert severity="info">
-          รอบคำนวณเป็น <strong>immutable</strong> — คำนวณใหม่คือสร้าง run ใหม่ ไม่ทับของเก่า
-          ทุกหน้าวิเคราะห์จึงต้องบอกได้ว่ากำลังดูผลของ run ไหน · run หนึ่งล็อกไว้ทั้ง งวด · ขอบเขต ·
+          รอบคำนวณ<strong>แก้ไขย้อนหลังไม่ได้</strong> — คำนวณใหม่คือสร้างรอบใหม่ ไม่ทับของเก่า
+          ทุกหน้าวิเคราะห์จึงต้องบอกได้ว่ากำลังดูผลของรอบไหน · แต่ละรอบล็อกไว้ทั้ง งวด · ขอบเขต ·
           ฐานต้นทุน · เวอร์ชันกติกา เพื่อให้ย้อนกลับไปอธิบายตัวเลขเก่าได้เสมอ
         </Alert>
       </Grid>
@@ -110,7 +117,7 @@ const AllocationRunView = () => {
                   <Chip size="small" color="success" label="รอบที่ใช้อ้างอิงอยู่" />
                 </Stack>
               }
-              subheader={`ปีงบประมาณ ${current.year} · ${current.scope} · ฐานต้นทุน ${current.basis} · กติกาผังบัญชี ${current.rule}`}
+              subheader={`ปีงบประมาณ ${current.year} · ${current.scope} · ฐานต้นทุน ${BASIS_LABEL[current.basis]} · กติกาผังบัญชี ${ruleLabel(current.rule)}`}
             />
             <CardContent>
               <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 6 }}>
@@ -161,7 +168,7 @@ const AllocationRunView = () => {
                   </Typography>
                   <Typography variant="h6">{current.dur}</Typography>
                   <Typography variant="caption" color="text.disabled">
-                    เป็น batch job
+                    ประมวลผลเบื้องหลัง
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
@@ -209,19 +216,12 @@ const AllocationRunView = () => {
           </Card>
 
           <Card>
-            <CardHeader
-              title="ประวัติรอบคำนวณ"
-              subheader={
-                <>
-                  ตาราง <code>allocation_run</code> · run เก่าไม่เคยถูกลบ
-                </>
-              }
-            />
+            <CardHeader title="ประวัติรอบคำนวณ" subheader={<>รอบเก่าไม่เคยถูกลบ</>} />
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell align="right">Run</TableCell>
+                    <TableCell align="right">รอบ</TableCell>
                     <TableCell>ปีงบ</TableCell>
                     <TableCell>ฐานต้นทุน</TableCell>
                     <TableCell>กติกา</TableCell>
@@ -248,10 +248,10 @@ const AllocationRunView = () => {
                           <Typography color="text.secondary">{r.year}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography color="text.secondary">{r.basis}</Typography>
+                          <Typography color="text.secondary">{BASIS_LABEL[r.basis]}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography color="text.secondary">{r.rule}</Typography>
+                          <Typography color="text.secondary">{ruleLabel(r.rule)}</Typography>
                         </TableCell>
                         <TableCell align="right">{fmtM(r.tc)}</TableCell>
                         <TableCell align="right">
@@ -342,7 +342,7 @@ const AllocationRunView = () => {
           <Card>
             <CardHeader
               title="สร้างรอบคำนวณใหม่"
-              subheader="ค่าที่เลือกจะถูกล็อกติดไปกับ run ตลอดไป"
+              subheader="ค่าที่เลือกจะถูกล็อกติดไปกับรอบคำนวณนี้ตลอดไป"
             />
             <CardContent>
               <Stack spacing={4}>
@@ -361,11 +361,14 @@ const AllocationRunView = () => {
                   size="small"
                   fullWidth
                   helperText={
-                    <>ยังรอมติผู้บริหารว่าจะใช้ฐานไหนเป็นตัวหลัก · ตั้งค่าเริ่มต้นได้ที่ W15</>
+                    <>
+                      ยังรอมติผู้บริหารว่าจะใช้ฐานไหนเป็นตัวหลัก ·
+                      ตั้งค่าเริ่มต้นได้ที่หน้านโยบายการคำนวณ
+                    </>
                   }
                 >
-                  <MenuItem value="ACTUAL">ACTUAL — ยอดใช้จ่ายจริง</MenuItem>
-                  <MenuItem value="BUDGET">BUDGET — ยอดงบที่ได้รับจัดสรร</MenuItem>
+                  <MenuItem value="ACTUAL">ยอดใช้จ่ายจริง (ACTUAL)</MenuItem>
+                  <MenuItem value="BUDGET">ยอดงบที่ได้รับจัดสรร (BUDGET)</MenuItem>
                 </TextField>
                 <TextField
                   select
@@ -375,13 +378,13 @@ const AllocationRunView = () => {
                   fullWidth
                   helperText="ล็อกไว้เพื่อให้คำนวณซ้ำแล้วได้ตัวเลขเดิมเป๊ะ แม้กติกาจะถูกแก้ไปแล้ว"
                 >
-                  <MenuItem value="v3">v3 — มีผลปีการศึกษา 2568 (ปัจจุบัน)</MenuItem>
-                  <MenuItem value="v2">v2 — มีผลปีการศึกษา 2567</MenuItem>
+                  <MenuItem value="v3">ฉบับที่ 3 — มีผลปีการศึกษา 2568 (ปัจจุบัน)</MenuItem>
+                  <MenuItem value="v2">ฉบับที่ 2 — มีผลปีการศึกษา 2567</MenuItem>
                 </TextField>
               </Stack>
 
               <Alert severity="error" sx={{ mt: 4 }}>
-                <strong>สร้าง run ไม่ได้ตอนนี้</strong> — มี {RUN_BLOCKERS.length}{' '}
+                <strong>สร้างรอบคำนวณไม่ได้ตอนนี้</strong> — มี {RUN_BLOCKERS.length}{' '}
                 ปัญหาที่ปิดกั้นอยู่ที่หน้าข้อมูลต้นทุน:
                 <Stack component="ul" sx={{ pl: 4, m: 0, mt: 1 }} spacing={0.5}>
                   {RUN_BLOCKERS.map((b) => (
@@ -415,7 +418,7 @@ const AllocationRunView = () => {
                       ผู้สร้างอนุมัติเองไม่ได้
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      ปุ่มอนุมัติจะถูกปิดสำหรับผู้ใช้ที่เป็นคนสั่งคำนวณ run นั้น
+                      ปุ่มอนุมัติจะถูกปิดสำหรับผู้ใช้ที่เป็นคนสั่งคำนวณรอบนั้น
                     </Typography>
                   </div>
                   <Chip size="small" color="error" label="บังคับ" />
@@ -431,7 +434,7 @@ const AllocationRunView = () => {
                       อนุมัติได้เฉพาะเมื่อตรวจยอดผ่าน
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      run ที่สถานะ FAILED ต้องแก้ต้นเหตุแล้วสร้างใหม่ ไม่มีทางข้าม
+                      รอบที่ไม่ผ่านการตรวจยอดต้องแก้ต้นเหตุแล้วสร้างใหม่ ไม่มีทางข้าม
                     </Typography>
                   </div>
                   <Chip size="small" color="error" label="บังคับ" />
@@ -447,7 +450,7 @@ const AllocationRunView = () => {
                       รอบที่อนุมัติแล้วแก้ไม่ได้
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      ผลถูกเขียนลง <code>break_even_result</code> แบบอ่านอย่างเดียว
+                      ผลจุดคุ้มทุนถูกบันทึกแบบอ่านอย่างเดียว
                     </Typography>
                   </div>
                   <Chip size="small" color="default" label="immutable" />
@@ -485,8 +488,8 @@ const AllocationRunView = () => {
               <Stack spacing={2}>
                 <Typography variant="body2">ปีงบประมาณ: {detailRun.year}</Typography>
                 <Typography variant="body2">ขอบเขต: {detailRun.scope}</Typography>
-                <Typography variant="body2">ฐานต้นทุน: {detailRun.basis}</Typography>
-                <Typography variant="body2">กติกาผังบัญชี: {detailRun.rule}</Typography>
+                <Typography variant="body2">ฐานต้นทุน: {BASIS_LABEL[detailRun.basis]}</Typography>
+                <Typography variant="body2">กติกาผังบัญชี: {ruleLabel(detailRun.rule)}</Typography>
                 <Typography variant="body2">ต้นทุนรวม: {fmtM(detailRun.tc)} ลบ.</Typography>
                 <Typography variant="body2" color={detailRun.diff ? 'error.main' : 'success.main'}>
                   ส่วนต่างตรวจยอด: {detailRun.diff ? fmtN(detailRun.diff) : '0.00'} บาท
@@ -500,7 +503,7 @@ const AllocationRunView = () => {
                 {detailRun.state === 'FAILED' && (
                   <Alert severity="error">
                     ตรวจยอดกลับต้นทางไม่ผ่าน — ส่วนต่าง {fmtN(detailRun.diff)} บาท เกินเกณฑ์ยอมรับ
-                    0.00 · ต้องแก้ไขข้อมูลต้นทางแล้วสร้าง run ใหม่ แก้ไข run เดิมไม่ได้
+                    0.00 · ต้องแก้ไขข้อมูลต้นทางแล้วสร้างรอบใหม่ แก้ไขรอบเดิมไม่ได้
                   </Alert>
                 )}
               </Stack>
@@ -543,14 +546,14 @@ const AllocationRunView = () => {
                   </TableRow>
                   <TableRow>
                     <TableCell>ฐานต้นทุน</TableCell>
-                    <TableCell align="right">{current.basis}</TableCell>
-                    <TableCell align="right">{previous.basis}</TableCell>
+                    <TableCell align="right">{BASIS_LABEL[current.basis]}</TableCell>
+                    <TableCell align="right">{BASIS_LABEL[previous.basis]}</TableCell>
                     <TableCell align="right">—</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>กติกาผังบัญชี</TableCell>
-                    <TableCell align="right">{current.rule}</TableCell>
-                    <TableCell align="right">{previous.rule}</TableCell>
+                    <TableCell align="right">{ruleLabel(current.rule)}</TableCell>
+                    <TableCell align="right">{ruleLabel(previous.rule)}</TableCell>
                     <TableCell align="right">—</TableCell>
                   </TableRow>
                   <TableRow>

@@ -85,7 +85,7 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
       ['หลักสูตร', programName],
       ['ฐานรายได้', revenueMode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'],
       ['ต้นทุนคงที่รวม (บาท)', segmented.tfc],
-      ['CM ถัวเฉลี่ยถ่วงน้ำหนัก (บาท/หัว)', result.weightedCm ?? ''],
+      ['กำไรส่วนเกินต่อหัว ถัวเฉลี่ยถ่วงน้ำหนัก (CM) (บาท/หัว)', result.weightedCm ?? ''],
       ['จุดคุ้มทุนรวม (คน)', result.qStar ?? 'คำนวณไม่ได้'],
       ['รายได้ ณ จุดคุ้มทุน (บาท)', result.breakEvenRevenue ?? ''],
       ['ส่งออกเมื่อ', new Date().toLocaleString('th-TH')],
@@ -97,7 +97,7 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
         'เงินอุดหนุน/หัว',
         'รายได้/หัว (R)',
         'ต้นทุนผันแปร/หัว (AVC)',
-        'CM/หัว',
+        'กำไรส่วนเกินต่อหัว (CM)',
         'จำนวนที่ต้องรับ (คน)',
         'รายได้ ณ จุดคุ้มทุน (บาท)',
       ],
@@ -122,7 +122,7 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
         title={
           <DotTitle color="success.main">คำนวณจุดคุ้มทุนแยกรายกลุ่ม (Student Segregation)</DotTitle>
         }
-        subheader="กรอกอัตราต่อหัวของแต่ละกลุ่ม ระบบหา Q* จาก CM ถัวเฉลี่ยถ่วงน้ำหนัก — ไม่ต้องรู้จำนวนนิสิตล่วงหน้า"
+        subheader="กรอกอัตราต่อหัวของแต่ละกลุ่ม ระบบหาจุดคุ้มทุน (Q*) จากกำไรส่วนเกินต่อหัวถัวเฉลี่ยถ่วงน้ำหนัก (CM) — ไม่ต้องรู้จำนวนนิสิตล่วงหน้า"
         action={
           <Button
             size="small"
@@ -214,7 +214,10 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
                   label: 'จุดคุ้มทุนรวม (Q*)',
                   value: result.qStar === null ? 'คำนวณไม่ได้' : `${baht(result.qStar)} คน`,
                 },
-                { label: 'CM ถัวเฉลี่ยถ่วงน้ำหนัก', value: `${baht(result.weightedCm)} บาท/หัว` },
+                {
+                  label: 'ส่วนเกิน/หัว ถัวเฉลี่ย (CM)',
+                  value: `${baht(result.weightedCm)} บาท/หัว`,
+                },
                 { label: 'รายได้ต่อหัวถัวเฉลี่ย', value: `${baht(result.weightedR)} บาท/หัว` },
                 { label: 'รายได้ ณ จุดคุ้มทุน', value: `${baht(result.breakEvenRevenue)} บาท` },
               ].map((kpi) => (
@@ -233,7 +236,7 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
 
             {result.qStarStatus === 'full_cost_recovery' && (
               <Alert severity="warning" sx={{ mb: 3 }}>
-                CM ถัวเฉลี่ย ≤ 0 (ต้นทุนผันแปรต่อหัวสูงกว่ารายได้ต่อหัว) — ตัวเลขที่แสดงเป็น
+                รายได้ต่อหัวถัวเฉลี่ยไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0) — ตัวเลขที่แสดงเป็น
                 &quot;เป้าหมายขั้นต่ำเพื่อคืนต้นทุนทั้งหมด&quot; ตามสูตร 7 ไม่ใช่จุดคุ้มทุนจริง
                 รับนิสิตเพิ่มในโครงสร้างนี้จะยิ่งขาดทุน
               </Alert>
@@ -252,8 +255,8 @@ const SegmentedBreakEven = ({ programName, revenueMode, state }: Props) => {
                     <TableCell>กลุ่มนิสิต</TableCell>
                     <TableCell align="right">สัดส่วน</TableCell>
                     <TableCell align="right">รายได้/หัว (R)</TableCell>
-                    <TableCell align="right">ต้นทุนผันแปร/หัว</TableCell>
-                    <TableCell align="right">CM/หัว</TableCell>
+                    <TableCell align="right">ผันแปร/หัว (AVC)</TableCell>
+                    <TableCell align="right">ส่วนเกิน/หัว (CM)</TableCell>
                     <TableCell align="right">จำนวนที่ต้องรับ</TableCell>
                     <TableCell align="right">รายได้ ณ จุดคุ้มทุน</TableCell>
                   </TableRow>

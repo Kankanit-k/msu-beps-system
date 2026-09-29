@@ -48,6 +48,11 @@ export const routeAccessRules: { prefix: string; level: AccessLevel }[] = [
   { prefix: '/users', level: 'universityAdmin' }, // W18 ผู้ใช้และสิทธิ์ — admin เท่านั้น
   { prefix: '/admin/university', level: 'universityAdmin' },
   { prefix: '/admin', level: 'deptAdmin' },
+  { prefix: '/about', level: 'deptAdmin' }, // เกี่ยวกับเรา — ซ่อนจากผู้ใช้ทั่วไป
+  // ทะเบียนข้อมูลหลัก — มีปุ่มแก้ไข + ต้นทุนดิบทุกคณะ ผู้ใช้ทั่วไปดูผ่านหน้าวิเคราะห์แทน
+  { prefix: '/tuition', level: 'deptAdmin' },
+  { prefix: '/cost-data', level: 'deptAdmin' },
+  { prefix: '/programs', level: 'deptAdmin' },
 ];
 
 // Everything not listed above (the authenticated dashboard) needs at least login.

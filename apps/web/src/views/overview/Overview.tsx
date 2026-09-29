@@ -204,7 +204,7 @@ const Overview = () => {
           <KpiCard
             label="นิสิต ณ จุดคุ้มทุน (Q*)"
             value={uni.qStar !== null ? fmtInt(uni.qStar) : '—'}
-            unit={uni.qStar !== null ? `คน · จริง ${fmtInt(uni.q)} คน` : 'R ≤ AVC'}
+            unit={uni.qStar !== null ? `คน · จริง ${fmtInt(uni.q)} คน` : 'รายได้/หัว ≤ ผันแปร/หัว'}
             accent="error"
             valueColor="var(--mui-palette-error-main)"
           />
@@ -215,7 +215,9 @@ const Overview = () => {
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardHeader
-              title={<DotTitle color="primary.main">รายได้ (TR) เทียบ ต้นทุน (TC) รายคณะ</DotTitle>}
+              title={
+                <DotTitle color="primary.main">รายได้รวม (TR) เทียบ ต้นทุนรวม (TC) รายคณะ</DotTitle>
+              }
               subheader="เรียงตามจำนวนนิสิต · หน่วยล้านบาท"
             />
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -246,7 +248,7 @@ const Overview = () => {
           <Card sx={{ height: '100%' }}>
             <CardHeader
               title={<DotTitle color="success.main">โครงสร้างต้นทุนรวม</DotTitle>}
-              subheader="คงที่ (TFC) เทียบ ผันแปร (TVC)"
+              subheader="ต้นทุนคงที่ (TFC) เทียบ ต้นทุนผันแปร (TVC)"
             />
             <CardContent>
               <AppReactApexCharts
@@ -270,7 +272,7 @@ const Overview = () => {
                   color="warning.main"
                 />
                 <CostRow
-                  label="ค่าเสื่อมราคา (ในTFC)"
+                  label="ค่าเสื่อมราคา (รวมอยู่ในต้นทุนคงที่)"
                   value={RAW.UNI.dep}
                   total={uni.tc}
                   color="success.main"
@@ -285,7 +287,7 @@ const Overview = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <FacultyTable
             title="คณะที่มีส่วนเกินสูงสุด"
-            chipLabel="Top surplus"
+            chipLabel="ส่วนเกินสูงสุด"
             chipColor="success"
             rows={top}
             sign="+"
@@ -295,7 +297,7 @@ const Overview = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <FacultyTable
             title="คณะที่ต้องเฝ้าระวัง (ขาดทุน)"
-            chipLabel="Watchlist"
+            chipLabel="เฝ้าระวัง"
             chipColor="error"
             rows={bottom}
             sign="−"
@@ -348,7 +350,7 @@ const Overview = () => {
           <li>
             <Typography variant="body2">
               มี <b>{nLoss} คณะ</b> จาก {RAW.FACS.length} ที่ยังไม่คุ้มทุนในโหมดนี้ และ{' '}
-              <b>{progLoss} หลักสูตร</b> จาก {RAW.PROGS.length} ที่ Q ยังต่ำกว่าจุดคุ้มทุน
+              <b>{progLoss} หลักสูตร</b> จาก {RAW.PROGS.length} ที่จำนวนนิสิตยังต่ำกว่าจุดคุ้มทุน
             </Typography>
           </li>
           <li>
@@ -437,7 +439,7 @@ const FacultyTable = ({
               <TableCell>#</TableCell>
               <TableCell>คณะ</TableCell>
               <TableCell align="right">{valueHeader}</TableCell>
-              <TableCell align="right">Q* / Q</TableCell>
+              <TableCell align="right">จุดคุ้มทุน / นิสิตจริง (Q*/Q)</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

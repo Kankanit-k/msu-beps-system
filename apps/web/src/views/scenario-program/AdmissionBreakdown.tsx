@@ -62,19 +62,20 @@ interface Props {
 const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
   const { mix, plans, loadingPlans, selectedPlan, pristine, shares } = state;
   const { enabled, pct } = mix;
-  const { activeKeys, otherTotal, thaiRegularPct, overAllocated } = shares;
+  const { activeKeys, thaiRegularOn, thaiRegularPct, manual, total, invalid } = shares;
 
   const [saveOpen, setSaveOpen] = useState(false);
   const [planName, setPlanName] = useState('');
   const [confirm, setConfirm] = useState<'clear' | 'delete' | null>(null);
 
   const rows = useMemo(() => {
-    const labels = [SEGMENT_LABELS.thaiRegular, ...activeKeys.map((k) => SEGMENT_LABELS[k])];
-    const pcts = [thaiRegularPct, ...activeKeys.map((k) => pct[k] || 0)];
+    const thai = thaiRegularOn ? [SEGMENT_LABELS.thaiRegular] : [];
+    const labels = [...thai, ...activeKeys.map((k) => SEGMENT_LABELS[k])];
+    const pcts = [...(thaiRegularOn ? [thaiRegularPct] : []), ...activeKeys.map((k) => pct[k] || 0)];
     const heads = qStar && qStar > 0 ? distributeHeads(qStar, pcts) : pcts.map(() => 0);
 
     return labels.map((label, i) => ({ label, pct: pcts[i] ?? 0, head: heads[i] ?? 0 }));
-  }, [activeKeys, pct, thaiRegularPct, qStar]);
+  }, [activeKeys, pct, thaiRegularOn, thaiRegularPct, qStar]);
 
   const openSaveDialog = () => {
     const n = plans.filter((p) => p.programName === programName).length + 1;
@@ -98,7 +99,7 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
       [],
       ['กลุ่มนิสิต', 'สัดส่วน (%)', 'จำนวนที่ต้องรับ (คน)'],
       ...rows.map((r) => [r.label, r.pct, r.head]),
-      ['รวม', 100, qStar ?? 0],
+      ['รวม', total, qStar ?? 0],
     ]);
     state.setToast('ส่งออก CSV แล้ว');
   };
@@ -127,7 +128,7 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
             <Button
               size="small"
               variant="contained"
-              disabled={pristine || overAllocated}
+              disabled={pristine || invalid}
               onClick={openSaveDialog}
             >
               บันทึกแผน
@@ -167,8 +168,8 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
         )}
 
         <Typography component="div" variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          เปิดกลุ่มที่ต้องการแยก แล้วกำหนดสัดส่วน (%) —
-          นิสิตไทยภาคปกติจะคำนวณเป็นส่วนที่เหลือให้อัตโนมัติ
+          เปิดกลุ่มที่ต้องการแยก แล้วกำหนดสัดส่วน (%) ให้รวมได้ 100% —
+          ถ้าปล่อยช่องนิสิตไทยภาคปกติว่างไว้ จะคำนวณเป็นส่วนที่เหลือให้อัตโนมัติ
           {!pristine && (
             <Chip
               size="small"
@@ -179,6 +180,39 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
             />
           )}
         </Typography>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, flexWrap: 'wrap' }}>
+          {/* ไทยภาคปกติ: ปล่อยว่าง = รับส่วนที่เหลือ, ปิด = ไม่รับกลุ่มนี้ (0%) */}
+          <FormControlLabel
+            sx={{ minWidth: 260 }}
+            control={
+              <Switch
+                checked={thaiRegularOn}
+                onChange={(e) => state.toggleThaiRegular(e.target.checked)}
+              />
+            }
+            label={SEGMENT_LABELS.thaiRegular}
+          />
+          <TextField
+            size="small"
+            type="number"
+            disabled={!thaiRegularOn}
+            value={manual ? thaiRegularPct : ''}
+            placeholder={thaiRegularOn ? `อัตโนมัติ ${thaiRegularPct.toLocaleString('th-TH')}` : ''}
+            onChange={(e) =>
+              state.setThaiRegularPct(e.target.value === '' ? undefined : Number(e.target.value))
+            }
+            slotProps={{
+              input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+            }}
+            sx={{ width: 160 }}
+          />
+          {manual && (
+            <Button size="small" color="secondary" onClick={() => state.setThaiRegularPct(undefined)}>
+              ใช้ส่วนที่เหลืออัตโนมัติ
+            </Button>
+          )}
+        </Box>
 
         {CATEGORY_KEYS.map((key) => (
           <Box
@@ -204,15 +238,15 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
               slotProps={{
                 input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
               }}
-              sx={{ width: 120 }}
+              sx={{ width: 160 }}
             />
           </Box>
         ))}
 
-        {overAllocated && (
+        {invalid && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            สัดส่วนรวมของกลุ่มที่เปิดไว้เกิน 100% ({otherTotal.toLocaleString('th-TH')}%) —
-            ลดสัดส่วนลงก่อน
+            สัดส่วนรวมทุกกลุ่มเป็น {total.toLocaleString('th-TH')}% ต้องรวมได้ 100% พอดี —
+            {total > 100 ? ' ลดสัดส่วนลงก่อน' : ' เพิ่มสัดส่วนให้ครบก่อน'}
           </Alert>
         )}
 
@@ -237,8 +271,11 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
               ))}
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>รวม</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  100%
+                <TableCell
+                  align="right"
+                  sx={{ fontWeight: 700, color: invalid ? 'error.main' : undefined }}
+                >
+                  {total.toLocaleString('th-TH')}%
                 </TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
                   {qStar.toLocaleString('th-TH')}
@@ -250,8 +287,8 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
 
         <Alert severity="info" variant="outlined" sx={{ mt: 3 }}>
           ตารางนี้ถือว่าทุกกลุ่มมีอัตราค่าธรรมเนียมเท่ากัน — ถ้ามีอัตรารายกลุ่มจริงแล้ว ให้ใช้การ์ด
-          &quot;คำนวณจุดคุ้มทุนแยกรายกลุ่ม&quot; ด้านล่างแทน ซึ่งคำนวณ Q* จาก CM
-          ถัวเฉลี่ยถ่วงน้ำหนัก แผนที่บันทึกไว้เก็บอยู่ในเครื่องนี้เท่านั้น
+          &quot;คำนวณจุดคุ้มทุนแยกรายกลุ่ม&quot; ด้านล่างแทน ซึ่งคำนวณจุดคุ้มทุน (Q*)
+          จากกำไรส่วนเกินต่อหัวถัวเฉลี่ยถ่วงน้ำหนัก (CM) แผนที่บันทึกไว้เก็บอยู่ในเครื่องนี้เท่านั้น
           (ยังไม่ได้เก็บบนเซิร์ฟเวอร์)
         </Alert>
       </CardContent>

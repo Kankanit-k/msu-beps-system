@@ -275,7 +275,7 @@ const SimulationCompare = ({ loading, error, baseline, selected, onRetry }: Prop
                     <DeltaText value={row.tfc - base.tfc} format={fmtBaht} />
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Q*</span>
+                    <span>จุดคุ้มทุน (Q*)</span>
                     <span>
                       {fmtInt(base.breakEven.qStar)} → {fmtInt(row.breakEven.qStar)}
                     </span>
@@ -301,7 +301,7 @@ const SimulationCompare = ({ loading, error, baseline, selected, onRetry }: Prop
                   คงที่ต่อหัว
                 </TableCell>
                 <TableCell colSpan={3} align="center">
-                  จุดคุ้มทุน Q*
+                  จุดคุ้มทุน (Q*)
                 </TableCell>
                 <TableCell rowSpan={2} align="center">
                   สถานะ
@@ -405,8 +405,8 @@ const SimulationCompare = ({ loading, error, baseline, selected, onRetry }: Prop
             <TableHead>
               <TableRow>
                 <TableCell>หลักสูตร</TableCell>
-                <TableCell align="right">ส่วนต่าง TFC</TableCell>
-                <TableCell align="right">ส่วนต่าง Q*</TableCell>
+                <TableCell align="right">ส่วนต่างต้นทุนคงที่ (TFC)</TableCell>
+                <TableCell align="right">ส่วนต่างจุดคุ้มทุน (Q*)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -490,7 +490,7 @@ const SimulationCompare = ({ loading, error, baseline, selected, onRetry }: Prop
                       fmtBaht,
                     ],
                     [
-                      'จุดคุ้มทุน Q*',
+                      'จุดคุ้มทุน (Q*)',
                       detailPair.base.breakEven.qStar,
                       detailPair.row.breakEven.qStar,
                       (v: number) => `${fmtInt(v)} คน`,

@@ -18,7 +18,7 @@ const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
 export const HEATMAP_METRICS: HeatmapMetric[] = [
   {
     key: 'util',
-    label: 'Utilization',
+    label: 'นิสิตจริง/จุดคุ้มทุน',
     unit: 'Q/Q* %',
     good: 'high',
     format: (v) => (v > 0 ? `${v}%` : '—'),
@@ -26,31 +26,37 @@ export const HEATMAP_METRICS: HeatmapMetric[] = [
   {
     key: 'profitPct',
     label: 'กำไร %',
-    unit: 'Profit',
+    unit: 'อัตรากำไร',
     good: 'high',
     format: (v) => `${v >= 0 ? '+' : ''}${v}%`,
   },
   { key: 'progOkRatio', label: 'หลักสูตรคุ้ม', unit: '%', good: 'high', format: (v) => `${v}%` },
-  { key: 'CM', label: 'CM/หัว', unit: 'บาท', good: 'high', format: fmtB },
-  { key: 'R', label: 'R/หัว', unit: 'บาท', good: 'high', format: fmtB },
-  { key: 'AVC', label: 'AVC/หัว', unit: 'บาท', good: 'low', format: fmtB },
+  { key: 'CM', label: 'ส่วนเกิน/หัว (CM)', unit: 'บาท', good: 'high', format: fmtB },
+  { key: 'R', label: 'รายได้/หัว (R)', unit: 'บาท', good: 'high', format: fmtB },
+  { key: 'AVC', label: 'ผันแปร/หัว (AVC)', unit: 'บาท', good: 'low', format: fmtB },
   {
     key: 'avcRRatio',
-    label: 'AVC/R',
+    label: 'ผันแปร/รายได้ (AVC/R)',
     unit: '%',
     good: 'low',
     format: (v) => (v >= 999 ? '—' : `${v}%`),
   },
-  { key: 'tfcTcRatio', label: 'TFC/TC', unit: '%', good: 'low', format: (v) => `${v}%` },
+  {
+    key: 'tfcTcRatio',
+    label: 'ต้นทุนคงที่/รวม (TFC/TC)',
+    unit: '%',
+    good: 'low',
+    format: (v) => `${v}%`,
+  },
   {
     key: 'profitM',
-    label: 'ส่วนเกิน',
+    label: 'กำไร/ขาดทุน',
     unit: 'ลบ.',
     good: 'high',
     format: (v) =>
       `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
   },
-  { key: 'Q', label: 'Q จริง', unit: 'คน', good: 'high', format: fmtN },
+  { key: 'Q', label: 'นิสิตจริง (Q)', unit: 'คน', good: 'high', format: fmtN },
 ];
 
 /** ไล่สีแดง→ทอง→เขียว ตามตำแหน่งสัมพัทธ์ในคอลัมน์เดียวกัน (min-max ต่อคอลัมน์ ไม่ใช่ทั้งตาราง) */

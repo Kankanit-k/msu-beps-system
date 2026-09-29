@@ -251,7 +251,7 @@ const FixedCostPolicyView = () => {
         throw new Error(
           res.status === 401
             ? 'เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่'
-            : (json?.error ?? `เรียก API ไม่สำเร็จ (${res.status})`),
+            : (json?.error ?? `เชื่อมต่อระบบไม่สำเร็จ (${res.status})`),
         );
       }
 
@@ -378,7 +378,7 @@ const FixedCostPolicyView = () => {
         <Grid size={12}>
           <Alert severity="info">
             <AlertTitle>คณะเลือกวิธีหารต้นทุนคงที่ของตัวเองได้ 3 แบบ</AlertTitle>
-            ผลของทุกวิธีคำนวณจาก <strong>@beps/calc-engine</strong> ตัวเดียวกับตอนรันจริง และ
+            ผลของทุกวิธีคำนวณด้วย<strong>ชุดคำนวณเดียวกับรอบคำนวณจริง</strong> และ
             <strong> ไม่เขียนฐานข้อมูล</strong> — กดดูเทียบกี่รอบก็ได้ก่อนตัดสินใจ ·
             ยอดรวมต้นทุนคงที่ของคณะเท่ากันทุกวิธี เปลี่ยนแค่การกระจายภายในคณะ
           </Alert>
@@ -521,7 +521,7 @@ const FixedCostPolicyView = () => {
                 <Stack spacing={4}>
                   <Alert severity="warning">
                     <AlertTitle>ยังเสนอจริงไม่ได้ในรุ่นนี้</AlertTitle>
-                    API บันทึก/เสนอ/อนุมัตินโยบาย (ขั้นที่ 5–6 ของกระบวนการ) ยังไม่ถูกสร้าง
+                    ระบบบันทึก/เสนอ/อนุมัตินโยบาย (ขั้นที่ 5–6 ของกระบวนการ) ยังไม่เปิดใช้งาน
                     ข้อความที่กรอกที่นี่จึงถูกเก็บไว้ในร่างบนเครื่องนี้เท่านั้น
                   </Alert>
 
@@ -535,7 +535,7 @@ const FixedCostPolicyView = () => {
                     error={isCustom && rationale.trim() === ''}
                     helperText={
                       isCustom && rationale.trim() === ''
-                        ? 'วิธีกำหนดสัดส่วนเองต้องระบุเหตุผล (กติกา V4)'
+                        ? 'วิธีกำหนดสัดส่วนเองต้องระบุเหตุผล'
                         : ' '
                     }
                   />
@@ -547,7 +547,7 @@ const FixedCostPolicyView = () => {
                     error={isCustom && meetingRef.trim() === ''}
                     helperText={
                       isCustom && meetingRef.trim() === ''
-                        ? 'วิธีกำหนดสัดส่วนเองต้องอ้างเลขที่มติ (กติกา V4)'
+                        ? 'วิธีกำหนดสัดส่วนเองต้องอ้างเลขที่มติ'
                         : ' '
                     }
                     sx={{ maxWidth: 420 }}
