@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -25,86 +25,136 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import Snackbar from '@mui/material/Snackbar';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
 import { DotTitle } from '@components/ChartBits';
 import DataCaveatNotes from '@components/DataCaveatNotes';
+import NumberTextField from '@components/NumberTextField';
 import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
-import { computeBreakEven } from '@views/breakeven/calc';
+import { computeBreakEven, REVENUE_MODE_LABEL, REVENUE_MODE_NOTE } from '@views/breakeven/calc';
 import { feesForProgram, feeVariant, fmtFee } from '@views/tuition/feeData';
 
 import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
 import AdmissionBreakdownCard from './AdmissionBreakdownCard';
+import CostBlockTable from './CostBlockTable';
+import StudentMixTable from './StudentMixTable';
+import {
+  blockFromProgram,
+  blockResult,
+  defaultYears,
+  emptyBlock,
+  segmentLabels,
+  withPerHeadCharges,
+  type CostBlock,
+  type Segment,
+} from './newProgramCalc';
 import { PG_DATA, EDUCATION_LEVELS } from './programData';
 import { loadHistory, saveHistory } from './historyStore';
 import type { ProgramHistoryEntry } from './types';
 import type { ProgRow } from '@/data/mockup';
 
-/** ประเภทหลักสูตร — ดรอปดาวน์ตาม mockup (#pg-type) */
-const PROGRAM_TYPES = [
-  { value: 'old' as const, label: 'หลักสูตรเดิม (Existing)' },
-  { value: 'new' as const, label: 'หลักสูตรใหม่ (New)' },
-];
-
-/** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละระดับ/ปริญญา) — ต่อท้ายระดับให้แยกแยะได้ในดรอปดาวน์ */
-const progOptionLabel = (p: ProgRow) => `${p.prog} (${p.lvl})`;
+/** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละปริญญา) — ต่อท้ายชื่อปริญญาให้แยกแยะได้ในดรอปดาวน์ */
+const progOptionLabel = (p: ProgRow) => `${p.prog} — ${p.deg}`;
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
 
-/** แถบอ้างอิงตัวเลขจากระบบของหลักสูตรที่เลือก — ตรงกับ #pg-ref-note ของ mockup */
-const ProgramRefNote = ({ p, fac }: { p: ProgRow; fac: string }) => {
-  const line = (label: string, color: string, r: number, qStar: number) => (
-    <Box component="div">
-      <Box component="span" sx={{ color, fontWeight: 700 }}>
-        ● {label}:
-      </Box>{' '}
-      รายได้/หัว (R) <b>{fmtB(r)}</b> · ส่วนเกิน/หัว (CM) <b>{fmtB(r - p.AVC)}</b> ·{' '}
-      <b>จุดคุ้มทุน (Q*) {qStar ? `${fmtN(qStar)} คน` : 'ไม่มี — ไม่คุ้มทุน (CM ≤ 0)'}</b>{' '}
-      {qStar > 0 && (
-        <Box
-          component="span"
-          sx={{ fontWeight: 700, color: p.Q >= qStar ? 'success.main' : 'error.main' }}
-        >
-          {p.Q >= qStar ? '✓ คุ้ม' : `⚠ ขาด ${fmtN(qStar - p.Q)}`}
-        </Box>
-      )}
-    </Box>
-  );
+type CostBasis = 'ref' | 'manual';
 
-  return (
-    <Box
-      sx={{
-        mt: 3,
-        px: 3,
-        py: 2,
-        borderRadius: 1,
-        border: 1,
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-        fontSize: '0.6875rem',
-        lineHeight: 1.8,
-        color: 'text.secondary',
-      }}
-    >
-      <Box component="span" sx={{ fontWeight: 700, color: 'primary.main' }}>
-        {p.prog}
-      </Box>{' '}
-      · {p.lvl} · {fac}
-      <Box component="div">
-        ต้นทุนผันแปรต่อหัว (AVC) <b>{fmtB(p.AVC)}</b> บ./คน | นิสิตจริง <b>{fmtN(p.Q)}</b> คน
-      </Box>
-      {line('รวมแผ่นดิน', 'primary.main', p.Rin, p.Qin)}
-      {line('ไม่รวมแผ่นดิน', 'warning.main', p.Rex, p.Qex)}
-    </Box>
-  );
+/** เงินแผ่นดิน บาท/ภาค/คน ตั้งต้นตามแท็บ 4 (Y14) — ใส่ให้กลุ่มปกติไทย ปกติต่างชาติ และต่อเนื่อง */
+const DEFAULT_GOV_PER_SEM = 3550;
+
+/** ตั้งต้นตารางสัดส่วนนิสิต: จำนวนนิสิตไทย/ต่างชาติจากหลักสูตรอ้างอิง · ค่าธรรมเนียมจากแท็บค่าธรรมเนียม68 */
+function buildSegments(level: string, ref: ProgRow | null, semesters: number): Segment[] {
+  const fees = ref ? feesForProgram(ref.fac, ref.deg) : [];
+  const inTime = fees.find((f) => f.mode === 'ในเวลา');
+  const offTime = fees.find((f) => f.mode === 'นอกเวลา');
+  const thaiReg = inTime?.rate ?? 18000;
+  const fee = [
+    thaiReg,
+    offTime?.rate ?? 0,
+    inTime?.rateIntl ?? 25000,
+    offTime?.rateIntl ?? 0,
+    thaiReg,
+  ];
+  const n = [ref?.qT ?? 0, 0, ref?.qF ?? 0, 0, 0];
+  const years = defaultYears(level);
+
+  return segmentLabels(level).map((label, i) => ({
+    label,
+    n: n[i]!,
+    fee: fee[i]!,
+    gov: i % 2 === 0 ? DEFAULT_GOV_PER_SEM : 0,
+    semesters,
+    years: i === 4 ? 2 : years,
+  }));
+}
+
+const roundBlock = (b: CostBlock): CostBlock => ({
+  ...b,
+  q: Math.round(b.q),
+  gov: Math.round(b.gov),
+  income: Math.round(b.income),
+  fix: b.fix.map(Math.round),
+  dep: Math.round(b.dep),
+  var: b.var.map(Math.round),
+  genEd: Math.round(b.genEd),
+});
+
+/* ---------- ร่างฟอร์ม — กันข้อมูลหายเมื่อปิด/รีโหลดหน้า ---------- */
+const DRAFT_KEY = 'beps.scenario-program.draft';
+
+interface Draft {
+  fac: string | null;
+  level: string;
+  nameNew: string;
+  degNew: string;
+  semesters: number;
+  refKey: string | null;
+  basis: CostBasis;
+  manual: CostBlock;
+  segs: Segment[];
+}
+
+const refKeyOf = (p: ProgRow) => `${p.fac}|${p.lvl}|${p.prog}|${p.deg}`;
+
+const loadDraft = (): Draft | null => {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+
+    return raw ? (JSON.parse(raw) as Draft) : null;
+  } catch {
+    return null;
+  }
 };
+
+const saveDraft = (d: Draft | null) => {
+  try {
+    if (d) window.localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    else window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // โหมดส่วนตัว/พื้นที่เต็ม — ฟอร์มยังใช้ได้ แค่ไม่จำร่าง
+  }
+};
+
+/** หัวข้อย่อยในการ์ดกรอกข้อมูล */
+const SectionLabel = ({ children }: { children: ReactNode }) => (
+  <Typography
+    variant="overline"
+    sx={{ display: 'block', color: 'primary.main', fontWeight: 700, mb: 1 }}
+  >
+    {children}
+  </Typography>
+);
 
 /** อัตราค่าธรรมเนียมการศึกษาของหลักสูตรที่เลือก (แท็บ ค่าธรรมเนียม68 — ข้อมูลเดียวกับหน้า W8) */
 const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
@@ -167,96 +217,129 @@ const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
 };
 
 const ScenarioProgramView = () => {
-  const [progType, setProgType] = useState<'old' | 'new'>('old');
+  const [fac, setFac] = useState<string | null>(null);
   const [level, setLevel] = useState<string>(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
-  const [facSel, setFacSel] = useState<string | null>(null);
-  const [progSel, setProgSel] = useState<ProgRow | null>(null);
   const [nameNew, setNameNew] = useState('');
-  const [facNew, setFacNew] = useState('');
-
-  const [q, setQ] = useState(0);
-  const [st, setSt] = useState(0);
-  const [own, setOwn] = useState(0);
-  const [tfc, setTfc] = useState(0);
-  const [tvc, setTvc] = useState(0);
-  const [autofilled, setAutofilled] = useState(false);
+  const [degNew, setDegNew] = useState('');
+  const [semesters, setSemesters] = useState(2);
+  const [refProg, setRefProg] = useState<ProgRow | null>(null);
+  const [basis, setBasis] = useState<CostBasis>('ref');
+  const [manual, setManual] = useState<CostBlock>(emptyBlock);
+  const [segs, setSegs] = useState<Segment[]>(() => buildSegments(level, null, 2));
 
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [history, setHistory] = useState<ProgramHistoryEntry[]>([]);
-
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirm, setConfirm] = useState<'history' | 'form' | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
 
   // อ่านหลัง mount เท่านั้น — อ่านตอน render แรกจะทำให้ SSR กับ client ไม่ตรงกัน
-  useEffect(() => setHistory(loadHistory()), []);
+  useEffect(() => {
+    setHistory(loadHistory());
+    const d = loadDraft();
+
+    if (d) {
+      setFac(d.fac);
+      setLevel(d.level);
+      setNameNew(d.nameNew);
+      setDegNew(d.degNew);
+      setSemesters(d.semesters);
+      setRefProg(RAW.PROGS.find((p) => refKeyOf(p) === d.refKey) ?? null);
+      setBasis(d.basis);
+      setManual(d.manual);
+      setSegs(d.segs);
+    }
+
+    setDraftReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    saveDraft({
+      fac,
+      level,
+      nameNew,
+      degNew,
+      semesters,
+      refKey: refProg ? refKeyOf(refProg) : null,
+      basis,
+      manual,
+      segs,
+    });
+  }, [draftReady, fac, level, nameNew, degNew, semesters, refProg, basis, manual, segs]);
 
   const facultyOptions = useMemo(() => PG_DATA.map((g) => g.faculty), []);
-  const programOptions = useMemo(
-    () => PG_DATA.find((g) => g.faculty === facSel)?.programs ?? [],
-    [facSel],
+  const refOptions = useMemo(
+    () => (PG_DATA.find((g) => g.faculty === fac)?.programs ?? []).filter((p) => p.lvl === level),
+    [fac, level],
   );
 
-  const isNew = progType === 'new';
-  const tr = st + own;
-  const tc = tfc + tvc;
-  const avc = q > 0 ? tvc / q : 0;
-  const canCalc = q > 0 && tr > 0 && tc > 0;
+  const refBlock = useMemo(() => (refProg ? blockFromProgram(refProg) : null), [refProg]);
+  const block = basis === 'ref' ? refBlock : withPerHeadCharges(manual, semesters);
+  const result = block ? blockResult(block, mode) : null;
+  const canSave =
+    !!block && !!result && block.q > 0 && block.gov + block.income > 0 && result.tc > 0;
 
-  const resetNumbers = () => {
-    setQ(0);
-    setSt(0);
-    setOwn(0);
-    setTfc(0);
-    setTvc(0);
-    setAutofilled(false);
-  };
-
-  const onTypeChange = (v: 'old' | 'new') => {
-    setProgType(v);
-    setFacSel(null);
-    setProgSel(null);
-    resetNumbers();
+  const pickRef = (p: ProgRow | null, lvl = level) => {
+    setRefProg(p);
+    if (p) setManual(roundBlock(blockFromProgram(p)));
+    setSegs(buildSegments(lvl, p, semesters));
   };
 
   const onFacChange = (v: string | null) => {
-    setFacSel(v);
-    setProgSel(null);
-    resetNumbers();
+    setFac(v);
+    pickRef(null);
   };
 
-  const onProgChange = (p: ProgRow | null) => {
-    setProgSel(p);
-
-    if (!p) return;
-
-    setLevel(p.lvl);
-    setQ(p.Q);
-    setSt(Math.round(p.st));
-    setOwn(Math.round(p.own));
-    setTfc(Math.round(p.TFC));
-    setTvc(Math.round(p.TVC));
-    setAutofilled(true);
+  const onLevelChange = (v: string) => {
+    setLevel(v);
+    pickRef(null, v);
   };
 
-  const name = isNew ? nameNew || 'หลักสูตรใหม่' : progSel?.prog || 'ไม่ระบุ';
-  const fac = isNew ? facNew : facSel || '';
+  const onSemestersChange = (v: number) => {
+    setSemesters(v);
+    setSegs((xs) => xs.map((s) => ({ ...s, semesters: v })));
+  };
+
+  const clearForm = () => {
+    setFac(null);
+    setLevel(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
+    setNameNew('');
+    setDegNew('');
+    setSemesters(2);
+    setRefProg(null);
+    setBasis('ref');
+    setManual(emptyBlock());
+    setSegs(buildSegments(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี', null, 2));
+    saveDraft(null);
+  };
+
+  const isNew = !!nameNew.trim() || basis === 'manual';
+  const name = nameNew.trim() || refProg?.prog || 'หลักสูตรใหม่';
 
   const handleCalc = () => {
-    if (!canCalc) return;
+    if (!canSave || !block || !result) return;
 
-    const both = calcBreakEvenBothModes({ q, governmentBudget: st, incomeBudget: own, tfc, tvc });
+    const both = calcBreakEvenBothModes({
+      q: block.q,
+      governmentBudget: block.gov,
+      incomeBudget: block.income,
+      tfc: result.tfc,
+      tvc: result.tvc,
+    });
 
     const entry: ProgramHistoryEntry = {
       id: Date.now(),
       time: new Date().toLocaleTimeString('th-TH'),
       name,
-      fac,
+      fac: fac ?? '',
       level,
       isNew,
-      q,
-      tr,
-      tfc,
-      tvc,
-      avc,
+      q: block.q,
+      tr: block.gov + block.income,
+      tfc: result.tfc,
+      tvc: result.tvc,
+      avc: result.avc ?? 0,
       withGov: both.with_government,
       withoutGov: both.without_government,
       mode,
@@ -266,6 +349,7 @@ const ScenarioProgramView = () => {
 
     setHistory(next);
     saveHistory(next);
+    setToast(`บันทึกผลคำนวณ "${name}" แล้ว — ออกรายงาน PDF และใช้ในหน้าแผนการรับนิสิตได้`);
   };
 
   const uni = computeBreakEven(RAW.UNI, mode);
@@ -302,7 +386,7 @@ const ScenarioProgramView = () => {
           }}
         >
           <Typography variant="h5" fontWeight={700}>
-            🎓 คำนวณจุดคุ้มทุนรายหลักสูตร (กรอกเอง)
+            🎓 คำนวณจุดคุ้มทุนหลักสูตรใหม่
           </Typography>
           <Button
             variant="contained"
@@ -320,179 +404,241 @@ const ScenarioProgramView = () => {
 
         <Card sx={{ mb: 4 }}>
           <CardHeader
-            title={<DotTitle color="primary.main">กรอกข้อมูลหลักสูตร</DotTitle>}
-            subheader="เลือกประเภท — หลักสูตรเดิมดึงข้อมูลจากระบบอัตโนมัติ · หลักสูตรใหม่กรอกเอง"
+            title={<DotTitle color="primary.main">ข้อมูลหลักสูตร</DotTitle>}
+            subheader="ตามแท็บ 4.จุดคุ้มทุนหลักสูตร(ใหม่) — เลือกหลักสูตรอ้างอิงเพื่อดึงต้นทุนเดิม หรือคิดต้นทุนด้วยตัวเอง"
+            action={
+              <Button
+                size="small"
+                color="secondary"
+                onClick={() => setConfirm('form')}
+                sx={{ mr: 2 }}
+              >
+                ล้างฟอร์ม
+              </Button>
+            }
           />
           <CardContent>
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Autocomplete
-                  disableClearable
-                  options={PROGRAM_TYPES}
-                  getOptionLabel={(o) => o.label}
-                  isOptionEqualToValue={(a, b) => a.value === b.value}
-                  value={PROGRAM_TYPES.find((t) => t.value === progType) ?? PROGRAM_TYPES[0]}
-                  onChange={(_, v) => v && onTypeChange(v.value)}
-                  renderInput={(params) => <TextField {...params} label="📚 ประเภทหลักสูตร" />}
+                  options={facultyOptions}
+                  value={fac}
+                  onChange={(_, v) => onFacChange(v)}
+                  renderInput={(params) => <TextField {...params} label="คณะ / วิทยาลัย" />}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Autocomplete
+                  disableClearable
                   options={EDUCATION_LEVELS}
                   value={level}
-                  onChange={(_, v) => v && setLevel(v)}
-                  renderInput={(params) => <TextField {...params} label="🏫 ระดับการศึกษา" />}
+                  onChange={(_, v) => onLevelChange(v)}
+                  renderInput={(params) => <TextField {...params} label="ระดับการศึกษา" />}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 5 }}>
+                <TextField
+                  fullWidth
+                  label="ชื่อหลักสูตรที่ต้องการเปิด"
+                  placeholder="เช่น วิทยาการปัญญาประดิษฐ์"
+                  value={nameNew}
+                  onChange={(e) => setNameNew(e.target.value)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 5 }}>
+                <TextField
+                  fullWidth
+                  label="ชื่อปริญญา / หลักสูตร"
+                  placeholder="เช่น วท.บ. วิทยาการปัญญาประดิษฐ์"
+                  value={degNew}
+                  onChange={(e) => setDegNew(e.target.value)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 2 }}>
+                <NumberTextField
+                  fullWidth
+                  label="จำนวนเทอมต่อปี"
+                  value={semesters}
+                  onChange={onSemestersChange}
+                  error={semesters < 1}
+                  helperText={semesters < 1 ? 'อย่างน้อย 1 เทอม' : undefined}
+                />
+              </Grid>
+              <Grid size={12}>
+                <Autocomplete
+                  options={refOptions}
+                  getOptionLabel={progOptionLabel}
+                  isOptionEqualToValue={(a, b) => a === b}
+                  value={refProg}
+                  disabled={!fac}
+                  onChange={(_, v) => pickRef(v)}
+                  noOptionsText={`ไม่มีหลักสูตร${level}ในคณะนี้`}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="หลักสูตรอ้างอิง"
+                      helperText={
+                        !fac
+                          ? 'เลือกคณะก่อน'
+                          : `${refOptions.length} หลักสูตร${level}ในคณะ — ใช้ต้นทุน งบประมาณ และจำนวนนิสิตจริงของหลักสูตรนี้เป็นฐาน`
+                      }
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
 
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              {!isNew ? (
-                <>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Autocomplete
-                      options={facultyOptions}
-                      value={facSel}
-                      onChange={(_, v) => onFacChange(v)}
-                      renderInput={(params) => (
-                        <TextField {...params} label="🏫 สังกัดคณะ / วิทยาลัย" />
-                      )}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Autocomplete
-                      options={programOptions}
-                      getOptionLabel={progOptionLabel}
-                      isOptionEqualToValue={(a, b) => a === b}
-                      value={progSel}
-                      disabled={!facSel}
-                      onChange={(_, v) => onProgChange(v)}
-                      renderInput={(params) => <TextField {...params} label="📚 ชื่อหลักสูตร" />}
-                    />
-                  </Grid>
-                </>
-              ) : (
-                <>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="✎ ชื่อหลักสูตร (กรอกเอง)"
-                      placeholder="เช่น วิทยาการปัญญาประดิษฐ์"
-                      value={nameNew}
-                      onChange={(e) => setNameNew(e.target.value)}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="🏫 สังกัดคณะ (กรอกเอง)"
-                      placeholder="เช่น คณะวิทยาศาสตร์"
-                      value={facNew}
-                      onChange={(e) => setFacNew(e.target.value)}
-                    />
-                  </Grid>
-                </>
-              )}
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <SectionLabel>วิธีคิดต้นทุน</SectionLabel>
+                <ToggleButtonGroup
+                  exclusive
+                  fullWidth
+                  size="small"
+                  color="primary"
+                  value={basis}
+                  onChange={(_, v: CostBasis | null) => v && setBasis(v)}
+                >
+                  <ToggleButton value="ref">จากหลักสูตรอ้างอิงเดิม</ToggleButton>
+                  <ToggleButton value="manual">คิดต้นทุนด้วยตัวเอง</ToggleButton>
+                </ToggleButtonGroup>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', mt: 1 }}
+                >
+                  {basis === 'ref'
+                    ? 'ต้นทุนรายหมวดรายจ่าย = งบของหลักสูตร + งบสำนักงานเลขาฯ ระดับเดียวกันและส่วนกลางคณะ ปันตามจำนวนนิสิต'
+                    : 'แก้ตัวเลขในตารางได้ทุกช่อง (ตั้งต้นจากหลักสูตรอ้างอิง) · ค่าธรรมเนียมรายการหลักและหักสมทบคิดจากอัตรา × นิสิต × เทอม'}
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <SectionLabel>เงินแผ่นดิน</SectionLabel>
+                <ToggleButtonGroup
+                  exclusive
+                  fullWidth
+                  size="small"
+                  color="primary"
+                  value={mode}
+                  onChange={(_, v: RevenueMode | null) => v && setMode(v)}
+                >
+                  <ToggleButton value="with_government">
+                    {REVENUE_MODE_LABEL.with_government}
+                  </ToggleButton>
+                  <ToggleButton value="without_government">
+                    {REVENUE_MODE_LABEL.without_government}
+                  </ToggleButton>
+                </ToggleButtonGroup>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', mt: 1 }}
+                >
+                  {REVENUE_MODE_NOTE[mode]}
+                </Typography>
+              </Grid>
             </Grid>
 
-            <Box
-              sx={{
-                bgcolor: 'action.hover',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 2,
-                p: 3,
-                mb: 3,
-              }}
-            >
-              <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 700 }}>
-                📊 ข้อมูลตัวเลข{' '}
-                {autofilled && (
-                  <Chip
-                    size="small"
-                    color="success"
-                    label="✓ ดึงจากระบบ"
-                    sx={{ ml: 1, height: 18 }}
+            {refProg && <ProgramFeeRates p={refProg} />}
+          </CardContent>
+        </Card>
+
+        <Grid container spacing={4} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, lg: 7 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardHeader
+                title={<DotTitle color="primary.main">ตารางคำนวณจุดคุ้มทุน</DotTitle>}
+                subheader={`${basis === 'ref' ? 'อ้างอิงหลักสูตรเดิม' : 'คิดต้นทุนด้วยตัวเอง'} · ${REVENUE_MODE_LABEL[mode]}`}
+                action={
+                  <Button
+                    variant="contained"
+                    disabled={!canSave}
+                    onClick={handleCalc}
+                    sx={{ mr: 2 }}
+                    title={canSave ? undefined : 'ต้องมีจำนวนนิสิต งบประมาณ และต้นทุนก่อน'}
+                  >
+                    บันทึกผลคำนวณ
+                  </Button>
+                }
+              />
+              <CardContent sx={{ px: 0 }}>
+                {block && result ? (
+                  <CostBlockTable
+                    block={block}
+                    result={result}
+                    mode={mode}
+                    editable={basis === 'manual'}
+                    onChange={setManual}
                   />
+                ) : (
+                  <Alert severity="info" variant="outlined" sx={{ mx: 4 }}>
+                    เลือกคณะ ระดับ และหลักสูตรอ้างอิง เพื่อดึงต้นทุนจากระบบ — หรือเลือก
+                    &quot;คิดต้นทุนด้วยตัวเอง&quot; เพื่อกรอกต้นทุนรายหมวดเอง
+                  </Alert>
                 )}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, lg: 5 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardHeader
+                title={<DotTitle color="primary.main">กราฟจุดคุ้มทุน</DotTitle>}
+                subheader={REVENUE_MODE_LABEL[mode]}
+              />
+              <CardContent>
+                {block && result && block.q > 0 ? (
+                  <BreakEvenChart
+                    q={block.q}
+                    tfc={result.tfc}
+                    avc={result.avc ?? 0}
+                    rPerHead={result.r ?? 0}
+                    qStar={result.qStar}
+                  />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    กราฟจะแสดงเมื่อมีจำนวนนิสิตและต้นทุน
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <Card sx={{ mb: 4 }}>
+          <CardHeader
+            title={
+              <DotTitle color="warning.main">
+                การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน
+              </DotTitle>
+            }
+            subheader="ปันต้นทุนคงที่ตามสัดส่วนนิสิต · ต้นทุนผันแปร = AVC × จำนวนนิสิต · รายรับต่อปี = (ค่าธรรมเนียม + เงินแผ่นดิน) × นิสิต × เทอม"
+          />
+          <CardContent>
+            {block && result ? (
+              <StudentMixTable
+                segs={segs}
+                onChange={setSegs}
+                tfc={result.tfc}
+                avc={result.avc ?? 0}
+                mode={mode}
+              />
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                ต้องมีต้นทุนจากตารางคำนวณก่อน
               </Typography>
-              <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="จำนวนนิสิต (Q)"
-                    value={q || ''}
-                    onChange={(e) => setQ(Number(e.target.value) || 0)}
-                  />
-                </Grid>
-                <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="งบเงินแผ่นดิน"
-                    value={st || ''}
-                    onChange={(e) => setSt(Number(e.target.value) || 0)}
-                  />
-                </Grid>
-                <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="งบเงินรายได้"
-                    value={own || ''}
-                    onChange={(e) => setOwn(Number(e.target.value) || 0)}
-                  />
-                </Grid>
-                <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="ต้นทุนคงที่รวม (TFC)"
-                    value={tfc || ''}
-                    onChange={(e) => setTfc(Number(e.target.value) || 0)}
-                  />
-                </Grid>
-                <Grid size={{ xs: 6, sm: 2.4 }}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="ต้นทุนผันแปรรวม (TVC)"
-                    value={tvc || ''}
-                    onChange={(e) => setTvc(Number(e.target.value) || 0)}
-                  />
-                </Grid>
-              </Grid>
-
-              {progSel && progSel.Q > 0 && <ProgramRefNote p={progSel} fac={facSel ?? ''} />}
-              {progSel && <ProgramFeeRates p={progSel} />}
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                disabled={!canCalc}
-                onClick={handleCalc}
-                sx={{ maxWidth: 240 }}
-              >
-                ▶ คำนวณจุดคุ้มทุน
-              </Button>
-              {!canCalc && (
-                <Typography variant="caption" color="text.disabled">
-                  กรุณากรอก จำนวนนิสิต งบประมาณ และต้นทุน ให้ครบก่อนคำนวณ
-                </Typography>
-              )}
-            </Box>
+            )}
           </CardContent>
         </Card>
 
         {latest && latestResult && (
           <>
             <Grid container spacing={4} sx={{ mb: 4 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={12}>
                 <Card sx={{ height: '100%' }}>
                   <CardHeader
-                    title={<DotTitle color="primary.main">{latest.name}</DotTitle>}
+                    title={
+                      <DotTitle color="primary.main">ผลที่บันทึกล่าสุด — {latest.name}</DotTitle>
+                    }
                     subheader={`${latest.fac || '—'} · ${latest.level} · ${latest.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม'}`}
                   />
                   <CardContent>
@@ -648,24 +794,6 @@ const ScenarioProgramView = () => {
                   </CardContent>
                 </Card>
               </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Card sx={{ height: '100%' }}>
-                  <CardHeader
-                    title={<DotTitle color="primary.main">กราฟจุดคุ้มทุน</DotTitle>}
-                    subheader={`โหมด: ${latest.mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'}`}
-                  />
-                  <CardContent>
-                    <BreakEvenChart
-                      q={latest.q}
-                      tfc={latest.tfc}
-                      avc={latest.avc}
-                      rPerHead={latestResult.r ?? 0}
-                      qStar={latestResult.qStar}
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
             </Grid>
 
             <AdmissionBreakdownCard qStar={latestResult.qStar} programName={latest.name} />
@@ -678,7 +806,7 @@ const ScenarioProgramView = () => {
                     size="small"
                     variant="outlined"
                     color="error"
-                    onClick={() => setConfirmClear(true)}
+                    onClick={() => setConfirm('history')}
                     sx={{ mr: 2, borderRadius: 5 }}
                   >
                     ล้าง
@@ -768,35 +896,50 @@ const ScenarioProgramView = () => {
 
         {!latest && (
           <Alert severity="info" variant="outlined">
-            กรอกข้อมูลหลักสูตรแล้วกด &quot;คำนวณจุดคุ้มทุน&quot; เพื่อดูผลลัพธ์ กราฟ
-            และเปิดใช้งานปุ่มออกรายงาน PDF
+            กด &quot;บันทึกผลคำนวณ&quot; เพื่อเก็บผลไว้ในประวัติ เปิดใช้งานปุ่มออกรายงาน PDF
+            และใช้จุดคุ้มทุนในหน้าแผนการรับนิสิต
           </Alert>
         )}
       </Box>
 
-      <Dialog open={confirmClear} onClose={() => setConfirmClear(false)}>
-        <DialogTitle>ล้างประวัติการคำนวณ?</DialogTitle>
+      <Dialog open={confirm !== null} onClose={() => setConfirm(null)}>
+        <DialogTitle>{confirm === 'form' ? 'ล้างฟอร์ม?' : 'ล้างประวัติการคำนวณ?'}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            ประวัติทั้งหมด ({history.length} รายการ) จะถูกลบออกจากเครื่องนี้ถาวร และหน้า
-            &quot;แผนการรับนิสิต&quot; จะเลือกผลคำนวณเหล่านี้ไม่ได้อีก
+            {confirm === 'form'
+              ? 'ข้อมูลหลักสูตร หลักสูตรอ้างอิง ต้นทุนที่กรอกเอง และตารางสัดส่วนนิสิตจะถูกล้างกลับเป็นค่าตั้งต้น (ประวัติที่บันทึกไว้ไม่หาย)'
+              : `ประวัติทั้งหมด (${history.length} รายการ) จะถูกลบออกจากเครื่องนี้ถาวร และหน้า "แผนการรับนิสิต" จะเลือกผลคำนวณเหล่านี้ไม่ได้อีก`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmClear(false)}>ยกเลิก</Button>
+          <Button onClick={() => setConfirm(null)}>ยกเลิก</Button>
           <Button
             variant="contained"
             color="error"
             onClick={() => {
-              setHistory([]);
-              saveHistory([]);
-              setConfirmClear(false);
+              if (confirm === 'form') {
+                clearForm();
+                setToast('ล้างฟอร์มแล้ว');
+              } else {
+                setHistory([]);
+                saveHistory([]);
+                setToast('ล้างประวัติการคำนวณแล้ว');
+              }
+
+              setConfirm(null);
             }}
           >
-            ล้างประวัติ
+            {confirm === 'form' ? 'ล้างฟอร์ม' : 'ล้างประวัติ'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={4000}
+        onClose={() => setToast(null)}
+        message={toast}
+      />
 
       {/* รายงานสำหรับพิมพ์เท่านั้น — ซ่อนบนหน้าจอปกติ แสดงเฉพาะตอนสั่งพิมพ์ (window.print) */}
       {latest && (
