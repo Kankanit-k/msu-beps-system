@@ -22,13 +22,7 @@ import { DotTitle } from '@components/ChartBits';
 import NoteBar from '@components/NoteBar';
 
 // Data / calc Imports
-import {
-  computeBreakEven,
-  fmtInt,
-  fmtMillion,
-  statusOf,
-  STATUS_LABEL,
-} from '@views/breakeven/calc';
+import { engineBreakEven, fmtInt, fmtMillion, statusOf, STATUS_LABEL } from '@views/breakeven/calc';
 import type { FinancialRow } from '@views/breakeven/calc';
 
 type Props = {
@@ -81,7 +75,8 @@ const CostSimulator = ({ base, mode, scopeLabel }: Props) => {
     [base],
   );
 
-  const baseRes = useMemo(() => computeBreakEven(base, mode), [base, mode]);
+  // ตัวจำลอง: ก่อน/หลังต้องใช้สูตร engine เดียวกัน ไม่งั้นส่วนต่างจะมาจากวิธีคำนวณ ไม่ใช่จากการปรับค่า
+  const baseRes = useMemo(() => engineBreakEven(base, mode), [base, mode]);
 
   const simRow: FinancialRow = useMemo(
     () => ({
@@ -94,7 +89,7 @@ const CostSimulator = ({ base, mode, scopeLabel }: Props) => {
     [q, tfcPct, perHead, base.TFC],
   );
 
-  const sim = useMemo(() => computeBreakEven(simRow, mode), [simRow, mode]);
+  const sim = useMemo(() => engineBreakEven(simRow, mode), [simRow, mode]);
   const status = statusOf(sim);
   const isFcr = sim.qStarStatus === 'full_cost_recovery';
   const gap = sim.qStar !== null ? sim.qStar - q : null;
@@ -138,7 +133,8 @@ const CostSimulator = ({ base, mode, scopeLabel }: Props) => {
           {fmtInt(baseRes.r)} บาท) คงเดิม · ต้นทุนผันแปรและรายได้รวมขยับตามจำนวนนิสิต ·
           ต้นทุนคงที่ไม่ขยับตามจำนวนนิสิต ปรับแยกด้วยสไลเดอร์ที่สอง ·
           <b> จุดคุ้มทุนจึงขยับตามสไลเดอร์ต้นทุนคงที่เท่านั้น</b> —
-          สไลเดอร์จำนวนนิสิตใช้ดูว่าเข้าใกล้ จุดคุ้มทุนแค่ไหน
+          สไลเดอร์จำนวนนิสิตใช้ดูว่าเข้าใกล้ จุดคุ้มทุนแค่ไหน · ตัวจำลองนี้คำนวณ Q*
+          จากยอดรวมของขอบเขต จึงต่างจากตัวเลขรายงานที่ยึดแบบ Excel (ผลบวกรายหลักสูตร)
         </NoteBar>
 
         <Grid container spacing={4} sx={{ mt: 0, mb: 2 }}>
@@ -222,7 +218,7 @@ const CostSimulator = ({ base, mode, scopeLabel }: Props) => {
                 isFcr
                   ? 'คน · รายได้ต่อหัวต่ำกว่าต้นทุนผันแปรต่อหัว (R ≤ AVC) จึงไม่มีจุดคุ้มทุน'
                   : baseRes.qStar !== null
-                    ? `คน · เดิม ${fmtInt(baseRes.qStar)} คน`
+                    ? `คน · เดิม ${fmtInt(baseRes.qStar)} คน (สูตรยอดรวม)`
                     : 'คน'
               }
               color="var(--mui-palette-error-main)"

@@ -84,10 +84,12 @@ const CostRowsEditor = ({
               />
               <TextField
                 size="small"
-                type="number"
                 label="จำนวนเงิน (บาท)"
-                value={row.amount || ''}
-                onChange={(e) => update(row.id, { amount: Number(e.target.value) || 0 })}
+                value={row.amount ? row.amount.toLocaleString('en-US') : ''}
+                onChange={(e) =>
+                  update(row.id, { amount: Number(e.target.value.replace(/\D/g, '')) || 0 })
+                }
+                slotProps={{ htmlInput: { inputMode: 'numeric' } }}
                 sx={{ flex: 1 }}
               />
               <IconButton

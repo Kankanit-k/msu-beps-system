@@ -15,6 +15,7 @@ import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Select from '@mui/material/Select';
@@ -35,30 +36,48 @@ import NextLink from 'next/link';
 import { ERP_ACCOUNTS, keyOf, inYear } from './data';
 import { ACCOUNTS, BEH, METHOD, ruleAt } from '../account-rules/data';
 
-const YEARS = [2568, 2569, 2570];
+// ไฟล์ต้นทางมีข้อมูลปีงบ 2568 ปีเดียว
+const YEARS = [2568];
 type RuleFilter = 'all' | 'has' | 'none';
 const RULE_FILTER_LABEL: Record<RuleFilter, string> = {
   all: 'ทั้งหมด',
-  has: 'มีกติกาแล้ว',
-  none: 'ยังไม่มีกติกา',
+  has: 'จำแนกแล้ว',
+  none: 'ยังไม่จำแนก',
 };
 
-const fmtM = (n: number) => (n / 1_000_000).toLocaleString('th-TH', { maximumFractionDigits: 1 });
+/** ยอดเล็กกว่า 0.05 ลบ. แสดง "<0.1" แทน 0 จะได้ไม่ดูเหมือนไม่มียอด */
+const fmtM = (n: number) =>
+  n !== 0 && Math.abs(n) < 50_000
+    ? '<0.1'
+    : (n / 1_000_000).toLocaleString('th-TH', { maximumFractionDigits: 1 });
 const fmtN = (n: number) => n.toLocaleString('th-TH');
 
 const ruleOf = (a: (typeof ERP_ACCOUNTS)[number]) => ACCOUNTS.find((x) => x.key === a.ruleKey);
+
+/** มีกติกาที่ระบุประเภทแล้ว (ไม่ใช่ "ยังไม่จำแนก") ในปีที่ดู */
+const classified = (a: (typeof ERP_ACCOUNTS)[number], y: number) => {
+  const r = ruleOf(a);
+  const cur = r ? ruleAt(r, y) : null;
+
+  return !!cur && cur.beh !== 'UNCLASSIFIED';
+};
+
+/** หมวดย่อย 80001 เงินอุดหนุนทั่วไป — รหัสเดียวกันแต่คนละแผนงาน ประเภทต้นทุนต่างกัน */
+const SUBSIDY = ERP_ACCOUNTS.filter((a) => a.sub === '80001');
 
 const ErpAccounts = () => {
   const [year, setYear] = useState(2568);
   const [fRule, setFRule] = useState<RuleFilter>('all');
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const rows = useMemo(
     () =>
       ERP_ACCOUNTS.map((a, i) => ({ a, i }))
         .filter((x) => inYear(x.a, year))
-        .filter((x) => fRule === 'all' || (fRule === 'has' ? !!x.a.ruleKey : !x.a.ruleKey))
+        .filter((x) => fRule === 'all' || (fRule === 'has') === classified(x.a, year))
         .filter(
           (x) => !q || (keyOf(x.a) + x.a.name).toLowerCase().includes(q.trim().toLowerCase()),
         ),
@@ -66,8 +85,8 @@ const ErpAccounts = () => {
   );
 
   const live = useMemo(() => ERP_ACCOUNTS.filter((a) => inYear(a, year)), [year]);
-  const withRule = live.filter((a) => a.ruleKey);
-  const without = live.filter((a) => !a.ruleKey);
+  const withRule = live.filter((a) => classified(a, year));
+  const without = live.filter((a) => !classified(a, year));
 
   const account = ERP_ACCOUNTS[sel] ?? ERP_ACCOUNTS[0]!;
   const rule = ruleOf(account);
@@ -122,13 +141,13 @@ const ErpAccounts = () => {
         <Card>
           <CardContent>
             <Typography variant="body2" color="text.secondary">
-              ยังไม่มีกติกา
+              ยังไม่จำแนกคงที่/ผันแปร
             </Typography>
             <Typography variant="h4" color="error.main">
               {fmtN(without.length)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              บัญชี · {fmtM(without.reduce((s, a) => s + a.amount, 0))} ลบ. จะถูกพักไว้
+              บัญชี · {fmtN(without.reduce((s, a) => s + a.amount, 0))} บาท จะถูกพักไว้
             </Typography>
           </CardContent>
         </Card>
@@ -137,7 +156,7 @@ const ErpAccounts = () => {
         <Card>
           <CardContent>
             <Typography variant="body2" color="text.secondary">
-              ยอดเงินที่ครอบคลุม
+              วงเงินอนุมัติที่ครอบคลุม
             </Typography>
             <Typography variant="h4" color="warning.main">
               {fmtM(live.reduce((s, a) => s + a.amount, 0))}
@@ -179,12 +198,26 @@ const ErpAccounts = () => {
               ))}
               <Chip label="1 บัญชี" color="primary" />
             </Box>
-            <Typography variant="body2" color="text.secondary">
-              รหัสหมวดรายจ่ายเดียวกันเป็นคนละบัญชีได้เมื่ออยู่คนละแผนงาน — ดู{' '}
-              <code>800:80001 เงินอุดหนุน</code> สองแถวในตาราง แผนงาน <b>2</b> เป็นเงินอุดหนุนทั่วไป
-              (ยังไม่จำแนก) ส่วนแผนงาน <b>3</b> เป็นเงินอุดหนุนโครงการวิจัย (คงที่) ·{' '}
-              <b>ถ้าตั้งคีย์ด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน</b>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              หมวดย่อยเดียวกันเป็นคนละบัญชีได้เมื่ออยู่คนละแผนงาน —{' '}
+              <code>80001 เงินอุดหนุนทั่วไป</code> มี {SUBSIDY.length} แผนงานในไฟล์
+              และตีประเภทต้นทุนต่างกัน · <b>ถ้าตั้งคีย์ด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน</b>
             </Typography>
+            <Box display="flex" gap={2} flexWrap="wrap">
+              {SUBSIDY.map((a) => {
+                const r = ruleOf(a);
+                const cur = r ? ruleAt(r, year) : null;
+
+                return (
+                  <Chip
+                    key={keyOf(a)}
+                    variant="outlined"
+                    color={cur ? BEH[cur.beh].color : 'default'}
+                    label={`${a.plan}:${a.planName} → ${cur ? BEH[cur.beh].label : '—'} · ${fmtM(a.amount)} ลบ.`}
+                  />
+                );
+              })}
+            </Box>
           </CardContent>
         </Card>
       </Grid>
@@ -197,7 +230,10 @@ const ErpAccounts = () => {
               labelId="erp-year-label"
               label="ปีงบประมาณที่ดู"
               value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
+              onChange={(e) => {
+                setYear(Number(e.target.value));
+                setPage(0);
+              }}
             >
               {YEARS.map((y) => (
                 <MenuItem key={y} value={y}>
@@ -210,7 +246,12 @@ const ErpAccounts = () => {
             size="small"
             exclusive
             value={fRule}
-            onChange={(_, v) => v && setFRule(v)}
+            onChange={(_, v: RuleFilter | null) => {
+              if (v) {
+                setFRule(v);
+                setPage(0);
+              }
+            }}
           >
             {(Object.keys(RULE_FILTER_LABEL) as RuleFilter[]).map((f) => (
               <ToggleButton key={f} value={f}>
@@ -222,7 +263,10 @@ const ErpAccounts = () => {
             size="small"
             placeholder="ค้นหารหัส / ชื่อบัญชี..."
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(0);
+            }}
             slotProps={{
               input: { startAdornment: <InputAdornment position="start">🔍</InputAdornment> },
             }}
@@ -239,10 +283,10 @@ const ErpAccounts = () => {
         <Card>
           <CardHeader
             title="ผังบัญชี"
-            subheader="คลิกแถวเพื่อดูรายละเอียดและกติกาที่ผูกอยู่ · ตัวอย่าง 11 บัญชีจากทั้งหมด 412 บัญชี"
+            subheader="คลิกแถวเพื่อดูรายละเอียดและกติกาที่ผูกอยู่ · ยอด = วงเงินอนุมัติ ปีงบ 2568 (แท็บ งบประมาณ68)"
           />
-          <TableContainer sx={{ maxHeight: 520 }}>
-            <Table size="small" stickyHeader>
+          <TableContainer>
+            <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell align="right">แผน</TableCell>
@@ -263,7 +307,7 @@ const ErpAccounts = () => {
                     </TableCell>
                   </TableRow>
                 )}
-                {rows.map(({ a, i }) => {
+                {rows.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map(({ a, i }) => {
                   const r = ruleOf(a);
                   const cur = r ? ruleAt(r, year) : null;
                   const b = cur ? BEH[cur.beh] : null;
@@ -289,11 +333,9 @@ const ErpAccounts = () => {
                       </TableCell>
                       <TableCell>
                         <Typography fontWeight={600}>{a.name}</Typography>
-                        {a.note && (
-                          <Typography variant="caption" color="text.secondary">
-                            {a.note}
-                          </Typography>
-                        )}
+                        <Typography variant="caption" color="text.secondary">
+                          {a.planName} · {a.expName}
+                        </Typography>
                       </TableCell>
                       <TableCell align="right">{a.amount ? fmtM(a.amount) : '—'}</TableCell>
                       <TableCell>
@@ -319,6 +361,19 @@ const ErpAccounts = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={rows.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 25, 50]}
+            labelRowsPerPage="แถวต่อหน้า"
+          />
         </Card>
       </Grid>
 
@@ -344,7 +399,7 @@ const ErpAccounts = () => {
                       label="แผนงาน"
                       size="small"
                       fullWidth
-                      value={account.plan}
+                      value={`${account.plan} : ${account.planName}`}
                       slotProps={{ input: { readOnly: true } }}
                     />
                   </Grid>
@@ -353,7 +408,7 @@ const ErpAccounts = () => {
                       label="หมวดงบประมาณ"
                       size="small"
                       fullWidth
-                      value={account.bud}
+                      value={`${account.bud} : ${account.budName}`}
                       slotProps={{ input: { readOnly: true } }}
                     />
                   </Grid>
@@ -362,7 +417,7 @@ const ErpAccounts = () => {
                       label="หมวดรายจ่าย"
                       size="small"
                       fullWidth
-                      value={account.exp}
+                      value={`${account.exp} : ${account.expName}`}
                       slotProps={{ input: { readOnly: true } }}
                     />
                   </Grid>
@@ -386,6 +441,18 @@ const ErpAccounts = () => {
                   helperText="ทั้ง 4 รหัสรวมกับปีเริ่มมีผลต้องไม่ซ้ำกับบัญชีอื่น — แก้รหัสของบัญชีที่คำนวณไปแล้วไม่ได้"
                   sx={{ mb: 4 }}
                 />
+
+                <Box mb={4}>
+                  <Typography variant="caption" color="text.secondary">
+                    วงเงินอนุมัติ ปีงบ 2568 · {fmtN(account.lines)} รายการงบประมาณ
+                  </Typography>
+                  <Typography variant="h5" color="primary.main">
+                    {fmtN(account.amount)} บาท
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    เงินแผ่นดิน {fmtN(account.gov)} · เงินรายได้ {fmtN(account.own)}
+                  </Typography>
+                </Box>
 
                 <Grid container spacing={3} mb={4}>
                   <Grid size={{ xs: 6 }}>

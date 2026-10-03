@@ -36,7 +36,7 @@ import PageHeaderBar from '@components/PageHeaderBar';
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import { computeBreakEven } from '@views/breakeven/calc';
-import { feesForProgram, STATUS_META } from '@views/tuition/feeData';
+import { feesForProgram, feeVariant, fmtFee } from '@views/tuition/feeData';
 
 import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
@@ -106,9 +106,9 @@ const ProgramRefNote = ({ p, fac }: { p: ProgRow; fac: string }) => {
   );
 };
 
-/** อัตราค่าธรรมเนียมการศึกษาของหลักสูตรที่เลือก แยกตามประเภทนิสิต (ข้อมูลจากหน้า W8) */
+/** อัตราค่าธรรมเนียมการศึกษาของหลักสูตรที่เลือก (แท็บ ค่าธรรมเนียม68 — ข้อมูลเดียวกับหน้า W8) */
 const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
-  const fees = feesForProgram(p.fac, p.prog, p.lvl);
+  const fees = feesForProgram(p.fac, p.deg);
 
   return (
     <Box
@@ -125,7 +125,7 @@ const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
         variant="caption"
         sx={{ display: 'block', px: 3, pt: 2, fontWeight: 700, color: 'primary.main' }}
       >
-        💵 อัตราค่าธรรมเนียมการศึกษา (บาท/ปี)
+        💵 อัตราค่าธรรมเนียมการศึกษา (บาท/ภาคการศึกษา)
       </Typography>
       {fees.length === 0 ? (
         <Typography
@@ -133,52 +133,34 @@ const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
           color="text.secondary"
           sx={{ display: 'block', px: 3, pb: 2 }}
         >
-          ยังไม่มีอัตราค่าธรรมเนียมในระบบสำหรับหลักสูตรนี้ —
-          ติดต่อผู้ดูแลให้บันทึกอัตราที่หน้าค่าธรรมเนียม
+          จับคู่อัตราค่าธรรมเนียมไม่ได้ — ชื่อหลักสูตรในแท็บค่าธรรมเนียมสะกดต่างจากทะเบียนหลักสูตร
+          ค้นหาเองได้ที่หน้าค่าธรรมเนียม
         </Typography>
       ) : (
         <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>ประเภทนิสิต</TableCell>
-                <TableCell align="right">อัตราปีนี้</TableCell>
-                <TableCell align="right">อัตราเดิม</TableCell>
-                <TableCell align="right">สถานะ</TableCell>
+                <TableCell>ภาค · แผน</TableCell>
+                <TableCell align="right">นิสิตไทย</TableCell>
+                <TableCell align="right">นิสิตต่างชาติ</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {fees.map((f) => (
-                <TableRow key={f.st}>
-                  <TableCell>{f.st}</TableCell>
+                <TableRow key={feeVariant(f)}>
+                  <TableCell>{feeVariant(f)}</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    {fmtB(f.rate)}
+                    {fmtFee(f)}
                   </TableCell>
                   <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                    {f.prev === null ? '—' : fmtB(f.prev)}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Chip
-                      size="small"
-                      label={STATUS_META[f.status].label}
-                      color={STATUS_META[f.status].color}
-                      sx={{ height: 18, fontSize: 10 }}
-                    />
+                    {f.rateIntl === null ? '—' : fmtB(f.rateIntl)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
-      {fees.some((f) => f.status !== 'approved') && (
-        <Typography
-          variant="caption"
-          color="warning.main"
-          sx={{ display: 'block', px: 3, py: 1.5 }}
-        >
-          ⚠ อัตราที่ยังไม่อนุมัติจะไม่ถูกนำไปคำนวณรายได้ในรอบคำนวณ
-        </Typography>
       )}
     </Box>
   );

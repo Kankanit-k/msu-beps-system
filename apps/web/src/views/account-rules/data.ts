@@ -1,8 +1,11 @@
-// ข้อมูลตัวอย่างของ "กติกาผังบัญชี TFC/TVC" (account_behavior_rule)
-// พอร์ตจาก mockup/assets/master-data.js (ACCOUNTS/BEH/METHOD) — ดู mockup/W14-account-rules.html
+// "กติกาผังบัญชี TFC/TVC" (account_behavior_rule) — ข้อมูลจริงจากแท็บ Masterแยกหมวด ปีงบ 2568
+// โครงหน้าจออ้างอิง mockup/W14-account-rules.html
 // คีย์ผสม 4 ระดับ (แผนงาน · หมวดงบ · หมวดรายจ่าย · หมวดย่อย) ผูกกับกติกาได้หลายช่วงปี
 
 import type { CostType } from '@beps/shared-types';
+
+import { RAW } from '@/data/mockup';
+import { ACCOUNT_MASTER, type AccountMasterRow } from '@/data/mockup/accountMaster';
 
 export type Behavior = CostType | 'MIXED' | 'UNCLASSIFIED';
 
@@ -47,181 +50,56 @@ export const METHOD = {
   PROGRAM_SHARE: 'ตามสัดส่วนหลักสูตร',
 } as const;
 
+/** คีย์ผสมสำหรับแสดงผล — ใช้ร่วมกับหน้าผังบัญชี (W19) */
+export const accountKey = (a: Pick<AccountMasterRow, 'plan' | 'bud' | 'exp' | 'sub'>) =>
+  `${a.plan} · ${a.bud} · ${a.exp} · ${a.sub}`;
+
+const DEP_NOTE = 'ใช้ยอดค่าเสื่อมราคาประจำปี';
+
+const noteOf = (a: AccountMasterRow) =>
+  a.beh === 'UNCLASSIFIED'
+    ? 'ไฟล์ต้นทางเว้นว่าง ไม่ได้ระบุประเภทต้นทุน — ติดธงรอตามแก้'
+    : a.remark === DEP_NOTE
+      ? 'งบลงทุน — หมายเหตุในไฟล์: ใช้ยอดค่าเสื่อมราคาประจำปีแทนวงเงินงบลงทุน'
+      : (a.remark ?? '');
+
+/**
+ * กติกาจริงปีงบประมาณ 2568 จากแท็บ "Masterแยกหมวด" (ผ่าน ACCOUNT_MASTER)
+ * ไฟล์ต้นทางมีกติกาปีเดียว ทุกบัญชีจึงมีช่วงปีเดียว · "คงที่/ผันแปร 50/50" = แบ่งสัดส่วน 0.5 : 0.5
+ * เกณฑ์ปันส่วนในไฟล์เป็น "คิดตามจำนวนนิสิต" ทุกแถว
+ */
 export const ACCOUNTS: AccountBehaviorEntry[] = [
-  {
-    key: '1 · 1 · 100 · 10001',
-    name: 'เงินเดือนข้าราชการ',
+  ...ACCOUNT_MASTER.map((a) => ({
+    key: accountKey(a),
+    name: a.name,
     org: null,
-    amount: 612400000,
+    amount: a.amount,
     rules: [
       {
-        from: 2500,
+        from: 2568,
         to: null,
-        beh: 'TFC',
-        f: 1,
-        v: 0,
-        m: 'STUDENT_HEADCOUNT',
-        note: 'เงินเดือนไม่แปรตามจำนวนนิสิต',
+        beh: a.beh,
+        f: a.beh === 'TFC' ? 1 : a.beh === 'MIXED' ? 0.5 : 0,
+        v: a.beh === 'TVC' ? 1 : a.beh === 'MIXED' ? 0.5 : 0,
+        m: 'STUDENT_HEADCOUNT' as const,
+        note: noteOf(a),
       },
     ],
-  },
-  {
-    key: '1 · 1 · 210 · 21001',
-    name: 'ค่าจ้างประจำ',
-    org: null,
-    amount: 87200000,
-    rules: [{ from: 2500, to: null, beh: 'TFC', f: 1, v: 0, m: 'STUDENT_HEADCOUNT', note: '' }],
-  },
-  {
-    key: '2 · 2 · 410 · 41001',
-    name: 'ค่าสาธารณูปโภค',
-    org: null,
-    amount: 96600000,
-    rules: [
-      {
-        from: 2500,
-        to: null,
-        beh: 'TVC',
-        f: 0,
-        v: 1,
-        m: 'ACTUAL_USAGE',
-        note: 'มีมิเตอร์แยกอาคาร จึงปันตามการใช้จริง',
-      },
-    ],
-  },
-  {
-    key: '2 · 4 · 800 · 80001',
-    name: 'เงินอุดหนุนทั่วไป',
-    org: null,
-    amount: 482300,
-    rules: [
-      {
-        from: 2500,
-        to: 2568,
-        beh: 'UNCLASSIFIED',
-        f: 0,
-        v: 0,
-        m: 'PROGRAM_SHARE',
-        note: 'ยังไม่เคยตีความ — ติดธงรอตามแก้',
-      },
-      {
-        from: 2569,
-        to: 2569,
-        beh: 'TFC',
-        f: 1,
-        v: 0,
-        m: 'STUDENT_HEADCOUNT',
-        note: 'มติที่ประชุม: ปี 2569 ตีเป็นต้นทุนคงที่',
-      },
-      {
-        from: 2570,
-        to: 2570,
-        beh: 'TVC',
-        f: 0,
-        v: 1,
-        m: 'STUDENT_HEADCOUNT',
-        note: 'ปี 2570 เปลี่ยนเป็นผันแปรตามนิสิต',
-      },
-      {
-        from: 2571,
-        to: null,
-        beh: 'MIXED',
-        f: 0.5,
-        v: 0.5,
-        m: 'STUDENT_HEADCOUNT',
-        note: 'ปี 2571 เป็นต้นไป แบ่งคนละครึ่ง',
-      },
-    ],
-  },
-  {
-    key: '3 · 4 · 800 · 80001',
-    name: 'เงินอุดหนุนโครงการวิจัย',
-    org: null,
-    amount: 41800000,
-    rules: [
-      {
-        from: 2500,
-        to: null,
-        beh: 'TFC',
-        f: 1,
-        v: 0,
-        m: 'PROGRAM_SHARE',
-        note: 'รหัสหมวดเดียวกับด้านบน แต่คนละแผนงาน จึงเป็นคนละประเภท — เหตุผลที่ต้องใช้คีย์ผสม 4 ระดับ',
-      },
-    ],
-  },
-  {
-    key: '2 · 2 · 500 · 50001',
-    name: 'ค่าวัสดุการศึกษา',
-    org: null,
-    amount: 148900000,
-    rules: [
-      {
-        from: 2500,
-        to: null,
-        beh: 'MIXED',
-        f: 0.35,
-        v: 0.65,
-        m: 'STUDENT_HEADCOUNT',
-        note: 'ส่วนคงที่คือวัสดุห้องปฏิบัติการพื้นฐาน',
-      },
-    ],
-  },
-  {
-    key: '2 · 2 · 500 · 50001',
-    name: 'ค่าวัสดุการศึกษา (คณะแพทยศาสตร์)',
-    org: 'คณะแพทยศาสตร์',
-    amount: 63200000,
-    rules: [
-      {
-        from: 2500,
-        to: null,
-        beh: 'MIXED',
-        f: 0.15,
-        v: 0.85,
-        m: 'ACTUAL_USAGE',
-        note: 'ตั้งเจาะจงคณะ — วัสดุคลินิกแปรตามนิสิตมากกว่าคณะอื่น (กติกาเจาะจงหน่วยงานมาก่อนกติกากลาง)',
-      },
-    ],
-  },
-  {
-    key: '2 · 2 · 400 · 40010',
-    name: 'ค่าจดลิขสิทธิ์ / ค่าฐานข้อมูล',
-    org: null,
-    amount: 1120400,
-    rules: [
-      {
-        from: 2500,
-        to: null,
-        beh: 'UNCLASSIFIED',
-        f: 0,
-        v: 0,
-        m: 'PROGRAM_SHARE',
-        note: 'รอกองคลังยืนยันวิธีตีความ',
-      },
-    ],
-  },
-  {
-    key: '2 · 2 · 600 · 60001',
-    name: 'ค่าครุภัณฑ์การศึกษา',
-    org: null,
-    amount: 58700000,
-    rules: [{ from: 2500, to: null, beh: 'TFC', f: 1, v: 0, m: 'PROGRAM_SHARE', note: '' }],
-  },
+  })),
   {
     key: '— · — · — · DEP',
     name: 'ค่าเสื่อมราคา (อาคาร / ครุภัณฑ์)',
     org: null,
-    amount: 302528496,
+    amount: RAW.UNI.dep,
     rules: [
       {
-        from: 2500,
+        from: 2568,
         to: null,
         beh: 'TFC',
         f: 1,
         v: 0,
-        m: 'PROGRAM_SHARE',
-        note: 'ไม่มีรหัสผังบัญชี จึงกำหนดผ่านค่าตั้งประเภทต้นทุนของค่าเสื่อมราคาในหน้านโยบายการคำนวณ · ปัจจุบันมีเฉพาะส่วนครุภัณฑ์',
+        m: 'STUDENT_HEADCOUNT',
+        note: 'ไม่มีรหัสผังบัญชี — มาจากแท็บค่าเสื่อม ปันลงหลักสูตรตามจำนวนนิสิตของคณะ · กำหนดประเภทผ่านค่าตั้งในหน้านโยบายการคำนวณ',
       },
     ],
   },

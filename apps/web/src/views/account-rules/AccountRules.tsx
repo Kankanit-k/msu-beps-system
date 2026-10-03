@@ -15,6 +15,7 @@ import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Select from '@mui/material/Select';
@@ -38,8 +39,9 @@ import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent';
 import { RAW } from '@/data/mockup';
 import { ACCOUNTS, BEH, METHOD, ruleAt, type Behavior } from './data';
 
-const YEARS = [2568, 2569, 2570, 2571, 2572];
-const BEH_FILTERS: Array<'all' | Behavior> = ['all', 'MIXED', 'UNCLASSIFIED'];
+// ไฟล์ต้นทาง (แท็บ Masterแยกหมวด) มีกติกาปีงบ 2568 ปีเดียว
+const YEARS = [2568];
+const BEH_FILTERS: Array<'all' | Behavior> = ['all', 'TFC', 'TVC', 'MIXED', 'UNCLASSIFIED'];
 const BEH_FILTER_LABEL: Record<'all' | Behavior, string> = {
   all: 'ทั้งหมด',
   TFC: 'คงที่',
@@ -48,13 +50,19 @@ const BEH_FILTER_LABEL: Record<'all' | Behavior, string> = {
   UNCLASSIFIED: 'ยังไม่จำแนก',
 };
 
-const fmtM = (n: number) => (n / 1_000_000).toLocaleString('th-TH', { maximumFractionDigits: 1 });
+/** ยอดเล็กกว่า 0.05 ลบ. แสดง "<0.1" แทน 0 จะได้ไม่ดูเหมือนไม่มียอด */
+const fmtM = (n: number) =>
+  n !== 0 && Math.abs(n) < 50_000
+    ? '<0.1'
+    : (n / 1_000_000).toLocaleString('th-TH', { maximumFractionDigits: 1 });
 const fmtN = (n: number) => n.toLocaleString('th-TH');
 
 const AccountRules = () => {
   const [year, setYear] = useState(2568);
   const [fBeh, setFBeh] = useState<'all' | Behavior>('all');
   const [sel, setSel] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const rows = useMemo(
     () =>
@@ -79,8 +87,8 @@ const AccountRules = () => {
         <Alert severity="info">
           กติกาผูกกับ <b>คีย์ผสม 4 ระดับ</b> (แผนงาน · หมวดงบ · หมวดรายจ่าย · หมวดย่อย)
           ไม่ใช่รหัสหมวดรายจ่ายอย่างเดียว เพราะรหัสเดียวกันเป็นคนละประเภทได้เมื่ออยู่คนละแผนงาน — ดู{' '}
-          <code>800:เงินอุดหนุน</code> สองแถวในตาราง · ทุกกติกามี<b>ช่วงปีที่มีผล</b>{' '}
-          เปลี่ยนปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม
+          <code>80001 เงินอุดหนุนทั่วไป</code> ที่มี 4 แผนงานและตีประเภทต่างกัน · ทุกกติกามี
+          <b>ช่วงปีที่มีผล</b> เปลี่ยนปีใหม่แล้วตัวเลขปีเก่าไม่เปลี่ยนตาม
         </Alert>
       </Grid>
 
@@ -124,7 +132,7 @@ const AccountRules = () => {
               {fmtN(withRule.length)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              คีย์ผสม · จากผังบัญชี 412 รายการ
+              คีย์ผสม · จากแท็บ Masterแยกหมวด + ค่าเสื่อมราคา
             </Typography>
           </CardContent>
         </Card>
@@ -139,7 +147,7 @@ const AccountRules = () => {
               {fmtN(unclassified.length)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              รายการ · {fmtM(unclassified.reduce((s, a) => s + a.amount, 0))} ลบ. พักไว้ที่หน่วยงาน
+              รายการ · {fmtN(unclassified.reduce((s, a) => s + a.amount, 0))} บาท พักไว้ที่หน่วยงาน
             </Typography>
           </CardContent>
         </Card>
@@ -148,12 +156,15 @@ const AccountRules = () => {
       <Grid size={{ xs: 12 }}>
         <Box display="flex" flexWrap="wrap" alignItems="center" gap={4}>
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel id="year-label">ปีการศึกษาที่ดู</InputLabel>
+            <InputLabel id="year-label">ปีงบประมาณที่ดู</InputLabel>
             <Select
               labelId="year-label"
-              label="ปีการศึกษาที่ดู"
+              label="ปีงบประมาณที่ดู"
               value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
+              onChange={(e) => {
+                setYear(Number(e.target.value));
+                setPage(0);
+              }}
             >
               {YEARS.map((y) => (
                 <MenuItem key={y} value={y}>
@@ -166,7 +177,12 @@ const AccountRules = () => {
             size="small"
             exclusive
             value={fBeh}
-            onChange={(_, v) => v && setFBeh(v)}
+            onChange={(_, v: 'all' | Behavior | null) => {
+              if (v) {
+                setFBeh(v);
+                setPage(0);
+              }
+            }}
           >
             {BEH_FILTERS.map((f) => (
               <ToggleButton key={f} value={f}>
@@ -182,11 +198,11 @@ const AccountRules = () => {
       <Grid size={{ xs: 12, md: 7 }}>
         <Card>
           <CardHeader
-            title={`กติกาที่มีผลในปีการศึกษา ${year}`}
+            title={`กติกาที่มีผลในปีงบประมาณ ${year}`}
             subheader={`คลิกแถวเพื่อดูไทม์ไลน์รายปีของบัญชีเดียวกัน · แสดง ${rows.length} จาก ${ACCOUNTS.length} คีย์`}
           />
-          <TableContainer sx={{ maxHeight: 560 }}>
-            <Table size="small" stickyHeader>
+          <TableContainer>
+            <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>คีย์ผสม 4 ระดับ</TableCell>
@@ -205,7 +221,7 @@ const AccountRules = () => {
                     </TableCell>
                   </TableRow>
                 )}
-                {rows.map(({ a, i, r }) => {
+                {rows.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map(({ a, i, r }) => {
                   if (!r) return null;
                   const b = BEH[r.beh];
                   return (
@@ -247,6 +263,19 @@ const AccountRules = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={rows.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 25, 50]}
+            labelRowsPerPage="แถวต่อหน้า"
+          />
         </Card>
       </Grid>
 
@@ -274,7 +303,7 @@ const AccountRules = () => {
                 ) : (
                   <>
                     <Typography variant="body2" gutterBottom>
-                      ประเภทต้นทุนในปีการศึกษา {year}
+                      ประเภทต้นทุนในปีงบประมาณ {year}
                     </Typography>
                     <ToggleButtonGroup
                       size="small"
@@ -423,7 +452,8 @@ const AccountRules = () => {
                 </Timeline>
                 {account.rules.length === 1 && (
                   <Alert severity="success" sx={{ mt: 3 }}>
-                    บัญชีนี้ใช้กติกาเดียวมาตลอด — ยังไม่เคยมีมติให้เปลี่ยนประเภท
+                    ไฟล์ต้นทางมีกติกาปีงบ 2568 ปีเดียว — เมื่อมีมติเปลี่ยนประเภท
+                    จะเพิ่มเป็นช่วงปีใหม่ที่นี่
                   </Alert>
                 )}
               </CardContent>
@@ -438,13 +468,13 @@ const AccountRules = () => {
           <CardContent>
             <Box display="flex" flexDirection="column" gap={2}>
               <Alert severity="error">
-                <b>คีย์ผสม 4 ระดับ ไม่ใช่รหัสหมวดเดียว</b> — <code>80001 เงินอุดหนุน</code>{' '}
-                ในแผนงานจัดการศึกษาเป็นคนละประเภทกับในแผนงานวิจัย
-                ถ้าตั้งด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน
+                <b>คีย์ผสม 4 ระดับ ไม่ใช่รหัสหมวดเดียว</b> — <code>80001 เงินอุดหนุนทั่วไป</code>{' '}
+                ในแผนงานพื้นฐานเป็นคงที่/ผันแปร 50:50 แต่ในแผนงานบุคลากรภาครัฐเป็นคงที่
+                และแผนงานบูรณาการเป็นผันแปร ถ้าตั้งด้วยรหัสหมวดอย่างเดียวจะจำแนกผิดทั้งก้อน
               </Alert>
               <Alert severity="warning">
-                <b>กติกาเจาะจงหน่วยงานมาก่อนกติกากลางเสมอ</b> — ค่าวัสดุการศึกษาของคณะแพทยศาสตร์ตั้ง
-                15:85 ทับกติกากลาง 35:65
+                <b>กติกาเจาะจงหน่วยงานมาก่อนกติกากลางเสมอ</b> — ไฟล์ปัจจุบันมีแต่กติกากลาง
+                ถ้าคณะใดต้องการสัดส่วนต่างจากกลาง (เช่น วัสดุคลินิก) ให้ตั้งเป็นกติกาเจาะจงหน่วยงาน
               </Alert>
               <Alert severity="warning">
                 <b>&ldquo;ยังไม่จำแนก&rdquo; ไม่ใช่ค่าว่าง</b> — เป็นสถานะที่ตั้งใจ

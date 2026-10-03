@@ -35,7 +35,7 @@ import PageHeaderBar from '@components/PageHeaderBar';
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import type { FacRow, ProgRow } from '@/data/mockup';
-import { computeBreakEven, fmtInt, fmtMillion, shortFacName } from '@views/breakeven/calc';
+import { computeBreakEven, fmtInt, fmtMillion, shortFacName, sumRows } from '@views/breakeven/calc';
 import type { FinancialRow } from '@views/breakeven/calc';
 
 // View Imports
@@ -54,19 +54,6 @@ const pctLabel = (part: number, whole: number) =>
   whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '—';
 
 const FAC_NAMES = RAW.FACS.map((f) => f.name);
-
-/** รวมคณะที่เลือกเป็นขอบเขตเดียว — ใช้เป็นฐานของ KPI และตัวจำลอง */
-const sumFacs = (facs: readonly FacRow[]): FinancialRow =>
-  facs.reduce(
-    (a, f) => ({
-      Q: a.Q + f.Q,
-      st: a.st + f.st,
-      own: a.own + f.own,
-      TFC: a.TFC + f.TFC,
-      TVC: a.TVC + f.TVC,
-    }),
-    { Q: 0, st: 0, own: 0, TFC: 0, TVC: 0 },
-  );
 
 const decimal1: Intl.NumberFormatOptions = {
   minimumFractionDigits: 1,
@@ -113,7 +100,7 @@ const CostView = () => {
   );
 
   const scope: FinancialRow = useMemo(
-    () => (isFiltered ? sumFacs(facs) : RAW.UNI),
+    () => (isFiltered ? sumRows(facs) : RAW.UNI),
     [isFiltered, facs],
   );
 

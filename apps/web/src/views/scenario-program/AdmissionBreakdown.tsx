@@ -71,7 +71,10 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
   const rows = useMemo(() => {
     const thai = thaiRegularOn ? [SEGMENT_LABELS.thaiRegular] : [];
     const labels = [...thai, ...activeKeys.map((k) => SEGMENT_LABELS[k])];
-    const pcts = [...(thaiRegularOn ? [thaiRegularPct] : []), ...activeKeys.map((k) => pct[k] || 0)];
+    const pcts = [
+      ...(thaiRegularOn ? [thaiRegularPct] : []),
+      ...activeKeys.map((k) => pct[k] || 0),
+    ];
     const heads = qStar && qStar > 0 ? distributeHeads(qStar, pcts) : pcts.map(() => 0);
 
     return labels.map((label, i) => ({ label, pct: pcts[i] ?? 0, head: heads[i] ?? 0 }));
@@ -208,7 +211,11 @@ const AdmissionBreakdown = ({ qStar, programName, state }: Props) => {
             sx={{ width: 160 }}
           />
           {manual && (
-            <Button size="small" color="secondary" onClick={() => state.setThaiRegularPct(undefined)}>
+            <Button
+              size="small"
+              color="secondary"
+              onClick={() => state.setThaiRegularPct(undefined)}
+            >
               ใช้ส่วนที่เหลืออัตโนมัติ
             </Button>
           )}

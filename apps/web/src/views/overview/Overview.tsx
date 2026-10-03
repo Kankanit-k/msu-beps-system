@@ -13,6 +13,8 @@ import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -26,6 +28,7 @@ import type { ApexOptions } from 'apexcharts';
 // Component Imports
 import { DotTitle, LegendItem } from '@components/ChartBits';
 import DataCaveatNotes, { SHOW_OVERVIEW_NOTES } from '@components/DataCaveatNotes';
+import FacultyFilter from '@components/FacultyFilter';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
@@ -37,7 +40,9 @@ import {
   computeBreakEven,
   fmtInt,
   fmtMillion,
+  sheetQStar,
   shortFacName,
+  sumRows,
   REVENUE_MODE_NOTE,
 } from '@views/breakeven/calc';
 
@@ -46,14 +51,58 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 const TR_COLOR = '#3492ec';
 const TC_COLOR = '#e64981';
 
+const FAC_NAMES = RAW.FACS.map((f) => f.name);
+
 const Overview = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
 
-  const uni = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
+  const [selectedFacs, setSelectedFacs] = useState<string[]>([]);
+
+  // ไม่เลือกคณะใดเลย = ทั้งมหาวิทยาลัย (พฤติกรรมเดิมของหน้า)
+  const isFiltered = selectedFacs.length > 0;
+  const facs = useMemo(
+    () => (isFiltered ? RAW.FACS.filter((f) => selectedFacs.includes(f.name)) : RAW.FACS),
+    [isFiltered, selectedFacs],
+  );
+  const progs = useMemo(
+    () => (isFiltered ? RAW.PROGS.filter((p) => selectedFacs.includes(p.fac)) : RAW.PROGS),
+    [isFiltered, selectedFacs],
+  );
+  const scopeLabel = !isFiltered
+    ? 'ทั้งมหาวิทยาลัย'
+    : facs.length === 1 && facs[0]
+      ? shortFacName(facs[0].name)
+      : `${facs.length} คณะที่เลือก`;
+
+  const uni = useMemo(
+    () => computeBreakEven(isFiltered ? sumRows(facs) : RAW.UNI, mode),
+    [isFiltered, facs, mode],
+  );
+  const dep = isFiltered ? facs.reduce((a, f) => a + f.dep, 0) : RAW.UNI.dep;
+
+  // Q* ให้ตรงกับชีต: รายหลักสูตรแล้วบวกขึ้นเป็นคณะ/มหาวิทยาลัย (ไม่ใช่ Q* จากยอดรวม)
+  const progQStars = useMemo(
+    () => progs.map((p) => ({ p, qStar: sheetQStar(p, mode) })),
+    [progs, mode],
+  );
+  const facQStar = useMemo(() => {
+    const m = new Map<string, number>();
+
+    progQStars.forEach(({ p, qStar }) => m.set(p.fac, (m.get(p.fac) ?? 0) + qStar));
+
+    return m;
+  }, [progQStars]);
+  const uniQStar = progQStars.reduce((a, x) => a + x.qStar, 0);
+  const progLoss = progQStars.filter(({ p, qStar }) => p.Q < qStar).length;
 
   const facResults = useMemo(
-    () => RAW.FACS.map((f) => ({ fac: f, res: computeBreakEven(f, mode) })),
-    [mode],
+    () =>
+      facs.map((f) => ({
+        fac: f,
+        res: computeBreakEven(f, mode),
+        qStar: facQStar.get(f.name) ?? 0,
+      })),
+    [facs, mode, facQStar],
   );
 
   const sortedByProfit = useMemo(
@@ -67,15 +116,7 @@ const Overview = () => {
     .slice(0, 6);
 
   const nLoss = facResults.filter((x) => x.res.profit < 0).length;
-  const progLoss = useMemo(
-    () =>
-      RAW.PROGS.filter((p) => {
-        const r = computeBreakEven(p, mode);
 
-        return !(r.qStarStatus === 'normal' && r.qStar !== null && r.q >= r.qStar);
-      }).length,
-    [mode],
-  );
   const best = sortedByProfit[0];
   const worst = sortedByProfit[sortedByProfit.length - 1];
 
@@ -138,7 +179,7 @@ const Overview = () => {
   return (
     <Box>
       <PageHeaderBar
-        title="ภาพรวมมหาวิทยาลัย"
+        title={isFiltered ? `ภาพรวม — ${scopeLabel}` : 'ภาพรวมมหาวิทยาลัย'}
         code="W1"
         mode={mode}
         onModeChange={setMode}
@@ -154,12 +195,37 @@ const Overview = () => {
         </>
       )}
 
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+            <FacultyFilter options={FAC_NAMES} value={selectedFacs} onChange={setSelectedFacs} />
+            <Typography variant="body2" color="text.secondary">
+              {isFiltered
+                ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
+                : `แสดงทุกคณะ (${RAW.FACS.length}) · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
+            </Typography>
+            {isFiltered && (
+              <Button
+                size="small"
+                variant="text"
+                color="secondary"
+                startIcon={<i className="ri-close-line" />}
+                onClick={() => setSelectedFacs([])}
+                sx={{ marginInlineStart: 'auto' }}
+              >
+                ล้างตัวกรอง
+              </Button>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
             label="นิสิตทั้งหมด"
             value={fmtInt(uni.q)}
-            unit={`คน · ${RAW.FACS.length} คณะ/วิทยาลัย · ${RAW.PROGS.length} หลักสูตร`}
+            unit={`คน · ${facs.length} คณะ/วิทยาลัย · ${progs.length} หลักสูตร`}
             accent="primary"
           />
         </Grid>
@@ -203,8 +269,8 @@ const Overview = () => {
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
             label="นิสิต ณ จุดคุ้มทุน (Q*)"
-            value={uni.qStar !== null ? fmtInt(uni.qStar) : '—'}
-            unit={uni.qStar !== null ? `คน · จริง ${fmtInt(uni.q)} คน` : 'รายได้/หัว ≤ ผันแปร/หัว'}
+            value={fmtInt(uniQStar)}
+            unit={`คน · จริง ${fmtInt(uni.q)} คน`}
             accent="error"
             valueColor="var(--mui-palette-error-main)"
           />
@@ -273,7 +339,7 @@ const Overview = () => {
                 />
                 <CostRow
                   label="ค่าเสื่อมราคา (รวมอยู่ในต้นทุนคงที่)"
-                  value={RAW.UNI.dep}
+                  value={dep}
                   total={uni.tc}
                   color="success.main"
                 />
@@ -308,7 +374,7 @@ const Overview = () => {
 
       <Card sx={{ borderLeft: 4, borderLeftColor: 'primary.main' }}>
         <CardHeader
-          title="ประเด็นสำคัญ — ภาพรวม"
+          title={`ประเด็นสำคัญ — ${isFiltered ? scopeLabel : 'ภาพรวม'}`}
           titleTypographyProps={{ variant: 'h6', color: 'primary.dark' }}
         />
         <CardContent
@@ -332,25 +398,28 @@ const Overview = () => {
         >
           <li>
             <Typography variant="body2">
-              ทั้งมหาวิทยาลัยมีนิสิต <b>{fmtInt(uni.q)}</b> คน{' '}
+              {scopeLabel} มีนิสิต <b>{fmtInt(uni.q)}</b> คน{' '}
               {uni.profit >= 0 ? 'มีส่วนเกิน' : 'ขาดทุนสุทธิ'}{' '}
               <b>{fmtMillion(Math.abs(uni.profit))} ลบ.</b> ({profitPctOfTr.toFixed(1)}% ของรายได้)
-              จุดคุ้มทุนรวมอยู่ที่ <b>{uni.qStar !== null ? `${fmtInt(uni.qStar)} คน` : '—'}</b>
+              จุดคุ้มทุนรวมอยู่ที่ <b>{fmtInt(uniQStar)} คน</b>
             </Typography>
           </li>
-          {best && worst && (
+          {best && worst && facs.length > 1 && (
             <li>
               <Typography variant="body2">
-                คณะที่ทำส่วนเกินสูงสุดคือ <b>{shortFacName(best.fac.name)}</b> (+
+                คณะที่{best.res.profit >= 0 ? 'ทำส่วนเกินสูงสุด' : 'ขาดทุนน้อยที่สุด'}คือ{' '}
+                <b>{shortFacName(best.fac.name)}</b> ({best.res.profit >= 0 ? '+' : ''}
                 {fmtMillion(best.res.profit)} ลบ.) ขณะที่ <b>{shortFacName(worst.fac.name)}</b>{' '}
-                ขาดทุนมากสุด ({fmtMillion(worst.res.profit)} ลบ.)
+                {worst.res.profit < 0
+                  ? `ขาดทุนมากสุด (${fmtMillion(worst.res.profit)} ลบ.)`
+                  : `มีส่วนเกินต่ำสุด (+${fmtMillion(worst.res.profit)} ลบ.)`}
               </Typography>
             </li>
           )}
           <li>
             <Typography variant="body2">
-              มี <b>{nLoss} คณะ</b> จาก {RAW.FACS.length} ที่ยังไม่คุ้มทุนในโหมดนี้ และ{' '}
-              <b>{progLoss} หลักสูตร</b> จาก {RAW.PROGS.length} ที่จำนวนนิสิตยังต่ำกว่าจุดคุ้มทุน
+              มี <b>{nLoss} คณะ</b> จาก {facs.length} ที่ยังไม่คุ้มทุนในโหมดนี้ และ{' '}
+              <b>{progLoss} หลักสูตร</b> จาก {progs.length} ที่จำนวนนิสิตยังต่ำกว่าจุดคุ้มทุน
             </Typography>
           </li>
           <li>
@@ -409,7 +478,11 @@ const CostRow = ({
   </Box>
 );
 
-type FacultyRow = { fac: (typeof RAW.FACS)[number]; res: ReturnType<typeof computeBreakEven> };
+type FacultyRow = {
+  fac: (typeof RAW.FACS)[number];
+  res: ReturnType<typeof computeBreakEven>;
+  qStar: number;
+};
 
 const FacultyTable = ({
   title,
@@ -469,7 +542,7 @@ const FacultyTable = ({
                 </TableCell>
                 <TableCell align="right">
                   <Typography variant="caption" color="text.secondary" className="num">
-                    {r.res.qStar !== null ? fmtInt(r.res.qStar) : '—'} / {fmtInt(r.res.q)}
+                    {fmtInt(r.qStar)} / {fmtInt(r.res.q)}
                   </Typography>
                 </TableCell>
               </TableRow>

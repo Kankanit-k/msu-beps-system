@@ -2,10 +2,11 @@
 // พอร์ตจาก mockup/assets/page-cross.js โดยเปลี่ยนมาคำนวณจุดคุ้มทุนผ่าน @beps/calc-engine
 // แทนสูตรคำนวณเองแบบ inline (ผลลัพธ์ตรงกันกับ mockup ทุกค่า)
 
-import { calcBreakEven, type RevenueMode } from '@beps/calc-engine';
+import type { RevenueMode } from '@beps/calc-engine';
 
 import { RAW } from '@/data/mockup';
 import type { FacRow } from '@/data/mockup';
+import { computeBreakEven } from '@views/breakeven/calc';
 
 export const shortFacName = (name: string) =>
   name.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
@@ -32,31 +33,17 @@ export interface FacultyCrossRow {
   isOk: boolean;
 }
 
-function calcFor(row: FacRow, mode: RevenueMode) {
-  return calcBreakEven({
-    q: row.Q,
-    governmentBudget: row.st,
-    incomeBudget: row.own,
-    tfc: row.TFC,
-    tvc: row.TVC,
-    revenueMode: mode,
-  });
-}
+/** ข้อมูลจริง → Q* แบบชีต (คณะ = ผลบวก Q* รายหลักสูตร) ผ่าน computeBreakEven */
+const calcFor = (row: FacRow, mode: RevenueMode) => computeBreakEven(row, mode);
 
 /** นับหลักสูตรที่ "ถึงจุดคุ้มทุน" ของคณะหนึ่ง — ok เฉพาะกรณี CM > 0 และ Q ถึง Q* (สอดคล้อง mockup: status()==='ok') */
 function programOkCount(facName: string, mode: RevenueMode) {
   const progs = RAW.PROGS.filter((p) => p.fac === facName);
   const ok = progs.filter((p) => {
-    const r = calcBreakEven({
-      q: p.Q,
-      governmentBudget: p.st,
-      incomeBudget: p.own,
-      tfc: p.TFC,
-      tvc: p.TVC,
-      revenueMode: mode,
-    });
+    const r = computeBreakEven(p, mode);
 
-    return r.qStarStatus === 'normal' && r.qStar !== null && p.Q >= r.qStar;
+    // Q* ติดลบแบบชีต (รายได้/หัว ≤ ผันแปร/หัว) ไม่นับเป็นคุ้มทุน
+    return r.qStar !== null && r.qStar > 0 && p.Q >= r.qStar;
   }).length;
 
   return { total: progs.length, ok };

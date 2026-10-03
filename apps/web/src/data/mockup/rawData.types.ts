@@ -77,6 +77,6 @@ export interface RawData {
   FACS: FacRow[];
   DEPTS: DeptRow[];
   PROGS: ProgRow[];
-  /** true เสมอในไฟล์นี้ — ยืนยันว่าเป็นชุดข้อมูลตัวอย่าง (สุ่มรบกวนแล้ว) ไม่ใช่ของจริง */
-  __sample: true;
+  /** true = ชุดข้อมูลตัวอย่าง (สุ่มรบกวนแล้ว) · false = ข้อมูลจริงจาก Google Sheet (scripts/import-breakeven-sheet.mjs) */
+  __sample: boolean;
 }
