@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 
 // Config Imports
 import themeConfig from '@configs/themeConfig';
+import { SHOW_ABOUT_PAGE } from '@/configs/accessControl';
 
 type QuickLink = {
   title: string;
@@ -35,12 +36,16 @@ const quickLinks: QuickLink[] = [
     icon: 'ri-bar-chart-box-line',
   },
   { title: 'ผู้ใช้งาน', desc: 'ดึงรายชื่อจาก backend API', href: '/users', icon: 'ri-user-line' },
-  {
-    title: 'เกี่ยวกับเรา',
-    desc: 'หน้าตัวอย่างแบบว่างเปล่า',
-    href: '/about',
-    icon: 'ri-information-line',
-  },
+  ...(SHOW_ABOUT_PAGE
+    ? [
+        {
+          title: 'เกี่ยวกับเรา',
+          desc: 'หน้าตัวอย่างแบบว่างเปล่า',
+          href: '/about',
+          icon: 'ri-information-line',
+        },
+      ]
+    : []),
 ];
 
 const features = [

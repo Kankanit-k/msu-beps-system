@@ -26,7 +26,7 @@ import type { RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
 import { DotTitle } from '@components/ChartBits';
-import DataCaveatNotes from '@components/DataCaveatNotes';
+import DataCaveatNotes, { SHOW_CROSS_NOTES } from '@components/DataCaveatNotes';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
 
@@ -254,13 +254,17 @@ const CrossAnalysisView = () => {
           profit={uniRes.profit}
         />
 
-        <DataCaveatNotes profit={uniRes.profit} />
+        {SHOW_CROSS_NOTES && (
+          <>
+            <DataCaveatNotes profit={uniRes.profit} />
 
-        <NoteBar severity="info">
-          {REVENUE_MODE_NOTE[mode]} · นิสิตจริงเทียบจุดคุ้มทุน (Utilization = Q/Q*) โดยจุดคุ้มทุน
-          (Q*) = ผลรวมรายหลักสูตร · คณะที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0)
-          จะไม่มีจุดคุ้มทุน (แสดง —)
-        </NoteBar>
+            <NoteBar severity="info">
+              {REVENUE_MODE_NOTE[mode]} · นิสิตจริงเทียบจุดคุ้มทุน (Utilization = Q/Q*)
+              โดยจุดคุ้มทุน (Q*) = ผลรวมรายหลักสูตร · คณะที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤
+              0) จะไม่มีจุดคุ้มทุน (แสดง —)
+            </NoteBar>
+          </>
+        )}
       </Box>
 
       {/* Heatmap */}
@@ -292,17 +296,35 @@ const CrossAnalysisView = () => {
           }
         />
         <CardContent>
-          <TableContainer sx={{ maxHeight: 560 }}>
-            <Table size="small" stickyHeader>
+          {/* ทุกคณะในจอเดียว (ไม่จำกัดความสูง) — เซลล์เป็นแผ่นสีมุมโค้งเว้นช่องไฟ แถวกระชับ */}
+          <TableContainer>
+            <Table
+              size="small"
+              sx={{
+                borderCollapse: 'separate',
+                borderSpacing: '4px 3px',
+                '& .MuiTableCell-root': { borderBottom: 'none' },
+              }}
+            >
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>คณะ / วิทยาลัย</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.6875rem', py: 1 }}>
+                    คณะ / วิทยาลัย
+                  </TableCell>
                   {HEATMAP_METRICS.map((m) => (
-                    <TableCell key={m.key} align="center" title={`${m.label} (${m.unit})`}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+                    <TableCell
+                      key={m.key}
+                      align="center"
+                      title={`${m.label} (${m.unit})`}
+                      sx={{ py: 1, px: 1, lineHeight: 1.25 }}
+                    >
+                      <Typography
+                        sx={{ fontSize: '0.6875rem', fontWeight: 700, display: 'block' }}
+                        color="text.secondary"
+                      >
                         {m.label}
                       </Typography>
-                      <Typography variant="caption" color="text.disabled">
+                      <Typography sx={{ fontSize: '0.625rem' }} color="text.disabled">
                         {m.unit}
                       </Typography>
                     </TableCell>
@@ -311,16 +333,38 @@ const CrossAnalysisView = () => {
               </TableHead>
               <TableBody>
                 {data.map((d) => (
-                  <TableRow key={d.name} hover>
-                    <TableCell>
+                  <TableRow key={d.name}>
+                    <TableCell
+                      sx={{
+                        py: 0.75,
+                        px: 1.5,
+                        borderRadius: '6px',
+                        bgcolor: 'var(--mui-palette-action-hover)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Chip
-                          size="small"
-                          label={d.isOk ? '✓' : '⚠'}
-                          color={d.isOk ? 'success' : 'error'}
-                          sx={{ height: 20, fontWeight: 700 }}
-                        />
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        <Box
+                          component="span"
+                          sx={{
+                            inlineSize: 18,
+                            blockSize: 18,
+                            flexShrink: 0,
+                            borderRadius: '50%',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.625rem',
+                            fontWeight: 700,
+                            color: d.isOk ? 'success.main' : 'error.main',
+                            bgcolor: d.isOk
+                              ? 'var(--mui-palette-success-lightOpacity)'
+                              : 'var(--mui-palette-error-lightOpacity)',
+                          }}
+                        >
+                          {d.isOk ? '✓' : '⚠'}
+                        </Box>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>
                           {d.short}
                         </Typography>
                       </Box>
@@ -334,7 +378,18 @@ const CrossAnalysisView = () => {
                           key={m.key}
                           align="center"
                           title={`${d.name}: ${m.label} = ${m.format(val)}`}
-                          sx={{ bgcolor: bg, color: fg, fontWeight: 600, fontSize: 12 }}
+                          sx={{
+                            py: 0.75,
+                            px: 1,
+                            borderRadius: '6px',
+                            bgcolor: bg,
+                            color: fg,
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            whiteSpace: 'nowrap',
+                            transition: 'filter .15s',
+                            '&:hover': { filter: 'brightness(0.95)' },
+                          }}
                         >
                           {m.format(val)}
                         </TableCell>

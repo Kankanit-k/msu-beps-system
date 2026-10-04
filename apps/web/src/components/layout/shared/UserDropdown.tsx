@@ -70,6 +70,12 @@ const UserDropdown = () => {
     ? roleDisplay[role].label
     : user?.SCOPES?.groupname || roleDisplay.user.label;
 
+  // Signed-in staff get their own HR photo; with no STAFFID (login bypassed for the demo)
+  // fall back to the developer photo instead of a broken /undefined.jpg request.
+  const avatarSrc = user?.STAFFID
+    ? `https://pd.msu.ac.th/staff/picture/${user.STAFFID}.jpg`
+    : '/images/developers/kankanit.jpg';
+
   const { settings } = useSettings();
 
   const handleDropdownOpen = () => {
@@ -127,7 +133,7 @@ const UserDropdown = () => {
         <Avatar
           ref={anchorRef}
           alt={user?.STAFFNAME || 'User'}
-          src={`https://pd.msu.ac.th/staff/picture/${user?.STAFFID}.jpg`}
+          src={avatarSrc}
           onClick={handleDropdownOpen}
           className="cursor-pointer bs-[38px] is-[38px]"
         />
@@ -153,10 +159,7 @@ const UserDropdown = () => {
               >
                 <MenuList>
                   <div className="flex items-center plb-2 pli-4 gap-2" tabIndex={-1}>
-                    <Avatar
-                      alt={user?.STAFFNAME || 'User'}
-                      src={`https://pd.msu.ac.th/staff/picture/${user?.STAFFID}.jpg`}
-                    />
+                    <Avatar alt={user?.STAFFNAME || 'User'} src={avatarSrc} />
                     <div className="flex items-start flex-col">
                       <Typography className="font-medium" color="text.primary">
                         {user?.STAFFNAME} {user?.STAFFSURNAME}

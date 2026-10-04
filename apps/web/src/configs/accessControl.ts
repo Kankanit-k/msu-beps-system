@@ -38,6 +38,10 @@ export const publicRoutes: string[] = [
   '/api/log', // client-side error reporting endpoint (must work on the login page too)
 ];
 
+// Hide the "เกี่ยวกับเรา" (/about) page across the app for now — menus drop the link and the
+// route 404s. Flip to true to bring it back.
+export const SHOW_ABOUT_PAGE: boolean = false;
+
 // Route → minimum level. Ordered MOST-SPECIFIC FIRST; the first matching prefix wins.
 export const routeAccessRules: { prefix: string; level: AccessLevel }[] = [
   // tsc needs this assertion (the `.map` callback return isn't contextually typed against
@@ -98,9 +102,9 @@ export const resolveUserLevel = (token: Record<string, any> | null): AccessLevel
  * so both always show the same wording for the currently viewed role.
  */
 export const roleDisplay: Record<AppRole, { label: string; icon: string }> = {
-  user: { label: 'ผู้ใช้ทั่วไป', icon: 'ri-user-line' },
-  deptAdmin: { label: 'ผู้ดูแลหน่วยงาน', icon: 'ri-shield-user-line' },
-  universityAdmin: { label: 'ผู้ดูแลมหาวิทยาลัย', icon: 'ri-government-line' },
+  user: { label: 'ผู้ใช้งานทั่วไป', icon: 'ri-user-line' },
+  deptAdmin: { label: 'ผู้ดูแลระดับหน่วยงาน', icon: 'ri-shield-user-line' },
+  universityAdmin: { label: 'ผู้ดูแลระดับมหาวิทยาลัย', icon: 'ri-government-line' },
 };
 
 /** Order the viewable roles appear in both role switchers (sidebar footer + navbar dropdown). */

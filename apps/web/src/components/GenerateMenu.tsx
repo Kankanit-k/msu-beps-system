@@ -1,6 +1,6 @@
 // React Imports
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 // Next Imports
 import { usePathname } from 'next/navigation';
@@ -40,7 +40,35 @@ const collectHrefs = (items: VerticalMenuDataType[]): string[] =>
         : [],
   );
 
-// Sections collapse/expand on heading click; the one holding the current page opens itself.
+// Vertical menu icons: a Remix class (`ri-…`) renders as an icon-font glyph; anything else is
+// treated as an emoji and shown inside a small rounded tile.
+const renderVerticalIcon = (icon?: string): ReactElement | null => {
+  if (!icon) return null;
+
+  if (icon.startsWith('ri-')) return <i className={icon} />;
+
+  return (
+    <span
+      aria-hidden
+      style={{
+        inlineSize: 28,
+        blockSize: 28,
+        borderRadius: 8,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1rem',
+        lineHeight: 1,
+        backgroundColor: 'var(--mui-palette-action-hover)',
+      }}
+    >
+      {icon}
+    </span>
+  );
+};
+
+// Sections start expanded (set `defaultOpen: false` to start one collapsed) and collapse/expand
+// on heading click; the one holding the current page always reopens itself.
 const CollapsibleSection = ({
   section,
   children,
@@ -52,7 +80,7 @@ const CollapsibleSection = ({
   const { children: items, isSection, defaultOpen, ...rest } = section;
   const pathname = (usePathname() ?? '').replace(/\/+$/, '') || '/';
   const hasActive = collectHrefs(items).some((href) => pathname === href);
-  const [open, setOpen] = useState(Boolean(defaultOpen) || hasActive);
+  const [open, setOpen] = useState(defaultOpen ?? true);
 
   useEffect(() => {
     if (hasActive) setOpen(true);
@@ -89,7 +117,7 @@ export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataT
       if (subMenuItem.children) {
         const { children, icon, prefix, suffix, ...rest } = subMenuItem;
 
-        const Icon = icon ? <i className={icon} /> : null;
+        const Icon = renderVerticalIcon(icon);
 
         const subMenuPrefix: ReactNode =
           prefix && (prefix as ChipProps).label ? (
@@ -125,7 +153,7 @@ export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataT
       // Localize the href
       const href = rest.href;
 
-      const Icon = icon ? <i className={icon} /> : null;
+      const Icon = renderVerticalIcon(icon);
 
       const menuItemPrefix: ReactNode =
         prefix && (prefix as ChipProps).label ? (

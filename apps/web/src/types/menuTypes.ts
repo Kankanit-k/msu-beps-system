@@ -39,7 +39,7 @@ export type VerticalSubMenuDataType = Omit<
 };
 export type VerticalSectionDataType = Omit<VerticalMenuSectionProps, 'children'> & {
   isSection: boolean;
-  /** Section starts expanded (it also auto-expands while it holds the active page). */
+  /** Defaults to true (expanded); false starts it collapsed. It auto-expands while it holds the active page. */
   defaultOpen?: boolean;
   children: VerticalMenuDataType[];
 };

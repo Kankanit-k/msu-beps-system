@@ -1,6 +1,6 @@
 // Type Imports
 import type { HorizontalMenuDataType } from '@/types/menuTypes';
-import { accessLevelRank } from '@/configs/accessControl';
+import { SHOW_ABOUT_PAGE, accessLevelRank } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
 // Mirrors src/data/navigation/verticalMenuData.tsx (horizontal layout uses sub-menus, no sections).
@@ -42,7 +42,7 @@ const horizontalMenuData = (role: AppRole = 'user'): HorizontalMenuDataType[] =>
     });
   }
 
-  if (rank >= accessLevelRank.deptAdmin) {
+  if (SHOW_ABOUT_PAGE && rank >= accessLevelRank.deptAdmin) {
     menu.push({ label: 'เกี่ยวกับเรา', href: '/about', icon: 'ri-information-line' });
   }
 

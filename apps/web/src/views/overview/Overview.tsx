@@ -271,8 +271,8 @@ const Overview = () => {
             label="นิสิต ณ จุดคุ้มทุน (Q*)"
             value={fmtInt(uniQStar)}
             unit={`คน · จริง ${fmtInt(uni.q)} คน`}
-            accent="error"
-            valueColor="var(--mui-palette-error-main)"
+            accent="primary"
+            valueColor="var(--mui-palette-primary-main)"
           />
         </Grid>
       </Grid>

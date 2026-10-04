@@ -13,13 +13,24 @@ import { roleDisplay, roleOrder } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
 // Developer credits shown at the bottom of the sidebar.
-// Replace the placeholder names below with the real ones.
-type Developer = { emoji: string; name: string; role: string };
+type Developer = { avatar: string; name: string; role: string; phone?: string };
 
 const developers: Developer[] = [
-  { emoji: '👩', name: 'นางสาว######', role: 'กระบวนการ' },
-  { emoji: '👨', name: 'นาย#######', role: 'ระบบ' },
+  {
+    avatar: '/images/developers/msu-emblem.png',
+    name: 'กองแผนงาน',
+    role: 'กระบวนการ',
+    phone: '1254',
+  },
+  {
+    avatar: '/images/developers/kankanit.jpg',
+    name: 'นางสาวกันต์กนิษฐ์ กองทอง',
+    role: 'พัฒนาระบบ',
+  },
 ];
+
+// Show/hide the "มุมมองสิทธิ์" role switcher. Flip to true to bring it back.
+const SHOW_ROLE_SWITCHER: boolean = false;
 
 const sectionLabelSx = {
   fontSize: '0.625rem',
@@ -50,11 +61,10 @@ const SidebarFooter = () => {
         flexShrink: 0,
         paddingInline: '16px',
         paddingBlock: '12px',
-        borderBlockStart: '1px solid var(--mui-palette-divider)',
       }}
     >
       {/* Role switcher — only for accounts that may switch (see useIsAdmin) */}
-      {isAdmin && (
+      {SHOW_ROLE_SWITCHER && isAdmin && (
         <Box sx={{ marginBlockEnd: '14px' }}>
           <Typography sx={sectionLabelSx}>มุมมองสิทธิ์</Typography>
           <ToggleButtonGroup
@@ -87,42 +97,51 @@ const SidebarFooter = () => {
       )}
 
       {/* Developer credits */}
-      <Typography sx={sectionLabelSx}>ผู้พัฒนาระบบ</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBlockEnd: '12px' }}>
+        <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', whiteSpace: 'nowrap' }}>
+          ผู้พัฒนาระบบ
+        </Typography>
+        <Box sx={{ flex: 1, borderBlockStart: '1px solid var(--mui-palette-divider)' }} />
+      </Box>
       {developers.map((dev) => (
         <Box
-          key={dev.role}
+          key={dev.name}
           sx={{
             display: 'flex',
-            alignItems: 'flex-start',
-            gap: '8px',
-            marginBlockEnd: '8px',
+            alignItems: 'center',
+            gap: '12px',
+            marginBlockEnd: '12px',
             '&:last-of-type': { marginBlockEnd: 0 },
           }}
         >
           <Box
+            component="img"
+            src={dev.avatar}
+            alt=""
             sx={{
-              inlineSize: 26,
-              blockSize: 26,
+              inlineSize: 40,
+              blockSize: 40,
               flexShrink: 0,
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.85rem',
-              lineHeight: 1,
-              backgroundColor: 'var(--mui-palette-primary-lightOpacity)',
+              borderRadius: '8px',
+              objectFit: 'cover',
+              backgroundColor: '#fff',
+              boxShadow: 'var(--mui-customShadows-xs)',
             }}
-          >
-            {dev.emoji}
-          </Box>
+          />
           <Box sx={{ minInlineSize: 0 }}>
             <Typography
-              sx={{ fontSize: '0.75rem', fontWeight: 700, lineHeight: 1.3, color: 'text.primary' }}
+              sx={{
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                lineHeight: 1.4,
+                color: 'text.primary',
+              }}
             >
               {dev.name}
             </Typography>
-            <Typography sx={{ fontSize: '0.625rem', lineHeight: 1.3, color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: '0.75rem', lineHeight: 1.4, color: 'text.secondary' }}>
               {dev.role}
+              {dev.phone && ` ☎️ ${dev.phone}`}
             </Typography>
           </Box>
         </Box>
