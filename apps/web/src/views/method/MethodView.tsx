@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -12,7 +11,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
@@ -26,6 +24,12 @@ import { calcBreakEvenBothModes } from '@beps/calc-engine';
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtM = (v: number) =>
   (v / 1_000_000).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+// warning.main (#FFB400) บนพื้นเหลืองอ่อนอ่านยาก — ใช้อำพันเข้มในโหมดสว่าง
+// (object ไม่ใช่ function เพราะไฟล์นี้เป็น server component; selector = theme.applyStyles('dark'))
+const warnText = {
+  color: '#8A5A00',
+  '*:where([data-dark]) &': { color: 'var(--mui-palette-warning-main)' },
+};
 const pct = (a: number, b: number) => `${((a / b) * 100).toFixed(1)}%`;
 
 interface FormulaCardProps {
@@ -42,17 +46,20 @@ const FormulaCard = ({ title, eq, eqColor = 'default', children }: FormulaCardPr
         {title}
       </Typography>
       <Box
-        sx={{
-          fontFamily: 'monospace',
-          fontSize: 15,
-          fontWeight: 700,
-          textAlign: 'center',
-          py: 3,
-          my: 2,
-          borderRadius: 2,
-          bgcolor: eqColor === 'gold' ? 'warning.lightOpacity' : 'primary.lightOpacity',
-          color: eqColor === 'gold' ? 'warning.main' : 'primary.main',
-        }}
+        sx={[
+          {
+            fontFamily: 'monospace',
+            fontSize: 15,
+            fontWeight: 700,
+            textAlign: 'center',
+            py: 3,
+            my: 2,
+            borderRadius: 2,
+            bgcolor: eqColor === 'gold' ? 'warning.lightOpacity' : 'primary.lightOpacity',
+            color: 'primary.main',
+          },
+          eqColor === 'gold' && warnText,
+        ]}
       >
         {eq}
       </Box>
@@ -146,6 +153,61 @@ const REFS = [
   'Vanderbei, R. J. (2020). Linear programming: Foundations and extensions (5th ed.). Springer.',
 ];
 
+// สไตล์การ์ดแบบ mockup W10 (fm-card / vartbl / classbox / tag / refs)
+const bodySx = { fontSize: 13, lineHeight: 1.7, color: 'text.secondary' };
+
+const varTableSx = {
+  '& th': {
+    bgcolor: 'primary.lighterOpacity',
+    color: 'primary.dark',
+    fontWeight: 700,
+    fontSize: 12,
+    borderBottom: 0,
+  },
+  '& td': { fontSize: 13, color: 'text.secondary', verticalAlign: 'top' },
+  '& td:first-of-type': {
+    fontWeight: 700,
+    color: 'primary.dark',
+    whiteSpace: 'nowrap',
+  },
+};
+
+const InfoCard = ({ title, children }: { title: string; children: ReactNode }) => (
+  <Card variant="outlined">
+    <CardContent>
+      <Typography sx={{ fontSize: 15, fontWeight: 700, color: 'primary.dark', mb: 2 }}>
+        {title}
+      </Typography>
+      {children}
+    </CardContent>
+  </Card>
+);
+
+const ClassBox = ({ title, titleSx, tags }: { title: string; titleSx: object; tags: string[] }) => (
+  <Box sx={{ height: '100%', border: 1, borderColor: 'divider', borderRadius: 2, px: 3.5, py: 3 }}>
+    <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 2, ...titleSx }}>{title}</Typography>
+    <Stack direction="row" flexWrap="wrap" gap={1}>
+      {tags.map((t) => (
+        <Box
+          key={t}
+          component="span"
+          sx={{
+            px: 2,
+            py: 0.5,
+            borderRadius: 1.25,
+            fontSize: 12,
+            fontWeight: 600,
+            bgcolor: 'primary.lighterOpacity',
+            color: 'primary.dark',
+          }}
+        >
+          {t}
+        </Box>
+      ))}
+    </Stack>
+  </Box>
+);
+
 const MethodView = () => {
   // สูตร 5a/5b — ฐานรายได้ 2 กรณี คำนวณจากยอดระดับมหาวิทยาลัยด้วย calc-engine จริง
   const bothModes = calcBreakEvenBothModes({
@@ -220,15 +282,17 @@ const MethodView = () => {
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box
-                  sx={{
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    textAlign: 'center',
-                    py: 3,
-                    borderRadius: 2,
-                    bgcolor: 'warning.lightOpacity',
-                    color: 'warning.main',
-                  }}
+                  sx={[
+                    {
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      py: 3,
+                      borderRadius: 2,
+                      bgcolor: 'warning.lightOpacity',
+                    },
+                    warnText,
+                  ]}
                 >
                   R ไม่รวมแผ่นดิน = งบเงินรายได้ / Q
                 </Box>
@@ -292,16 +356,18 @@ const MethodView = () => {
               📌 สูตรที่ 7 — กรณีรายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (CM ≤ 0)
             </Typography>
             <Box
-              sx={{
-                fontFamily: 'monospace',
-                fontWeight: 700,
-                textAlign: 'center',
-                py: 3,
-                my: 2,
-                borderRadius: 2,
-                bgcolor: 'warning.lightOpacity',
-                color: 'warning.main',
-              }}
+              sx={[
+                {
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  py: 3,
+                  my: 2,
+                  borderRadius: 2,
+                  bgcolor: 'warning.lightOpacity',
+                },
+                warnText,
+              ]}
             >
               ถ้า (R − AVC) ≤ 0 → Q* = TC / R
             </Box>
@@ -315,7 +381,7 @@ const MethodView = () => {
               <strong>ตัวอย่าง</strong> — เคมี (คณะวิทยาศาสตร์): ต้นทุนรวม ≈ 2.16 ล้านบาท · ค่าเทอม
               ≈ 93,000 บ./คน → Q* = 2,163,604 / 93,311 ≈ <strong>23 คน</strong>
             </Typography>
-            <Alert severity="warning" sx={{ mt: 1 }}>
+            <Alert severity="warning" sx={[{ mt: 1 }, warnText]}>
               ค่าที่ได้เป็นเป้าหมายขั้นต่ำ ไม่ใช่จุดคุ้มทุนจริง —
               ทางแก้ที่ยั่งยืนคือลดต้นทุนผันแปรต่อหัว หรือขึ้นค่าธรรมเนียม
             </Alert>
@@ -329,13 +395,12 @@ const MethodView = () => {
       </Grid>
 
       <Grid size={12}>
-        <Card variant="outlined">
-          <CardHeader
-            title="📖 คำนิยามตัวแปรในสูตร"
-            subheader="ตัวเลขคอลัมน์ขวาสุดคำนวณสดจากข้อมูลระดับมหาวิทยาลัยที่โหลดอยู่"
-          />
+        <InfoCard title="📖 คำนิยามตัวแปรในสูตร">
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+            ตัวเลขคอลัมน์ขวาสุดคำนวณสดจากข้อมูลระดับมหาวิทยาลัยที่โหลดอยู่
+          </Typography>
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={varTableSx}>
               <TableHead>
                 <TableRow>
                   <TableCell>สัญลักษณ์</TableCell>
@@ -347,108 +412,102 @@ const MethodView = () => {
               <TableBody>
                 {varDefs.map((row) => (
                   <TableRow key={row.sym}>
-                    <TableCell>
-                      <Typography fontFamily="monospace" fontWeight={700}>
-                        {row.sym}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {row.name}
-                      </Typography>
-                    </TableCell>
+                    <TableCell>{row.sym}</TableCell>
+                    <TableCell>{row.name}</TableCell>
                     <TableCell>{row.unit}</TableCell>
-                    <TableCell>
-                      <Typography fontWeight={600}>{row.value}</Typography>
-                    </TableCell>
+                    <TableCell>{row.value}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
-        </Card>
+        </InfoCard>
       </Grid>
 
       <Grid size={12}>
-        <Card variant="outlined">
-          <CardHeader title="🗂️ การจำแนกประเภทต้นทุน (Cost Classification)" />
-          <CardContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              ตามหมวดรายจ่ายในไฟล์ต้นฉบับ · สัดส่วนจริง ต้นทุนคงที่ : ต้นทุนผันแปร ={' '}
-              <strong>
-                {pct(RAW.UNI.TFC, RAW.UNI.TC)} : {pct(RAW.UNI.TVC, RAW.UNI.TC)}
-              </strong>
-            </Typography>
-            <Grid container spacing={4}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" fontWeight={700} color="primary.main" gutterBottom>
-                  ต้นทุนคงที่ (TFC) — ไม่แปรผันตามนิสิต
-                </Typography>
-                <Stack direction="row" flexWrap="wrap" gap={2}>
-                  {TFC_TAGS.map((t) => (
-                    <Chip key={t} size="small" variant="outlined" label={t} />
-                  ))}
-                </Stack>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" fontWeight={700} color="warning.main" gutterBottom>
-                  ต้นทุนผันแปร (TVC) — แปรผันตามนิสิต
-                </Typography>
-                <Stack direction="row" flexWrap="wrap" gap={2}>
-                  {TVC_TAGS.map((t) => (
-                    <Chip key={t} size="small" variant="outlined" color="warning" label={t} />
-                  ))}
-                </Stack>
-              </Grid>
+        <InfoCard title="🗂️ การจำแนกประเภทต้นทุน (Cost Classification)">
+          <Typography sx={{ ...bodySx, mb: 2.5 }}>
+            ตามหมวดรายจ่ายในไฟล์ต้นฉบับ · สัดส่วนจริง ต้นทุนคงที่ : ต้นทุนผันแปร ={' '}
+            <strong>
+              {pct(RAW.UNI.TFC, RAW.UNI.TC)} : {pct(RAW.UNI.TVC, RAW.UNI.TC)}
+            </strong>
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <ClassBox
+                title="ต้นทุนคงที่ (TFC) — ไม่แปรผันตามนิสิต"
+                titleSx={{ color: 'primary.dark' }}
+                tags={TFC_TAGS}
+              />
             </Grid>
-            <Alert severity="warning" sx={{ mt: 4 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <ClassBox
+                title="ต้นทุนผันแปร (TVC) — แปรผันตามนิสิต"
+                titleSx={warnText}
+                tags={TVC_TAGS}
+              />
+            </Grid>
+          </Grid>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              alignItems: 'center',
+              mt: 3,
+              px: 3,
+              py: 2,
+              fontSize: 12,
+              color: 'text.secondary',
+              bgcolor: 'primary.lighterOpacity',
+              border: 1,
+              borderColor: 'primary.lightOpacity',
+              borderRadius: 2,
+            }}
+          >
+            <span>⚠️</span>
+            <span>
               ต้นทุนผันแปร (TVC) ในไฟล์ใหม่รวม <strong>ค่าธรรมเนียมรายการหลัก</strong> และ{' '}
               <strong>หักสมทบมหาวิทยาลัย (2,235 บ./คน/เทอม)</strong> ซึ่งคิดตามรายหัวนิสิต
               จึงทำให้สัดส่วนต้นทุนผันแปรสูงกว่าการคำนวณแบบเดิม
-            </Alert>
-          </CardContent>
-        </Card>
+            </span>
+          </Box>
+        </InfoCard>
       </Grid>
 
       <Grid size={12}>
-        <Card variant="outlined">
-          <CardHeader title='📌 หมายเหตุ: ลำดับชั้นการวิเคราะห์ & "ภาควิชา"' />
-          <CardContent>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              ระบบรวมข้อมูลจากล่างขึ้นบน: <strong>หลักสูตร (230)</strong> →{' '}
-              <strong>ระดับการศึกษาในแต่ละคณะ (ปริญญาตรี / บัณฑิตศึกษา)</strong> →{' '}
-              <strong>คณะ (20)</strong> → <strong>มหาวิทยาลัย</strong> ทุกตัวเลขระดับบนคือผลรวมของ
-              หน่วยย่อย ส่วนรายได้ต่อหัว (R) และต้นทุนผันแปรต่อหัว (AVC)
-              คำนวณใหม่จากยอดรวมของหน่วยนั้น ยกเว้นจุดคุ้มทุน (Q*) ที่เป็นผลบวก Q*
-              ของหลักสูตรข้างใต้ตามวิธีหลัก (ตรงกับแถวผลรวมใน Excel)
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              ชุดข้อมูลนี้ไม่มีคอลัมน์ &ldquo;ภาควิชา&rdquo; โดยตรง ระบบจึงใช้{' '}
-              <strong>ระดับการศึกษา</strong> เป็นชั้นกลาง แทน ซึ่งตรงกับวิธีที่ Excel
-              ปันส่วนต้นทุนสำนักงานเลขานุการ (แยกระดับปริญญาตรี / บัณฑิตศึกษา) — หากมีตาราง
-              จับคู่หลักสูตร→ภาควิชาจริง สามารถสลับชั้นกลางได้ทันที
-            </Typography>
-          </CardContent>
-        </Card>
+        <InfoCard title='📌 หมายเหตุ: ลำดับชั้นการวิเคราะห์ & "ภาควิชา"'>
+          <Typography sx={{ ...bodySx, mb: 1 }}>
+            ระบบรวมข้อมูลจากล่างขึ้นบน: <strong>หลักสูตร (230)</strong> →{' '}
+            <strong>ระดับการศึกษาในแต่ละคณะ (ปริญญาตรี / บัณฑิตศึกษา)</strong> →{' '}
+            <strong>คณะ (20)</strong> → <strong>มหาวิทยาลัย</strong> ทุกตัวเลขระดับบนคือผลรวมของ
+            หน่วยย่อย ส่วนรายได้ต่อหัว (R) และต้นทุนผันแปรต่อหัว (AVC)
+            คำนวณใหม่จากยอดรวมของหน่วยนั้น ยกเว้นจุดคุ้มทุน (Q*) ที่เป็นผลบวก Q*
+            ของหลักสูตรข้างใต้ตามวิธีหลัก (ตรงกับแถวผลรวมใน Excel)
+          </Typography>
+          <Typography sx={bodySx}>
+            ชุดข้อมูลนี้ไม่มีคอลัมน์ &ldquo;ภาควิชา&rdquo; โดยตรง ระบบจึงใช้{' '}
+            <strong>ระดับการศึกษา</strong> เป็นชั้นกลาง แทน ซึ่งตรงกับวิธีที่ Excel
+            ปันส่วนต้นทุนสำนักงานเลขานุการ (แยกระดับปริญญาตรี / บัณฑิตศึกษา) — หากมีตาราง
+            จับคู่หลักสูตร→ภาควิชาจริง สามารถสลับชั้นกลางได้ทันที
+          </Typography>
+        </InfoCard>
       </Grid>
 
       <Grid size={12}>
-        <Card variant="outlined">
-          <CardHeader title="📚 เอกสารอ้างอิง (APA 7th Edition)" />
-          <CardContent>
-            <Stack spacing={2}>
-              {REFS.map((r, i) => (
-                <Typography key={r} variant="body2" color="text.secondary">
-                  [{i + 1}] {r}
-                </Typography>
-              ))}
-            </Stack>
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 4 }}>
-              แหล่งข้อมูล: ไฟล์ &ldquo;20260711_จุดคุ้มทุน update.xlsx&rdquo; — ชีต 1.รายได้ และ
-              2.ค่าใช้จ่าย · ปรับปรุงจากแอปวิเคราะห์จุดคุ้มทุนรุ่นก่อน
+        <InfoCard title="📚 เอกสารอ้างอิง (APA 7th Edition)">
+          {REFS.map((r, i) => (
+            <Typography
+              key={r}
+              sx={{ ...bodySx, py: 1, borderBottom: '1px dashed', borderColor: 'divider' }}
+            >
+              [{i + 1}] {r}
             </Typography>
-          </CardContent>
-        </Card>
+          ))}
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 3 }}>
+            แหล่งข้อมูล: ไฟล์ &ldquo;20260711_จุดคุ้มทุน update.xlsx&rdquo; — ชีต 1.รายได้ และ
+            2.ค่าใช้จ่าย · ปรับปรุงจากแอปวิเคราะห์จุดคุ้มทุนรุ่นก่อน
+          </Typography>
+        </InfoCard>
       </Grid>
     </Grid>
   );

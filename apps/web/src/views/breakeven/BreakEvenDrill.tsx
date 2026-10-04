@@ -5,7 +5,6 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 // MUI Imports
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -15,7 +14,6 @@ import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
@@ -92,6 +90,9 @@ const BreakEvenDrill = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [expandedFac, setExpandedFac] = useState<Record<string, boolean>>({});
   const [expandedDept, setExpandedDept] = useState<Record<string, boolean>>({});
+  // ระหว่างค้นหา/กรอง ทุกแถวเปิดเป็นค่าเริ่มต้น — เก็บเฉพาะแถวที่ผู้ใช้ย่อเอง (ล้างเมื่อเปลี่ยนคำค้น/ตัวกรอง)
+  const [collapsedFac, setCollapsedFac] = useState<Record<string, boolean>>({});
+  const [collapsedDept, setCollapsedDept] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<QuickFilter>('all');
 
@@ -161,7 +162,7 @@ const BreakEvenDrill = () => {
       if (filtering && hitProgs.length === 0) return;
       shownFacsN++;
 
-      const facOpen = filtering ? true : !!expandedFac[f.name];
+      const facOpen = filtering ? !collapsedFac[f.name] : !!expandedFac[f.name];
       const facRes = computeBreakEven(f, mode);
 
       out.push({
@@ -177,7 +178,8 @@ const BreakEvenDrill = () => {
         status: statusOf(facRes),
         hasChildren: true,
         open: facOpen,
-        onToggle: () => setExpandedFac((s) => ({ ...s, [f.name]: !s[f.name] })),
+        onToggle: () =>
+          (filtering ? setCollapsedFac : setExpandedFac)((s) => ({ ...s, [f.name]: !s[f.name] })),
       });
 
       if (!facOpen) {
@@ -195,7 +197,7 @@ const BreakEvenDrill = () => {
 
         if (filtering && depHits.length === 0) return;
 
-        const depOpen = filtering ? true : !!expandedDept[key];
+        const depOpen = filtering ? !collapsedDept[key] : !!expandedDept[key];
         const depRes = computeBreakEven(d, mode);
 
         out.push({
@@ -212,7 +214,8 @@ const BreakEvenDrill = () => {
           status: statusOf(depRes),
           hasChildren: true,
           open: depOpen,
-          onToggle: () => setExpandedDept((s) => ({ ...s, [key]: !s[key] })),
+          onToggle: () =>
+            (filtering ? setCollapsedDept : setExpandedDept)((s) => ({ ...s, [key]: !s[key] })),
         });
 
         if (!depOpen) {
@@ -226,7 +229,7 @@ const BreakEvenDrill = () => {
           const pRes = progStats.get(p)!.res;
 
           out.push({
-            key: `prog-${f.name}-${d.grp}-${p.prog}`,
+            key: `prog-${RAW.PROGS.indexOf(p)}`,
             level: 2,
             label: p.prog,
             sub: p.lvl,
@@ -244,7 +247,7 @@ const BreakEvenDrill = () => {
     });
 
     return { rows: out, shownProgs: shownProgsN, shownFacs: shownFacsN };
-  }, [mode, progStats, expandedFac, expandedDept, searchTerm, filter, filtering]);
+  }, [mode, progStats, expandedFac, expandedDept, collapsedFac, collapsedDept, searchTerm, filter, filtering]);
 
   // ===== ประเด็นสำคัญ (ตรงกับ be-ins ของ mockup) =====
   const insights = useMemo(() => {
@@ -292,9 +295,12 @@ const BreakEvenDrill = () => {
         text: (
           <>
             หลักสูตรขาดทุนสูงสุด:{' '}
-            {worst
-              .map((e) => `${e.p.prog} (−${fmtMillion(Math.abs(e.res.profit))} ลบ.)`)
-              .join(', ')}
+            {worst.map((e, i) => (
+              <span key={e.p.prog}>
+                {i > 0 && ', '}
+                <b>{e.p.prog}</b> (−{fmtMillion(Math.abs(e.res.profit))} ลบ.)
+              </span>
+            ))}
           </>
         ),
       });
@@ -303,18 +309,34 @@ const BreakEvenDrill = () => {
     return list;
   }, [progStats, counts]);
 
-  const expandAll = () => {
+  const allOpen = () => {
     const fac: Record<string, boolean> = {};
     const dep: Record<string, boolean> = {};
 
     RAW.FACS.forEach((f) => (fac[f.name] = true));
     RAW.DEPTS.forEach((d) => (dep[`${d.fac}||${d.grp}`] = true));
+
+    return { fac, dep };
+  };
+  const expandAll = () => {
+    const { fac, dep } = allOpen();
+
     setExpandedFac(fac);
     setExpandedDept(dep);
+    setCollapsedFac({});
+    setCollapsedDept({});
   };
   const collapseAll = () => {
+    const { fac, dep } = allOpen();
+
     setExpandedFac({});
     setExpandedDept({});
+    setCollapsedFac(fac);
+    setCollapsedDept(dep);
+  };
+  const resetCollapsed = () => {
+    setCollapsedFac({});
+    setCollapsedDept({});
   };
 
   return (
@@ -408,7 +430,10 @@ const BreakEvenDrill = () => {
             size="small"
             placeholder="ค้นหาคณะ / ระดับ / ชื่อหลักสูตร / ชื่อปริญญา..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              resetCollapsed();
+            }}
             sx={{ minWidth: 300, bgcolor: 'background.paper' }}
             slotProps={{
               input: {
@@ -419,7 +444,10 @@ const BreakEvenDrill = () => {
                 ),
                 endAdornment: search && (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearch('')} title="ล้างคำค้นหา">
+                    <IconButton size="small" onClick={() => {
+                        setSearch('');
+                        resetCollapsed();
+                      }} title="ล้างคำค้นหา">
                       <i className="ri-close-line" />
                     </IconButton>
                   </InputAdornment>
@@ -445,12 +473,15 @@ const BreakEvenDrill = () => {
                 label={qf.label}
                 color={filter === qf.value ? 'primary' : 'secondary'}
                 variant={filter === qf.value ? 'filled' : 'outlined'}
-                onClick={() => setFilter(qf.value)}
+                onClick={() => {
+                  setFilter(qf.value);
+                  resetCollapsed();
+                }}
               />
             ))}
           </Box>
         </Box>
-        <Box sx={{ maxBlockSize: 640, overflow: 'auto' }}>
+        <Box sx={{ overflowX: 'auto' }}>
           <TreeHeader />
           {rows.length === 0 && (
             <Box sx={{ p: 10, textAlign: 'center' }}>
@@ -466,18 +497,33 @@ const BreakEvenDrill = () => {
         </Box>
       </Card>
 
-      <Card sx={{ mt: 4 }}>
+      <Card sx={{ mt: 4, borderLeft: 4, borderLeftColor: 'primary.main' }}>
         <CardHeader
-          title={<DotTitle color="primary.main">ประเด็นสำคัญ — จุดคุ้มทุนรายหลักสูตร</DotTitle>}
+          title="ประเด็นสำคัญ — จุดคุ้มทุนรายหลักสูตร"
+          titleTypographyProps={{ variant: 'h6', color: 'primary.dark' }}
         />
-        <CardContent>
-          <Stack spacing={2}>
-            {insights.map((ins, i) => (
-              <Alert key={i} severity={ins.sev} variant="outlined">
-                {ins.text}
-              </Alert>
-            ))}
-          </Stack>
+        <CardContent
+          component="ul"
+          sx={{ m: 0, pt: 0, pl: 4, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 1.5 }}
+        >
+          {insights.map((ins, i) => (
+            <Box
+              key={i}
+              component="li"
+              sx={{
+                position: 'relative',
+                pl: 4,
+                '&::before': {
+                  content: '"▸"',
+                  position: 'absolute',
+                  left: 0,
+                  color: 'primary.main',
+                },
+              }}
+            >
+              <Typography variant="body2">{ins.text}</Typography>
+            </Box>
+          ))}
         </CardContent>
       </Card>
     </Box>

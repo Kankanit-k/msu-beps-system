@@ -42,6 +42,10 @@ export const publicRoutes: string[] = [
 // route 404s. Flip to true to bring it back.
 export const SHOW_ABOUT_PAGE: boolean = false;
 
+// Hide the "นโยบายต้นทุนคงที่" (/admin/fixed-cost-policy, W20) page for now — the menu drops the
+// link and the route 404s. Flip to true to bring it back.
+export const SHOW_FIXED_COST_POLICY: boolean = false;
+
 // Route → minimum level. Ordered MOST-SPECIFIC FIRST; the first matching prefix wins.
 export const routeAccessRules: { prefix: string; level: AccessLevel }[] = [
   // tsc needs this assertion (the `.map` callback return isn't contextually typed against

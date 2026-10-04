@@ -22,6 +22,9 @@ export const SHOW_BREAKEVEN_NOTES = false;
 /** ซ่อนแถบหมายเหตุบนหน้า "วิเคราะห์เชิงเปรียบเทียบ (Cross Analysis)" (W5) ชั่วคราว — ตั้งเป็น true เพื่อแสดงกลับ */
 export const SHOW_CROSS_NOTES = false;
 
+/** ซ่อนแถบหมายเหตุบนหน้า "กราฟจุดคุ้มทุน" (W3) ชั่วคราว — ตั้งเป็น true เพื่อแสดงกลับ */
+export const SHOW_BREAKEVEN_CHART_NOTES = false;
+
 /**
  * แถบข้อจำกัดของข้อมูล — ตรงกับ dataCaveat() ของ mockup
  * ทุกหน้าที่แสดงตัวเลขการเงินต้องขึ้นแถบนี้เหมือนกัน จึงรวมไว้ที่เดียว

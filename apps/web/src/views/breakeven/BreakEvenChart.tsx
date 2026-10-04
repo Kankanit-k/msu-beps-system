@@ -27,7 +27,7 @@ import type { ApexOptions } from 'apexcharts';
 
 // Component Imports
 import { DotTitle, LegendItem } from '@components/ChartBits';
-import DataCaveatNotes from '@components/DataCaveatNotes';
+import DataCaveatNotes, { SHOW_BREAKEVEN_CHART_NOTES } from '@components/DataCaveatNotes';
 import KpiCard, { type KpiAccent } from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
@@ -276,7 +276,7 @@ const buildRecommendations = (
 };
 
 const BreakEvenChart = () => {
-  const [level, setLevel] = useState<AnalysisLevel>('prog');
+  const [level, setLevel] = useState<AnalysisLevel>('uni');
   const [facIdx, setFacIdx] = useState(0);
   const [lvl, setLvl] = useState<string>('');
   const [progIdx, setProgIdx] = useState(0);
@@ -408,12 +408,16 @@ const BreakEvenChart = () => {
         profit={uniRes.profit}
       />
 
-      <DataCaveatNotes profit={uniRes.profit} />
+      {SHOW_BREAKEVEN_CHART_NOTES && (
+        <>
+          <DataCaveatNotes profit={uniRes.profit} />
 
-      <NoteBar severity="info">
-        {REVENUE_MODE_NOTE[mode]} · เส้นรายได้รวม (TR) และต้นทุนรวม (TC) ตามจำนวนนิสิต
-        จุดตัดคือจุดคุ้มทุน (Q*)
-      </NoteBar>
+          <NoteBar severity="info">
+            {REVENUE_MODE_NOTE[mode]} · เส้นรายได้รวม (TR) และต้นทุนรวม (TC) ตามจำนวนนิสิต
+            จุดตัดคือจุดคุ้มทุน (Q*)
+          </NoteBar>
+        </>
+      )}
 
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>

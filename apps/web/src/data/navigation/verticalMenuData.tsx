@@ -1,6 +1,11 @@
 // Type Imports
 import type { VerticalMenuDataType } from '@/types/menuTypes';
-import { SHOW_ABOUT_PAGE, accessLevelRank, requiredLevelFor } from '@/configs/accessControl';
+import {
+  SHOW_ABOUT_PAGE,
+  SHOW_FIXED_COST_POLICY,
+  accessLevelRank,
+  requiredLevelFor,
+} from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
 // Show/hide the "สาธารณะ" chip in the sidebar. The tagging logic below stays intact —
@@ -10,6 +15,11 @@ const SHOW_PUBLIC_CHIP: boolean = false;
 // Hide the "แผนการรับนิสิต" link from the sidebar for now. The page itself
 // (/scenario/admission-plan) still works by URL — flip to true to bring the link back.
 const SHOW_ADMISSION_PLAN: boolean = false;
+
+// Hide the whole "ปันส่วนต้นทุน" sidebar section for now. The pages themselves
+// (/admin/allocation-run, /admin/reconciliation, /admin/exceptions) still work by URL —
+// flip to true to bring the section back.
+const SHOW_ALLOCATION_SECTION: boolean = false;
 
 // Tag links that are viewable without login (driven by accessControl → publicRoutes).
 const publicChip = {
@@ -129,20 +139,22 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
     },
 
     // ── ปันส่วนต้นทุน (deptAdmin) — W11-W13 ───────────────────────────
-    {
-      label: 'ปันส่วนต้นทุน',
-      isSection: true,
-      children: [
-        {
-          label: 'นโยบายต้นทุนคงที่',
-          href: '/admin/fixed-cost-policy',
-          icon: '📌',
-        },
-        { label: 'คอนโซลรอบคำนวณ', href: '/admin/allocation-run', icon: '🚀' },
-        { label: 'ผลตรวจยอด', href: '/admin/reconciliation', icon: '✅' },
-        { label: 'รายการค้างตรวจ', href: '/admin/exceptions', icon: '⚠️' },
-      ],
-    },
+    ...(SHOW_ALLOCATION_SECTION
+      ? [
+          {
+            label: 'ปันส่วนต้นทุน',
+            isSection: true,
+            children: [
+              ...(SHOW_FIXED_COST_POLICY
+                ? [{ label: 'นโยบายต้นทุนคงที่', href: '/admin/fixed-cost-policy', icon: '📌' }]
+                : []),
+              { label: 'คอนโซลรอบคำนวณ', href: '/admin/allocation-run', icon: '🚀' },
+              { label: 'ผลตรวจยอด', href: '/admin/reconciliation', icon: '✅' },
+              { label: 'รายการค้างตรวจ', href: '/admin/exceptions', icon: '⚠️' },
+            ],
+          },
+        ]
+      : []),
 
     // ── ทะเบียนข้อมูลหลัก (mixed tiers — filterByRank hides what each viewer can't reach)
     // — W8, W9, W16, W18 + deptAdmin/universityAdmin registries ─────────

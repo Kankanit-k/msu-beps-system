@@ -18,32 +18,32 @@ const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
 export const HEATMAP_METRICS: HeatmapMetric[] = [
   {
     key: 'util',
-    label: 'นิสิตจริง/จุดคุ้มทุน',
-    unit: 'Q/Q* %',
+    label: 'นิสิตจริงเทียบจุดคุ้มทุน',
+    unit: '%',
     good: 'high',
     format: (v) => (v > 0 ? `${v}%` : '—'),
   },
   {
     key: 'profitPct',
-    label: 'กำไร %',
-    unit: 'อัตรากำไร',
+    label: 'อัตรากำไร',
+    unit: '%',
     good: 'high',
     format: (v) => `${v >= 0 ? '+' : ''}${v}%`,
   },
-  { key: 'progOkRatio', label: 'หลักสูตรคุ้ม', unit: '%', good: 'high', format: (v) => `${v}%` },
-  { key: 'CM', label: 'ส่วนเกิน/หัว (CM)', unit: 'บาท', good: 'high', format: fmtB },
-  { key: 'R', label: 'รายได้/หัว (R)', unit: 'บาท', good: 'high', format: fmtB },
-  { key: 'AVC', label: 'ผันแปร/หัว (AVC)', unit: 'บาท', good: 'low', format: fmtB },
+  { key: 'progOkRatio', label: 'หลักสูตรที่คุ้มทุน', unit: '%', good: 'high', format: (v) => `${v}%` },
+  { key: 'CM', label: 'ส่วนเกินต่อหัว', unit: 'บาท', good: 'high', format: fmtB },
+  { key: 'R', label: 'รายได้ต่อหัว', unit: 'บาท', good: 'high', format: fmtB },
+  { key: 'AVC', label: 'ต้นทุนผันแปรต่อหัว', unit: 'บาท', good: 'low', format: fmtB },
   {
     key: 'avcRRatio',
-    label: 'ผันแปร/รายได้ (AVC/R)',
+    label: 'สัดส่วนต้นทุนผันแปรต่อรายได้',
     unit: '%',
     good: 'low',
     format: (v) => (v >= 999 ? '—' : `${v}%`),
   },
   {
     key: 'tfcTcRatio',
-    label: 'ต้นทุนคงที่/รวม (TFC/TC)',
+    label: 'สัดส่วนต้นทุนคงที่ต่อต้นทุนรวม',
     unit: '%',
     good: 'low',
     format: (v) => `${v}%`,
@@ -51,12 +51,12 @@ export const HEATMAP_METRICS: HeatmapMetric[] = [
   {
     key: 'profitM',
     label: 'กำไร/ขาดทุน',
-    unit: 'ลบ.',
+    unit: 'ล้านบาท',
     good: 'high',
     format: (v) =>
       `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
   },
-  { key: 'Q', label: 'นิสิตจริง (Q)', unit: 'คน', good: 'high', format: fmtN },
+  { key: 'Q', label: 'นิสิตจริง', unit: 'คน', good: 'high', format: fmtN },
 ];
 
 /** ไล่สีแดง→ทอง→เขียว ตามตำแหน่งสัมพัทธ์ในคอลัมน์เดียวกัน (min-max ต่อคอลัมน์ ไม่ใช่ทั้งตาราง) */
