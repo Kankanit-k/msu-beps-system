@@ -62,14 +62,24 @@ export function blockFromProgram(p: ProgRow): CostBlock {
   };
 }
 
+const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+/**
+ * ส่วนแบ่งส่วนกลางคณะที่ฝังอยู่ในตัวเลขแท็บ 4 ของหลักสูตร = TFC ในตาราง − ต้นทุนคงที่ตรง (ERP ผูกหลักสูตร)
+ * ปันใหม่แล้ว TFC = ต้นทุนตรง + ส่วนแบ่งตามวิธี ตรงกับนิยามของ W20 และไม่มีทางติดลบเพราะถอดเกิน
+ */
+export const embeddedShareOf = (p: ProgRow): number => {
+  const b = blockFromProgram(p);
+
+  return sum(b.fix) + b.dep - p.tfcProg;
+};
+
 /** โหมดกรอกเอง: ค่าธรรมเนียมรายการหลัก/หักสมทบ คิดจากอัตรา × Q × ภาค (T38, T39) */
 export const withPerHeadCharges = (b: CostBlock, semesters: number): CostBlock => ({
   ...b,
   mainFee: MAIN_FEE_RATE * b.q * semesters,
   uniShare: UNI_SHARE_RATE * b.q * semesters,
 });
-
-const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
 /** ROUNDUP ของ Excel — ปัดออกจากศูนย์ */
 const roundUp = (x: number) => Math.sign(x) * Math.ceil(Math.abs(x) - 1e-9);
@@ -78,6 +88,8 @@ export interface BlockResult {
   tr: number;
   r: number | null;
   tfc: number;
+  /** ส่วนที่ปรับ TFC ตามวิธีปันส่วนต้นทุนส่วนกลางคณะ (0 = ตามชีต) — รวมอยู่ใน tfc แล้ว */
+  fixAdj: number;
   tvc: number;
   tc: number;
   avc: number | null;
@@ -87,9 +99,10 @@ export interface BlockResult {
   diff: number | null;
 }
 
-export function blockResult(b: CostBlock, mode: RevenueMode): BlockResult {
+/** @param fixAdj ส่วนแบ่งส่วนกลางคณะตามวิธีที่เลือก − ส่วนแบ่งที่ชีตปันไว้ (ดู facultyAllocation.ts) */
+export function blockResult(b: CostBlock, mode: RevenueMode, fixAdj = 0): BlockResult {
   const tr = (mode === 'with_government' ? b.gov : 0) + b.income;
-  const tfc = sum(b.fix) + b.dep;
+  const tfc = sum(b.fix) + b.dep + fixAdj;
   const tvc = sum(b.var) + b.genEd + b.mainFee + b.uniShare;
   const r = b.q > 0 ? tr / b.q : null;
   const avc = b.q > 0 ? tvc / b.q : null;
@@ -100,6 +113,7 @@ export function blockResult(b: CostBlock, mode: RevenueMode): BlockResult {
     tr,
     r,
     tfc,
+    fixAdj,
     tvc,
     tc: tfc + tvc,
     avc,
@@ -123,18 +137,17 @@ export interface Segment {
   years: number;
 }
 
-/** ชื่อกลุ่มนิสิตตามระดับ (Masterโครงสร้าง J:M) + "ต่อเนื่อง 2 ปี" เฉพาะปริญญาตรี */
+/** ชื่อกลุ่มนิสิต (Masterโครงสร้าง J:M) + "ต่อเนื่อง 2 ปี" — ป.ตรี เรียก ปกติ/พิเศษ, บัณฑิตศึกษา เรียก ในเวลา/นอกเวลา */
 export function segmentLabels(level: string): string[] {
-  const [reg, ext] =
-    level === 'ปริญญาโท' || level === 'ปริญญาเอก' ? ['ในเวลา', 'นอกเวลา'] : ['ปกติ', 'พิเศษ'];
-  const base = [
-    `${reg} (นิสิตไทย)`,
-    `${ext} (นิสิตไทย)`,
-    `${reg} (นิสิตต่างชาติ)`,
-    `${ext} (นิสิตต่างชาติ)`,
-  ];
+  const [a, b] = level === 'ปริญญาตรี' ? ['ปกติ', 'พิเศษ'] : ['ในเวลา', 'นอกเวลา'];
 
-  return level === 'ปริญญาตรี' ? [...base, 'ต่อเนื่อง 2 ปี'] : base;
+  return [
+    `นิสิตไทย (${a})`,
+    `นิสิตไทย (${b})`,
+    `นิสิตต่างชาติ (${a})`,
+    `นิสิตต่างชาติ (${b})`,
+    'ต่อเนื่อง 2 ปี',
+  ];
 }
 
 export const defaultYears = (level: string) =>

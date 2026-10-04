@@ -24,6 +24,8 @@
     "@mui/utils": "7.3.11",
     "apexcharts": "3.49.0",
     "classnames": "2.5.1",
+    "html2canvas-pro": "^1.6.7",
+    "jspdf": "^3.0.4",
     "next": "16.1.1",
     "next-auth": "^4.24.13",
     "react": "19.2.1",

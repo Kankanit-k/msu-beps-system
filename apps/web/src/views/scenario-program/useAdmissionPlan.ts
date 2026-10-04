@@ -109,7 +109,11 @@ export const useAdmissionPlan = (
   /** `undefined` = ล้างช่อง กลับไปคิดเป็นส่วนที่เหลืออัตโนมัติ */
   const setThaiRegularPct = useCallback((value: number | undefined) => {
     const clamped =
-      value === undefined ? undefined : Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+      value === undefined
+        ? undefined
+        : Number.isFinite(value)
+          ? Math.min(100, Math.max(0, value))
+          : 0;
 
     setMix((prev) => ({ ...prev, thaiRegularPct: clamped }));
   }, []);

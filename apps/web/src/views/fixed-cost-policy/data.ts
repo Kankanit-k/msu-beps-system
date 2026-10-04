@@ -142,6 +142,15 @@ export interface FacultyScope {
 }
 
 /**
+ * หลักสูตรของคณะพร้อมคีย์แทน `program_version_id`
+ *
+ * RAW ยังไม่มีรหัสหลักสูตรจริง — ใช้ลำดับในชุดข้อมูลเป็นคีย์ ทุกหน้าที่ปันส่วนต้องได้คีย์ชุดเดียวกัน
+ * (W20 กับ W7 ใช้ร่างสัดส่วนรายหลักสูตรร่วมกัน ซึ่งผูกกับคีย์นี้)
+ */
+export const facultyRows = (faculty: string): { p: ProgRow; id: string }[] =>
+  RAW.PROGS.flatMap((p, i) => (p.fac === faculty ? [{ p, id: `pv-${i}` }] : []));
+
+/**
  * ประกอบขอบเขตของนโยบายหนึ่งฉบับ = (คณะ × กลุ่มต้นทุน)
  *
  * ต้นทุนคงที่ที่ "ไม่ได้อยู่ในกลุ่มที่เลือก" ถูกนับเป็น direct ของหลักสูตรนั้น
@@ -150,14 +159,13 @@ export interface FacultyScope {
 export function buildFacultyScope(faculty: string, pool: FixedCostPool): FacultyScope {
   const amountOf = poolAmountOf(pool);
 
-  const rows = RAW.PROGS.map((p, i) => ({ p, i })).filter(({ p }) => p.fac === faculty);
+  const rows = facultyRows(faculty);
 
-  const programs = rows.map(({ p, i }) => {
+  const programs = rows.map(({ p, id }) => {
     const totalFixed = p.tfcProg + p.tfcOffice + p.dep;
 
     return {
-      // RAW ยังไม่มีรหัสหลักสูตรจริง — ใช้ลำดับในชุดข้อมูลเป็นคีย์แทน `program_version_id`
-      programVersionId: `pv-${i}`,
+      programVersionId: id,
       label: p.prog,
       educationLevel: p.lvl,
       // ชุดตัวอย่างมีแต่จำนวนนิสิต ยังไม่มี registration snapshot ให้ถ่วงน้ำหนัก

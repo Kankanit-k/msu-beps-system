@@ -201,3 +201,21 @@ code {
   background-color: rgb(var(--mui-palette-info-mainChannel) / 0.08);
   border: 0;
 }
+
+/* ตอนสั่งพิมพ์/บันทึก PDF (window.print) — ซ่อนเมนูซ้าย แถบบน และ footer ให้เหลือเฉพาะเนื้อหารายงาน */
+@media print {
+  .ts-vertical-nav-root,
+  .ts-vertical-layout-header,
+  .ts-vertical-layout-footer,
+  .mui-fixed,
+  .MuiSnackbar-root {
+    display: none !important;
+  }
+
+  .ts-vertical-layout-content-wrapper,
+  .ts-vertical-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-inline-size: none !important;
+  }
+}

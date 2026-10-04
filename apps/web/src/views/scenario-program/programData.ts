@@ -21,3 +21,6 @@ export const PG_DATA: FacultyProgramGroup[] = (() => {
 })();
 
 export const EDUCATION_LEVELS = ['ปริญญาตรี', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
+
+/** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละปริญญา) — ต่อท้ายชื่อปริญญาให้แยกแยะได้ในดรอปดาวน์ */
+export const progOptionLabel = (p: ProgRow) => `${p.prog} — ${p.deg}`;

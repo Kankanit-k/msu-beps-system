@@ -5,8 +5,7 @@
  * ให้ทุก deployment รวมทั้ง preview การผูกกับ `NODE_ENV` จึงดับทางลัดบน preview ไปด้วย
  * ทั้งที่ preview คือที่ที่ต้องเปิดให้คนรีวิวกดดูโดยไม่มีบัญชี ERP
  *
- * `VERCEL_ENV` แยก `preview` กับ `production` จริง และบนเครื่องตัวเองมีค่าเป็น undefined
- * → ทางลัดใช้ได้ทั้ง dev และ preview แต่ production ปิดตายเสมอไม่ว่าตั้ง env ไว้ยังไง
+ * เปิดให้ใช้บน production ชั่วคราว (ช่วง demo) — ควบคุมด้วย env `AUTH_DISABLED` อย่างเดียว
+ * จะเปิด login กลับ: ตั้ง `AUTH_DISABLED=false` + `NEXT_PUBLIC_AUTH_DISABLED=false` แล้ว redeploy
  */
-export const AUTH_DISABLED =
-  process.env.AUTH_DISABLED === 'true' && process.env.VERCEL_ENV !== 'production';
+export const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true';

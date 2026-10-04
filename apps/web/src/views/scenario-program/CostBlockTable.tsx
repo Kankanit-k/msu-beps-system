@@ -24,219 +24,354 @@ import {
 } from './newProgramCalc';
 
 const fmt = (v: number | null) =>
-  v === null || !Number.isFinite(v) ? '—' : Math.round(v).toLocaleString('th-TH');
+  v === null || !Number.isFinite(v) ? '—' : (Math.round(v) || 0).toLocaleString('th-TH');
+
+const fmtDiff = (v: number) => {
+  const x = Math.round(v);
+
+  return x === 0 ? '0' : `${x > 0 ? '+' : '−'}${Math.abs(x).toLocaleString('th-TH')}`;
+};
 
 interface Line {
   /** ชื่อหมวดซ้ำกันระหว่างต้นทุนคงที่กับผันแปร — ใช้ id แยกเป็น key / aria-label */
   id?: string;
   no?: number;
   label: string;
-  value: number | null;
+  get: (b: CostBlock, r: BlockResult) => number | null;
   unit: string;
   /** 0 = หัวข้อหลัก · 1 = ข้อย่อย · 2 = หมวดรายจ่าย */
   depth: 0 | 1 | 2;
-  /** ตั้งค่าได้เมื่อแก้ไขได้ (โหมดคิดต้นทุนด้วยตัวเอง) */
-  set?: (v: number) => CostBlock;
-  /** ไม่นับในผลรวมของโหมดนี้ (เงินแผ่นดินในโหมดไม่รวม) */
-  excluded?: boolean;
+  /** ตั้งค่าได้เมื่อคอลัมน์แก้ไขได้ (กำหนดเอง) */
+  set?: (b: CostBlock, v: number) => CostBlock;
+  /** เงินแผ่นดิน — ไม่นับในกลุ่มไม่รวมเงินแผ่นดิน */
+  govOnly?: boolean;
   highlight?: boolean;
 }
 
-interface Props {
+export interface CostColumn {
+  key: string;
+  title: string;
   block: CostBlock;
   result: BlockResult;
-  mode: RevenueMode;
-  editable: boolean;
-  onChange: (b: CostBlock) => void;
+  editable?: boolean;
+  /** คอลัมน์ที่ใช้กับกราฟ ตารางสัดส่วน และการบันทึก */
+  active?: boolean;
 }
 
-/** ตารางรายการแบบแท็บ 4 (ลำดับ · รายการ · จำนวน · หน่วย) — แก้ตัวเลขได้ในโหมดคิดต้นทุนด้วยตัวเอง */
-const CostBlockTable = ({ block: b, result: r, mode, editable, onChange }: Props) => {
-  const withGov = mode === 'with_government';
-  const setArr = (k: 'fix' | 'var', i: number) => (v: number) => ({
-    ...b,
-    [k]: b[k].map((x, j) => (j === i ? v : x)),
-  });
+/** กลุ่มคอลัมน์ต่อกรณี (รวม/ไม่รวมเงินแผ่นดิน) — มีคอลัมน์ผลต่างเมื่อมี 2 คอลัมน์ */
+export interface CostGroup {
+  key: string;
+  title: string;
+  mode: RevenueMode;
+  color: 'primary' | 'warning';
+  cols: CostColumn[];
+}
 
-  const lines: Line[] = [
-    {
-      no: 1,
-      label: 'จำนวนนักศึกษาจริง : คน (Q)',
-      value: b.q,
-      unit: 'คน',
-      depth: 0,
-      set: (v) => ({ ...b, q: v }),
-    },
-    {
-      no: 2,
-      label: `รายได้รวม : ${withGov ? 'รวม' : 'ไม่รวม'}เงินแผ่นดิน (Total Revenue : TR)`,
-      value: r.tr,
-      unit: 'บาท',
-      depth: 0,
-    },
-    {
-      label: '2.1 งบประมาณเงินแผ่นดิน',
-      value: b.gov,
-      unit: 'บาท',
-      depth: 1,
-      set: (v) => ({ ...b, gov: v }),
-      excluded: !withGov,
-    },
-    {
-      label: '2.2 งบประมาณเงินรายได้',
-      value: b.income,
-      unit: 'บาท',
-      depth: 1,
-      set: (v) => ({ ...b, income: v }),
-    },
-    { label: 'รายได้ต่อหน่วย : คน (R)', value: r.r, unit: 'บาท/คน', depth: 1 },
-    { no: 3, label: 'ต้นทุนรวม (Total Cost : TC)', value: r.tc, unit: 'บาท', depth: 0 },
-    { label: '3.1 ต้นทุนคงที่รวม (Total Fixed Cost : TFC)', value: r.tfc, unit: 'บาท', depth: 1 },
-    ...FIXED_CATS.map<Line>((c, i) => ({
-      id: `คงที่ ${c}`,
-      label: c,
-      value: b.fix[i] ?? 0,
-      unit: 'บาท',
-      depth: 2,
-      set: setArr('fix', i),
-    })),
-    { label: 'ค่าเสื่อม', value: b.dep, unit: 'บาท', depth: 2, set: (v) => ({ ...b, dep: v }) },
-    { label: '3.2 ต้นทุนผันแปร (Total Variable Cost : TVC)', value: r.tvc, unit: 'บาท', depth: 1 },
-    ...VARIABLE_CATS.map<Line>((c, i) => ({
-      id: `ผันแปร ${c}`,
-      label: c,
-      value: b.var[i] ?? 0,
-      unit: 'บาท',
-      depth: 2,
-      set: setArr('var', i),
-    })),
-    {
-      label: '- ศึกษาทั่วไป',
-      value: b.genEd,
-      unit: 'บาท',
-      depth: 2,
-      set: (v) => ({ ...b, genEd: v }),
-    },
-    {
-      label: `- ค่าธรรมเนียมรายการหลัก (${MAIN_FEE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
-      value: b.mainFee,
-      unit: 'บาท',
-      depth: 2,
-    },
-    {
-      label: `- หักสมทบมหาวิทยาลัย (${UNI_SHARE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
-      value: b.uniShare,
-      unit: 'บาท',
-      depth: 2,
-    },
-    { label: 'ต้นทุนผันแปรต่อหน่วย (AVC)', value: r.avc, unit: 'บาท/คน', depth: 1 },
-    {
-      no: 4,
-      label: 'จำนวนนิสิต ณ จุดคุ้มทุน (Q*)',
-      value: r.qStar,
-      unit: 'คน',
-      depth: 0,
-      highlight: true,
-    },
-    { no: 5, label: 'รายได้ ณ จุดคุ้มทุน', value: r.beRevenue, unit: 'บาท', depth: 0 },
-    {
-      label: 'Diff (นิสิตจริง − จุดคุ้มทุน)',
-      value: r.diff,
-      unit: 'คน',
-      depth: 0,
-      highlight: true,
-    },
-  ];
+interface Props {
+  groups: CostGroup[];
+  onChange: (mode: RevenueMode, b: CostBlock) => void;
+  /** แสดงแถวปรับส่วนแบ่งส่วนกลางคณะ — เฉพาะเมื่อใช้วิธีปันส่วนอื่นที่ไม่ใช่ตามชีต */
+  showAllocAdj?: boolean;
+}
 
-  const negative = r.qStar !== null && r.qStar < 0;
+const ALLOC_ADJ = 'allocAdj';
+
+const setArr = (k: 'fix' | 'var', i: number) => (b: CostBlock, v: number) => ({
+  ...b,
+  [k]: b[k].map((x, j) => (j === i ? v : x)),
+});
+
+const LINES: Line[] = [
+  {
+    no: 1,
+    label: 'จำนวนนักศึกษาจริง : คน (Q)',
+    get: (b) => b.q,
+    unit: 'คน',
+    depth: 0,
+    set: (b, v) => ({ ...b, q: v }),
+  },
+  {
+    no: 2,
+    label: 'รายได้รวม (Total Revenue : TR)',
+    get: (_, r) => r.tr,
+    unit: 'บาท',
+    depth: 0,
+  },
+  {
+    label: '2.1 งบประมาณเงินแผ่นดิน',
+    get: (b) => b.gov,
+    unit: 'บาท',
+    depth: 1,
+    set: (b, v) => ({ ...b, gov: v }),
+    govOnly: true,
+  },
+  {
+    label: '2.2 งบประมาณเงินรายได้',
+    get: (b) => b.income,
+    unit: 'บาท',
+    depth: 1,
+    set: (b, v) => ({ ...b, income: v }),
+  },
+  { label: 'รายได้ต่อหน่วย : คน (R)', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
+  { no: 3, label: 'ต้นทุนรวม (Total Cost : TC)', get: (_, r) => r.tc, unit: 'บาท', depth: 0 },
+  {
+    label: '3.1 ต้นทุนคงที่รวม (Total Fixed Cost : TFC)',
+    get: (_, r) => r.tfc,
+    unit: 'บาท',
+    depth: 1,
+  },
+  ...FIXED_CATS.map<Line>((c, i) => ({
+    id: `คงที่ ${c}`,
+    label: c,
+    get: (b) => b.fix[i] ?? 0,
+    unit: 'บาท',
+    depth: 2,
+    set: setArr('fix', i),
+  })),
+  {
+    label: 'ค่าเสื่อม',
+    get: (b) => b.dep,
+    unit: 'บาท',
+    depth: 2,
+    set: (b, v) => ({ ...b, dep: v }),
+  },
+  {
+    id: ALLOC_ADJ,
+    label: 'ปรับส่วนแบ่งส่วนกลางคณะ (ตามวิธีปันส่วน)',
+    get: (_, r) => r.fixAdj,
+    unit: 'บาท',
+    depth: 2,
+  },
+  {
+    label: '3.2 ต้นทุนผันแปร (Total Variable Cost : TVC)',
+    get: (_, r) => r.tvc,
+    unit: 'บาท',
+    depth: 1,
+  },
+  ...VARIABLE_CATS.map<Line>((c, i) => ({
+    id: `ผันแปร ${c}`,
+    label: c,
+    get: (b) => b.var[i] ?? 0,
+    unit: 'บาท',
+    depth: 2,
+    set: setArr('var', i),
+  })),
+  {
+    label: '- ศึกษาทั่วไป',
+    get: (b) => b.genEd,
+    unit: 'บาท',
+    depth: 2,
+    set: (b, v) => ({ ...b, genEd: v }),
+  },
+  {
+    label: `- ค่าธรรมเนียมรายการหลัก (${MAIN_FEE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
+    get: (b) => b.mainFee,
+    unit: 'บาท',
+    depth: 2,
+  },
+  {
+    label: `- หักสมทบมหาวิทยาลัย (${UNI_SHARE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
+    get: (b) => b.uniShare,
+    unit: 'บาท',
+    depth: 2,
+  },
+  { label: 'ต้นทุนผันแปรต่อหน่วย (AVC)', get: (_, r) => r.avc, unit: 'บาท/คน', depth: 1 },
+  {
+    no: 4,
+    label: 'จำนวนนิสิต ณ จุดคุ้มทุน (Q*)',
+    get: (_, r) => r.qStar,
+    unit: 'คน',
+    depth: 0,
+    highlight: true,
+  },
+  { no: 5, label: 'รายได้ ณ จุดคุ้มทุน', get: (_, r) => r.beRevenue, unit: 'บาท', depth: 0 },
+  {
+    label: 'Diff (นิสิตจริง − จุดคุ้มทุน)',
+    get: (_, r) => r.diff,
+    unit: 'คน',
+    depth: 0,
+    highlight: true,
+  },
+];
+
+/**
+ * ตารางรายการแบบแท็บ 4 (ลำดับ · รายการ · จำนวน · หน่วย) — แยกกลุ่มกรณีรวม/ไม่รวมเงินแผ่นดิน
+ * แต่ละกลุ่ม: อ้างอิงหลักสูตรเดิม | กำหนดเอง | ผลต่าง
+ */
+const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
+  const lines = showAllocAdj ? LINES : LINES.filter((l) => l.id !== ALLOC_ADJ);
+  const nCols = groups.reduce((a, g) => a + g.cols.length, 0);
+  const valueWidth = { xs: 120, sm: nCols > 2 ? 140 : 180 };
+  const anyNegative = groups.some((g) =>
+    g.cols.some((c) => c.result.qStar !== null && c.result.qStar < 0),
+  );
+  const groupStart = { borderLeft: 2, borderLeftColor: 'divider' };
+
+  const colorOf = (l: Line, v: number | null, negative: boolean, excluded: boolean) =>
+    l.highlight && v !== null
+      ? l.label.startsWith('Diff')
+        ? v >= 0 && !negative
+          ? 'success.main'
+          : 'error.main'
+        : negative
+          ? 'warning.main'
+          : 'primary.main'
+      : excluded
+        ? 'text.disabled'
+        : undefined;
 
   return (
     <TableContainer>
-      <Table size="small">
+      <Table size="small" sx={{ minWidth: nCols > 2 ? 1100 : nCols > 1 ? 720 : undefined }}>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: 48 }}>ลำดับ</TableCell>
-            <TableCell>รายการ</TableCell>
-            <TableCell align="right" sx={{ width: { xs: 140, sm: 200 } }}>
-              จำนวน
+            <TableCell rowSpan={2} sx={{ width: 48 }}>
+              ลำดับ
             </TableCell>
-            <TableCell sx={{ width: 64 }}>หน่วย</TableCell>
+            <TableCell rowSpan={2}>รายการ</TableCell>
+            {groups.map((g) => (
+              <TableCell
+                key={g.key}
+                align="center"
+                colSpan={g.cols.length + (g.cols.length === 2 ? 1 : 0)}
+                sx={{
+                  ...groupStart,
+                  fontWeight: 800,
+                  color: `${g.color}.main`,
+                  borderBottom: 2,
+                  borderBottomColor: `${g.color}.main`,
+                }}
+              >
+                {g.title}
+              </TableCell>
+            ))}
+            <TableCell rowSpan={2} sx={{ width: 64 }}>
+              หน่วย
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            {groups.map((g) => [
+              ...g.cols.map((c, ci) => (
+                <TableCell
+                  key={`${g.key}-${c.key}`}
+                  align="right"
+                  sx={{
+                    ...(ci === 0 ? groupStart : {}),
+                    width: valueWidth,
+                    fontWeight: 700,
+                    bgcolor: c.active ? 'action.selected' : undefined,
+                  }}
+                >
+                  {c.title}
+                  {c.active && (
+                    <Chip
+                      size="small"
+                      color="primary"
+                      label="ใช้คำนวณ"
+                      sx={{ ml: 1, height: 18, fontSize: 10 }}
+                    />
+                  )}
+                </TableCell>
+              )),
+              g.cols.length === 2 && (
+                <TableCell key={`${g.key}-diff`} align="right" sx={{ width: { xs: 100, sm: 120 } }}>
+                  ผลต่าง
+                </TableCell>
+              ),
+            ])}
           </TableRow>
         </TableHead>
         <TableBody>
-          {lines.map((l) => {
-            const isDiff = l.label.startsWith('Diff');
-            const color =
-              l.highlight && l.value !== null
-                ? isDiff
-                  ? l.value >= 0 && !negative
-                    ? 'success.main'
-                    : 'error.main'
-                  : negative
-                    ? 'warning.main'
-                    : 'primary.main'
-                : l.excluded
-                  ? 'text.disabled'
-                  : undefined;
+          {lines.map((l) => (
+            <TableRow
+              key={l.id ?? l.label}
+              sx={l.depth === 0 ? { bgcolor: 'action.hover' } : undefined}
+            >
+              <TableCell sx={{ fontWeight: 700 }}>{l.no ?? ''}</TableCell>
+              <TableCell sx={{ pl: 2 + l.depth * 2, fontWeight: l.depth < 2 ? 700 : 400 }}>
+                {l.label}
+                {l.highlight && !l.label.startsWith('Diff') && anyNegative && (
+                  <Chip
+                    size="small"
+                    color="warning"
+                    label="R ≤ AVC — ยิ่งรับนิสิตยิ่งขาดทุน"
+                    sx={{ ml: 1, height: 18, fontSize: 10 }}
+                  />
+                )}
+              </TableCell>
+              {groups.map((g) => {
+                const excluded = !!l.govOnly && g.mode === 'without_government';
+                const values = g.cols.map((c) => l.get(c.block, c.result));
+                const d =
+                  g.cols.length === 2 && values[0] !== null && values[1] !== null
+                    ? values[1]! - values[0]!
+                    : null;
 
-            return (
-              <TableRow
-                key={l.id ?? l.label}
-                sx={l.depth === 0 ? { bgcolor: 'action.hover' } : undefined}
-              >
-                <TableCell sx={{ fontWeight: 700 }}>{l.no ?? ''}</TableCell>
-                <TableCell
-                  sx={{
-                    pl: 2 + l.depth * 2,
-                    fontWeight: l.depth < 2 ? 700 : 400,
-                    color: l.excluded ? 'text.disabled' : undefined,
-                  }}
-                >
-                  {l.label}
-                  {l.excluded && (
-                    <Chip
-                      size="small"
-                      label="ไม่นับในโหมดนี้"
-                      sx={{ ml: 1, height: 18, fontSize: 10 }}
-                    />
-                  )}
-                  {l.highlight && !isDiff && negative && (
-                    <Chip
-                      size="small"
-                      color="warning"
-                      label="R ≤ AVC — ยิ่งรับนิสิตยิ่งขาดทุน"
-                      sx={{ ml: 1, height: 18, fontSize: 10 }}
-                    />
-                  )}
-                </TableCell>
-                <TableCell align="right" sx={{ py: editable && l.set ? 0.5 : undefined }}>
-                  {editable && l.set ? (
-                    <NumberTextField
-                      size="small"
-                      value={Math.round(l.value ?? 0)}
-                      onChange={(v) => onChange(l.set!(v))}
-                      slotProps={{
-                        htmlInput: { style: { textAlign: 'right' }, 'aria-label': l.id ?? l.label },
-                      }}
-                      sx={{ width: '100%' }}
-                    />
-                  ) : (
-                    <Box
-                      component="span"
+                return [
+                  ...g.cols.map((c, ci) => {
+                    const v = values[ci]!;
+                    const negative = c.result.qStar !== null && c.result.qStar < 0;
+                    const input = c.editable && l.set && !excluded;
+
+                    return (
+                      <TableCell
+                        key={`${g.key}-${c.key}`}
+                        align="right"
+                        title={excluded ? 'ไม่นับในกรณีไม่รวมเงินแผ่นดิน' : undefined}
+                        sx={{
+                          ...(ci === 0 ? groupStart : {}),
+                          py: input ? 0.5 : undefined,
+                          bgcolor: c.active && l.depth !== 0 ? 'action.selected' : undefined,
+                        }}
+                      >
+                        {input ? (
+                          <NumberTextField
+                            size="small"
+                            value={Math.round(v ?? 0)}
+                            onChange={(x) => onChange(g.mode, l.set!(c.block, x))}
+                            slotProps={{
+                              htmlInput: {
+                                style: { textAlign: 'right' },
+                                'aria-label': `${g.title} ${c.title} ${l.id ?? l.label}`,
+                              },
+                            }}
+                            sx={{ width: '100%' }}
+                          />
+                        ) : (
+                          <Box
+                            component="span"
+                            sx={{
+                              fontWeight: l.depth < 2 ? 700 : 400,
+                              color: colorOf(l, v, negative, excluded),
+                              textDecoration: excluded ? 'line-through' : undefined,
+                            }}
+                          >
+                            {fmt(v)}
+                          </Box>
+                        )}
+                      </TableCell>
+                    );
+                  }),
+                  g.cols.length === 2 && (
+                    <TableCell
+                      key={`${g.key}-diff`}
+                      align="right"
                       sx={{
                         fontWeight: l.depth < 2 ? 700 : 400,
-                        color,
-                        textDecoration: l.excluded ? 'line-through' : undefined,
+                        color:
+                          d === null || Math.round(d) === 0 || excluded
+                            ? 'text.disabled'
+                            : 'info.main',
                       }}
                     >
-                      {fmt(l.value)}
-                    </Box>
-                  )}
-                </TableCell>
-                <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>{l.unit}</TableCell>
-              </TableRow>
-            );
-          })}
+                      {d === null ? '—' : fmtDiff(d)}
+                    </TableCell>
+                  ),
+                ];
+              })}
+              <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>{l.unit}</TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </TableContainer>

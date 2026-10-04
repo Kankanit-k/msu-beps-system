@@ -50,7 +50,13 @@ import { computeBreakEven, fmtInt, fmtMillion } from '@views/breakeven/calc';
 
 import CostComposition from './CostComposition';
 import MethodCards from './MethodCards';
-import PercentTable, { parsePct, pctSum, roundPct } from './PercentTable';
+import PercentTable, {
+  fillRemainderPct,
+  parsePct,
+  pctComplete,
+  pctSum,
+  roundPct,
+} from './PercentTable';
 import type { Bucket } from './PercentTable';
 import SimulationCompare from './SimulationCompare';
 import { buildFacultyScope, FACULTIES, POOL_OPTIONS, poolOption } from './data';
@@ -187,19 +193,13 @@ const FixedCostPolicyView = () => {
 
   const sum = pctSum(buckets, pct);
 
-  // ทุกบรรทัดต้องอยู่ในช่วง 0–100 ด้วย ไม่ใช่แค่ผลรวมได้ 100 — `150 / −50` รวมได้ 100 เหมือนกัน
-  // แต่ zod (`pct: min(0).max(100)`) จะตีกลับทั้งคำขอเป็น 422 ที่อธิบายให้ผู้ใช้ไม่ได้
-  const pctComplete =
-    roundPct(100 - sum) === 0 &&
-    buckets.every((b) => {
-      const v = parsePct(pct[b.key] ?? '');
-
-      return v !== null && v >= 0 && v <= 100;
-    });
+  // ทุกบรรทัดต้องอยู่ในช่วง 0–100 ด้วย ไม่ใช่แค่ผลรวมได้ 100 — ไม่งั้น zod (`pct: min(0).max(100)`)
+  // จะตีกลับทั้งคำขอเป็น 422 ที่อธิบายให้ผู้ใช้ไม่ได้
+  const pctReady = pctComplete(buckets, pct);
   const isCustom = method === 'CUSTOM_PCT';
 
   const policy: FixedCostPolicy | undefined = useMemo(() => {
-    if (!isCustom || !pctComplete) return undefined;
+    if (!isCustom || !pctReady) return undefined;
 
     return {
       method: 'CUSTOM_PCT',
@@ -210,7 +210,7 @@ const FixedCostPolicyView = () => {
         pct: roundPct(parsePct(pct[b.key] ?? '') ?? 0),
       })),
     };
-  }, [isCustom, pctComplete, bucketLevel, subMethod, buckets, pct]);
+  }, [isCustom, pctReady, bucketLevel, subMethod, buckets, pct]);
 
   // ── จำลอง ─────────────────────────────────────────────────────────
   /**
@@ -284,7 +284,7 @@ const FixedCostPolicyView = () => {
   const stepDisabled = (i: number) => i === 1 && !isCustom;
 
   const blockedReason = (target: number): string | null => {
-    if (target >= 2 && isCustom && !pctComplete) {
+    if (target >= 2 && isCustom && !pctReady) {
       return `กรอกสัดส่วนให้รวมได้ 100% พอดีก่อน จึงจะจำลองผลได้ (ตอนนี้ ${sum}%)`;
     }
 
@@ -316,35 +316,11 @@ const FixedCostPolicyView = () => {
   const back = () => setActiveStep(activeStep === 2 && !isCustom ? 0 : Math.max(0, activeStep - 1));
 
   const fillRemainder = () => {
-    const blanks = buckets.filter((b) => (pct[b.key] ?? '').trim() === '');
-    const targets = blanks.length > 0 ? blanks : buckets;
+    const res = fillRemainderPct(buckets, pct);
 
-    if (targets.length === 0) return;
-
-    const used = blanks.length > 0 ? pctSum(buckets, pct) : 0;
-
-    if (used > 100) {
-      // เฉลี่ยส่วนที่เหลือติดลบไม่ได้ — ปล่อยไปจะได้สัดส่วนติดลบที่รวมแล้วเป็น 100 พอดี
-      // (จอเขียว) แต่ API ตีกลับเป็น 422 ซึ่งผู้ใช้อ่านไม่ออกว่าผิดตรงไหน
-      setToast(
-        `ผลรวมที่กรอกไว้เกิน 100% แล้ว (${sum}%) — ลดค่าที่กรอกก่อนจึงจะเฉลี่ยส่วนที่เหลือได้`,
-      );
-
-      return;
-    }
-
-    const share = roundPct((100 - used) / targets.length);
-    const next: Record<string, string> = blanks.length > 0 ? { ...pct } : {};
-
-    targets.forEach((b, i) => {
-      // เศษที่ปัดทิ้งไปกองที่บรรทัดสุดท้าย เพื่อให้ผลรวมเป็น 100 พอดีตามกติกา V1
-      const value =
-        i === targets.length - 1 ? roundPct(100 - used - share * (targets.length - 1)) : share;
-
-      next[b.key] = String(value);
-    });
-
-    setPct(next);
+    if (!res) return;
+    if ('error' in res) setToast(res.error);
+    else setPct(res.pct);
   };
 
   const doClearDraft = () => {

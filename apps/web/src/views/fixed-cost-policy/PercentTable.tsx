@@ -34,6 +34,8 @@ export interface Bucket {
   /** จำนวนหลักสูตรใน bucket นี้ — bucket ที่ว่างแต่ได้ % > 0 ทำให้เสนอไม่ได้ (V3) */
   programCount: number;
   q: number;
+  /** กลุ่มที่มีหลักสูตรใหม่ (W7) — ช่องว่างไม่นับเป็น 0 ต้องกรอกเอง */
+  hasNew?: boolean;
 }
 
 /** ผลรวมต้องเป็น 100 พอดี — ปัดที่ทศนิยม 4 ตำแหน่งเท่ากับ numeric(9,4) ของ DB */
@@ -58,6 +60,51 @@ export const parsePct = (raw: string): number | null => {
  */
 export const pctSum = (buckets: Bucket[], pct: Record<string, string>): number =>
   roundPct(buckets.reduce((s, b) => s + roundPct(parsePct(pct[b.key] ?? '') ?? 0), 0));
+
+/** ทุกบรรทัดอยู่ในช่วง 0–100 และรวมกันได้ 100 พอดี — `150 / −50` รวมได้ 100 เหมือนกันแต่ใช้ไม่ได้ */
+export const pctComplete = (buckets: Bucket[], pct: Record<string, string>): boolean =>
+  roundPct(100 - pctSum(buckets, pct)) === 0 &&
+  buckets.every((b) => {
+    const v = parsePct(pct[b.key] ?? '');
+
+    return v !== null && v >= 0 && v <= 100;
+  });
+
+/**
+ * "เฉลี่ยส่วนที่เหลือ" — เติมกลุ่มที่ยังว่างให้รวมครบ 100% (ถ้ากรอกครบทุกกลุ่มแล้ว เฉลี่ยใหม่ทั้งหมด)
+ * เศษที่ปัดทิ้งไปกองที่บรรทัดสุดท้าย เพื่อให้ผลรวมเป็น 100 พอดีตามกติกา V1
+ *
+ * @returns ค่าใหม่ หรือข้อความบอกเหตุผลเมื่อเฉลี่ยไม่ได้
+ */
+export function fillRemainderPct(
+  buckets: Bucket[],
+  pct: Record<string, string>,
+): { pct: Record<string, string> } | { error: string } | null {
+  const blanks = buckets.filter((b) => (pct[b.key] ?? '').trim() === '');
+  const targets = blanks.length > 0 ? blanks : buckets;
+
+  if (targets.length === 0) return null;
+
+  const used = blanks.length > 0 ? pctSum(buckets, pct) : 0;
+
+  if (used > 100) {
+    // เฉลี่ยส่วนที่เหลือติดลบไม่ได้ — ปล่อยไปจะได้สัดส่วนติดลบที่รวมแล้วเป็น 100 พอดี
+    return {
+      error: `ผลรวมที่กรอกไว้เกิน 100% แล้ว (${used}%) — ลดค่าที่กรอกก่อนจึงจะเฉลี่ยส่วนที่เหลือได้`,
+    };
+  }
+
+  const share = roundPct((100 - used) / targets.length);
+  const next: Record<string, string> = blanks.length > 0 ? { ...pct } : {};
+
+  targets.forEach((b, i) => {
+    next[b.key] = String(
+      i === targets.length - 1 ? roundPct(100 - used - share * (targets.length - 1)) : share,
+    );
+  });
+
+  return { pct: next };
+}
 
 type Props = {
   buckets: Bucket[];
@@ -102,6 +149,7 @@ const PercentTable = ({
   const rowError = (b: Bucket): string | null => {
     const v = parsePct(pct[b.key] ?? '');
 
+    if (b.hasNew && (pct[b.key] ?? '').trim() === '') return 'ต้องกรอก % ของหลักสูตรใหม่ (0 ได้)';
     if (v === null) return 'กรอกเป็นตัวเลขเท่านั้น';
     if (v < 0) return 'ติดลบไม่ได้';
     if (v > 100) return 'เกิน 100% ไม่ได้';
@@ -241,7 +289,7 @@ const PercentTable = ({
               </TableHead>
               <TableBody>
                 {rows.map((b) => {
-                  const err = touched[b.key] ? rowError(b) : null;
+                  const err = touched[b.key] || b.hasNew ? rowError(b) : null;
 
                   return (
                     <TableRow key={b.key} hover>

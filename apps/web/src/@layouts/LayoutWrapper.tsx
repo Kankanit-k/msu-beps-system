@@ -18,11 +18,8 @@ import { useSettings } from '@core/hooks/useSettings';
 import useLayoutInit from '@core/hooks/useLayoutInit';
 import { useAuthUser } from '@/hooks/AuthHooks';
 
-// Local-dev escape hatch, mirrors AUTH_DISABLED ใน configs/authBypass (ฝั่ง server)
-// ฝั่ง client อ่าน VERCEL_ENV ตรงๆ ไม่ได้ จึงใช้ NEXT_PUBLIC_VERCEL_ENV ที่ Vercel ใส่ให้เอง
-const AUTH_DISABLED =
-  process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true' &&
-  process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production';
+// Login escape hatch, mirrors AUTH_DISABLED ใน configs/authBypass (ฝั่ง server)
+const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
 
 type LayoutWrapperProps = {
   systemMode: SystemMode;

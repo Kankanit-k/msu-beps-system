@@ -19,7 +19,9 @@ import type { RevenueMode } from '@beps/calc-engine';
 
 import NumberTextField from '@components/NumberTextField';
 
-import { mixResult, type Segment, type SegmentResult } from './newProgramCalc';
+import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
+
+import { mixResult, type MixResult, type Segment, type SegmentResult } from './newProgramCalc';
 
 const fmt = (v: number) => (Number.isFinite(v) ? Math.round(v).toLocaleString('th-TH') : '—');
 const pct = (v: number) => `${(v * 100).toLocaleString('th-TH', { maximumFractionDigits: 1 })}%`;
@@ -28,6 +30,9 @@ type InputKey = 'n' | 'fee' | 'gov' | 'semesters' | 'years';
 
 interface RowDef {
   label: string;
+  /** กลุ่มแถวผลลัพธ์ต่อกรณี — แถวหัวข้อ ไม่มีค่า */
+  section?: RevenueMode;
+  mode?: RevenueMode;
   input?: InputKey;
   out?: (r: SegmentResult) => string;
   /** ค่าคอลัมน์ "รวม" */
@@ -36,41 +41,84 @@ interface RowDef {
   disabled?: boolean;
 }
 
+export type ModeCosts = Record<RevenueMode, { tfc: number; avc: number }>;
+
+const MODES: RevenueMode[] = ['with_government', 'without_government'];
+
 interface Props {
   segs: Segment[];
-  onChange: (segs: Segment[]) => void;
-  tfc: number;
-  avc: number;
-  mode: RevenueMode;
+  /** ไม่ส่ง = แสดงอย่างเดียว (รายงานพิมพ์) */
+  onChange?: (segs: Segment[]) => void;
+  /** ต้นทุนคงที่/AVC ของแต่ละกรณี — แสดงผลรวม/ไม่รวมเงินแผ่นดินคู่กัน */
+  costs: ModeCosts;
 }
 
 /** การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน (แท็บ 4 คอลัมน์ X:AD) */
-const StudentMixTable = ({ segs, onChange, tfc, avc, mode }: Props) => {
-  const isNarrow = useMediaQuery((t: Theme) => t.breakpoints.down('md'));
-  const mix = mixResult(segs, tfc, avc, mode);
-  const withGov = mode === 'with_government';
+const StudentMixTable = ({ segs, onChange, costs }: Props) => {
+  const narrowScreen = useMediaQuery((t: Theme) => t.breakpoints.down('md'));
+  const isNarrow = narrowScreen && !!onChange;
+  const mixes = Object.fromEntries(
+    MODES.map((m) => [m, mixResult(segs, costs[m].tfc, costs[m].avc, m)]),
+  ) as Record<RevenueMode, MixResult>;
+  const base = mixes.with_government;
   const set = (i: number, k: InputKey, v: number) =>
-    onChange(segs.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
+    onChange?.(segs.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
+
+  const outRows = (m: RevenueMode): RowDef[] => {
+    const mix = mixes[m];
+
+    return [
+      { label: REVENUE_MODE_LABEL[m], section: m },
+      { label: 'รายรับตลอดหลักสูตร ต่อคน', mode: m, out: (r) => fmt(r.perHeadProgram) },
+      {
+        label: 'รายรับต่อปี',
+        mode: m,
+        out: (r) => fmt(r.revenue),
+        total: fmt(mix.total.revenue),
+        bold: true,
+      },
+      {
+        label: 'ต้นทุนคงที่ (ปันตามสัดส่วนนิสิต)',
+        mode: m,
+        out: (r) => fmt(r.tfc),
+        total: fmt(mix.total.tfc),
+      },
+      {
+        label: 'ต้นทุนผันแปร (AVC × จำนวนนิสิต)',
+        mode: m,
+        out: (r) => fmt(r.tvc),
+        total: fmt(mix.total.tvc),
+      },
+      {
+        label: 'กำไร (ขาดทุน)',
+        mode: m,
+        out: (r) => fmt(r.profit),
+        total: fmt(mix.total.profit),
+        bold: true,
+      },
+    ];
+  };
 
   const rows: RowDef[] = [
-    { label: 'จำนวนนิสิต (คน)', input: 'n', total: fmt(mix.total.n), bold: true },
-    { label: 'สัดส่วนจำนวนนิสิต', out: (r) => pct(r.share), total: pct(mix.total.share) },
+    { label: 'จำนวนนิสิต (คน)', input: 'n', total: fmt(base.total.n), bold: true },
+    {
+      label: 'สัดส่วนจำนวนนิสิต',
+      mode: 'with_government',
+      out: (r) => pct(r.share),
+      total: pct(base.total.share),
+    },
     { label: 'ค่าธรรมเนียม (บาท/ภาค/คน)', input: 'fee' },
-    { label: 'เงินแผ่นดิน (บาท/ภาค/คน)', input: 'gov', disabled: !withGov },
+    { label: 'เงินแผ่นดิน (บาท/ภาค/คน)', input: 'gov' },
     { label: 'จำนวนภาคเรียนต่อปี', input: 'semesters' },
     { label: 'จำนวนปีการศึกษา', input: 'years' },
-    { label: 'รายรับตลอดหลักสูตร ต่อคน', out: (r) => fmt(r.perHeadProgram) },
-    { label: 'รายรับต่อปี', out: (r) => fmt(r.revenue), total: fmt(mix.total.revenue), bold: true },
-    {
-      label: 'ต้นทุนคงที่ (ปันตามสัดส่วนนิสิต)',
-      out: (r) => fmt(r.tfc),
-      total: fmt(mix.total.tfc),
-    },
-    { label: 'ต้นทุนผันแปร (AVC × จำนวนนิสิต)', out: (r) => fmt(r.tvc), total: fmt(mix.total.tvc) },
-    { label: 'กำไร (ขาดทุน)', out: (r) => fmt(r.profit), total: fmt(mix.total.profit), bold: true },
+    ...MODES.flatMap(outRows),
   ];
+  const rowKey = (row: RowDef) => `${row.mode ?? row.section ?? ''}:${row.label}`;
+  const sectionColor = (m: RevenueMode) =>
+    m === 'with_government' ? 'primary.main' : 'warning.main';
 
   const cell = (row: RowDef, i: number): ReactNode => {
+    if (row.input && !onChange) return fmt(segs[i]![row.input]);
     if (row.input) {
       return (
         <NumberTextField
@@ -89,7 +137,7 @@ const StudentMixTable = ({ segs, onChange, tfc, avc, mode }: Props) => {
       );
     }
 
-    const r = mix.rows[i]!;
+    const r = mixes[row.mode!].rows[i]!;
     const text = row.out!(r);
     const isProfit = row.label.startsWith('กำไร');
 
@@ -106,32 +154,52 @@ const StudentMixTable = ({ segs, onChange, tfc, avc, mode }: Props) => {
     );
   };
 
-  const summary = (
-    <Box
-      sx={{
-        mt: 2,
-        p: 2,
-        borderRadius: 1,
-        bgcolor:
-          mix.total.profit >= 0
-            ? 'var(--mui-palette-success-lightOpacity)'
-            : 'var(--mui-palette-error-lightOpacity)',
-      }}
-    >
-      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-        ตามสัดส่วนนี้: นิสิต {fmt(mix.total.n)} คน · รายรับเฉลี่ย{' '}
-        {fmt(mix.total.n ? mix.total.revenue / mix.total.n : 0)} บ./คน/ปี · จุดคุ้มทุน{' '}
-        {mix.qStar === null ? '—' : `${fmt(mix.qStar)} คน`} ·{' '}
-        <Box component="span" sx={{ color: mix.total.profit >= 0 ? 'success.main' : 'error.main' }}>
-          {mix.total.profit >= 0 ? 'กำไร' : 'ขาดทุน'} {fmt(Math.abs(mix.total.profit))} บาท/ปี
+  const summaryBox = (m: RevenueMode) => {
+    const mix = mixes[m];
+    const ok = mix.total.profit >= 0;
+
+    return (
+      <Grid key={m} size={{ xs: 12, md: 6 }}>
+        <Box
+          sx={{
+            p: 2,
+            height: '100%',
+            borderRadius: 1,
+            borderLeft: 4,
+            borderColor: sectionColor(m),
+            bgcolor: ok
+              ? 'var(--mui-palette-success-lightOpacity)'
+              : 'var(--mui-palette-error-lightOpacity)',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ color: sectionColor(m), fontWeight: 700 }}>
+            {REVENUE_MODE_LABEL[m]}
+          </Typography>
+          <Typography variant="body2">
+            จุดคุ้มทุน <b>{mix.qStar === null ? '—' : `${fmt(mix.qStar)} คน`}</b> · รายรับเฉลี่ย{' '}
+            {fmt(mix.total.n ? mix.total.revenue / mix.total.n : 0)} บ./คน/ปี
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, color: ok ? 'success.main' : 'error.main' }}
+          >
+            นิสิต {fmt(mix.total.n)} คน → {ok ? 'กำไร' : 'ขาดทุน'} {fmt(Math.abs(mix.total.profit))}{' '}
+            บาท/ปี
+          </Typography>
+          {mix.qStar !== null && mix.qStar < 0 && (
+            <Typography variant="caption" color="warning.main">
+              รายรับเฉลี่ยต่อคนต่ำกว่าต้นทุนผันแปรต่อคน (AVC) — เพิ่มนิสิตเท่าไรก็ไม่คุ้มทุน
+            </Typography>
+          )}
         </Box>
-      </Typography>
-      {mix.qStar !== null && mix.qStar < 0 && (
-        <Typography variant="caption" color="warning.main">
-          รายรับเฉลี่ยต่อคนต่ำกว่าต้นทุนผันแปรต่อคน (AVC) — เพิ่มนิสิตเท่าไรก็ไม่คุ้มทุน
-        </Typography>
-      )}
-    </Box>
+      </Grid>
+    );
+  };
+
+  const summary = (
+    <Grid container spacing={2} sx={{ mt: 2 }}>
+      {MODES.map(summaryBox)}
+    </Grid>
   );
 
   if (isNarrow) {
@@ -144,23 +212,38 @@ const StudentMixTable = ({ segs, onChange, tfc, avc, mode }: Props) => {
                 <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1 }}>
                   {s.label}
                 </Typography>
-                {rows.map((row) => (
-                  <Box
-                    key={row.label}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 2,
-                      py: 0.5,
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
+                {rows.map((row) =>
+                  row.section ? (
+                    <Typography
+                      key={rowKey(row)}
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        mt: 1.5,
+                        fontWeight: 700,
+                        color: sectionColor(row.section),
+                      }}
+                    >
                       {row.label}
                     </Typography>
-                    <Box sx={{ width: 140, textAlign: 'right' }}>{cell(row, i)}</Box>
-                  </Box>
-                ))}
+                  ) : (
+                    <Box
+                      key={rowKey(row)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 2,
+                        py: 0.5,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {row.label}
+                      </Typography>
+                      <Box sx={{ width: 140, textAlign: 'right' }}>{cell(row, i)}</Box>
+                    </Box>
+                  ),
+                )}
               </Box>
             </Grid>
           ))}
@@ -186,21 +269,36 @@ const StudentMixTable = ({ segs, onChange, tfc, avc, mode }: Props) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.label}>
-                <TableCell sx={{ fontWeight: row.bold ? 700 : 400, whiteSpace: 'nowrap' }}>
-                  {row.label}
-                </TableCell>
-                {segs.map((s, i) => (
-                  <TableCell key={s.label} align="right" sx={{ py: row.input ? 0.5 : undefined }}>
-                    {cell(row, i)}
+            {rows.map((row) =>
+              row.section ? (
+                <TableRow key={rowKey(row)}>
+                  <TableCell
+                    colSpan={segs.length + 2}
+                    sx={{
+                      fontWeight: 700,
+                      color: sectionColor(row.section),
+                      bgcolor: 'action.hover',
+                    }}
+                  >
+                    {row.label}
                   </TableCell>
-                ))}
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  {row.total ?? ''}
-                </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ) : (
+                <TableRow key={rowKey(row)}>
+                  <TableCell sx={{ fontWeight: row.bold ? 700 : 400, whiteSpace: 'nowrap' }}>
+                    {row.label}
+                  </TableCell>
+                  {segs.map((s, i) => (
+                    <TableCell key={s.label} align="right" sx={{ py: row.input ? 0.5 : undefined }}>
+                      {cell(row, i)}
+                    </TableCell>
+                  ))}
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    {row.total ?? ''}
+                  </TableCell>
+                </TableRow>
+              ),
+            )}
           </TableBody>
         </Table>
       </TableContainer>

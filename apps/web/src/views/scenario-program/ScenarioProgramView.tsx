@@ -1,74 +1,99 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import Autocomplete from '@mui/material/Autocomplete';
-import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Snackbar from '@mui/material/Snackbar';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
-import { DotTitle } from '@components/ChartBits';
 import DataCaveatNotes from '@components/DataCaveatNotes';
-import NumberTextField from '@components/NumberTextField';
-import PageHeaderBar from '@components/PageHeaderBar';
+import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
-import { computeBreakEven, REVENUE_MODE_LABEL, REVENUE_MODE_NOTE } from '@views/breakeven/calc';
-import { feesForProgram, feeVariant, fmtFee } from '@views/tuition/feeData';
+import { computeBreakEven, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
+import { feesForProgram } from '@views/tuition/feeData';
+import { facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
+import { loadDraft as loadPolicyDraft } from '@views/fixed-cost-policy/draft';
 
-import BreakEvenChart from './BreakEvenChart';
 import ProgramReport from './ProgramReport';
-import AdmissionBreakdownCard from './AdmissionBreakdownCard';
-import CostBlockTable from './CostBlockTable';
-import StudentMixTable from './StudentMixTable';
+import ReportPreviewDialog from './ReportPreviewDialog';
+import { type CostGroup } from './CostBlockTable';
+import FixedCostAllocationCard, { METHOD_HINT } from './FixedCostAllocationCard';
+import {
+  ALLOC_METHOD_LABEL,
+  allocateFaculty,
+  allocBuckets,
+  DEFAULT_ALLOC_CHOICE,
+  NEW_PROGRAM_ID,
+  policyOf,
+  shareOf,
+  type AllocChoice,
+  type FacultyScenario,
+} from './facultyAllocation';
+import { type ModeCosts } from './StudentMixTable';
+import CostStep from './steps/CostStep';
+import HistoryTable from './steps/HistoryTable';
+import SaveSuccessDialog from './steps/SaveSuccessDialog';
+import MixStep, { type CostBasis } from './steps/MixStep';
+import ProgramStep, { type Purpose } from './steps/ProgramStep';
+import SummaryStep from './steps/SummaryStep';
+import { STEPS, WizardNav, WizardStepper } from './steps/WizardStepper';
 import {
   blockFromProgram,
   blockResult,
   defaultYears,
+  embeddedShareOf,
   emptyBlock,
   segmentLabels,
   withPerHeadCharges,
   type CostBlock,
   type Segment,
 } from './newProgramCalc';
-import { PG_DATA, EDUCATION_LEVELS } from './programData';
+import { PG_DATA, EDUCATION_LEVELS, progOptionLabel } from './programData';
 import { loadHistory, saveHistory } from './historyStore';
 import type { ProgramHistoryEntry } from './types';
 import type { ProgRow } from '@/data/mockup';
 
-/** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละปริญญา) — ต่อท้ายชื่อปริญญาให้แยกแยะได้ในดรอปดาวน์ */
-const progOptionLabel = (p: ProgRow) => `${p.prog} — ${p.deg}`;
+const PURPOSE_TEXT: Record<
+  Purpose,
+  { heading: string; refLabel: string; refCol: string; customCol: string; tableHint: string }
+> = {
+  improve: {
+    heading: '🎓 คำนวณจุดคุ้มทุน — ปรับปรุงหลักสูตรเดิม',
+    refLabel: 'หลักสูตรที่จะปรับปรุง',
+    refCol: 'ปัจจุบัน',
+    customCol: 'หลังปรับปรุง',
+    tableHint:
+      'แก้ตัวเลขในคอลัมน์ "หลังปรับปรุง" ของแต่ละกรณีได้อิสระ (ตั้งต้นจากตัวเลขปัจจุบันของหลักสูตร) · ผลต่าง = หลังปรับปรุง − ปัจจุบัน',
+  },
+  new: {
+    heading: '🎓 คำนวณจุดคุ้มทุน — เปิดหลักสูตรใหม่',
+    refLabel: 'หลักสูตรอ้างอิง (ไม่บังคับ)',
+    refCol: 'หลักสูตรอ้างอิง',
+    customCol: 'หลักสูตรใหม่',
+    tableHint:
+      'แก้ตัวเลขในคอลัมน์ "หลักสูตรใหม่" ของแต่ละกรณีได้อิสระ (ตั้งต้นจากหลักสูตรอ้างอิง) · ผลต่าง = หลักสูตรใหม่ − อ้างอิง',
+  },
+};
+/** ต้นทุนกำหนดเองแยกตามกรณี — รวม/ไม่รวมเงินแผ่นดินปรับได้อิสระจากกัน */
+type ManualBlocks = Record<RevenueMode, CostBlock>;
 
-const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
-const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
-
-type CostBasis = 'ref' | 'manual';
+const MODES: RevenueMode[] = ['with_government', 'without_government'];
+const bothModes = (b: CostBlock): ManualBlocks => ({
+  with_government: b,
+  without_government: structuredClone(b),
+});
 
 /** เงินแผ่นดิน บาท/ภาค/คน ตั้งต้นตามแท็บ 4 (Y14) — ใส่ให้กลุ่มปกติไทย ปกติต่างชาติ และต่อเนื่อง */
 const DEFAULT_GOV_PER_SEM = 3550;
@@ -99,30 +124,23 @@ function buildSegments(level: string, ref: ProgRow | null, semesters: number): S
   }));
 }
 
-const roundBlock = (b: CostBlock): CostBlock => ({
-  ...b,
-  q: Math.round(b.q),
-  gov: Math.round(b.gov),
-  income: Math.round(b.income),
-  fix: b.fix.map(Math.round),
-  dep: Math.round(b.dep),
-  var: b.var.map(Math.round),
-  genEd: Math.round(b.genEd),
-});
-
 /* ---------- ร่างฟอร์ม — กันข้อมูลหายเมื่อปิด/รีโหลดหน้า ---------- */
 const DRAFT_KEY = 'beps.scenario-program.draft';
 
 interface Draft {
+  purpose?: Purpose;
+  newName?: string;
   fac: string | null;
   level: string;
-  nameNew: string;
-  degNew: string;
   semesters: number;
   refKey: string | null;
   basis: CostBasis;
-  manual: CostBlock;
+  manual: ManualBlocks | CostBlock;
   segs: Segment[];
+  alloc?: AllocChoice;
+  allocSource?: string | null;
+  /** ส่วนแบ่งส่วนกลางที่ฝังในคอลัมน์กำหนดเอง (ติดมาจากหลักสูตรที่คัดลอกตัวเลข) */
+  manualEmbedded?: number;
 }
 
 const refKeyOf = (p: ProgRow) => `${p.fac}|${p.lvl}|${p.prog}|${p.deg}`;
@@ -146,86 +164,31 @@ const saveDraft = (d: Draft | null) => {
   }
 };
 
-/** หัวข้อย่อยในการ์ดกรอกข้อมูล */
-const SectionLabel = ({ children }: { children: ReactNode }) => (
-  <Typography
-    variant="overline"
-    sx={{ display: 'block', color: 'primary.main', fontWeight: 700, mb: 1 }}
-  >
-    {children}
-  </Typography>
-);
-
-/** อัตราค่าธรรมเนียมการศึกษาของหลักสูตรที่เลือก (แท็บ ค่าธรรมเนียม68 — ข้อมูลเดียวกับหน้า W8) */
-const ProgramFeeRates = ({ p }: { p: ProgRow }) => {
-  const fees = feesForProgram(p.fac, p.deg);
-
-  return (
-    <Box
-      sx={{
-        mt: 3,
-        borderRadius: 1,
-        border: 1,
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-        overflow: 'hidden',
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{ display: 'block', px: 3, pt: 2, fontWeight: 700, color: 'primary.main' }}
-      >
-        💵 อัตราค่าธรรมเนียมการศึกษา (บาท/ภาคการศึกษา)
-      </Typography>
-      {fees.length === 0 ? (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', px: 3, pb: 2 }}
-        >
-          จับคู่อัตราค่าธรรมเนียมไม่ได้ — ชื่อหลักสูตรในแท็บค่าธรรมเนียมสะกดต่างจากทะเบียนหลักสูตร
-          ค้นหาเองได้ที่หน้าค่าธรรมเนียม
-        </Typography>
-      ) : (
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>ภาค · แผน</TableCell>
-                <TableCell align="right">นิสิตไทย</TableCell>
-                <TableCell align="right">นิสิตต่างชาติ</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {fees.map((f) => (
-                <TableRow key={feeVariant(f)}>
-                  <TableCell>{feeVariant(f)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    {fmtFee(f)}
-                  </TableCell>
-                  <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                    {f.rateIntl === null ? '—' : fmtB(f.rateIntl)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Box>
-  );
-};
+/** ส่วนแบ่งส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม) ที่ชีตแท็บ 3 ปันไว้ — ใช้กับหลักสูตรอื่นในคณะ */
+const sheetShareOf = poolAmountOf('ALL');
 
 const ScenarioProgramView = () => {
+  const [purpose, setPurpose] = useState<Purpose>('improve');
+  const [newName, setNewName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
   const [fac, setFac] = useState<string | null>(null);
   const [level, setLevel] = useState<string>(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
-  const [nameNew, setNameNew] = useState('');
-  const [degNew, setDegNew] = useState('');
   const [semesters, setSemesters] = useState(2);
   const [refProg, setRefProg] = useState<ProgRow | null>(null);
   const [basis, setBasis] = useState<CostBasis>('ref');
-  const [manual, setManual] = useState<CostBlock>(emptyBlock);
+  const [manual, setManual] = useState<ManualBlocks>(() => bothModes(emptyBlock()));
   const [segs, setSegs] = useState<Segment[]>(() => buildSegments(level, null, 2));
+  const [alloc, setAlloc] = useState<AllocChoice>(DEFAULT_ALLOC_CHOICE);
+  const [allocSource, setAllocSource] = useState<string | null>(null);
+  /**
+   * ส่วนแบ่งส่วนกลางที่ฝังอยู่ในคอลัมน์กำหนดเอง — ผูกกับ "หลักสูตรที่คัดลอกตัวเลขมา" ไม่ใช่หลักสูตรอ้างอิงปัจจุบัน
+   * ล้างหลักสูตรอ้างอิงแล้วตัวเลขที่คัดลอกยังอยู่ ส่วนแบ่งที่ติดมาก็ยังต้องถูกถอดออก ไม่งั้นนับซ้ำ
+   */
+  const [manualEmbedded, setManualEmbedded] = useState(0);
+  const copyManualFrom = (p: ProgRow) => {
+    setManual(bothModes(blockFromProgram(p)));
+    setManualEmbedded(embeddedShareOf(p));
+  };
 
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [history, setHistory] = useState<ProgramHistoryEntry[]>([]);
@@ -239,15 +202,26 @@ const ScenarioProgramView = () => {
     const d = loadDraft();
 
     if (d) {
+      // ร่างรุ่นก่อนมีวัตถุประสงค์ — คิดต้นทุนเอง = เปิดหลักสูตรใหม่
+      setPurpose(d.purpose ?? (d.basis === 'manual' ? 'new' : 'improve'));
+      setNewName(d.newName ?? '');
       setFac(d.fac);
       setLevel(d.level);
-      setNameNew(d.nameNew);
-      setDegNew(d.degNew);
       setSemesters(d.semesters);
       setRefProg(RAW.PROGS.find((p) => refKeyOf(p) === d.refKey) ?? null);
       setBasis(d.basis);
-      setManual(d.manual);
-      setSegs(d.segs);
+      // ร่างรุ่นก่อนมีก้อนเดียว — ใช้ตั้งต้นทั้งสองกรณี
+      setManual('q' in d.manual ? bothModes(d.manual) : d.manual);
+      // ร่างเก่าเก็บชื่อหัวคอลัมน์แบบเดิม/ป.โท-เอกมี 4 คอลัมน์ — ใช้ชื่อปัจจุบันและเติมคอลัมน์ที่ขาด
+      const blank = buildSegments(d.level, null, d.semesters);
+
+      setSegs(blank.map((b, i) => ({ ...(d.segs[i] ?? b), label: b.label })));
+      setAlloc(d.alloc ?? DEFAULT_ALLOC_CHOICE);
+      setAllocSource(d.allocSource ?? null);
+      // ร่างรุ่นก่อนไม่ได้จำ — ตัวเลขกำหนดเองตั้งต้นจากหลักสูตรอ้างอิงเสมอ
+      const ref = RAW.PROGS.find((p) => refKeyOf(p) === d.refKey);
+
+      setManualEmbedded(d.manualEmbedded ?? (ref ? embeddedShareOf(ref) : 0));
     }
 
     setDraftReady(true);
@@ -256,17 +230,34 @@ const ScenarioProgramView = () => {
   useEffect(() => {
     if (!draftReady) return;
     saveDraft({
+      purpose,
+      newName,
       fac,
       level,
-      nameNew,
-      degNew,
       semesters,
       refKey: refProg ? refKeyOf(refProg) : null,
       basis,
       manual,
       segs,
+      alloc,
+      allocSource,
+      manualEmbedded,
     });
-  }, [draftReady, fac, level, nameNew, degNew, semesters, refProg, basis, manual, segs]);
+  }, [
+    draftReady,
+    purpose,
+    newName,
+    fac,
+    level,
+    semesters,
+    refProg,
+    basis,
+    manual,
+    segs,
+    alloc,
+    allocSource,
+    manualEmbedded,
+  ]);
 
   const facultyOptions = useMemo(() => PG_DATA.map((g) => g.faculty), []);
   const refOptions = useMemo(
@@ -274,21 +265,201 @@ const ScenarioProgramView = () => {
     [fac, level],
   );
 
+  const text = PURPOSE_TEXT[purpose];
   const refBlock = useMemo(() => (refProg ? blockFromProgram(refProg) : null), [refProg]);
-  const block = basis === 'ref' ? refBlock : withPerHeadCharges(manual, semesters);
-  const result = block ? blockResult(block, mode) : null;
-  const canSave =
+  // ตั้งต้นจากหลักสูตรอ้างอิง → ใช้ค่าธรรมเนียมรายการหลัก/หักสมทบจริงของหลักสูตร (ผลต่างเริ่มที่ 0)
+  // จนกว่าจะแก้จำนวนนิสิตหรือจำนวนเทอม จึงคิดตามอัตรา × Q × ภาค แบบ T38/T39
+  const manualBlockOf = (m: RevenueMode) => {
+    const b = manual[m];
+    const keepRefCharges = !!refBlock && b.q === refBlock.q && semesters === 2;
+
+    return keepRefCharges ? b : withPerHeadCharges(b, semesters);
+  };
+  const blockOf = (b: CostBasis, m: RevenueMode) => (b === 'ref' ? refBlock : manualBlockOf(m));
+  const block = blockOf(basis, mode);
+
+  /* ---------- ปันส่วนต้นทุนคงที่ส่วนกลางคณะใหม่ทั้งคณะ (facultyAllocation.ts) ---------- */
+  const facRows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
+  const facPrograms = useMemo(
+    () =>
+      facRows.map(({ p, id }) => ({
+        id,
+        label: progOptionLabel(p),
+        educationLevel: p.lvl,
+        q: p.Q,
+        sheetShare: sheetShareOf(p),
+      })),
+    [facRows],
+  );
+  const facPool = facPrograms.reduce((a, p) => a + p.sheetShare, 0);
+  const refId = facRows.find((r) => r.p === refProg)?.id ?? null;
+  const isNew = purpose === 'new';
+
+  /**
+   * สถานการณ์ของคณะที่คอลัมน์หนึ่งใช้
+   * - ปรับปรุง: คอลัมน์ปัจจุบันใช้นิสิตจริง · คอลัมน์หลังปรับปรุงแทนนิสิตของหลักสูตรนี้ด้วยค่าที่กรอก
+   * - เปิดใหม่: ทั้งสองคอลัมน์อ่านจากคณะเดียวกันที่มีหลักสูตรใหม่แล้ว (อ้างอิง = หลังเปิดหลักสูตรใหม่)
+   */
+  const scenarioOf = (b: CostBasis, m: RevenueMode): FacultyScenario | null => {
+    if (!fac) return null;
+
+    if (!isNew) {
+      if (!refId) return null;
+
+      return {
+        pool: facPool,
+        programs: facPrograms,
+        embedded: {
+          id: refId,
+          amount: b === 'manual' ? manualEmbedded : embeddedShareOf(refProg!),
+        },
+        ...(b === 'manual' ? { qOverride: { id: refId, q: manual[m].q } } : {}),
+      };
+    }
+
+    return {
+      pool: facPool,
+      programs: facPrograms,
+      ...(refId ? { embedded: { id: refId, amount: embeddedShareOf(refProg!) } } : {}),
+      newProgram: {
+        label: newName.trim() || 'หลักสูตรใหม่',
+        educationLevel: level,
+        q: manual[m].q,
+        sheetShare: manualEmbedded,
+      },
+    };
+  };
+  const targetOf = (b: CostBasis) => (isNew && b === 'manual' ? NEW_PROGRAM_ID : refId);
+
+  const activeScenario = scenarioOf(basis, mode);
+  const allocBucketList = activeScenario ? allocBuckets(activeScenario, alloc.bucketLevel) : [];
+  const allocPolicy = policyOf(alloc, allocBucketList);
+  const outcomeOf = (b: CostBasis, m: RevenueMode) => {
+    const sc = scenarioOf(b, m);
+
+    return sc ? allocateFaculty(sc, allocPolicy) : null;
+  };
+  const activeOutcome = outcomeOf(basis, mode);
+  /** ส่วนที่ต้องบวกเข้า TFC ของคอลัมน์ — 0 เมื่อตามชีต หรือนโยบายยังไม่ผ่านการตรวจ */
+  const adjOf = (b: CostBasis, m: RevenueMode) => {
+    const o = outcomeOf(b, m);
+    const t = targetOf(b);
+
+    return o && t ? (shareOf(o, t)?.adj ?? 0) : 0;
+  };
+  const allocBlocker =
+    alloc.method === 'SHEET'
+      ? null
+      : !activeOutcome
+        ? fac
+          ? 'เลือกหลักสูตรก่อน เพื่อปันส่วนต้นทุนคงที่ส่วนกลางคณะ'
+          : 'เลือกคณะก่อน เพื่อปันส่วนต้นทุนคงที่ส่วนกลางคณะ'
+        : !activeOutcome.applied
+          ? 'แก้ข้อทักท้วงของการปันส่วนต้นทุนคงที่ก่อน'
+          : null;
+
+  const result = block ? blockResult(block, mode, adjOf(basis, mode)) : null;
+
+  // กรณีรวม/ไม่รวมเงินแผ่นดิน วางคู่กัน · แต่ละกรณี: อ้างอิงหลักสูตรเดิม | กำหนดเอง
+  const groups: CostGroup[] =
+    refBlock || basis === 'manual'
+      ? MODES.map((m) => {
+          const custom = manualBlockOf(m);
+
+          return {
+            key: m,
+            title: REVENUE_MODE_LABEL[m],
+            mode: m,
+            color: m === 'with_government' ? 'primary' : 'warning',
+            cols: [
+              ...(refBlock
+                ? [
+                    {
+                      key: 'ref',
+                      title: text.refCol,
+                      block: refBlock,
+                      result: blockResult(refBlock, m, adjOf('ref', m)),
+                      active: basis === 'ref' && mode === m,
+                    },
+                  ]
+                : []),
+              {
+                key: 'manual',
+                title: text.customCol,
+                block: custom,
+                result: blockResult(custom, m, adjOf('manual', m)),
+                editable: true,
+                active: basis === 'manual' && mode === m,
+              },
+            ],
+          };
+        })
+      : [];
+  // ตารางสัดส่วนนิสิตแสดงทั้งสองกรณีคู่กัน ตามฐานต้นทุน (อ้างอิง/กำหนดเอง) ที่เลือก
+  const mixCosts = Object.fromEntries(
+    MODES.map((m) => {
+      const b = blockOf(basis, m);
+      const r = b ? blockResult(b, m, adjOf(basis, m)) : null;
+
+      return [m, { tfc: r?.tfc ?? 0, avc: r?.avc ?? 0 }];
+    }),
+  ) as ModeCosts;
+  const selectCol = (m: string, b: string) => {
+    setMode(m as RevenueMode);
+    setBasis(b as CostBasis);
+  };
+  const numbersOk =
     !!block && !!result && block.q > 0 && block.gov + block.income > 0 && result.tc > 0;
+  const nameError = purpose === 'new' && !newName.trim();
+  /** ขั้นที่ 1 ต้องครบก่อนไปขั้นที่ 2 */
+  const programBlocker =
+    purpose === 'improve' && !refProg
+      ? 'เลือกคณะและหลักสูตรที่จะปรับปรุงก่อน'
+      : nameError
+        ? 'กรอกชื่อหลักสูตรที่จะเปิดก่อน'
+        : semesters < 1
+          ? 'จำนวนเทอมต้องอย่างน้อย 1 เทอม'
+          : groups.length === 0
+            ? 'เลือกหลักสูตรอ้างอิง หรือถ้าไม่มี ให้กดปุ่ม "กรอกต้นทุนเอง" ในกล่องสีฟ้าด้านบนก่อน'
+            : null;
+  const saveBlocker =
+    programBlocker ?? (!numbersOk ? 'ต้องมีจำนวนนิสิต งบประมาณ และต้นทุนก่อน' : allocBlocker);
+  const canSave = !saveBlocker;
+
+  const onPurposeChange = (p: Purpose) => {
+    setPurpose(p);
+    // ปรับปรุงต้องมีหลักสูตรเดิมเป็นฐานเสมอ — ไม่มีโหมดกรอกเองล้วน
+    if (p === 'improve' && !refProg) setBasis('ref');
+  };
 
   const pickRef = (p: ProgRow | null, lvl = level) => {
     setRefProg(p);
-    if (p) setManual(roundBlock(blockFromProgram(p)));
+    if (p) copyManualFrom(p);
     setSegs(buildSegments(lvl, p, semesters));
   };
 
   const onFacChange = (v: string | null) => {
     setFac(v);
     pickRef(null);
+
+    // สัดส่วน % ผูกกับหลักสูตรของคณะ ใช้ข้ามคณะไม่ได้ — ตั้งต้นจากร่างนโยบาย W20 ของคณะใหม่ถ้ามี
+    const year = MOCK_RUN.budgetYear;
+    const d = v ? loadPolicyDraft({ year, faculty: v, pool: 'ALL' }) : null;
+
+    if (d) {
+      setAlloc({
+        method: d.method,
+        bucketLevel: d.bucketLevel,
+        subMethod: d.subMethod,
+        pct: d.pct,
+      });
+      setAllocSource(
+        `ตั้งต้นจากร่างนโยบายต้นทุนคงที่ของคณะ (W20 · ปีงบ ${year} · ยังไม่ผ่านการอนุมัติ)`,
+      );
+    } else {
+      setAlloc((a) => ({ ...a, pct: {} }));
+      setAllocSource(null);
+    }
   };
 
   const onLevelChange = (v: string) => {
@@ -302,31 +473,48 @@ const ScenarioProgramView = () => {
   };
 
   const clearForm = () => {
+    setNewName('');
+    setNameTouched(false);
     setFac(null);
     setLevel(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
-    setNameNew('');
-    setDegNew('');
     setSemesters(2);
     setRefProg(null);
     setBasis('ref');
-    setManual(emptyBlock());
+    setManual(bothModes(emptyBlock()));
+    setManualEmbedded(0);
     setSegs(buildSegments(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี', null, 2));
+    setAlloc(DEFAULT_ALLOC_CHOICE);
+    setAllocSource(null);
     saveDraft(null);
   };
 
-  const isNew = !!nameNew.trim() || basis === 'manual';
-  const name = nameNew.trim() || refProg?.prog || 'หลักสูตรใหม่';
+  const allocTargetLabel = isNew
+    ? basis === 'manual'
+      ? 'หลักสูตรใหม่'
+      : 'หลักสูตรอ้างอิง'
+    : 'หลักสูตรนี้';
 
-  const handleCalc = () => {
+  /** ผลที่เพิ่งบันทึก — เปิดกล่องแจ้งสำเร็จ */
+  const [savedEntry, setSavedEntry] = useState<ProgramHistoryEntry | null>(null);
+
+  const handleSave = () => {
     if (!canSave || !block || !result) return;
 
-    const both = calcBreakEvenBothModes({
-      q: block.q,
-      governmentBudget: block.gov,
-      incomeBudget: block.income,
-      tfc: result.tfc,
-      tvc: result.tvc,
-    });
+    const name = isNew ? newName.trim() : (refProg?.prog ?? '');
+
+    // ต้นทุนกำหนดเองแยกตามกรณี → คิดแต่ละโหมดจากก้อนของโหมดนั้น
+    const both = (m: RevenueMode) => {
+      const b = blockOf(basis, m) ?? block;
+      const r = blockResult(b, m, adjOf(basis, m));
+
+      return calcBreakEvenBothModes({
+        q: b.q,
+        governmentBudget: b.gov,
+        incomeBudget: b.income,
+        tfc: r.tfc,
+        tvc: r.tvc,
+      })[m];
+    };
 
     const entry: ProgramHistoryEntry = {
       id: Date.now(),
@@ -335,30 +523,120 @@ const ScenarioProgramView = () => {
       fac: fac ?? '',
       level,
       isNew,
+      ref: refProg ? progOptionLabel(refProg) : undefined,
       q: block.q,
       tr: block.gov + block.income,
       tfc: result.tfc,
       tvc: result.tvc,
       avc: result.avc ?? 0,
-      withGov: both.with_government,
-      withoutGov: both.without_government,
+      withGov: both('with_government'),
+      withoutGov: both('without_government'),
+      allocMethod: ALLOC_METHOD_LABEL[alloc.method],
       mode,
+      detail: {
+        refCol: text.refCol,
+        customCol: text.customCol,
+        basisCol: basis === 'ref' ? text.refCol : text.customCol,
+        semesters,
+        fees: refProg ? feesForProgram(refProg.fac, refProg.deg) : [],
+        alloc: activeOutcome
+          ? {
+              method: ALLOC_METHOD_LABEL[alloc.method],
+              hint: METHOD_HINT[alloc.method],
+              source: allocSource,
+              pool: facPool,
+              programs: activeOutcome.shares.length,
+              targetLabel: allocTargetLabel,
+              shares: activeOutcome.shares.map((x) => {
+                const p = facRows.find((r) => r.id === x.id)?.p;
+                const target = x.id === targetOf(basis);
+                const after = p && { ...p, TFC: p.TFC - x.before + x.after };
+
+                return {
+                  label: x.label,
+                  lvl: p?.lvl ?? level,
+                  q: target ? block.q : (p?.Q ?? manual[mode].q),
+                  before: x.before,
+                  after: x.after,
+                  target,
+                  ...(p && after && !target
+                    ? {
+                        qStar: Object.fromEntries(
+                          MODES.map((m) => [
+                            m,
+                            { before: sheetQStar(p, m), after: sheetQStar(after, m) },
+                          ]),
+                        ) as Record<RevenueMode, { before: number; after: number }>,
+                      }
+                    : {}),
+                };
+              }),
+              ...(alloc.method === 'CUSTOM_PCT'
+                ? {
+                    pct: {
+                      level: alloc.bucketLevel === 'PROGRAM' ? 'รายหลักสูตร' : 'ระดับการศึกษา',
+                      subMethod:
+                        alloc.bucketLevel === 'PROGRAM'
+                          ? null
+                          : alloc.subMethod === 'PER_HEAD_FTES'
+                            ? 'ตามรายหัว'
+                            : 'หารเท่ากัน',
+                      lines: allocBucketList.map((b) => ({
+                        label: b.label,
+                        programs: b.programCount,
+                        q: b.q,
+                        pct: alloc.pct[b.key] ?? '',
+                      })),
+                    },
+                  }
+                : {}),
+              warnings: activeOutcome.issues.map((i) => i.message),
+            }
+          : null,
+        groups,
+        showAllocAdj: alloc.method !== 'SHEET',
+        segs,
+        mixCosts,
+      },
     };
 
     const next = [entry, ...history];
 
     setHistory(next);
     saveHistory(next);
-    setToast(`บันทึกผลคำนวณ "${name}" แล้ว — ออกรายงาน PDF และใช้ในหน้าแผนการรับนิสิตได้`);
+    setSavedEntry(entry);
   };
 
   const uni = computeBreakEven(RAW.UNI, mode);
   const latest = history[0];
-  const latestResult = latest
-    ? latest.mode === 'with_government'
-      ? latest.withGov
-      : latest.withoutGov
-    : null;
+  const [printId, setPrintId] = useState<number | null>(null);
+  const printEntry = history.find((h) => h.id === printId) ?? latest;
+  /** เปิดดูตัวอย่างรายงานก่อน — ดาวน์โหลด/พิมพ์จากในกล่องตัวอย่าง */
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const printReport = (id: number) => {
+    setPrintId(id);
+    setPreviewOpen(true);
+  };
+  /** ขั้นที่ 1–2 ต้องครบตามลำดับ ครบแล้วไปขั้นไหนก็ได้ — กลับไปแก้จนไม่ครบ ขั้นหลังล็อกคืนเอง */
+  const locked = groups.length === 0;
+  const maxStep = programBlocker ? 0 : allocBlocker ? 1 : STEPS.length - 1;
+  const stepBlocker = programBlocker ?? allocBlocker;
+  const [step, setStep] = useState(0);
+  const activeStep = Math.min(step, maxStep);
+
+  // ลดขั้นที่จำไว้ตาม — ไม่ให้เด้งข้ามไปขั้นหลังเองเมื่อกรอกครบ
+  useEffect(() => {
+    if (step > maxStep) setStep(maxStep);
+  }, [step, maxStep]);
+  const goTo = (i: number) => {
+    setStep(Math.min(i, maxStep));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  /** เริ่มคำนวณหลักสูตรถัดไป — ล้างฟอร์มแล้วกลับขั้นที่ 1 (ประวัติยังอยู่) */
+  const startNew = () => {
+    clearForm();
+    goTo(0);
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -375,539 +653,153 @@ const ScenarioProgramView = () => {
         {/* หน้านี้กรอกตัวเลขเอง ไม่ได้อ่านจากรอบคำนวณ จึงขึ้นเฉพาะแถบข้อมูลตัวอย่าง (ตาม mockup) */}
         <DataCaveatNotes profit={uni.profit} limitations={false} />
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 2,
-            mb: 4,
-          }}
-        >
-          <Typography variant="h5" fontWeight={700}>
-            🎓 คำนวณจุดคุ้มทุนหลักสูตรใหม่
-          </Typography>
-          <Button
-            variant="contained"
-            disabled={!latest}
-            onClick={() => window.print()}
-            title={
-              latest
-                ? 'เปิดหน้าต่างพิมพ์ของเบราว์เซอร์ — เลือก "บันทึกเป็น PDF" ได้'
-                : 'คำนวณก่อนเพื่อเปิดใช้งาน'
-            }
-          >
-            🖨 ออกรายงาน PDF
-          </Button>
-        </Box>
+        <Typography variant="h5" fontWeight={700} sx={{ mb: 4 }}>
+          {text.heading}
+        </Typography>
 
-        <Card sx={{ mb: 4 }}>
-          <CardHeader
-            title={<DotTitle color="primary.main">ข้อมูลหลักสูตร</DotTitle>}
-            subheader="ตามแท็บ 4.จุดคุ้มทุนหลักสูตร(ใหม่) — เลือกหลักสูตรอ้างอิงเพื่อดึงต้นทุนเดิม หรือคิดต้นทุนด้วยตัวเอง"
-            action={
-              <Button
-                size="small"
-                color="secondary"
-                onClick={() => setConfirm('form')}
-                sx={{ mr: 2 }}
-              >
-                ล้างฟอร์ม
-              </Button>
-            }
-          />
-          <CardContent>
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Autocomplete
-                  options={facultyOptions}
-                  value={fac}
-                  onChange={(_, v) => onFacChange(v)}
-                  renderInput={(params) => <TextField {...params} label="คณะ / วิทยาลัย" />}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Autocomplete
-                  disableClearable
-                  options={EDUCATION_LEVELS}
-                  value={level}
-                  onChange={(_, v) => onLevelChange(v)}
-                  renderInput={(params) => <TextField {...params} label="ระดับการศึกษา" />}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 5 }}>
-                <TextField
-                  fullWidth
-                  label="ชื่อหลักสูตรที่ต้องการเปิด"
-                  placeholder="เช่น วิทยาการปัญญาประดิษฐ์"
-                  value={nameNew}
-                  onChange={(e) => setNameNew(e.target.value)}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 5 }}>
-                <TextField
-                  fullWidth
-                  label="ชื่อปริญญา / หลักสูตร"
-                  placeholder="เช่น วท.บ. วิทยาการปัญญาประดิษฐ์"
-                  value={degNew}
-                  onChange={(e) => setDegNew(e.target.value)}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 2 }}>
-                <NumberTextField
-                  fullWidth
-                  label="จำนวนเทอมต่อปี"
-                  value={semesters}
-                  onChange={onSemestersChange}
-                  error={semesters < 1}
-                  helperText={semesters < 1 ? 'อย่างน้อย 1 เทอม' : undefined}
-                />
-              </Grid>
-              <Grid size={12}>
-                <Autocomplete
-                  options={refOptions}
-                  getOptionLabel={progOptionLabel}
-                  isOptionEqualToValue={(a, b) => a === b}
-                  value={refProg}
-                  disabled={!fac}
-                  onChange={(_, v) => pickRef(v)}
-                  noOptionsText={`ไม่มีหลักสูตร${level}ในคณะนี้`}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="หลักสูตรอ้างอิง"
-                      helperText={
-                        !fac
-                          ? 'เลือกคณะก่อน'
-                          : `${refOptions.length} หลักสูตร${level}ในคณะ — ใช้ต้นทุน งบประมาณ และจำนวนนิสิตจริงของหลักสูตรนี้เป็นฐาน`
-                      }
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <WizardStepper active={activeStep} maxStep={maxStep} onGo={goTo} />
 
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <SectionLabel>วิธีคิดต้นทุน</SectionLabel>
-                <ToggleButtonGroup
-                  exclusive
-                  fullWidth
-                  size="small"
-                  color="primary"
-                  value={basis}
-                  onChange={(_, v: CostBasis | null) => v && setBasis(v)}
-                >
-                  <ToggleButton value="ref">จากหลักสูตรอ้างอิงเดิม</ToggleButton>
-                  <ToggleButton value="manual">คิดต้นทุนด้วยตัวเอง</ToggleButton>
-                </ToggleButtonGroup>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block', mt: 1 }}
-                >
-                  {basis === 'ref'
-                    ? 'ต้นทุนรายหมวดรายจ่าย = งบของหลักสูตร + งบสำนักงานเลขาฯ ระดับเดียวกันและส่วนกลางคณะ ปันตามจำนวนนิสิต'
-                    : 'แก้ตัวเลขในตารางได้ทุกช่อง (ตั้งต้นจากหลักสูตรอ้างอิง) · ค่าธรรมเนียมรายการหลักและหักสมทบคิดจากอัตรา × นิสิต × เทอม'}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <SectionLabel>เงินแผ่นดิน</SectionLabel>
-                <ToggleButtonGroup
-                  exclusive
-                  fullWidth
-                  size="small"
-                  color="primary"
-                  value={mode}
-                  onChange={(_, v: RevenueMode | null) => v && setMode(v)}
-                >
-                  <ToggleButton value="with_government">
-                    {REVENUE_MODE_LABEL.with_government}
-                  </ToggleButton>
-                  <ToggleButton value="without_government">
-                    {REVENUE_MODE_LABEL.without_government}
-                  </ToggleButton>
-                </ToggleButtonGroup>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block', mt: 1 }}
-                >
-                  {REVENUE_MODE_NOTE[mode]}
-                </Typography>
-              </Grid>
-            </Grid>
-
-            {refProg && <ProgramFeeRates p={refProg} />}
-          </CardContent>
-        </Card>
-
-        <Grid container spacing={4} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, lg: 7 }}>
-            <Card sx={{ height: '100%' }}>
-              <CardHeader
-                title={<DotTitle color="primary.main">ตารางคำนวณจุดคุ้มทุน</DotTitle>}
-                subheader={`${basis === 'ref' ? 'อ้างอิงหลักสูตรเดิม' : 'คิดต้นทุนด้วยตัวเอง'} · ${REVENUE_MODE_LABEL[mode]}`}
-                action={
-                  <Button
-                    variant="contained"
-                    disabled={!canSave}
-                    onClick={handleCalc}
-                    sx={{ mr: 2 }}
-                    title={canSave ? undefined : 'ต้องมีจำนวนนิสิต งบประมาณ และต้นทุนก่อน'}
-                  >
-                    บันทึกผลคำนวณ
-                  </Button>
-                }
-              />
-              <CardContent sx={{ px: 0 }}>
-                {block && result ? (
-                  <CostBlockTable
-                    block={block}
-                    result={result}
-                    mode={mode}
-                    editable={basis === 'manual'}
-                    onChange={setManual}
-                  />
-                ) : (
-                  <Alert severity="info" variant="outlined" sx={{ mx: 4 }}>
-                    เลือกคณะ ระดับ และหลักสูตรอ้างอิง เพื่อดึงต้นทุนจากระบบ — หรือเลือก
-                    &quot;คิดต้นทุนด้วยตัวเอง&quot; เพื่อกรอกต้นทุนรายหมวดเอง
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, lg: 5 }}>
-            <Card sx={{ height: '100%' }}>
-              <CardHeader
-                title={<DotTitle color="primary.main">กราฟจุดคุ้มทุน</DotTitle>}
-                subheader={REVENUE_MODE_LABEL[mode]}
-              />
-              <CardContent>
-                {block && result && block.q > 0 ? (
-                  <BreakEvenChart
-                    q={block.q}
-                    tfc={result.tfc}
-                    avc={result.avc ?? 0}
-                    rPerHead={result.r ?? 0}
-                    qStar={result.qStar}
-                  />
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    กราฟจะแสดงเมื่อมีจำนวนนิสิตและต้นทุน
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        <Card sx={{ mb: 4 }}>
-          <CardHeader
-            title={
-              <DotTitle color="warning.main">
-                การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน
-              </DotTitle>
-            }
-            subheader="ปันต้นทุนคงที่ตามสัดส่วนนิสิต · ต้นทุนผันแปร = AVC × จำนวนนิสิต · รายรับต่อปี = (ค่าธรรมเนียม + เงินแผ่นดิน) × นิสิต × เทอม"
-          />
-          <CardContent>
-            {block && result ? (
-              <StudentMixTable
-                segs={segs}
-                onChange={setSegs}
-                tfc={result.tfc}
-                avc={result.avc ?? 0}
-                mode={mode}
-              />
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                ต้องมีต้นทุนจากตารางคำนวณก่อน
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-
-        {latest && latestResult && (
-          <>
-            <Grid container spacing={4} sx={{ mb: 4 }}>
-              <Grid size={12}>
-                <Card sx={{ height: '100%' }}>
-                  <CardHeader
-                    title={
-                      <DotTitle color="primary.main">ผลที่บันทึกล่าสุด — {latest.name}</DotTitle>
+          {activeStep === 0 && (
+            <ProgramStep
+              purpose={purpose}
+              onPurposeChange={onPurposeChange}
+              refLabel={text.refLabel}
+              newName={newName}
+              onNewNameChange={setNewName}
+              nameTouched={nameTouched}
+              onNameBlur={() => setNameTouched(true)}
+              nameError={nameError}
+              facultyOptions={facultyOptions}
+              fac={fac}
+              onFacChange={onFacChange}
+              level={level}
+              onLevelChange={onLevelChange}
+              semesters={semesters}
+              onSemestersChange={onSemestersChange}
+              refOptions={refOptions}
+              refProg={refProg}
+              onRefChange={(p) => pickRef(p)}
+              onManual={
+                isNew && !refProg && basis !== 'manual'
+                  ? () => {
+                      setBasis('manual');
+                      // maxStep ยังเป็นค่าก่อนเลือกกรอกเอง — ตั้งตรง แล้วให้ effect ลดขั้นถ้าขั้นที่ 1 ยังไม่ครบ
+                      setStep(1);
                     }
-                    subheader={`${latest.fac || '—'} · ${latest.level} · ${latest.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม'}`}
-                  />
-                  <CardContent>
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                      {(
-                        [
-                          [
-                            'รายได้รวม (TR)',
-                            `${(latestResult.tr / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
-                            'primary.main',
-                          ],
-                          [
-                            'ต้นทุนรวม (TC)',
-                            `${(latestResult.tc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
-                            'text.primary',
-                          ],
-                          [
-                            'ต้นทุนคงที่ (TFC)',
-                            `${(latest.tfc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
-                            'warning.main',
-                          ],
-                          [
-                            'ต้นทุนผันแปร (TVC)',
-                            `${(latest.tvc / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`,
-                            'text.primary',
-                          ],
-                          ['ผันแปร/หัว (AVC)', `${fmtB(latest.avc)} บ./คน`, 'text.primary'],
-                          ['นิสิตจริง (Q)', `${fmtN(latest.q)} คน`, 'text.primary'],
-                        ] as const
-                      ).map(([label, val, color]) => (
-                        <Grid key={label} size={4}>
-                          <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              display="block"
-                              noWrap
-                            >
-                              {label}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color }}>
-                              {val}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      ))}
-                    </Grid>
+                  : undefined
+              }
+              onClear={() => setConfirm('form')}
+            />
+          )}
 
-                    {(['with_government', 'without_government'] as RevenueMode[]).map((m) => {
-                      const r = m === 'with_government' ? latest.withGov : latest.withoutGov;
-                      const isOk = r.qStar !== null && latest.q >= r.qStar;
-                      const full = r.qStarStatus === 'full_cost_recovery';
+          {/* ยังไม่เลือกหลักสูตร (เข้าหน้าครั้งแรก/ล้างฟอร์ม) — ยังดู/ออก PDF ผลที่บันทึกไว้ได้ */}
+          {locked && history.length > 0 && (
+            <HistoryTable
+              history={history}
+              onPrint={printReport}
+              onClear={() => setConfirm('history')}
+            />
+          )}
 
-                      return (
-                        <Box
-                          key={m}
-                          sx={{
-                            border: 1.5,
-                            borderColor: m === 'with_government' ? 'primary.main' : 'warning.main',
-                            borderRadius: 2,
-                            p: 2,
-                            mb: 2,
-                            bgcolor: isOk
-                              ? 'var(--mui-palette-success-lightOpacity)'
-                              : 'var(--mui-palette-error-lightOpacity)',
-                          }}
-                        >
-                          <Typography
-                            variant="overline"
-                            sx={{
-                              fontWeight: 800,
-                              color: m === 'with_government' ? 'primary.main' : 'warning.main',
-                            }}
-                          >
-                            {m === 'with_government'
-                              ? 'กรณีรวมเงินแผ่นดิน'
-                              : 'กรณีไม่รวมเงินแผ่นดิน'}
-                          </Typography>
-                          <Grid container spacing={1}>
-                            <Grid size={6}>
-                              <Typography variant="body2">
-                                รายได้/หัว (R): <b>{fmtB(r.r ?? 0)}</b> บ.
-                              </Typography>
-                            </Grid>
-                            <Grid size={6}>
-                              <Typography variant="body2">
-                                ส่วนเกิน/หัว (CM):{' '}
-                                <b
-                                  style={{
-                                    color:
-                                      (r.cm ?? 0) > 0
-                                        ? 'var(--mui-palette-success-main)'
-                                        : 'var(--mui-palette-error-main)',
-                                  }}
-                                >
-                                  {fmtB(r.cm ?? 0)}
-                                </b>{' '}
-                                บ.
-                              </Typography>
-                            </Grid>
-                            <Grid size={6}>
-                              <Typography variant="body2">
-                                จุดคุ้มทุน (Q*):{' '}
-                                <b style={{ color: 'var(--mui-palette-error-main)' }}>
-                                  {r.qStar ? `${fmtN(r.qStar)} คน` : '—'}
-                                </b>{' '}
-                                {full && (
-                                  <Chip
-                                    size="small"
-                                    label="คืนทุนเต็ม (TC/R)"
-                                    color="warning"
-                                    sx={{ height: 16, fontSize: 10 }}
-                                  />
-                                )}
-                              </Typography>
-                            </Grid>
-                            <Grid size={6}>
-                              <Typography variant="body2">
-                                กำไร:{' '}
-                                <b
-                                  style={{
-                                    color:
-                                      (r.profitPct ?? 0) >= 0
-                                        ? 'var(--mui-palette-success-main)'
-                                        : 'var(--mui-palette-error-main)',
-                                  }}
-                                >
-                                  {(r.profitPct ?? 0) >= 0 ? '+' : ''}
-                                  {(r.profitPct ?? 0).toFixed(1)}%
-                                </b>
-                              </Typography>
-                            </Grid>
-                          </Grid>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              mt: 1,
-                              fontWeight: 700,
-                              color: isOk ? 'success.main' : 'error.main',
-                            }}
-                          >
-                            {!r.qStar
-                              ? '⚠ คำนวณไม่ได้'
-                              : `${full ? '⚠ ไม่คุ้มทุน (CM ≤ 0) · ใช้เป้าคืนทุนเต็ม (TC/R) · ' : ''}${
-                                  isOk
-                                    ? `✓ เกินจุดคุ้มทุน +${fmtN(latest.q - r.qStar)} คน`
-                                    : `⚠ ต้องเพิ่มอีก ${fmtN(r.qStar - latest.q)} คน`
-                                }`}
-                          </Typography>
-                        </Box>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
+          {activeStep === 1 && (
+            <FixedCostAllocationCard
+              faculty={fac}
+              isNew={isNew}
+              hasRef={isNew ? manualEmbedded !== 0 : !!refProg}
+              choice={alloc}
+              onChoice={setAlloc}
+              choiceSource={allocSource}
+              buckets={allocBucketList}
+              pool={facPool}
+              rows={facRows}
+              outcome={activeOutcome}
+              targetId={targetOf(basis)}
+              targetLabel={allocTargetLabel}
+              mode={mode}
+              onToast={setToast}
+            />
+          )}
 
-            <AdmissionBreakdownCard qStar={latestResult.qStar} programName={latest.name} />
+          {activeStep === 2 && (
+            <CostStep
+              groups={groups}
+              subheader={
+                refBlock
+                  ? `${text.tableHint} · ค่าธรรมเนียมรายการหลักและหักสมทบคิดจากอัตรา × นิสิต × เทอม เมื่อแก้จำนวนนิสิต`
+                  : 'กรอกต้นทุนรายหมวดเองแยกกรณีรวม/ไม่รวมเงินแผ่นดิน'
+              }
+              showAllocAdj={alloc.method !== 'SHEET'}
+              onChange={(m, b) => setManual((x) => ({ ...x, [m]: b }))}
+              onReset={
+                refProg
+                  ? () => {
+                      copyManualFrom(refProg);
+                      setToast(`รีเซ็ตคอลัมน์${text.customCol}กลับเป็นค่า${text.refCol}แล้ว`);
+                    }
+                  : undefined
+              }
+              resetLabel={`รีเซ็ต${text.customCol}`}
+            />
+          )}
 
-            <Card sx={{ mt: 4 }}>
-              <CardHeader
-                title={<DotTitle color="warning.main">ประวัติการคำนวณ</DotTitle>}
-                action={
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setConfirm('history')}
-                    sx={{ mr: 2, borderRadius: 5 }}
-                  >
-                    ล้าง
-                  </Button>
-                }
-              />
-              <CardContent sx={{ p: 0 }}>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>เวลา</TableCell>
-                        <TableCell>หลักสูตร</TableCell>
-                        <TableCell>ระดับ</TableCell>
-                        <TableCell>ประเภท</TableCell>
-                        <TableCell align="right">นิสิต (Q)</TableCell>
-                        <TableCell align="right">ผันแปร/หัว (AVC)</TableCell>
-                        <TableCell align="right">จุดคุ้มทุน (Q*) รวมแผ่นดิน</TableCell>
-                        <TableCell align="right">จุดคุ้มทุน (Q*) ไม่รวมแผ่นดิน</TableCell>
-                        <TableCell align="right">สถานะ</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {history.map((h) => {
-                        const okA = h.withGov.qStar !== null && h.q >= h.withGov.qStar;
-                        const okB = h.withoutGov.qStar !== null && h.q >= h.withoutGov.qStar;
+          {activeStep === 3 && (
+            <MixStep
+              segs={segs}
+              onSegsChange={setSegs}
+              costs={mixCosts}
+              showBasis={!!refBlock}
+              basis={basis}
+              onBasisChange={setBasis}
+              refCol={text.refCol}
+              customCol={text.customCol}
+            />
+          )}
 
-                        return (
-                          <TableRow key={h.id} hover>
-                            <TableCell sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}>
-                              {h.time}
-                            </TableCell>
-                            <TableCell
-                              sx={{
-                                fontWeight: 600,
-                                maxWidth: 160,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                              title={h.name}
-                            >
-                              {h.name}
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>{h.level || '—'}</TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                label={h.isNew ? 'ใหม่' : 'เดิม'}
-                                color={h.isNew ? 'primary' : 'warning'}
-                                sx={{ height: 18, fontSize: 10 }}
-                              />
-                            </TableCell>
-                            <TableCell align="right">{fmtN(h.q)}</TableCell>
-                            <TableCell align="right" sx={{ color: 'warning.main' }}>
-                              {fmtB(h.avc)}
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{ color: okA ? 'success.main' : 'error.main' }}
-                            >
-                              {h.withGov.qStar ? fmtN(h.withGov.qStar) : '—'}
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{ color: okB ? 'success.main' : 'error.main' }}
-                            >
-                              {h.withoutGov.qStar ? fmtN(h.withoutGov.qStar) : '—'}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Chip
-                                size="small"
-                                label={okA ? '✓' : '⚠'}
-                                color={okA ? 'success' : 'error'}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-          </>
-        )}
+          {activeStep === 4 && (
+            <SummaryStep
+              groups={groups}
+              compareSubheader={`เทียบ${text.refCol}กับ${text.customCol} ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน · กดแถวเพื่อใช้กับกราฟ ตารางสัดส่วนนิสิต และการบันทึก`}
+              onSelect={selectCol}
+              chartSubheader={`${basis === 'ref' ? text.refCol : text.customCol} · ${REVENUE_MODE_LABEL[mode]}`}
+              chart={
+                block && result && block.q > 0
+                  ? {
+                      q: block.q,
+                      tfc: result.tfc,
+                      avc: result.avc ?? 0,
+                      rPerHead: result.r ?? 0,
+                      qStar: result.qStar,
+                    }
+                  : null
+              }
+              saveBlocker={saveBlocker}
+              onSave={handleSave}
+              history={history}
+              onPrint={printReport}
+              onClearHistory={() => setConfirm('history')}
+            />
+          )}
 
-        {!latest && (
-          <Alert severity="info" variant="outlined">
-            กด &quot;บันทึกผลคำนวณ&quot; เพื่อเก็บผลไว้ในประวัติ เปิดใช้งานปุ่มออกรายงาน PDF
-            และใช้จุดคุ้มทุนในหน้าแผนการรับนิสิต
-          </Alert>
-        )}
+          <WizardNav
+            active={activeStep}
+            lockReason={activeStep >= maxStep ? stepBlocker : null}
+            groups={groups}
+            basis={basis}
+            onGo={goTo}
+            onRestart={() => setConfirm('form')}
+          />
+        </Box>
       </Box>
 
       <Dialog open={confirm !== null} onClose={() => setConfirm(null)}>
-        <DialogTitle>{confirm === 'form' ? 'ล้างฟอร์ม?' : 'ล้างประวัติการคำนวณ?'}</DialogTitle>
+        <DialogTitle>
+          {confirm === 'form' ? 'ล้างฟอร์มและเริ่มที่ขั้นตอนที่ 1?' : 'ล้างประวัติการคำนวณ?'}
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
             {confirm === 'form'
-              ? 'ข้อมูลหลักสูตร หลักสูตรอ้างอิง ต้นทุนที่กรอกเอง และตารางสัดส่วนนิสิตจะถูกล้างกลับเป็นค่าตั้งต้น (ประวัติที่บันทึกไว้ไม่หาย)'
+              ? 'ชื่อหลักสูตร ข้อมูลหลักสูตร หลักสูตรอ้างอิง ต้นทุนที่กรอกเอง และตารางสัดส่วนนิสิตจะถูกล้างกลับเป็นค่าตั้งต้น (ประวัติที่บันทึกไว้ไม่หาย)'
               : `ประวัติทั้งหมด (${history.length} รายการ) จะถูกลบออกจากเครื่องนี้ถาวร และหน้า "แผนการรับนิสิต" จะเลือกผลคำนวณเหล่านี้ไม่ได้อีก`}
           </DialogContentText>
         </DialogContent>
@@ -918,8 +810,8 @@ const ScenarioProgramView = () => {
             color="error"
             onClick={() => {
               if (confirm === 'form') {
-                clearForm();
-                setToast('ล้างฟอร์มแล้ว');
+                startNew();
+                setToast('ล้างฟอร์มแล้ว — เริ่มที่ขั้นตอนที่ 1');
               } else {
                 setHistory([]);
                 saveHistory([]);
@@ -934,6 +826,27 @@ const ScenarioProgramView = () => {
         </DialogActions>
       </Dialog>
 
+      <SaveSuccessDialog
+        entry={savedEntry}
+        onClose={() => setSavedEntry(null)}
+        onReport={(id) => {
+          setSavedEntry(null);
+          printReport(id);
+        }}
+        onStartNew={() => {
+          setSavedEntry(null);
+          startNew();
+          setToast('เริ่มคำนวณใหม่ — ผลก่อนหน้าอยู่ในประวัติการคำนวณ');
+        }}
+      />
+
+      <ReportPreviewDialog
+        entry={previewOpen ? (printEntry ?? null) : null}
+        onClose={() => setPreviewOpen(false)}
+        onPrint={() => window.print()}
+        onToast={setToast}
+      />
+
       <Snackbar
         open={!!toast}
         autoHideDuration={4000}
@@ -942,9 +855,9 @@ const ScenarioProgramView = () => {
       />
 
       {/* รายงานสำหรับพิมพ์เท่านั้น — ซ่อนบนหน้าจอปกติ แสดงเฉพาะตอนสั่งพิมพ์ (window.print) */}
-      {latest && (
+      {printEntry && (
         <Box sx={{ display: 'none', '@media print': { display: 'block' } }}>
-          <ProgramReport entry={latest} />
+          <ProgramReport entry={printEntry} />
         </Box>
       )}
     </Box>
