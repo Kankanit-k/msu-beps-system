@@ -50,6 +50,7 @@ import {
   REVENUE_MODE_NOTE,
   shortFacName,
   statusOf,
+  sumRows as sumFinancialRows,
 } from '@views/breakeven/calc';
 import type { BEStatus } from '@views/breakeven/calc';
 
@@ -59,32 +60,14 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 /** ฟิลด์ที่หน้านี้ต้องใช้ — มีครบทั้งใน RAW.UNI และ RAW.FACS จึงรวมข้ามระดับได้ */
 type ScopeRow = Pick<UniRow, 'Q' | 'st' | 'own' | 'tfcProg' | 'tfcOffice' | 'dep' | 'TFC' | 'TVC'>;
 
-const EMPTY_SCOPE: ScopeRow = {
-  Q: 0,
-  st: 0,
-  own: 0,
-  tfcProg: 0,
-  tfcOffice: 0,
-  dep: 0,
-  TFC: 0,
-  TVC: 0,
-};
-
-/** รวมงบ/ต้นทุนของหลายคณะเป็นก้อนเดียว เพื่อคำนวณ KPI ของขอบเขตที่ถูกกรอง */
+/** รวมงบ/ต้นทุนของหลายคณะเป็นก้อนเดียว เพื่อคำนวณ KPI ของขอบเขตที่ถูกกรอง
+ *  ต่อยอดจาก sumRows ของ calc เพื่อให้ได้ Q* แบบชีต (ผลบวก Q* หลักสูตร) ตรงกับตารางรายคณะ */
 const sumRows = (rows: readonly ScopeRow[]): ScopeRow =>
-  rows.reduce(
-    (acc, r) => ({
-      Q: acc.Q + r.Q,
-      st: acc.st + r.st,
-      own: acc.own + r.own,
-      tfcProg: acc.tfcProg + r.tfcProg,
-      tfcOffice: acc.tfcOffice + r.tfcOffice,
-      dep: acc.dep + r.dep,
-      TFC: acc.TFC + r.TFC,
-      TVC: acc.TVC + r.TVC,
-    }),
-    EMPTY_SCOPE,
-  );
+  Object.assign(sumFinancialRows(rows), {
+    tfcProg: rows.reduce((a, r) => a + r.tfcProg, 0),
+    tfcOffice: rows.reduce((a, r) => a + r.tfcOffice, 0),
+    dep: rows.reduce((a, r) => a + r.dep, 0),
+  });
 
 const FAC_NAMES = RAW.FACS.map((f) => f.name);
 
@@ -601,7 +584,9 @@ const RevenueView = () => {
                   </Typography>
                 </Box>
                 <Box sx={{ inlineSize: 220, maxInlineSize: '45%' }}>
+                  {/* key = ค่าเกจ — series ถูกตัดที่ 100 ถ้าไม่ remount ป้ายจะค้างค่าของตัวกรองก่อนหน้า */}
                   <AppReactApexCharts
+                    key={qRatio === null ? 'none' : qRatio.toFixed(1)}
                     type="radialBar"
                     height={170}
                     width="100%"

@@ -8,7 +8,6 @@ import type { ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 
 // MUI Imports
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -17,7 +16,6 @@ import CardHeader from '@mui/material/CardHeader';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
-import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -89,6 +87,14 @@ const calcFor = (row: FacRow, mode: RevenueMode): FacCalc => {
   return { ...row, r, atc, avc, cm: r - avc, diff: r - atc };
 };
 
+/** สัญลักษณ์หน้ารายการประเด็นสำคัญ — ตาม mockup (✓ ผ่าน · ▸ เฝ้าระวัง/ข้อมูล · ⚠ วิกฤต) */
+const INSIGHT_MARK = {
+  success: { mark: '✓', color: 'success.main' },
+  warning: { mark: '▸', color: 'warning.main' },
+  info: { mark: '▸', color: 'primary.main' },
+  error: { mark: '⚠', color: 'error.main' },
+} as const;
+
 const PerheadView = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [search, setSearch] = useState('');
@@ -149,32 +155,50 @@ const PerheadView = () => {
   }, [sortedRows, search, statusFilter]);
 
   // ===== กราฟหลัก: R / ATC / AVC รายคณะ =====
-  // โทนน้ำเงินไล่เข้ม → อ่อน โดยมี #1c83d4 เป็นสีหลัก
-  const BAR_COLORS = ['#0f4f82', '#1c83d4', '#8cc3ee'] as const;
+  // แท่งแนวตั้งจัดกลุ่ม — เขียว = รายได้/หัว · ส้ม = ต้นทุนรวม/หัว · ม่วง = ผันแปร/หัว (ตาม mockup)
+  const BAR_COLORS = [
+    'var(--mui-palette-success-main)',
+    'var(--mui-palette-warning-main)',
+    'var(--mui-palette-primary-main)',
+  ] as const;
   const barCategories = chartRows.map((d) => short(d.name));
   const barOptions: ApexOptions = {
     chart: { type: 'bar', toolbar: { show: false }, parentHeightOffset: 0 },
     plotOptions: {
-      bar: { horizontal: true, borderRadius: 3, borderRadiusApplication: 'end', barHeight: '68%' },
+      bar: { horizontal: false, borderRadius: 3, borderRadiusApplication: 'end', columnWidth: '72%' },
     },
     colors: [...BAR_COLORS],
     dataLabels: { enabled: false },
-    grid: { borderColor: 'var(--mui-palette-divider)', xaxis: { lines: { show: true } } },
+    stroke: { show: true, width: 2, colors: ['transparent'] },
+    grid: {
+      borderColor: 'var(--mui-palette-divider)',
+      xaxis: { lines: { show: true } },
+      yaxis: { lines: { show: true } },
+    },
     legend: { show: false },
     xaxis: {
       categories: barCategories,
-      labels: { formatter: (v) => `${(Number(v) / 1000).toFixed(0)}k` },
-      title: { text: 'บาท/คน' },
+      // ชื่อคณะยาว — เอียง 45° ทุกชื่อ ไม่ตัดทิ้งเมื่อซ้อนกัน
+      labels: {
+        rotate: -45,
+        rotateAlways: true,
+        hideOverlappingLabels: false,
+        trim: false,
+        maxHeight: 180,
+        style: { fontSize: '11px' },
+      },
     },
-    yaxis: { labels: { style: { fontSize: '11px' } } },
-    tooltip: { y: { formatter: (v) => `${fmtB(v)} บาท/คน` } },
+    yaxis: {
+      title: { text: 'บาท/คน' },
+      labels: { formatter: (v) => `${(Number(v) / 1000).toFixed(0)}k` },
+    },
+    tooltip: { shared: true, intersect: false, y: { formatter: (v) => `${fmtB(v)} บาท/คน` } },
   };
   const barSeries = [
     { name: 'รายได้/หัว (R)', data: chartRows.map((d) => Math.round(d.r)) },
-    { name: 'ต้นทุน/หัว (ATC)', data: chartRows.map((d) => Math.round(d.atc)) },
-    { name: 'ผันแปร/หัว (AVC)', data: chartRows.map((d) => Math.round(d.avc)) },
+    { name: 'ต้นทุนรวม/หัว (ATC)', data: chartRows.map((d) => Math.round(d.atc)) },
+    { name: 'ต้นทุนผันแปร/หัว (AVC)', data: chartRows.map((d) => Math.round(d.avc)) },
   ];
-  const barHeight = Math.max(320, chartRows.length * 24);
 
   // ===== กราฟประสิทธิภาพ: R เทียบ ATC (scatter) =====
   const okPts = chartRows.filter((d) => d.diff >= 0);
@@ -248,6 +272,8 @@ const PerheadView = () => {
   // ===== Top 8 ต้นทุน/หัว สูงสุด =====
   const topAtc = [...chartRows].sort((a, b) => b.atc - a.atc).slice(0, 8);
   const maxAtc = topAtc[0]?.atc || 1;
+  // สีไล่ตามอันดับ — ตาม mockup (ชมพู → แดง → ส้ม → เหลือง → ม่วง → ม่วงอ่อน → เขียว → น้ำเงินเข้ม)
+  const TOP_COLORS = ['#e64275', '#f1393d', '#f59628', '#fbbe34', '#6b3ff9', '#784ef9', '#009c6e', '#362895'] as const;
 
   // ===== ประเด็นสำคัญ =====
   type Insight = { sev: 'success' | 'warning' | 'error' | 'info'; text: ReactNode };
@@ -439,23 +465,29 @@ const PerheadView = () => {
               sx={{ pb: 0 }}
               title={<DotTitle color="success.main">รายได้/หัว เทียบ ต้นทุน/หัว รายคณะ</DotTitle>}
               subheader={
-                outlierRows.length
-                  ? `ไม่รวม ${outlierRows.length} หน่วยที่นิสิต < ${OUTLIER_MIN_Q} คน (ต้นทุนต่อหัวสูงผิดปกติ) — ดูในตารางด้านล่าง`
-                  : 'บาท/คน ต่อคณะ'
+                <>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    แกน X = คณะ · แกน Y = บาท/คน · แท่งส้มสูงกว่าเขียว = ขาดทุนต่อหัว
+                  </Typography>
+                  {outlierRows.length > 0 && (
+                    <Typography variant="caption" color="error.main" display="block">
+                      กราฟไม่รวม {outlierRows.length} หน่วยที่มีนิสิต &lt; {OUTLIER_MIN_Q} คน (ATC
+                      สูงผิดปกติ) — ดูในตารางด้านล่าง
+                    </Typography>
+                  )}
+                </>
               }
-              subheaderTypographyProps={{ variant: 'caption' }}
-              action={
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, pt: 1 }}>
-                  <LegendItem color={BAR_COLORS[0]} label="รายได้/หัว (R)" />
-                  <LegendItem color={BAR_COLORS[1]} label="ต้นทุน/หัว (ATC)" />
-                  <LegendItem color={BAR_COLORS[2]} label="ผันแปร/หัว (AVC)" />
-                </Box>
-              }
+              action={<Chip size="small" variant="tonal" color="success" label="บาท/คน" />}
             />
-            <CardContent sx={{ pt: 0 }}>
+            <CardContent sx={{ pt: 2 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 1 }}>
+                <LegendItem color={BAR_COLORS[0]} label="รายได้/หัว (R)" />
+                <LegendItem color={BAR_COLORS[1]} label="ต้นทุนรวม/หัว (ATC)" />
+                <LegendItem color={BAR_COLORS[2]} label="ต้นทุนผันแปร/หัว (AVC)" />
+              </Box>
               <AppReactApexCharts
                 type="bar"
-                height={barHeight}
+                height={500}
                 width="100%"
                 options={barOptions}
                 series={barSeries}
@@ -493,29 +525,47 @@ const PerheadView = () => {
         <Grid size={{ xs: 12, md: 5 }}>
           <Card sx={{ height: '100%' }}>
             <CardHeader
-              title={<DotTitle color="error.main">ต้นทุน/หัว สูงสุด 8 อันดับ</DotTitle>}
+              title={<DotTitle color={TOP_COLORS[0]}>ต้นทุน/หัว สูงสุด (Top 8)</DotTitle>}
               subheader="เทียบกับค่าเฉลี่ยมหาวิทยาลัย"
+              subheaderTypographyProps={{ variant: 'caption' }}
             />
             <CardContent>
               <Stack spacing={3}>
-                {topAtc.map((d) => (
+                {topAtc.map((d, i) => (
                   <Box key={d.name}>
-                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                      <Typography variant="body2" noWrap title={d.name} sx={{ maxWidth: '60%' }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="baseline"
+                      sx={{ mb: 1 }}
+                    >
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color="text.primary"
+                        noWrap
+                        title={d.name}
+                        sx={{ maxWidth: '60%' }}
+                      >
                         {short(d.name)}
                       </Typography>
-                      <Typography variant="body2" fontWeight={600}>
+                      <Typography variant="body2" fontWeight={700} sx={{ color: TOP_COLORS[i] }}>
                         {fmtB(d.atc)}{' '}
-                        <Typography component="span" variant="caption" color="text.secondary">
-                          ({(d.atc / uni.atc).toFixed(1)}×)
+                        <Typography component="span" variant="caption" color="text.disabled">
+                          {(d.atc / uni.atc).toFixed(1)}×
                         </Typography>
                       </Typography>
                     </Stack>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(d.atc / maxAtc) * 100}
-                      color={d.atc > uni.atc ? 'error' : 'warning'}
-                    />
+                    <Box sx={{ height: 7, borderRadius: 4, bgcolor: 'action.hover', overflow: 'hidden' }}>
+                      <Box
+                        sx={{
+                          height: '100%',
+                          borderRadius: 4,
+                          bgcolor: TOP_COLORS[i],
+                          width: `${(d.atc / maxAtc) * 100}%`,
+                        }}
+                      />
+                    </Box>
                   </Box>
                 ))}
               </Stack>
@@ -559,8 +609,8 @@ const PerheadView = () => {
                 </Stack>
               }
             />
-            <TableContainer sx={{ maxHeight: 460 }}>
-              <Table stickyHeader size="small">
+            <TableContainer>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>#</TableCell>
@@ -632,20 +682,36 @@ const PerheadView = () => {
           </Card>
         </Grid>
 
-        {/* ประเด็นสำคัญ */}
+        {/* ประเด็นสำคัญ — แบบเดียวกับ mockup: แถบซ้าย + รายการกระชับ สัญลักษณ์ตามความรุนแรง */}
         <Grid size={{ xs: 12 }}>
-          <Card>
+          <Card sx={{ borderLeft: 4, borderLeftColor: 'primary.main' }}>
             <CardHeader
-              title={<DotTitle color="primary.main">ประเด็นสำคัญ — ต่อหัวนิสิต</DotTitle>}
+              title="ประเด็นสำคัญ — ต่อหัวนิสิต"
+              titleTypographyProps={{ variant: 'h6', color: 'primary.dark' }}
             />
-            <CardContent>
-              <Stack spacing={2}>
-                {insights.map((ins, i) => (
-                  <Alert key={i} severity={ins.sev} variant="outlined">
-                    {ins.text}
-                  </Alert>
-                ))}
-              </Stack>
+            <CardContent
+              component="ul"
+              sx={{ m: 0, pl: 4, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}
+            >
+              {insights.map((ins, i) => (
+                <Box
+                  key={i}
+                  component="li"
+                  sx={{
+                    position: 'relative',
+                    pl: 4,
+                    '&::before': {
+                      content: `"${INSIGHT_MARK[ins.sev].mark}"`,
+                      position: 'absolute',
+                      left: 0,
+                      color: INSIGHT_MARK[ins.sev].color,
+                      fontWeight: 700,
+                    },
+                  }}
+                >
+                  <Typography variant="body2">{ins.text}</Typography>
+                </Box>
+              ))}
             </CardContent>
           </Card>
         </Grid>
