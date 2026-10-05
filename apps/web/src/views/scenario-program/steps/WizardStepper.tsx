@@ -54,11 +54,11 @@ export const WizardStepper = ({ active, maxStep, onGo }: StepperProps) => (
   </Card>
 );
 
-/** จุดคุ้มทุนของคอลัมน์ที่ใช้คำนวณ แยกกรณีรวม/ไม่รวมเงินแผ่นดิน */
-const LiveResult = ({ groups, basis }: { groups: CostGroup[]; basis: string }) => (
+/** จุดคุ้มทุนของคอลัมน์ที่แก้ได้ (คอลัมน์สุดท้าย) แยกกรณีรวม/ไม่รวมเงินแผ่นดิน */
+const LiveResult = ({ groups }: { groups: CostGroup[] }) => (
   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 3 } }}>
     {groups.map((g) => {
-      const c = g.cols.find((x) => x.key === basis) ?? g.cols[g.cols.length - 1]!;
+      const c = g.cols[g.cols.length - 1]!;
       const { qStar } = c.result;
       const ok = qStar !== null && qStar >= 0 && c.block.q >= qStar;
 
@@ -67,7 +67,7 @@ const LiveResult = ({ groups, basis }: { groups: CostGroup[]; basis: string }) =
           <Box component="span" sx={{ color: `${g.color}.main`, fontWeight: 700 }}>
             {g.title}
           </Box>{' '}
-          Q* <b>{qStar === null ? '—' : fmtN(qStar)}</b> · จริง {fmtN(c.block.q)}{' '}
+          จุดคุ้มทุน <b>{qStar === null ? '—' : fmtN(qStar)}</b> คน · นิสิตจริง {fmtN(c.block.q)} คน{' '}
           <Box component="span" sx={{ color: ok ? 'success.main' : 'error.main', fontWeight: 700 }}>
             {qStar === null ? '' : ok ? '✓' : `⚠ ขาด ${fmtN(qStar - c.block.q)}`}
           </Box>
@@ -82,20 +82,12 @@ interface NavProps {
   /** เหตุผลที่ยังไปขั้นถัดไปไม่ได้ — null = ไปต่อได้ */
   lockReason: string | null;
   groups: CostGroup[];
-  basis: string;
   onGo: (i: number) => void;
   /** ขั้นสุดท้าย — ล้างฟอร์มเริ่มคำนวณหลักสูตรใหม่ */
   onRestart: () => void;
 }
 
-export const WizardNav = ({
-  active,
-  lockReason,
-  groups,
-  basis,
-  onGo,
-  onRestart,
-}: NavProps) => {
+export const WizardNav = ({ active, lockReason, groups, onGo, onRestart }: NavProps) => {
   const last = active === STEPS.length - 1;
 
   return (
@@ -139,7 +131,7 @@ export const WizardNav = ({
             {lockReason}
           </Typography>
         ) : (
-          <LiveResult groups={groups} basis={basis} />
+          <LiveResult groups={groups} />
         )}
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ ml: { xs: 'auto', sm: 0 } }}>

@@ -2,8 +2,6 @@
 
 // MUI Imports
 import Box from '@mui/material/Box';
-import ButtonBase from '@mui/material/ButtonBase';
-import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
@@ -13,15 +11,13 @@ const fmtN = (v: number) => (Math.round(v) || 0).toLocaleString('th-TH');
 
 interface Props {
   groups: CostGroup[];
-  /** เลือกคอลัมน์ที่ใช้กับกราฟ ตารางสัดส่วน และการบันทึก */
-  onSelect: (groupKey: string, colKey: string) => void;
 }
 
 /**
  * สรุป "ต้องรับนิสิตกี่คนถึงคุ้มทุน" — กรณีรวม/ไม่รวมเงินแผ่นดิน วางคู่กัน
- * แต่ละกรณีเทียบ คอลัมน์ฐาน (หลักสูตรเดิม) กับ คอลัมน์ที่แก้ได้ · กดแถวเพื่อใช้กับกราฟ/บันทึก
+ * แต่ละกรณีเทียบ คอลัมน์ฐาน (หลักสูตรเดิม) กับ คอลัมน์ที่แก้ได้
  */
-const BreakEvenCompare = ({ groups, onSelect }: Props) => (
+const BreakEvenCompare = ({ groups }: Props) => (
   <Grid container spacing={3}>
     {groups.map((g) => {
       const [a, b] = g.cols.map((c) => c.result.qStar);
@@ -51,36 +47,22 @@ const BreakEvenCompare = ({ groups, onSelect }: Props) => (
               const ok = qStar !== null && !negative && q >= qStar;
 
               return (
-                <ButtonBase
+                <Box
                   key={c.key}
-                  onClick={() => onSelect(g.key, c.key)}
-                  title="กดเพื่อใช้คอลัมน์นี้กับกราฟ ตารางสัดส่วนนิสิต และการบันทึก"
                   sx={{
                     display: 'flex',
-                    width: '100%',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     gap: 2,
-                    textAlign: 'left',
                     p: 1.5,
                     mt: 1,
                     borderRadius: 1,
-                    bgcolor: c.active ? 'action.selected' : 'action.hover',
-                    outline: c.active ? 2 : 0,
-                    outlineColor: 'primary.main',
+                    bgcolor: 'action.hover',
                   }}
                 >
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
                       {c.title}
-                      {c.active && (
-                        <Chip
-                          size="small"
-                          color="primary"
-                          label="ใช้คำนวณ"
-                          sx={{ ml: 1, height: 18, fontSize: 10 }}
-                        />
-                      )}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -95,7 +77,7 @@ const BreakEvenCompare = ({ groups, onSelect }: Props) => (
                       {qStar === null
                         ? 'คำนวณไม่ได้'
                         : negative
-                          ? 'R ≤ AVC — ยิ่งรับนิสิตยิ่งขาดทุน'
+                          ? 'รายได้ต่อหัวไม่สูงกว่าต้นทุนผันแปรต่อหัว — ยิ่งรับนิสิตยิ่งขาดทุน'
                           : ok
                             ? `✓ เกินจุดคุ้มทุน +${fmtN(q - qStar)} คน`
                             : `⚠ ต้องเพิ่มอีก ${fmtN(qStar - q)} คน`}
@@ -103,7 +85,7 @@ const BreakEvenCompare = ({ groups, onSelect }: Props) => (
                   </Box>
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
                     <Typography variant="caption" color="text.secondary" display="block">
-                      จุดคุ้มทุน (Q*)
+                      จำนวนนิสิต ณ จุดคุ้มทุน
                     </Typography>
                     <Typography
                       variant="h5"
@@ -115,7 +97,7 @@ const BreakEvenCompare = ({ groups, onSelect }: Props) => (
                       </Typography>
                     </Typography>
                   </Box>
-                </ButtonBase>
+                </Box>
               );
             })}
             {delta !== null && (

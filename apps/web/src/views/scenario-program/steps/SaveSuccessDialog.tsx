@@ -52,15 +52,16 @@ const SaveSuccessDialog = ({ entry, onClose, onReport, onStartNew }: Props) => (
           </Typography>
           {(
             [
-              ['รวมเงินแผ่นดิน', entry.withGov.qStar],
-              ['ไม่รวมเงินแผ่นดิน', entry.withoutGov.qStar],
+              ['รวมเงินแผ่นดิน', entry.withGov],
+              ['ไม่รวมเงินแผ่นดิน', entry.withoutGov],
             ] as const
-          ).map(([label, q]) => {
-            const ok = q !== null && q >= 0 && entry.q >= q;
+          ).map(([label, r]) => {
+            const q = r.qStar;
+            const ok = q !== null && q >= 0 && r.q >= q;
 
             return (
               <Typography key={label} variant="body2">
-                {label}: Q* <b>{q === null ? '—' : fmtN(q)}</b> คน · นิสิตจริง {fmtN(entry.q)}{' '}
+                {label}: จุดคุ้มทุน <b>{q === null ? '—' : fmtN(q)}</b> คน · นิสิตจริง {fmtN(r.q)}{' '}
                 <Box
                   component="span"
                   sx={{ color: ok ? 'success.main' : 'error.main', fontWeight: 700 }}

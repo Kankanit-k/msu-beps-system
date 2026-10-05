@@ -13,27 +13,19 @@ import Typography from '@mui/material/Typography';
 
 import { DotTitle } from '@components/ChartBits';
 
-import BreakEvenChart from '../BreakEvenChart';
+import BreakEvenChart, { type ChartCase } from '../BreakEvenChart';
 import BreakEvenCompare from '../BreakEvenCompare';
 import type { CostGroup } from '../CostBlockTable';
 import type { ProgramHistoryEntry } from '../types';
 import HistoryTable from './HistoryTable';
 import LatestResultCard from './LatestResultCard';
 
-export interface ChartInput {
-  q: number;
-  tfc: number;
-  avc: number;
-  rPerHead: number;
-  qStar: number | null;
-}
-
 interface Props {
   groups: CostGroup[];
   compareSubheader: string;
-  onSelect: (groupKey: string, colKey: string) => void;
   chartSubheader: string;
-  chart: ChartInput | null;
+  /** กรณีที่มีจำนวนนิสิตแล้ว — ว่าง = ยังวาดกราฟไม่ได้ */
+  chart: ChartCase[];
   saveBlocker: string | null;
   onSave: () => void;
   history: ProgramHistoryEntry[];
@@ -53,7 +45,7 @@ const SummaryStep = (props: Props) => {
           subheader={props.compareSubheader}
         />
         <CardContent>
-          <BreakEvenCompare groups={props.groups} onSelect={props.onSelect} />
+          <BreakEvenCompare groups={props.groups} />
         </CardContent>
       </Card>
 
@@ -63,8 +55,8 @@ const SummaryStep = (props: Props) => {
           subheader={props.chartSubheader}
         />
         <CardContent>
-          {props.chart ? (
-            <BreakEvenChart {...props.chart} />
+          {props.chart.length > 0 ? (
+            <BreakEvenChart cases={props.chart} />
           ) : (
             <Typography variant="body2" color="text.secondary">
               กราฟจะแสดงเมื่อมีจำนวนนิสิตและต้นทุน

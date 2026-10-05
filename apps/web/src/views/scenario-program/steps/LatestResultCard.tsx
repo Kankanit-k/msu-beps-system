@@ -19,11 +19,9 @@ import type { ProgramHistoryEntry } from '../types';
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtM = (v: number) =>
-  `${(v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล.`;
+  `${(v / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ล้านบาท`;
 
 const LatestResultCard = ({ latest }: { latest: ProgramHistoryEntry }) => {
-  const latestResult = latest.mode === 'with_government' ? latest.withGov : latest.withoutGov;
-
   return (
     <Card>
       <CardHeader
@@ -31,33 +29,9 @@ const LatestResultCard = ({ latest }: { latest: ProgramHistoryEntry }) => {
         subheader={`${latest.fac || '—'} · ${latest.level} · ${latest.isNew ? 'เปิดหลักสูตรใหม่' : 'ปรับปรุงหลักสูตรเดิม'}${latest.ref ? ` · อ้างอิง ${latest.ref}` : ''}`}
       />
       <CardContent>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          {(
-            [
-              ['รายได้รวม (TR)', fmtM(latestResult.tr), 'primary.main'],
-              ['ต้นทุนรวม (TC)', fmtM(latestResult.tc), 'text.primary'],
-              ['ต้นทุนคงที่ (TFC)', fmtM(latest.tfc), 'warning.main'],
-              ['ต้นทุนผันแปร (TVC)', fmtM(latest.tvc), 'text.primary'],
-              ['ผันแปร/หัว (AVC)', `${fmtN(latest.avc)} บ./คน`, 'text.primary'],
-              ['นิสิตจริง (Q)', `${fmtN(latest.q)} คน`, 'text.primary'],
-            ] as const
-          ).map(([label, val, color]) => (
-            <Grid key={label} size={{ xs: 6, sm: 4 }}>
-              <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                  {label}
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color }}>
-                  {val}
-                </Typography>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-
         {(['with_government', 'without_government'] as RevenueMode[]).map((m) => {
           const r = m === 'with_government' ? latest.withGov : latest.withoutGov;
-          const isOk = r.qStar !== null && latest.q >= r.qStar;
+          const isOk = r.qStar !== null && r.q >= r.qStar;
           const full = r.qStarStatus === 'full_cost_recovery';
 
           return (
@@ -86,12 +60,28 @@ const LatestResultCard = ({ latest }: { latest: ProgramHistoryEntry }) => {
               <Grid container spacing={1}>
                 <Grid size={6}>
                   <Typography variant="body2">
-                    รายได้/หัว (R): <b>{fmtN(r.r ?? 0)}</b> บ.
+                    นิสิตจริง: <b>{fmtN(r.q)}</b> คน
                   </Typography>
                 </Grid>
                 <Grid size={6}>
                   <Typography variant="body2">
-                    ส่วนเกิน/หัว (CM):{' '}
+                    รายได้รวม: <b>{fmtM(r.tr)}</b>
+                  </Typography>
+                </Grid>
+                <Grid size={12}>
+                  <Typography variant="body2">
+                    ต้นทุนรวม: <b>{fmtM(r.tc)}</b> (คงที่ {fmtM(r.tfc)} · ผันแปร {fmtN(r.avc ?? 0)}{' '}
+                    บาท/คน)
+                  </Typography>
+                </Grid>
+                <Grid size={6}>
+                  <Typography variant="body2">
+                    รายได้ต่อหัว: <b>{fmtN(r.r ?? 0)}</b> บาท
+                  </Typography>
+                </Grid>
+                <Grid size={6}>
+                  <Typography variant="body2">
+                    ส่วนต่างต่อหัว (รายได้ − ต้นทุนผันแปร):{' '}
                     <b
                       style={{
                         color:
@@ -102,19 +92,19 @@ const LatestResultCard = ({ latest }: { latest: ProgramHistoryEntry }) => {
                     >
                       {fmtN(r.cm ?? 0)}
                     </b>{' '}
-                    บ.
+                    บาท
                   </Typography>
                 </Grid>
                 <Grid size={6}>
                   <Typography variant="body2" component="div">
-                    จุดคุ้มทุน (Q*):{' '}
+                    {full ? 'เป้าหมายคืนทุนเต็ม' : 'จำนวนนิสิต ณ จุดคุ้มทุน'}:{' '}
                     <b style={{ color: 'var(--mui-palette-error-main)' }}>
                       {r.qStar ? `${fmtN(r.qStar)} คน` : '—'}
                     </b>{' '}
                     {full && (
                       <Chip
                         size="small"
-                        label="คืนทุนเต็ม (TC/R)"
+                        label="ต้นทุนรวม ÷ รายได้ต่อหัว"
                         color="warning"
                         sx={{ height: 16, fontSize: 10 }}
                       />
@@ -123,7 +113,7 @@ const LatestResultCard = ({ latest }: { latest: ProgramHistoryEntry }) => {
                 </Grid>
                 <Grid size={6}>
                   <Typography variant="body2">
-                    กำไร:{' '}
+                    กำไร (ร้อยละของต้นทุนรวม):{' '}
                     <b
                       style={{
                         color:
@@ -144,10 +134,10 @@ const LatestResultCard = ({ latest }: { latest: ProgramHistoryEntry }) => {
               >
                 {!r.qStar
                   ? '⚠ คำนวณไม่ได้'
-                  : `${full ? '⚠ ไม่คุ้มทุน (CM ≤ 0) · ใช้เป้าคืนทุนเต็ม (TC/R) · ' : ''}${
+                  : `${full ? '⚠ รายได้ต่อหัวไม่สูงกว่าต้นทุนผันแปรต่อหัว จึงไม่มีจุดคุ้มทุน · ใช้เป้าหมายคืนทุนเต็มแทน · ' : ''}${
                       isOk
-                        ? `✓ เกินจุดคุ้มทุน +${fmtN(latest.q - r.qStar)} คน`
-                        : `⚠ ต้องเพิ่มอีก ${fmtN(r.qStar - latest.q)} คน`
+                        ? `✓ เกินจุดคุ้มทุน +${fmtN(r.q - r.qStar)} คน`
+                        : `⚠ ต้องเพิ่มอีก ${fmtN(r.qStar - r.q)} คน`
                     }`}
               </Typography>
             </Box>

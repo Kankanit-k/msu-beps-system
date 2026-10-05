@@ -10,7 +10,7 @@ import type { ModeCosts } from './StudentMixTable';
 export interface ProgramReportDetail {
   refCol: string;
   customCol: string;
-  /** ชื่อคอลัมน์ที่ใช้คำนวณ (กราฟ ตารางสัดส่วน และผลสรุป) */
+  /** ชื่อคอลัมน์ที่ประเมิน (คอลัมน์ที่แก้ได้เสมอ) */
   basisCol: string;
   semesters: number;
   fees: FeeRow[];
@@ -64,7 +64,7 @@ export interface ProgramHistoryEntry {
   withoutGov: BreakEvenResult;
   /** วิธีปันส่วนต้นทุนคงที่ส่วนกลางคณะที่ใช้ (ไม่มี = บันทึกก่อนมีฟิลด์นี้ = ตามชีต) */
   allocMethod?: string;
-  /** โหมดที่ใช้แสดงกราฟ/รายงาน ณ ตอนคำนวณ */
+  /** โหมดที่เลือกบนแถบหัวหน้า ณ ตอนบันทึก (กราฟ/รายงานแสดงทั้งสองกรณีแล้ว) */
   mode: RevenueMode;
   /** รายละเอียดทุกขั้นตอน (ไม่มี = บันทึกก่อนมีฟิลด์นี้ → รายงานแบบสรุป) */
   detail?: ProgramReportDetail;

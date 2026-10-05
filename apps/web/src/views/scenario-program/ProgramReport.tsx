@@ -1,9 +1,11 @@
 // รายงานสำหรับพิมพ์/บันทึกเป็น PDF ผ่านกล่องโต้ตอบพิมพ์ของเบราว์เซอร์ (window.print())
-// ฉบับย่อ 2 หน้า — แสดงเฉพาะฐานรายได้ที่ใช้คำนวณ (entry.mode) จากภาพที่บันทึกไว้ ไม่คำนวณซ้ำจากฟอร์มปัจจุบัน
+// ฉบับย่อ 2 หน้า 7 หัวข้อ — แสดงทั้งกรณีรวมและไม่รวมเงินแผ่นดินคู่กัน จากภาพที่บันทึกไว้ ไม่คำนวณซ้ำจากฟอร์มปัจจุบัน
 import type { ReactNode } from 'react';
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+
+import type { BreakEvenResult, RevenueMode } from '@beps/calc-engine';
 
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
@@ -80,31 +82,6 @@ const Field = ({ label, value }: { label: string; value: ReactNode }) => (
   </Box>
 );
 
-const Kpi = ({
-  label,
-  value,
-  unit,
-  color,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  color: string;
-}) => (
-  <Box
-    sx={{
-      border: `1px solid ${BORDER}`,
-      borderRadius: 1.5,
-      py: 1,
-      textAlign: 'center',
-    }}
-  >
-    <Typography sx={{ fontSize: 9, color: 'text.secondary' }}>{label}</Typography>
-    <Typography sx={{ fontWeight: 800, fontSize: 17, color }}>{value}</Typography>
-    <Typography sx={{ fontSize: 9, color: 'text.secondary' }}>{unit}</Typography>
-  </Box>
-);
-
 const Formula = ({ children }: { children: ReactNode }) => (
   <Box
     sx={{
@@ -154,37 +131,49 @@ const Letterhead = ({ right }: { right?: ReactNode }) => (
         มหาวิทยาลัยมหาสารคาม | Mahasarakham University
       </Typography>
       <Typography sx={{ fontSize: 9, color: 'text.secondary' }}>
-        รายงานการวิเคราะห์จุดคุ้มทุน (Break-Even Analysis Report) · กองแผนงาน
+        รายงานการวิเคราะห์จุดคุ้มทุน · กองแผนงาน
       </Typography>
     </Box>
     {right}
   </Box>
 );
 
-/** กราฟ TR/TC/TFC แบบ SVG ล้วน — ApexCharts วัดขนาดไม่ได้ในกล่องที่ซ่อนไว้จนสั่งพิมพ์ */
-const PrintChart = ({
-  q,
-  tfc,
-  avc,
-  r,
-  qStar,
-}: {
-  q: number;
-  tfc: number;
-  avc: number;
-  r: number;
-  qStar: number | null;
-}) => {
+/** สีประจำกรณี — ตรงกับกรอบกรณีบนหน้าจอ */
+const CASE_COLOR: Record<RevenueMode, string> = {
+  with_government: PURPLE,
+  without_government: AMBER,
+};
+
+interface Case {
+  mode: RevenueMode;
+  r: BreakEvenResult;
+}
+
+/** กราฟรายได้รวมสองกรณี/ต้นทุนรวม/ต้นทุนคงที่ แบบ SVG ล้วน — ApexCharts วัดขนาดไม่ได้ในกล่องที่ซ่อนไว้จนสั่งพิมพ์ */
+const PrintChart = ({ cases }: { cases: Case[] }) => {
   const W = 640;
   const H = 230;
-  const pad = { l: 50, r: 50, t: 36, b: 36 };
-  const hasStar = qStar !== null && qStar > 0;
-  const maxQ = Math.min(Math.max(q * 1.3, hasStar ? qStar * 1.6 : 0, 30), 2e5);
-  const maxY = Math.max(r * maxQ, tfc + avc * maxQ, tfc) || 1;
+  const pad = { l: 50, r: 70, t: 36, b: 48 };
+  const per = cases.map(({ mode, r }) => ({
+    mode,
+    q: r.q,
+    tfc: r.tfc,
+    avc: r.avc ?? 0,
+    rh: r.r ?? 0,
+    qStar: r.qStar !== null && r.qStar > 0 ? r.qStar : null,
+  }));
+  const maxQ = Math.min(
+    Math.max(30, ...per.map((c) => Math.max(c.q * 1.3, c.qStar ? c.qStar * 1.6 : 0))),
+    2e5,
+  );
+  const maxY = Math.max(...per.map((c) => Math.max(c.rh * maxQ, c.tfc + c.avc * maxQ, c.tfc))) || 1;
+  const sameCost = per.every((c) => c.tfc === per[0]!.tfc && c.avc === per[0]!.avc);
+  const costs = sameCost ? per.slice(0, 1) : per;
   const x = (n: number) => pad.l + (n / maxQ) * (W - pad.l - pad.r);
   const y = (v: number) => H - pad.b - (v / maxY) * (H - pad.t - pad.b);
-  const seg = (f: (n: number) => number, stroke: string, dash?: string) => (
+  const seg = (key: string, f: (n: number) => number, stroke: string, dash?: string) => (
     <line
+      key={key}
       x1={x(0)}
       y1={y(f(0))}
       x2={x(maxQ)}
@@ -223,141 +212,205 @@ const PrintChart = ({
         จำนวนนิสิต (คน)
       </text>
 
-      {seg(() => tfc, GREEN, '6 4')}
-      <text x={W - pad.r + 6} y={y(tfc) + 3} fontSize={9} fill={GREEN}>
-        TFC
+      {costs.map((c, i) => (
+        <g key={c.mode}>
+          {seg('tfc', () => c.tfc, GREEN, '6 4')}
+          {seg('tc', (n) => c.tfc + c.avc * n, '#e2457a', i > 0 ? '8 3' : undefined)}
+        </g>
+      ))}
+      <text x={W - pad.r + 4} y={y(costs[0]!.tfc) - 4} fontSize={9} fill={GREEN}>
+        ต้นทุนคงที่
       </text>
-      {seg((n) => tfc + avc * n, '#e2457a')}
-      {seg((n) => r * n, PURPLE)}
+      {per.map((c) => seg(c.mode, (n) => c.rh * n, CASE_COLOR[c.mode]))}
 
-      {hasStar && qStar <= maxQ && (
-        <g>
-          <line
-            x1={x(qStar)}
-            y1={y(r * qStar)}
-            x2={x(qStar)}
-            y2={y(0)}
-            stroke={NAVY}
-            strokeDasharray="3 3"
-          />
-          <circle cx={x(qStar)} cy={y(r * qStar)} r={5} fill={NAVY} />
-          <text x={x(qStar)} y={y(0) + 13} textAnchor="middle" fill={NAVY} {...label}>
-            Q*={fmtN(qStar)}
-          </text>
-        </g>
+      {per.map(
+        (c, i) =>
+          c.qStar !== null &&
+          c.qStar <= maxQ && (
+            <g key={c.mode}>
+              <line
+                x1={x(c.qStar)}
+                y1={y(c.rh * c.qStar)}
+                x2={x(c.qStar)}
+                y2={y(0)}
+                stroke={CASE_COLOR[c.mode]}
+                strokeDasharray="3 3"
+              />
+              <circle cx={x(c.qStar)} cy={y(c.rh * c.qStar)} r={5} fill={CASE_COLOR[c.mode]} />
+              <text
+                x={x(c.qStar)}
+                y={y(0) + 13 + i * 11}
+                textAnchor="middle"
+                fill={CASE_COLOR[c.mode]}
+                {...label}
+              >
+                คุ้มทุน {fmtN(c.qStar)} คน
+              </text>
+            </g>
+          ),
       )}
-      {q > 0 && q <= maxQ && (
-        <g>
-          <circle cx={x(q)} cy={y(r * q)} r={4.5} fill="#f59e0b" />
-          <text x={x(q)} y={y(r * q) - 9} textAnchor="middle" fill="#d97706" {...label}>
-            Q={fmtN(q)}
-          </text>
-        </g>
+      {per.map(
+        (c) =>
+          c.q > 0 &&
+          c.q <= maxQ && (
+            <circle key={c.mode} cx={x(c.q)} cy={y(c.rh * c.q)} r={4} fill="#334155" />
+          ),
+      )}
+      {[...new Set(per.map((c) => c.q))].map(
+        (q) =>
+          q > 0 &&
+          q <= maxQ && (
+            <text
+              key={q}
+              x={x(q)}
+              y={y(Math.max(...per.map((c) => c.rh)) * q) - 9}
+              textAnchor="middle"
+              fill="#334155"
+              {...label}
+            >
+              จริง {fmtN(q)} คน
+            </text>
+          ),
       )}
 
       <g fontSize={9} fill="#334155">
-        <rect x={pad.l + 10} y={12} width={8} height={8} fill={PURPLE} />
-        <text x={pad.l + 22} y={19}>
-          TR
+        {per.map((c, i) => (
+          <g key={c.mode}>
+            <rect x={pad.l + 10 + i * 120} y={12} width={8} height={8} fill={CASE_COLOR[c.mode]} />
+            <text x={pad.l + 22 + i * 120} y={19}>
+              รายได้ ({REVENUE_MODE_LABEL[c.mode]})
+            </text>
+          </g>
+        ))}
+        <rect x={pad.l + 250} y={12} width={8} height={8} fill="#e2457a" />
+        <text x={pad.l + 262} y={19}>
+          ต้นทุนรวม{sameCost ? '' : ' (เส้นประ = ไม่รวมฯ)'}
         </text>
-        <rect x={pad.l + 46} y={12} width={8} height={8} fill="#e2457a" />
-        <text x={pad.l + 58} y={19}>
-          TC
+        <line
+          x1={pad.l + (sameCost ? 320 : 400)}
+          y1={16}
+          x2={pad.l + (sameCost ? 332 : 412)}
+          y2={16}
+          stroke={GREEN}
+          strokeWidth={2.5}
+          strokeDasharray="4 2"
+        />
+        <text x={pad.l + (sameCost ? 336 : 416)} y={19}>
+          ต้นทุนคงที่
         </text>
-        <circle cx={pad.l + 86} cy={16} r={4} fill={NAVY} />
-        <text x={pad.l + 94} y={19}>
-          Q*
-        </text>
-        <circle cx={pad.l + 120} cy={16} r={4} fill="#f59e0b" />
-        <text x={pad.l + 128} y={19}>
-          Q จริง
+        <circle cx={pad.l + (sameCost ? 394 : 474)} cy={16} r={4} fill="#334155" />
+        <text x={pad.l + (sameCost ? 402 : 482)} y={19}>
+          นิสิตจริง
         </text>
       </g>
     </svg>
   );
 };
 
+/** ตารางเทียบสองกรณี — แถวละรายการ คอลัมน์ละกรณี */
+const CompareTable = ({
+  cases,
+  rows,
+}: {
+  cases: Case[];
+  rows: {
+    key: string;
+    label: string;
+    v: (r: BreakEvenResult) => number | null;
+    fmt?: (v: number) => string;
+    tone?: boolean;
+    indent?: boolean;
+    bold?: boolean;
+  }[];
+}) => (
+  <Box
+    component="table"
+    sx={{
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: 11,
+      '& th': {
+        bgcolor: NAVY,
+        color: '#fff',
+        textAlign: 'left',
+        px: 1.5,
+        py: 0.9,
+        fontWeight: 700,
+      },
+      '& td': { px: 1.5, py: 0.8, borderBottom: `1px solid ${BORDER}` },
+      '& tr:nth-of-type(even) td': { bgcolor: SOFT },
+    }}
+  >
+    <thead>
+      <tr>
+        <th>รายการ</th>
+        {cases.map((c) => (
+          <th key={c.mode} style={{ textAlign: 'right' }}>
+            {REVENUE_MODE_LABEL[c.mode]}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.key}>
+          <Box
+            component="td"
+            sx={{
+              pl: row.indent ? '28px !important' : undefined,
+              fontWeight: row.bold ? 700 : 400,
+            }}
+          >
+            {row.label}
+          </Box>
+          {cases.map((c) => {
+            const v = row.v(c.r);
+
+            return (
+              <Box
+                component="td"
+                key={c.mode}
+                sx={{
+                  textAlign: 'right',
+                  fontWeight: 700,
+                  color: row.tone && v !== null ? (v >= 0 ? GREEN : RED) : undefined,
+                }}
+              >
+                {v === null ? '—' : (row.fmt ?? fmtN)(v)}
+              </Box>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </Box>
+);
+
 interface Props {
   entry: ProgramHistoryEntry;
 }
 
 const ProgramReport = ({ entry }: Props) => {
-  const d = entry.detail;
-  const mode = entry.mode;
-  const r = mode === 'with_government' ? entry.withGov : entry.withoutGov;
-  const R = r.r ?? 0;
-  const avc = r.avc ?? 0;
-  const cm = r.cm ?? 0;
-  const qStar = r.qStar;
-  const ok = qStar !== null && qStar >= 0 && entry.q >= qStar;
-  const gap = qStar === null ? null : entry.q - qStar;
+  const cases: Case[] = [
+    { mode: 'with_government', r: entry.withGov },
+    { mode: 'without_government', r: entry.withoutGov },
+  ];
+  // ปัดรายได้รวม/ต้นทุนรวมเป็นบาทก่อนลบ — ผู้อ่านคิดตามตัวเลขในรายงานแล้วได้ผลตรงกัน
+  const profitOf = (r: BreakEvenResult) => Math.round(r.tr) - Math.round(r.tc);
+  const okOf = (r: BreakEvenResult) => r.qStar !== null && r.qStar >= 0 && r.q >= r.qStar;
+  const fullOf = (r: BreakEvenResult) => r.qStarStatus === 'full_cost_recovery';
+  const allOk = cases.every((c) => okOf(c.r));
   const dateStr = new Date().toLocaleDateString('th-TH', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  const typeLabel = entry.isNew ? 'หลักสูตรใหม่ (New Program)' : 'หลักสูตรเดิม (Existing Program)';
-
-  // ปันส่วนต้นทุนคงที่ส่วนกลางคณะ — คอลัมน์ที่ใช้คำนวณของฐานรายได้นี้
-  const alloc = d?.alloc ?? null;
-  const group = d?.groups.find((g) => g.mode === mode);
-  const col = group ? (group.cols.find((c) => c.active) ?? group.cols.at(-1)) : undefined;
-  const target = alloc?.shares.find((s) => s.target);
-  const sharesChanged = !!alloc?.shares.some((s) => Math.round(s.after) !== Math.round(s.before));
-
-  const costRows: {
-    label: string;
-    sym: string;
-    v: number;
-    unit?: string;
-    color?: string;
-    indent?: boolean;
-    bold?: boolean;
-    hl?: boolean;
-  }[] = [
-    { label: 'รายได้รวม', sym: 'TR', v: r.tr, color: NAVY },
-    { label: 'ต้นทุนรวม', sym: 'TC', v: r.tc },
-    { label: 'ต้นทุนคงที่รวม', sym: 'TFC', v: r.tfc, color: NAVY, indent: true },
-    { label: 'ต้นทุนผันแปรรวม', sym: 'TVC', v: r.tvc, color: AMBER, indent: true },
-    {
-      label: 'ต้นทุนผันแปรต่อหน่วย',
-      sym: 'AVC',
-      v: avc,
-      unit: 'บ./คน',
-      color: AMBER,
-      indent: true,
-    },
-    {
-      label: 'Contribution Margin/หน่วย',
-      sym: 'CM',
-      v: cm,
-      unit: 'บ./คน',
-      color: cm >= 0 ? GREEN : RED,
-      bold: true,
-    },
-    {
-      label: 'ส่วนเกิน / ขาดทุน',
-      sym: 'π',
-      v: r.profit,
-      color: r.profit >= 0 ? GREEN : RED,
-      bold: true,
-      hl: true,
-    },
-    ...(r.breakEvenRevenue === null
-      ? []
-      : [{ label: 'รายได้ ณ จุดคุ้มทุน', sym: 'BE Rev', v: r.breakEvenRevenue, bold: true }]),
-    ...(r.marginOfSafety === null
-      ? []
-      : [
-          {
-            label: 'Margin of Safety',
-            sym: 'MoS',
-            v: r.marginOfSafety,
-            color: r.marginOfSafety >= 0 ? GREEN : RED,
-            bold: true,
-          },
-        ]),
-  ];
+  const typeLabel = entry.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม';
+  const status = (r: BreakEvenResult) =>
+    r.qStar === null ? 'คำนวณจุดคุ้มทุนไม่ได้' : okOf(r) ? 'ผ่านจุดคุ้มทุน' : 'ยังไม่ถึงจุดคุ้มทุน';
+  const tone = allOk
+    ? { border: '#22a06b', bg: '#d9f7e8', icon: '✅' }
+    : { border: '#e0a100', bg: '#fff4d6', icon: '⚠️' };
 
   return (
     <Box
@@ -387,7 +440,7 @@ const ProgramReport = ({ entry }: Props) => {
                   {typeLabel}
                 </Pill>
                 <Pill bg="#fff1cc" color="#8a5a00">
-                  ฐานรายได้: {REVENUE_MODE_LABEL[mode]}
+                  ฐานรายได้: รวมและไม่รวมเงินแผ่นดิน
                 </Pill>
               </Box>
             </Box>
@@ -406,31 +459,24 @@ const ProgramReport = ({ entry }: Props) => {
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            border: `2px solid ${ok ? '#22a06b' : '#e0a100'}`,
-            bgcolor: ok ? '#d9f7e8' : '#fff4d6',
+            border: `2px solid ${tone.border}`,
+            bgcolor: tone.bg,
             borderRadius: 2,
             px: 2,
             py: 1.5,
             mb: 3,
           }}
         >
-          <Typography sx={{ fontSize: 26 }}>{ok ? '✅' : '⚠️'}</Typography>
+          <Typography sx={{ fontSize: 26 }}>{tone.icon}</Typography>
           <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: 15, color: ok ? GREEN : '#8a5a00' }}>
-              {qStar === null
-                ? 'คำนวณจุดคุ้มทุนไม่ได้'
-                : ok
-                  ? 'ผ่านจุดคุ้มทุน'
-                  : 'ยังไม่ถึงจุดคุ้มทุน'}
-            </Typography>
-            {qStar !== null && gap !== null && (
-              <Typography sx={{ fontSize: 11, color: '#374151' }}>
-                จำนวนนิสิต ณ จุดคุ้มทุน = {fmtN(qStar)} คน · นิสิตจริง = {fmtN(entry.q)} คน ·
-                ส่วนต่าง {fmtD(gap)} คน
-                {r.breakEvenRevenue !== null &&
-                  ` · รายได้ ณ จุดคุ้มทุน = ${fmtM(r.breakEvenRevenue)} ล้านบาท`}
+            {cases.map(({ mode, r }) => (
+              <Typography key={mode} sx={{ fontSize: 11, color: '#374151' }}>
+                <b style={{ color: CASE_COLOR[mode] }}>{REVENUE_MODE_LABEL[mode]}:</b>{' '}
+                <b style={{ color: okOf(r) ? GREEN : '#8a5a00' }}>{status(r)}</b>
+                {r.qStar !== null &&
+                  ` · ${fullOf(r) ? 'เป้าหมายคืนทุนเต็ม' : 'จุดคุ้มทุน'} ${fmtN(r.qStar)} คน · นิสิตจริง ${fmtN(r.q)} คน · ${r.q >= r.qStar ? 'เกิน' : 'ขาด'} ${fmtN(Math.abs(r.q - r.qStar))} คน`}
               </Typography>
-            )}
+            ))}
           </Box>
         </Box>
 
@@ -444,106 +490,66 @@ const ProgramReport = ({ entry }: Props) => {
         </Section>
 
         <Section no={2} title="ตัวชี้วัดทางการเงิน">
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
-            <Kpi label="นิสิตจริง (Q)" value={fmtN(entry.q)} unit="คน" color={NAVY} />
-            <Kpi
-              label="Q* จุดคุ้มทุน"
-              value={qStar === null ? '—' : fmtN(qStar)}
-              unit="คน"
-              color={ok ? GREEN : RED}
-            />
-            <Kpi label="รายได้/หัว (R)" value={fmtN(R)} unit="บาท/คน" color={PURPLE} />
-            <Kpi label="CM/หัว" value={fmtN(cm)} unit="บาท/คน" color={cm >= 0 ? GREEN : RED} />
-          </Box>
-        </Section>
-
-        <Section no={3} title="โครงสร้างต้นทุนและรายได้">
-          <Box
-            component="table"
-            sx={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: 11,
-              '& th': {
-                bgcolor: NAVY,
-                color: '#fff',
-                textAlign: 'left',
-                px: 1.5,
-                py: 0.9,
-                fontWeight: 700,
+          <CompareTable
+            cases={cases}
+            rows={[
+              { key: 'q', label: 'จำนวนนิสิตจริง (คน)', v: (r) => r.q },
+              {
+                key: 'qStar',
+                label: 'จำนวนนิสิต ณ จุดคุ้มทุน (คน)',
+                v: (r) => r.qStar,
+                bold: true,
               },
-              '& td': { px: 1.5, py: 0.8, borderBottom: `1px solid ${BORDER}` },
-              '& tr:nth-of-type(even) td': { bgcolor: SOFT },
-            }}
-          >
-            <thead>
-              <tr>
-                <th>รายการ</th>
-                <th>สัญลักษณ์</th>
-                <th>จำนวนเงิน (บาท)</th>
-                <th style={{ textAlign: 'right' }}>ล้านบาท</th>
-              </tr>
-            </thead>
-            <tbody>
-              {costRows.map((x) => (
-                <tr key={x.sym}>
-                  <Box
-                    component="td"
-                    sx={{
-                      pl: x.indent ? '28px !important' : undefined,
-                      fontWeight: x.bold ? 700 : 400,
-                      ...(x.hl && { bgcolor: `${x.v >= 0 ? '#d9f7e8' : '#fde2e3'} !important` }),
-                    }}
-                  >
-                    {x.label}
-                  </Box>
-                  <Box
-                    component="td"
-                    sx={
-                      x.hl
-                        ? { bgcolor: `${x.v >= 0 ? '#d9f7e8' : '#fde2e3'} !important` }
-                        : undefined
-                    }
-                  >
-                    {x.sym}
-                  </Box>
-                  <Box
-                    component="td"
-                    sx={{
-                      fontWeight: 700,
-                      color: x.color,
-                      ...(x.hl && { bgcolor: `${x.v >= 0 ? '#d9f7e8' : '#fde2e3'} !important` }),
-                    }}
-                  >
-                    {x.sym === 'π' || x.sym === 'MoS' ? fmtD(x.v) : fmtN(x.v)}
-                  </Box>
-                  <Box
-                    component="td"
-                    sx={{
-                      textAlign: 'right',
-                      fontWeight: x.color ? 700 : 400,
-                      color: x.color,
-                      ...(x.hl && { bgcolor: `${x.v >= 0 ? '#d9f7e8' : '#fde2e3'} !important` }),
-                    }}
-                  >
-                    {x.unit ?? `${x.sym === 'π' && x.v > 0 ? '+' : ''}${fmtM(x.v)}`}
-                  </Box>
-                </tr>
-              ))}
-            </tbody>
-          </Box>
+              { key: 'r', label: 'รายได้ต่อหัว (บาท/คน)', v: (r) => r.r },
+              {
+                key: 'cm',
+                label: 'ส่วนต่างต่อหัว = รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว (บาท/คน)',
+                v: (r) => r.cm,
+                tone: true,
+                bold: true,
+              },
+            ]}
+          />
         </Section>
 
-        <Section no={4} title="การคำนวณจุดคุ้มทุน">
-          <Formula>
-            Q* = TFC ÷ (R − AVC) = {fmtN(r.tfc)} ÷ ({fmtN(R)} − {fmtN(avc)}){' '}
-            <b>{qStar === null ? '' : `= ${fmtN(qStar)} คน`}</b>
-            {r.qStarStatus === 'full_cost_recovery' && ' (CM ≤ 0 · ใช้เป้าคืนทุนเต็ม TC ÷ R)'}
-          </Formula>
-          <Formula>
-            π = (R − AVC) × Q − TFC = ({fmtN(R)} − {fmtN(avc)}) × {fmtN(entry.q)} − {fmtN(r.tfc)} ={' '}
-            <b style={{ color: r.profit >= 0 ? GREEN : RED }}>{fmtD(r.profit)} บาท</b>
-          </Formula>
+        <Section no={3} title="โครงสร้างต้นทุนและรายได้ (บาท)">
+          <CompareTable
+            cases={cases}
+            rows={[
+              { key: 'tr', label: 'รายได้รวม', v: (r) => r.tr },
+              { key: 'tc', label: 'ต้นทุนรวม (ต้นทุนคงที่ + ต้นทุนผันแปร)', v: (r) => r.tc },
+              { key: 'tfc', label: 'ต้นทุนคงที่รวม', v: (r) => r.tfc, indent: true },
+              { key: 'tvc', label: 'ต้นทุนผันแปรรวม', v: (r) => r.tvc, indent: true },
+              {
+                key: 'avc',
+                label: 'ต้นทุนผันแปรต่อหัว (บาทต่อคน)',
+                v: (r) => r.avc,
+                indent: true,
+              },
+              {
+                key: 'profit',
+                label: 'กำไร (ขาดทุน) = รายได้รวม − ต้นทุนรวม',
+                v: profitOf,
+                fmt: fmtD,
+                tone: true,
+                bold: true,
+              },
+              {
+                key: 'ber',
+                label: 'รายได้ ณ จุดคุ้มทุน',
+                v: (r) => r.breakEvenRevenue,
+                bold: true,
+              },
+              {
+                key: 'mos',
+                label: 'รายได้ส่วนที่เกินจุดคุ้มทุน (รายได้รวม − รายได้ ณ จุดคุ้มทุน)',
+                v: (r) => r.marginOfSafety,
+                fmt: fmtD,
+                tone: true,
+                bold: true,
+              },
+            ]}
+          />
         </Section>
       </Page>
 
@@ -551,147 +557,90 @@ const ProgramReport = ({ entry }: Props) => {
       <Page>
         <Letterhead />
 
-        <Section no={5} title="การปันส่วนต้นทุนคงที่ส่วนกลางคณะ">
-          {!alloc ? (
-            <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-              วิธี: {entry.allocMethod ?? 'ตามชีต (เดิม)'} —
-              ไม่มีรายละเอียดการปันส่วนรายคณะในผลที่บันทึกนี้
-            </Typography>
-          ) : (
-            <>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, mb: 1 }}>
-                <Field label="วิธีปันส่วน" value={alloc.method} />
-                <Field
-                  label="ก้อนส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม)"
-                  value={`${fmtM(alloc.pool)} ลบ. · ${alloc.programs} หลักสูตร`}
-                />
-                <Field
-                  label={`ส่วนแบ่งของ${alloc.targetLabel}`}
-                  value={
-                    target
-                      ? `${fmtN(target.after)} บาท${
-                          Math.round(target.after) !== Math.round(target.before)
-                            ? ` (ตามชีต ${fmtN(target.before)})`
-                            : ''
-                        }`
-                      : '—'
-                  }
-                />
-              </Box>
-              <Typography sx={{ fontSize: 10, color: 'text.secondary', mb: 1 }}>
-                {alloc.hint}
-                {alloc.source ? ` · ${alloc.source}` : ''}
-              </Typography>
-              {col && (
-                <Formula>
-                  TFC ที่ใช้คำนวณ = TFC ในตาราง {fmtN(col.result.tfc - col.result.fixAdj)}
-                  {target && col.result.fixAdj !== 0
-                    ? ` − ส่วนแบ่งตามชีต ${fmtN(target.before)} + ส่วนแบ่งตามวิธีที่เลือก ${fmtN(target.after)}`
-                    : ' (รวมส่วนแบ่งตามชีตแล้ว ไม่ปรับ)'}{' '}
-                  = <b>{fmtN(col.result.tfc)} บาท</b>
-                </Formula>
-              )}
-              {alloc.warnings.map((w) => (
-                <Typography key={w} sx={{ fontSize: 10, color: AMBER }}>
-                  ⚠ {w}
-                </Typography>
-              ))}
-              {sharesChanged && (
-                <Box
-                  component="table"
-                  sx={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: 10,
-                    mt: 1,
-                    '& th': { bgcolor: SOFT, textAlign: 'right', px: 1, py: 0.5, fontWeight: 700 },
-                    '& th:first-of-type, & td:first-of-type': { textAlign: 'left' },
-                    '& td': {
-                      textAlign: 'right',
-                      px: 1,
-                      py: 0.4,
-                      borderBottom: `1px solid ${BORDER}`,
-                    },
-                    '& tr': { breakInside: 'avoid' },
-                  }}
-                >
-                  <thead>
-                    <tr>
-                      <th>หลักสูตรในคณะ</th>
-                      <th>นิสิต</th>
-                      <th>ส่วนแบ่งตามชีต</th>
-                      <th>ตามวิธีที่เลือก</th>
-                      <th>ผลต่าง</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {alloc.shares.map((s) => (
-                      <Box
-                        component="tr"
-                        key={s.label}
-                        sx={s.target ? { bgcolor: '#eee8ff', fontWeight: 700 } : undefined}
-                      >
-                        <td>
-                          {s.label}
-                          {s.target ? ' (หลักสูตรนี้)' : ''}
-                        </td>
-                        <td>{s.q === undefined ? '—' : fmtN(s.q)}</td>
-                        <td>{fmtN(s.before)}</td>
-                        <td>{fmtN(s.after)}</td>
-                        <td>{fmtD(s.after - s.before)}</td>
-                      </Box>
-                    ))}
-                  </tbody>
-                </Box>
-              )}
-            </>
-          )}
+        <Section no={4} title="การคำนวณจุดคุ้มทุน">
+          {cases.map(({ mode, r }) => {
+            const R = r.r ?? 0;
+            const profit = profitOf(r);
+
+            return (
+              <Formula key={mode}>
+                <b style={{ color: CASE_COLOR[mode] }}>{REVENUE_MODE_LABEL[mode]}</b>
+                <br />
+                {fullOf(r) ? (
+                  <>
+                    รายได้ต่อหัวไม่สูงกว่าต้นทุนผันแปรต่อหัว จึงไม่มีจุดคุ้มทุน — เป้าหมายคืนทุนเต็ม
+                    = ต้นทุนรวม ÷ รายได้ต่อหัว = {fmtN(r.tc)} ÷ {fmtN(R)}
+                  </>
+                ) : (
+                  <>
+                    จำนวนนิสิต ณ จุดคุ้มทุน = ต้นทุนคงที่รวม ÷ (รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว) ={' '}
+                    {fmtN(r.tfc)} ÷ ({fmtN(R)} − {fmtN(r.avc ?? 0)})
+                  </>
+                )}{' '}
+                <b>{r.qStar === null ? '' : `→ ปัดขึ้นเป็น ${fmtN(r.qStar)} คน`}</b>
+                <br />
+                กำไร (ขาดทุน) = {fmtN(r.tr)} − {fmtN(r.tc)} ={' '}
+                <b style={{ color: profit >= 0 ? GREEN : RED }}>{fmtD(profit)} บาท</b>
+              </Formula>
+            );
+          })}
         </Section>
 
-        <Section no={6} title="กราฟเส้นจุดคุ้มทุน (Break-Even Chart)">
+        <Section no={5} title="กราฟจุดคุ้มทุน">
           <Box sx={{ border: `1px solid ${BORDER}`, borderRadius: 2, p: 1.5, bgcolor: SOFT }}>
-            <PrintChart q={entry.q} tfc={r.tfc} avc={avc} r={R} qStar={qStar} />
+            <PrintChart cases={cases} />
           </Box>
           <Typography sx={{ fontSize: 10, color: 'text.secondary', textAlign: 'center', mt: 1 }}>
-            จุดสีเข้ม (●) = Q* จุดคุ้มทุน = {qStar === null ? '—' : fmtN(qStar)} คน · จุดสีทอง (●) =
-            นิสิตจริง {fmtN(entry.q)} คน
+            จุดคุ้มทุนคือจุดที่เส้นรายได้รวมตัดกับเส้นต้นทุนรวม · สีม่วง = รวมเงินแผ่นดิน · สีส้ม =
+            ไม่รวมเงินแผ่นดิน
           </Typography>
         </Section>
 
-        <Section no={7} title="ข้อเสนอแนะ">
+        <Section no={6} title="ข้อเสนอแนะ">
           <Box
             sx={{ border: `1px solid ${BORDER}`, borderRadius: 2, px: 2, py: 1.5, bgcolor: SOFT }}
           >
-            <Typography
-              sx={{ fontWeight: 800, fontSize: 13, color: ok ? GREEN : '#8a5a00', mb: 0.5 }}
-            >
-              {ok ? '✅ หลักสูตรผ่านเกณฑ์จุดคุ้มทุน' : '⚠️ หลักสูตรยังไม่ถึงจุดคุ้มทุน'}
-            </Typography>
-            <Typography sx={{ fontSize: 12, mb: 0.5 }}>
-              มีนิสิตจริง <b>{fmtN(entry.q)} คน</b>{' '}
-              {qStar === null || gap === null ? (
-                '· คำนวณจุดคุ้มทุนไม่ได้'
-              ) : (
-                <>
-                  {ok ? 'เกิน' : 'ต่ำกว่า'}จุดคุ้มทุน <b>{fmtN(qStar)} คน</b> อยู่{' '}
-                  <b>{fmtD(gap)} คน</b>
-                </>
-              )}{' '}
-              · CM <b>{fmtN(cm)} บ./คน</b> · {r.profit >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'}{' '}
-              <b>{fmtM(Math.abs(r.profit))} ล้านบาท</b>
-            </Typography>
-            <Typography sx={{ fontSize: 12 }}>
-              แนะนำ:{' '}
-              {ok
-                ? 'รักษาจำนวนนิสิตและโครงสร้างต้นทุนให้คงที่เพื่อความยั่งยืน และพิจารณานำส่วนเกินไปพัฒนาคุณภาพ'
-                : cm <= 0
-                  ? 'รายได้ต่อหัวต่ำกว่าต้นทุนผันแปรต่อหัว ยิ่งรับนิสิตยิ่งขาดทุน — ทบทวนอัตราค่าธรรมเนียมหรือลดต้นทุนผันแปรต่อหัวก่อน'
-                  : `เพิ่มจำนวนรับนิสิตอีกอย่างน้อย ${fmtN(-(gap ?? 0))} คน หรือทบทวนค่าธรรมเนียม/ลดต้นทุนคงที่เพื่อลดจุดคุ้มทุน`}
-            </Typography>
+            {cases.map(({ mode, r }) => {
+              const ok = okOf(r);
+              const full = fullOf(r);
+              const cm = r.cm ?? 0;
+              const profit = profitOf(r);
+              const gap = r.qStar === null ? null : r.q - r.qStar;
+
+              return (
+                <Box key={mode} sx={{ mb: 1, '&:last-of-type': { mb: 0 } }}>
+                  <Typography
+                    sx={{ fontWeight: 800, fontSize: 12, color: ok ? GREEN : '#8a5a00', mb: 0.25 }}
+                  >
+                    {ok ? '✅' : '⚠️'} {REVENUE_MODE_LABEL[mode]} —{' '}
+                    {ok ? 'ผ่านเกณฑ์จุดคุ้มทุน' : 'ยังไม่ถึงจุดคุ้มทุน'}
+                  </Typography>
+                  <Typography sx={{ fontSize: 11 }}>
+                    นิสิตจริง <b>{fmtN(r.q)} คน</b>{' '}
+                    {r.qStar === null || gap === null ? (
+                      '· คำนวณจุดคุ้มทุนไม่ได้'
+                    ) : (
+                      <>
+                        {ok ? 'มากกว่า' : 'น้อยกว่า'}
+                        {full ? 'เป้าหมายคืนทุนเต็ม' : 'จุดคุ้มทุน'} (<b>{fmtN(r.qStar)} คน</b>)
+                        อยู่ <b>{fmtN(Math.abs(gap))} คน</b>
+                      </>
+                    )}{' '}
+                    · {profit >= 0 ? 'กำไร' : 'ขาดทุน'} <b>{fmtM(Math.abs(profit))} ล้านบาท</b> ·
+                    แนะนำ:{' '}
+                    {ok
+                      ? 'รักษาจำนวนนิสิตและโครงสร้างต้นทุนให้คงที่เพื่อความยั่งยืน'
+                      : cm <= 0
+                        ? 'รายได้ต่อหัวไม่สูงกว่าต้นทุนผันแปรต่อหัว ยิ่งรับนิสิตยิ่งขาดทุน — ทบทวนอัตราค่าธรรมเนียมหรือลดต้นทุนผันแปรต่อหัวก่อน'
+                        : `เพิ่มจำนวนรับนิสิตอีกอย่างน้อย ${fmtN(-(gap ?? 0))} คน หรือทบทวนค่าธรรมเนียม/ลดต้นทุนคงที่`}
+                  </Typography>
+                </Box>
+              );
+            })}
           </Box>
         </Section>
 
-        <Section no={8} title="ผู้รับรองรายงาน">
+        <Section no={7} title="ผู้รับรองรายงาน">
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mt: 4 }}>
             {['ผู้จัดทำ', 'ประธานหลักสูตร', 'คณบดี / ผู้อำนวยการ'].map((role, i) => (
               <Box key={role} sx={{ textAlign: 'center', pt: 5, borderTop: '1px solid #334155' }}>

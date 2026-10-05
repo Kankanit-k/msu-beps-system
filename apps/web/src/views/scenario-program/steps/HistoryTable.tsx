@@ -52,18 +52,18 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
               <TableCell>หลักสูตร</TableCell>
               <TableCell>ระดับ</TableCell>
               <TableCell>ประเภท</TableCell>
-              <TableCell align="right">นิสิต (Q)</TableCell>
-              <TableCell align="right">ผันแปร/หัว (AVC)</TableCell>
-              <TableCell align="right">จุดคุ้มทุน (Q*) รวมแผ่นดิน</TableCell>
-              <TableCell align="right">จุดคุ้มทุน (Q*) ไม่รวมแผ่นดิน</TableCell>
+              <TableCell align="right">นิสิตจริง (คน)</TableCell>
+              <TableCell align="right">ต้นทุนผันแปรต่อหัว (บาท)</TableCell>
+              <TableCell align="right">จุดคุ้มทุน (คน) กรณีรวมเงินแผ่นดิน</TableCell>
+              <TableCell align="right">จุดคุ้มทุน (คน) กรณีไม่รวมเงินแผ่นดิน</TableCell>
               <TableCell align="right">สถานะ</TableCell>
               <TableCell align="right">รายงาน</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {history.map((h) => {
-              const okA = h.withGov.qStar !== null && h.q >= h.withGov.qStar;
-              const okB = h.withoutGov.qStar !== null && h.q >= h.withoutGov.qStar;
+              const okA = h.withGov.qStar !== null && h.withGov.q >= h.withGov.qStar;
+              const okB = h.withoutGov.qStar !== null && h.withoutGov.q >= h.withoutGov.qStar;
 
               return (
                 <TableRow key={h.id} hover>
@@ -102,7 +102,11 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
                     {h.withoutGov.qStar ? fmtN(h.withoutGov.qStar) : '—'}
                   </TableCell>
                   <TableCell align="right">
-                    <Chip size="small" label={okA ? '✓' : '⚠'} color={okA ? 'success' : 'error'} />
+                    <Chip
+                      size="small"
+                      label={okA ? 'คุ้มทุน' : 'ยังไม่คุ้มทุน'}
+                      color={okA ? 'success' : 'error'}
+                    />
                   </TableCell>
                   <TableCell align="right">
                     <Button
@@ -114,7 +118,7 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
                           : 'บันทึกก่อนมีรายงานฉบับเต็ม — ออกได้เฉพาะแบบสรุป'
                       }
                     >
-                      🖨 PDF
+                      🖨 ออกรายงาน PDF
                     </Button>
                   </TableCell>
                 </TableRow>

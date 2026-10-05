@@ -134,7 +134,10 @@ interface Draft {
   level: string;
   semesters: number;
   refKey: string | null;
-  basis: CostBasis;
+  /** กดกรอกต้นทุนเองโดยไม่มีหลักสูตรอ้างอิง */
+  manualOnly?: boolean;
+  /** ร่างรุ่นก่อน — ฐานต้นทุนที่เลือก ('manual' = กรอกเอง) */
+  basis?: CostBasis;
   manual: ManualBlocks | CostBlock;
   segs: Segment[];
   alloc?: AllocChoice;
@@ -175,7 +178,8 @@ const ScenarioProgramView = () => {
   const [level, setLevel] = useState<string>(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
   const [semesters, setSemesters] = useState(2);
   const [refProg, setRefProg] = useState<ProgRow | null>(null);
-  const [basis, setBasis] = useState<CostBasis>('ref');
+  /** เปิดหลักสูตรใหม่โดยไม่มีหลักสูตรอ้างอิง — กดกรอกต้นทุนเองแล้ว */
+  const [manualOnly, setManualOnly] = useState(false);
   const [manual, setManual] = useState<ManualBlocks>(() => bothModes(emptyBlock()));
   const [segs, setSegs] = useState<Segment[]>(() => buildSegments(level, null, 2));
   const [alloc, setAlloc] = useState<AllocChoice>(DEFAULT_ALLOC_CHOICE);
@@ -209,7 +213,8 @@ const ScenarioProgramView = () => {
       setLevel(d.level);
       setSemesters(d.semesters);
       setRefProg(RAW.PROGS.find((p) => refKeyOf(p) === d.refKey) ?? null);
-      setBasis(d.basis);
+      // ร่างรุ่นก่อน: basis 'manual' แปลว่ากรอกเองล้วนก็ต่อเมื่อเปิดใหม่และไม่มีหลักสูตรอ้างอิง
+      setManualOnly(d.manualOnly ?? (d.basis === 'manual' && !d.refKey && d.purpose !== 'improve'));
       // ร่างรุ่นก่อนมีก้อนเดียว — ใช้ตั้งต้นทั้งสองกรณี
       setManual('q' in d.manual ? bothModes(d.manual) : d.manual);
       // ร่างเก่าเก็บชื่อหัวคอลัมน์แบบเดิม/ป.โท-เอกมี 4 คอลัมน์ — ใช้ชื่อปัจจุบันและเติมคอลัมน์ที่ขาด
@@ -236,7 +241,7 @@ const ScenarioProgramView = () => {
       level,
       semesters,
       refKey: refProg ? refKeyOf(refProg) : null,
-      basis,
+      manualOnly,
       manual,
       segs,
       alloc,
@@ -251,7 +256,7 @@ const ScenarioProgramView = () => {
     level,
     semesters,
     refProg,
-    basis,
+    manualOnly,
     manual,
     segs,
     alloc,
@@ -275,8 +280,8 @@ const ScenarioProgramView = () => {
 
     return keepRefCharges ? b : withPerHeadCharges(b, semesters);
   };
-  const blockOf = (b: CostBasis, m: RevenueMode) => (b === 'ref' ? refBlock : manualBlockOf(m));
-  const block = blockOf(basis, mode);
+  // คอลัมน์ที่แก้ได้ (หลักสูตรใหม่/หลังปรับปรุง) คือสิ่งที่กำลังประเมินเสมอ — คอลัมน์อ้างอิงมีไว้เทียบเท่านั้น
+  const block = manualBlockOf(mode);
 
   /* ---------- ปันส่วนต้นทุนคงที่ส่วนกลางคณะใหม่ทั้งคณะ (facultyAllocation.ts) ---------- */
   const facRows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
@@ -331,7 +336,7 @@ const ScenarioProgramView = () => {
   };
   const targetOf = (b: CostBasis) => (isNew && b === 'manual' ? NEW_PROGRAM_ID : refId);
 
-  const activeScenario = scenarioOf(basis, mode);
+  const activeScenario = scenarioOf('manual', mode);
   const allocBucketList = activeScenario ? allocBuckets(activeScenario, alloc.bucketLevel) : [];
   const allocPolicy = policyOf(alloc, allocBucketList);
   const outcomeOf = (b: CostBasis, m: RevenueMode) => {
@@ -339,7 +344,7 @@ const ScenarioProgramView = () => {
 
     return sc ? allocateFaculty(sc, allocPolicy) : null;
   };
-  const activeOutcome = outcomeOf(basis, mode);
+  const activeOutcome = outcomeOf('manual', mode);
   /** ส่วนที่ต้องบวกเข้า TFC ของคอลัมน์ — 0 เมื่อตามชีต หรือนโยบายยังไม่ผ่านการตรวจ */
   const adjOf = (b: CostBasis, m: RevenueMode) => {
     const o = outcomeOf(b, m);
@@ -358,11 +363,11 @@ const ScenarioProgramView = () => {
           ? 'แก้ข้อทักท้วงของการปันส่วนต้นทุนคงที่ก่อน'
           : null;
 
-  const result = block ? blockResult(block, mode, adjOf(basis, mode)) : null;
+  const result = blockResult(block, mode, adjOf('manual', mode));
 
   // กรณีรวม/ไม่รวมเงินแผ่นดิน วางคู่กัน · แต่ละกรณี: อ้างอิงหลักสูตรเดิม | กำหนดเอง
   const groups: CostGroup[] =
-    refBlock || basis === 'manual'
+    refBlock || manualOnly
       ? MODES.map((m) => {
           const custom = manualBlockOf(m);
 
@@ -379,7 +384,6 @@ const ScenarioProgramView = () => {
                       title: text.refCol,
                       block: refBlock,
                       result: blockResult(refBlock, m, adjOf('ref', m)),
-                      active: basis === 'ref' && mode === m,
                     },
                   ]
                 : []),
@@ -389,27 +393,26 @@ const ScenarioProgramView = () => {
                 block: custom,
                 result: blockResult(custom, m, adjOf('manual', m)),
                 editable: true,
-                active: basis === 'manual' && mode === m,
               },
             ],
           };
         })
       : [];
-  // ตารางสัดส่วนนิสิตแสดงทั้งสองกรณีคู่กัน ตามฐานต้นทุน (อ้างอิง/กำหนดเอง) ที่เลือก
+  /** ผลของคอลัมน์ที่กำลังประเมิน แยกรายกรณี — ใช้กับตารางสัดส่วน กราฟ และการบันทึก */
+  const resultOf = (m: RevenueMode) => blockResult(manualBlockOf(m), m, adjOf('manual', m));
   const mixCosts = Object.fromEntries(
     MODES.map((m) => {
-      const b = blockOf(basis, m);
-      const r = b ? blockResult(b, m, adjOf(basis, m)) : null;
+      const r = resultOf(m);
 
-      return [m, { tfc: r?.tfc ?? 0, avc: r?.avc ?? 0 }];
+      return [m, { tfc: r.tfc, avc: r.avc ?? 0 }];
     }),
   ) as ModeCosts;
-  const selectCol = (m: string, b: string) => {
-    setMode(m as RevenueMode);
-    setBasis(b as CostBasis);
-  };
-  const numbersOk =
-    !!block && !!result && block.q > 0 && block.gov + block.income > 0 && result.tc > 0;
+  // กราฟ/รายงานแสดงทั้งสองกรณี — ทั้งสองต้องมีตัวเลขครบ
+  const numbersOk = MODES.every((m) => {
+    const b = manualBlockOf(m);
+
+    return b.q > 0 && b.gov + b.income > 0 && resultOf(m).tc > 0;
+  });
   const nameError = purpose === 'new' && !newName.trim();
   /** ขั้นที่ 1 ต้องครบก่อนไปขั้นที่ 2 */
   const programBlocker =
@@ -423,13 +426,16 @@ const ScenarioProgramView = () => {
             ? 'เลือกหลักสูตรอ้างอิง หรือถ้าไม่มี ให้กดปุ่ม "กรอกต้นทุนเอง" ในกล่องสีฟ้าด้านบนก่อน'
             : null;
   const saveBlocker =
-    programBlocker ?? (!numbersOk ? 'ต้องมีจำนวนนิสิต งบประมาณ และต้นทุนก่อน' : allocBlocker);
+    programBlocker ??
+    (!numbersOk
+      ? 'ต้องมีจำนวนนิสิต งบประมาณ และต้นทุนก่อน ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน'
+      : allocBlocker);
   const canSave = !saveBlocker;
 
   const onPurposeChange = (p: Purpose) => {
     setPurpose(p);
     // ปรับปรุงต้องมีหลักสูตรเดิมเป็นฐานเสมอ — ไม่มีโหมดกรอกเองล้วน
-    if (p === 'improve' && !refProg) setBasis('ref');
+    if (p === 'improve') setManualOnly(false);
   };
 
   const pickRef = (p: ProgRow | null, lvl = level) => {
@@ -479,7 +485,7 @@ const ScenarioProgramView = () => {
     setLevel(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
     setSemesters(2);
     setRefProg(null);
-    setBasis('ref');
+    setManualOnly(false);
     setManual(bothModes(emptyBlock()));
     setManualEmbedded(0);
     setSegs(buildSegments(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี', null, 2));
@@ -488,24 +494,20 @@ const ScenarioProgramView = () => {
     saveDraft(null);
   };
 
-  const allocTargetLabel = isNew
-    ? basis === 'manual'
-      ? 'หลักสูตรใหม่'
-      : 'หลักสูตรอ้างอิง'
-    : 'หลักสูตรนี้';
+  const allocTargetLabel = isNew ? 'หลักสูตรใหม่' : 'หลักสูตรนี้';
 
   /** ผลที่เพิ่งบันทึก — เปิดกล่องแจ้งสำเร็จ */
   const [savedEntry, setSavedEntry] = useState<ProgramHistoryEntry | null>(null);
 
   const handleSave = () => {
-    if (!canSave || !block || !result) return;
+    if (!canSave) return;
 
     const name = isNew ? newName.trim() : (refProg?.prog ?? '');
 
     // ต้นทุนกำหนดเองแยกตามกรณี → คิดแต่ละโหมดจากก้อนของโหมดนั้น
     const both = (m: RevenueMode) => {
-      const b = blockOf(basis, m) ?? block;
-      const r = blockResult(b, m, adjOf(basis, m));
+      const b = manualBlockOf(m);
+      const r = resultOf(m);
 
       return calcBreakEvenBothModes({
         q: b.q,
@@ -536,7 +538,7 @@ const ScenarioProgramView = () => {
       detail: {
         refCol: text.refCol,
         customCol: text.customCol,
-        basisCol: basis === 'ref' ? text.refCol : text.customCol,
+        basisCol: text.customCol,
         semesters,
         fees: refProg ? feesForProgram(refProg.fac, refProg.deg) : [],
         alloc: activeOutcome
@@ -549,7 +551,7 @@ const ScenarioProgramView = () => {
               targetLabel: allocTargetLabel,
               shares: activeOutcome.shares.map((x) => {
                 const p = facRows.find((r) => r.id === x.id)?.p;
-                const target = x.id === targetOf(basis);
+                const target = x.id === targetOf('manual');
                 const after = p && { ...p, TFC: p.TFC - x.before + x.after };
 
                 return {
@@ -681,9 +683,9 @@ const ScenarioProgramView = () => {
               refProg={refProg}
               onRefChange={(p) => pickRef(p)}
               onManual={
-                isNew && !refProg && basis !== 'manual'
+                isNew && !refProg && !manualOnly
                   ? () => {
-                      setBasis('manual');
+                      setManualOnly(true);
                       // maxStep ยังเป็นค่าก่อนเลือกกรอกเอง — ตั้งตรง แล้วให้ effect ลดขั้นถ้าขั้นที่ 1 ยังไม่ครบ
                       setStep(1);
                     }
@@ -714,7 +716,7 @@ const ScenarioProgramView = () => {
               pool={facPool}
               rows={facRows}
               outcome={activeOutcome}
-              targetId={targetOf(basis)}
+              targetId={targetOf('manual')}
               targetLabel={allocTargetLabel}
               mode={mode}
               onToast={setToast}
@@ -743,36 +745,34 @@ const ScenarioProgramView = () => {
             />
           )}
 
-          {activeStep === 3 && (
-            <MixStep
-              segs={segs}
-              onSegsChange={setSegs}
-              costs={mixCosts}
-              showBasis={!!refBlock}
-              basis={basis}
-              onBasisChange={setBasis}
-              refCol={text.refCol}
-              customCol={text.customCol}
-            />
-          )}
+          {activeStep === 3 && <MixStep segs={segs} onSegsChange={setSegs} costs={mixCosts} />}
 
           {activeStep === 4 && (
             <SummaryStep
               groups={groups}
-              compareSubheader={`เทียบ${text.refCol}กับ${text.customCol} ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน · กดแถวเพื่อใช้กับกราฟ ตารางสัดส่วนนิสิต และการบันทึก`}
-              onSelect={selectCol}
-              chartSubheader={`${basis === 'ref' ? text.refCol : text.customCol} · ${REVENUE_MODE_LABEL[mode]}`}
-              chart={
-                block && result && block.q > 0
-                  ? {
-                      q: block.q,
-                      tfc: result.tfc,
-                      avc: result.avc ?? 0,
-                      rPerHead: result.r ?? 0,
-                      qStar: result.qStar,
-                    }
-                  : null
+              compareSubheader={
+                refBlock
+                  ? `เทียบ${text.refCol}กับ${text.customCol} ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน · กราฟ ตารางสัดส่วนนิสิต และการบันทึกใช้${text.customCol}`
+                  : `${text.customCol} ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน`
               }
+              chartSubheader={`${text.customCol} · เทียบกรณีรวมและไม่รวมเงินแผ่นดิน`}
+              chart={MODES.flatMap((m) => {
+                const q = manualBlockOf(m).q;
+                const r = resultOf(m);
+
+                return q > 0
+                  ? [
+                      {
+                        mode: m,
+                        q,
+                        tfc: r.tfc,
+                        avc: r.avc ?? 0,
+                        rPerHead: r.r ?? 0,
+                        qStar: r.qStar,
+                      },
+                    ]
+                  : [];
+              })}
               saveBlocker={saveBlocker}
               onSave={handleSave}
               history={history}
@@ -785,7 +785,6 @@ const ScenarioProgramView = () => {
             active={activeStep}
             lockReason={activeStep >= maxStep ? stepBlocker : null}
             groups={groups}
-            basis={basis}
             onGo={goTo}
             onRestart={() => setConfirm('form')}
           />

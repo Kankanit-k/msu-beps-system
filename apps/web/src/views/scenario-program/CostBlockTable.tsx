@@ -54,8 +54,6 @@ export interface CostColumn {
   block: CostBlock;
   result: BlockResult;
   editable?: boolean;
-  /** คอลัมน์ที่ใช้กับกราฟ ตารางสัดส่วน และการบันทึก */
-  active?: boolean;
 }
 
 /** กลุ่มคอลัมน์ต่อกรณี (รวม/ไม่รวมเงินแผ่นดิน) — มีคอลัมน์ผลต่างเมื่อมี 2 คอลัมน์ */
@@ -259,18 +257,9 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
                     ...(ci === 0 ? groupStart : {}),
                     width: valueWidth,
                     fontWeight: 700,
-                    bgcolor: c.active ? 'action.selected' : undefined,
                   }}
                 >
                   {c.title}
-                  {c.active && (
-                    <Chip
-                      size="small"
-                      color="primary"
-                      label="ใช้คำนวณ"
-                      sx={{ ml: 1, height: 18, fontSize: 10 }}
-                    />
-                  )}
                 </TableCell>
               )),
               g.cols.length === 2 && (
@@ -321,7 +310,6 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
                         sx={{
                           ...(ci === 0 ? groupStart : {}),
                           py: input ? 0.5 : undefined,
-                          bgcolor: c.active && l.depth !== 0 ? 'action.selected' : undefined,
                         }}
                       >
                         {input ? (
