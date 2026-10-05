@@ -116,7 +116,7 @@ const SidebarFooter = () => {
         >
           <Box
             component="img"
-            src={dev.avatar}
+            src={`${process.env.NEXT_PUBLIC_BASEPATH ?? ''}${dev.avatar}`}
             alt=""
             sx={{
               inlineSize: 40,
