@@ -74,7 +74,7 @@ const UserDropdown = () => {
   // fall back to the developer photo instead of a broken /undefined.jpg request.
   const avatarSrc = user?.STAFFID
     ? `https://pd.msu.ac.th/staff/picture/${user.STAFFID}.jpg`
-    : '/images/developers/kankanit.jpg';
+    : `${process.env.NEXT_PUBLIC_BASEPATH ?? ''}/images/developers/kankanit.jpg`;
 
   const { settings } = useSettings();
 
