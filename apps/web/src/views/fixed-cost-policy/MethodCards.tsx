@@ -54,8 +54,8 @@ export const METHOD_META: {
 type Props = {
   value: FixedCostMethod;
   onChange: (method: FixedCostMethod) => void;
-  /** วิธีที่คณะใช้อยู่ตอนนี้ — แสดงป้าย "ใช้อยู่ปัจจุบัน" */
-  current: FixedCostMethod;
+  /** วิธีที่คณะใช้อยู่ตอนนี้ — แสดงป้าย "ใช้อยู่ปัจจุบัน" · ไม่ส่ง = ยังไม่มีวิธีที่ใช้อยู่ */
+  current?: FixedCostMethod;
 };
 
 /** ขั้นที่ 1 ของ Stepper — การ์ด 3 ใบให้เลือกวิธี */

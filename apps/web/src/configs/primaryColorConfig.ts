@@ -9,6 +9,12 @@ export type PrimaryColorConfig = {
 // NOTE: the FIRST entry is the template default (see settingsContext → primaryColor).
 const primaryColorConfig: PrimaryColorConfig[] = [
   {
+    name: 'primary-msu-kpi',
+    light: '#64B6EE',
+    main: '#0088E5', // ฟ้าตามธีม MSU-KPI (erp.msu.ac.th/kpi)
+    dark: '#005F9F',
+  },
+  {
     name: 'primary-msu',
     light: '#8B6FFF',
     main: '#6D4CFF', // MSU-BEPS purple accent

@@ -68,7 +68,7 @@ const themeConfig: Config = {
   templateSubtitle: 'Break-Even Point System',
   templateSubtitleTh: 'ระบบวิเคราะห์จุดคุ้มทุน',
   homePageUrl: '/overview',
-  settingsCookieName: 'erp-msu-pms-v1',
+  settingsCookieName: 'erp-msu-pms-v2', // v2 = ธีมฟ้า MSU-KPI (ล้างสีม่วงที่จำไว้ในคุกกี้เดิม)
   mode: 'system', // 'system', 'light', 'dark'
   skin: 'default', // 'default', 'bordered'
   semiDark: false, // true, false

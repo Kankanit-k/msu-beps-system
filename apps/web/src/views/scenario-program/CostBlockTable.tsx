@@ -1,5 +1,7 @@
 'use client';
 
+import { useRef } from 'react';
+
 // MUI Imports
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -9,6 +11,7 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import { alpha, type SxProps, type Theme } from '@mui/material/styles';
 
 import type { RevenueMode } from '@beps/calc-engine';
 
@@ -17,11 +20,37 @@ import NumberTextField from '@components/NumberTextField';
 import {
   FIXED_CATS,
   MAIN_FEE_RATE,
+  scaleQ,
   UNI_SHARE_RATE,
   VARIABLE_CATS,
   type BlockResult,
   type CostBlock,
 } from './newProgramCalc';
+
+/** ตีเส้นทุกช่อง หัวตารางพื้นฟ้าอ่อน — แบบเดียวกับตารางระบบ KPI */
+export const gridTableSx = {
+  '& th, & td': { border: 1, borderColor: 'divider' },
+  '& thead th': {
+    bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
+    fontWeight: 700,
+    fontSize: '0.8125rem',
+    textAlign: 'center',
+    verticalAlign: 'middle',
+  },
+} satisfies SxProps<Theme>;
+
+/** ช่องที่ต้องกรอก — พื้นเหลืองอ่อน กรอบน้ำเงิน ตัวหนา ให้เห็นชัดว่าพิมพ์ตรงนี้ */
+export const editInputSx = {
+  width: '100%',
+  '& .MuiOutlinedInput-root': {
+    bgcolor: (t) => alpha(t.palette.warning.main, 0.12),
+    fontWeight: 700,
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'primary.main',
+    borderWidth: 1.5,
+  },
+} satisfies SxProps<Theme>;
 
 const fmt = (v: number | null) =>
   v === null || !Number.isFinite(v) ? '—' : (Math.round(v) || 0).toLocaleString('th-TH');
@@ -42,10 +71,15 @@ interface Line {
   /** 0 = หัวข้อหลัก · 1 = ข้อย่อย · 2 = หมวดรายจ่าย */
   depth: 0 | 1 | 2;
   /** ตั้งค่าได้เมื่อคอลัมน์แก้ไขได้ (กำหนดเอง) */
-  set?: (b: CostBlock, v: number) => CostBlock;
+  /** @param s ก้อนต้นทุนตอนเริ่มแก้ช่องนี้ (focus) */
+  set?: (b: CostBlock, v: number, s?: CostBlock) => CostBlock;
   /** เงินแผ่นดิน — ไม่นับในกลุ่มไม่รวมเงินแผ่นดิน */
   govOnly?: boolean;
   highlight?: boolean;
+  /** แก้ได้แม้จำกัดสิทธิ์ (ผู้ปรับปรุงหลักสูตร/อาจารย์) — จำนวนนิสิต และค่าธรรมเนียมการศึกษา */
+  basic?: boolean;
+  /** แถวผลลัพธ์ที่ยังแสดงเมื่อจำกัดสิทธิ์ (basicOnly) — ให้เห็นผลของการปรับ */
+  result?: boolean;
 }
 
 export interface CostColumn {
@@ -70,6 +104,8 @@ interface Props {
   onChange: (mode: RevenueMode, b: CostBlock) => void;
   /** แสดงแถวปรับส่วนแบ่งส่วนกลางคณะ — เฉพาะเมื่อใช้วิธีปันส่วนอื่นที่ไม่ใช่ตามชีต */
   showAllocAdj?: boolean;
+  /** แสดงเฉพาะแถว basic (จำนวนนิสิต · ค่าธรรมเนียมการศึกษา) ที่แก้ได้ และแถวผลลัพธ์ (result) */
+  basicOnly?: boolean;
 }
 
 const ALLOC_ADJ = 'allocAdj';
@@ -86,7 +122,12 @@ const LINES: Line[] = [
     get: (b) => b.q,
     unit: 'คน',
     depth: 0,
-    set: (b, v) => ({ ...b, q: v }),
+    basic: true,
+    // TR = Q × R และ TVC = Q × AVC — ปรับรายได้/ต้นทุนผันแปรตามสัดส่วน Q ให้ R และ AVC คงเดิม
+    // (ค่าธรรมเนียมรายการหลัก/หักสมทบ คิดต่อหัว × Q ใน manualBlockOf ของ ScenarioProgramView)
+    // เทียบกับค่าตอนเริ่มแก้ช่อง (s) ไม่ใช่ทีละปุ่ม — พิมพ์ 5→58→580 หรือลบจนว่างแล้วค่าไม่เพี้ยน
+    // s.q = 0 (ยังไม่มี R/AVC ให้คงไว้ เช่นกรอกรายได้ก่อน Q) → ไม่ปรับ
+    set: (b, v, s = b) => scaleQ(b, v, s),
   },
   {
     no: 2,
@@ -94,6 +135,7 @@ const LINES: Line[] = [
     get: (_, r) => r.tr,
     unit: 'บาท',
     depth: 0,
+    result: true,
   },
   {
     label: '2.1 งบประมาณเงินแผ่นดิน',
@@ -104,14 +146,22 @@ const LINES: Line[] = [
     govOnly: true,
   },
   {
-    label: '2.2 งบประมาณเงินรายได้',
+    label: '2.2 งบประมาณเงินรายได้ (ค่าธรรมเนียมการศึกษา)',
     get: (b) => b.income,
     unit: 'บาท',
     depth: 1,
+    basic: true,
     set: (b, v) => ({ ...b, income: v }),
   },
   { label: 'รายได้ต่อหน่วย : คน (R)', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
-  { no: 3, label: 'ต้นทุนรวม (Total Cost : TC)', get: (_, r) => r.tc, unit: 'บาท', depth: 0 },
+  {
+    no: 3,
+    label: 'ต้นทุนรวม (Total Cost : TC)',
+    get: (_, r) => r.tc,
+    unit: 'บาท',
+    depth: 0,
+    result: true,
+  },
   {
     label: '3.1 ต้นทุนคงที่รวม (Total Fixed Cost : TFC)',
     get: (_, r) => r.tfc,
@@ -181,6 +231,7 @@ const LINES: Line[] = [
     unit: 'คน',
     depth: 0,
     highlight: true,
+    result: true,
   },
   { no: 5, label: 'รายได้ ณ จุดคุ้มทุน', get: (_, r) => r.beRevenue, unit: 'บาท', depth: 0 },
   {
@@ -189,6 +240,7 @@ const LINES: Line[] = [
     unit: 'คน',
     depth: 0,
     highlight: true,
+    result: true,
   },
 ];
 
@@ -196,14 +248,16 @@ const LINES: Line[] = [
  * ตารางรายการแบบแท็บ 4 (ลำดับ · รายการ · จำนวน · หน่วย) — แยกกลุ่มกรณีรวม/ไม่รวมเงินแผ่นดิน
  * แต่ละกลุ่ม: อ้างอิงหลักสูตรเดิม | กำหนดเอง | ผลต่าง
  */
-const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
-  const lines = showAllocAdj ? LINES : LINES.filter((l) => l.id !== ALLOC_ADJ);
+const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = false }: Props) => {
+  const editStart = useRef<CostBlock | null>(null);
+  const lines = LINES.filter((l) =>
+    basicOnly ? l.basic || l.result : showAllocAdj || l.id !== ALLOC_ADJ,
+  );
   const nCols = groups.reduce((a, g) => a + g.cols.length, 0);
   const valueWidth = { xs: 120, sm: nCols > 2 ? 140 : 180 };
   const anyNegative = groups.some((g) =>
     g.cols.some((c) => c.result.qStar !== null && c.result.qStar < 0),
   );
-  const groupStart = { borderLeft: 2, borderLeftColor: 'divider' };
 
   const colorOf = (l: Line, v: number | null, negative: boolean, excluded: boolean) =>
     l.highlight && v !== null
@@ -220,7 +274,13 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
 
   return (
     <TableContainer>
-      <Table size="small" sx={{ minWidth: nCols > 2 ? 1100 : nCols > 1 ? 720 : undefined }}>
+      <Table
+        size="small"
+        sx={{
+          minWidth: nCols > 2 ? 1100 : nCols > 1 ? 720 : undefined,
+          ...gridTableSx,
+        }}
+      >
         <TableHead>
           <TableRow>
             <TableCell rowSpan={2} sx={{ width: 48 }}>
@@ -232,13 +292,7 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
                 key={g.key}
                 align="center"
                 colSpan={g.cols.length + (g.cols.length === 2 ? 1 : 0)}
-                sx={{
-                  ...groupStart,
-                  fontWeight: 800,
-                  color: `${g.color}.main`,
-                  borderBottom: 2,
-                  borderBottomColor: `${g.color}.main`,
-                }}
+                sx={{ fontWeight: 800, color: `${g.color}.dark` }}
               >
                 {g.title}
               </TableCell>
@@ -249,17 +303,13 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
           </TableRow>
           <TableRow>
             {groups.map((g) => [
-              ...g.cols.map((c, ci) => (
+              ...g.cols.map((c) => (
                 <TableCell
                   key={`${g.key}-${c.key}`}
                   align="right"
-                  sx={{
-                    ...(ci === 0 ? groupStart : {}),
-                    width: valueWidth,
-                    fontWeight: 700,
-                  }}
+                  sx={{ width: valueWidth }}
                 >
-                  {c.title}
+                  {c.editable ? `✎ ${c.title}` : c.title}
                 </TableCell>
               )),
               g.cols.length === 2 && (
@@ -274,7 +324,11 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
           {lines.map((l) => (
             <TableRow
               key={l.id ?? l.label}
-              sx={l.depth === 0 ? { bgcolor: 'action.hover' } : undefined}
+              sx={
+                l.depth === 0
+                  ? { bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }
+                  : undefined
+              }
             >
               <TableCell sx={{ fontWeight: 700 }}>{l.no ?? ''}</TableCell>
               <TableCell sx={{ pl: 2 + l.depth * 2, fontWeight: l.depth < 2 ? 700 : 400 }}>
@@ -300,30 +354,31 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false }: Props) => {
                   ...g.cols.map((c, ci) => {
                     const v = values[ci]!;
                     const negative = c.result.qStar !== null && c.result.qStar < 0;
-                    const input = c.editable && l.set && !excluded;
+                    const input = c.editable && l.set && !excluded && (!basicOnly || l.basic);
 
                     return (
                       <TableCell
                         key={`${g.key}-${c.key}`}
                         align="right"
                         title={excluded ? 'ไม่นับในกรณีไม่รวมเงินแผ่นดิน' : undefined}
-                        sx={{
-                          ...(ci === 0 ? groupStart : {}),
-                          py: input ? 0.5 : undefined,
-                        }}
+                        sx={{ py: input ? 0.25 : undefined }}
                       >
                         {input ? (
                           <NumberTextField
                             size="small"
                             value={Math.round(v ?? 0)}
-                            onChange={(x) => onChange(g.mode, l.set!(c.block, x))}
+                            onFocus={() => (editStart.current = c.block)}
+                            onBlur={() => (editStart.current = null)}
+                            onChange={(x) =>
+                              onChange(g.mode, l.set!(c.block, x, editStart.current ?? undefined))
+                            }
                             slotProps={{
                               htmlInput: {
-                                style: { textAlign: 'right' },
+                                style: { textAlign: 'right', paddingTop: 4, paddingBottom: 4 },
                                 'aria-label': `${g.title} ${c.title} ${l.id ?? l.label}`,
                               },
                             }}
-                            sx={{ width: '100%' }}
+                            sx={editInputSx}
                           />
                         ) : (
                           <Box

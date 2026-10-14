@@ -1,8 +1,8 @@
-// W7 — คำนวณจุดคุ้มทุนรายหลักสูตร (Scenario Calculator) + รายงาน PDF
-import ScenarioProgramView from '@/views/scenario-program/ScenarioProgramView';
+// W7 — แยกเป็นเมนูย่อย: ปรับปรุงหลักสูตรเดิม (/improve) · เปิดหลักสูตรใหม่ (/new)
+import { redirect } from 'next/navigation';
 
 const ScenarioProgramPage = () => {
-  return <ScenarioProgramView />;
+  redirect('/scenario/program/improve');
 };
 
 export default ScenarioProgramPage;

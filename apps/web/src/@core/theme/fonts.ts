@@ -1,9 +1,7 @@
 /*
- * Project fonts — mirrors the MSU-BEPS reference design.
+ * Project fonts — ตามธีม MSU-KPI (erp.msu.ac.th/kpi)
  *
- *  - Body / UI text .......... Sarabun            (Thai + Latin, very readable)
- *  - Headings & numbers ...... Manrope            (Latin display) → falls back to
- *                              IBM Plex Sans Thai (Thai display)
+ *  - ทั้งเนื้อหาและหัวข้อ ..... Google Sans (Thai + Latin) → สำรองด้วย IBM Plex Sans Thai
  *
  * Self-hosted via `next/font/google` (no external <link> needed).
  * To change a font, swap the import + loader below and keep the exported
@@ -11,35 +9,27 @@
  */
 
 // Next Imports
-import { Sarabun, IBM_Plex_Sans_Thai, Manrope } from 'next/font/google';
+import { Google_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
 
-export const bodyFont = Sarabun({
+// Google Sans is a variable font (wght 400–700) → omit `weight` to load the full range.
+export const mainFont = Google_Sans({
+  subsets: ['thai', 'latin'],
+  variable: '--font-main',
+  display: 'swap',
+  fallback: ['sans-serif'],
+});
+
+export const thaiFallbackFont = IBM_Plex_Sans_Thai({
   subsets: ['thai', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-body',
-  display: 'swap',
-  fallback: ['sans-serif'],
-});
-
-// Manrope is a variable font → omit `weight` to load the full range.
-export const headingLatinFont = Manrope({
-  subsets: ['latin'],
-  variable: '--font-heading-latin',
-  display: 'swap',
-  fallback: ['sans-serif'],
-});
-
-export const headingThaiFont = IBM_Plex_Sans_Thai({
-  subsets: ['thai', 'latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-heading-thai',
+  variable: '--font-thai-fallback',
   display: 'swap',
   fallback: ['sans-serif'],
 });
 
 // Font-family stacks consumed by the MUI theme (see `@core/theme`).
-export const bodyFontFamily = `var(--font-body), 'Sarabun', sans-serif`;
-export const headingFontFamily = `var(--font-heading-latin), var(--font-heading-thai), 'Manrope', 'IBM Plex Sans Thai', sans-serif`;
+export const bodyFontFamily = `var(--font-main), var(--font-thai-fallback), 'Google Sans', 'IBM Plex Sans Thai', sans-serif`;
+export const headingFontFamily = bodyFontFamily;
 
 // CSS-variable classNames to attach to <body> so the @font-face rules load.
-export const fontVariables = `${bodyFont.variable} ${headingLatinFont.variable} ${headingThaiFont.variable}`;
+export const fontVariables = `${mainFont.variable} ${thaiFallbackFont.variable}`;

@@ -13,7 +13,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import type { Theme } from '@mui/material/styles';
+import { alpha, type Theme } from '@mui/material/styles';
 
 import type { RevenueMode } from '@beps/calc-engine';
 
@@ -21,6 +21,7 @@ import NumberTextField from '@components/NumberTextField';
 
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
+import { editInputSx, gridTableSx } from './CostBlockTable';
 import { mixResult, type MixResult, type Segment, type SegmentResult } from './newProgramCalc';
 
 const fmt = (v: number) => (Number.isFinite(v) ? Math.round(v).toLocaleString('th-TH') : '—');
@@ -30,6 +31,9 @@ type InputKey = 'n' | 'fee' | 'gov' | 'semesters' | 'years';
 
 interface RowDef {
   label: string;
+  /** ลำดับ (คอลัมน์ซ้ายสุด) */
+  no?: string;
+  unit?: string;
   /** กลุ่มแถวผลลัพธ์ต่อกรณี — แถวหัวข้อ ไม่มีค่า */
   section?: RevenueMode;
   mode?: RevenueMode;
@@ -68,26 +72,34 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     const mix = mixes[m];
 
     return [
-      { label: REVENUE_MODE_LABEL[m], section: m },
-      { label: 'รายรับตลอดหลักสูตร ต่อคน', mode: m, out: (r) => fmt(r.perHeadProgram) },
+      { label: REVENUE_MODE_LABEL[m], section: m, no: m === 'with_government' ? '7' : '8' },
+      {
+        label: 'รายรับตลอดหลักสูตร ต่อคน',
+        mode: m,
+        out: (r) => fmt(r.perHeadProgram),
+        unit: 'บาท',
+      },
       {
         label: 'รายรับต่อปี',
         mode: m,
         out: (r) => fmt(r.revenue),
         total: fmt(mix.total.revenue),
         bold: true,
+        unit: 'บาท',
       },
       {
         label: 'ต้นทุนคงที่ (ปันตามสัดส่วนนิสิต)',
         mode: m,
         out: (r) => fmt(r.tfc),
         total: fmt(mix.total.tfc),
+        unit: 'บาท',
       },
       {
         label: 'ต้นทุนผันแปร (AVC × จำนวนนิสิต)',
         mode: m,
         out: (r) => fmt(r.tvc),
         total: fmt(mix.total.tvc),
+        unit: 'บาท',
       },
       {
         label: 'กำไร (ขาดทุน)',
@@ -95,22 +107,32 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
         out: (r) => fmt(r.profit),
         total: fmt(mix.total.profit),
         bold: true,
+        unit: 'บาท',
       },
     ];
   };
 
   const rows: RowDef[] = [
-    { label: 'จำนวนนิสิต (คน)', input: 'n', total: fmt(base.total.n), bold: true },
     {
+      no: '1',
+      label: 'จำนวนนิสิต (คน)',
+      input: 'n',
+      total: fmt(base.total.n),
+      bold: true,
+      unit: 'คน',
+    },
+    {
+      no: '2',
+      unit: '%',
       label: 'สัดส่วนจำนวนนิสิต',
       mode: 'with_government',
       out: (r) => pct(r.share),
       total: pct(base.total.share),
     },
-    { label: 'ค่าธรรมเนียม (บาท/ภาค/คน)', input: 'fee' },
-    { label: 'เงินแผ่นดิน (บาท/ภาค/คน)', input: 'gov' },
-    { label: 'จำนวนภาคเรียนต่อปี', input: 'semesters' },
-    { label: 'จำนวนปีการศึกษา', input: 'years' },
+    { no: '3', label: 'ค่าธรรมเนียม (บาท/ภาค/คน)', input: 'fee', unit: 'บาท' },
+    { no: '4', label: 'เงินแผ่นดิน (บาท/ภาค/คน)', input: 'gov', unit: 'บาท' },
+    { no: '5', label: 'จำนวนภาคเรียนต่อปี', input: 'semesters', unit: 'ภาค' },
+    { no: '6', label: 'จำนวนปีการศึกษา', input: 'years', unit: 'ปี' },
     ...MODES.flatMap(outRows),
   ];
   const rowKey = (row: RowDef) => `${row.mode ?? row.section ?? ''}:${row.label}`;
@@ -128,11 +150,11 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
           onChange={(v) => set(i, row.input!, v)}
           slotProps={{
             htmlInput: {
-              style: { textAlign: 'right' },
+              style: { textAlign: 'right', paddingTop: 4, paddingBottom: 4 },
               'aria-label': `${row.label} ${segs[i]!.label}`,
             },
           }}
-          sx={{ width: '100%', minWidth: 90 }}
+          sx={{ ...editInputSx, minWidth: 90 }}
         />
       );
     }
@@ -256,46 +278,58 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
   return (
     <>
       <TableContainer>
-        <Table size="small">
+        <Table size="small" sx={{ minWidth: 900, ...gridTableSx }}>
           <TableHead>
             <TableRow>
+              <TableCell sx={{ width: 48 }}>ลำดับ</TableCell>
               <TableCell>รายการ</TableCell>
               {segs.map((s) => (
-                <TableCell key={s.label} align="right">
-                  {s.label}
-                </TableCell>
+                <TableCell key={s.label}>{s.label}</TableCell>
               ))}
-              <TableCell align="right">รวม</TableCell>
+              <TableCell>รวม</TableCell>
+              <TableCell sx={{ width: 64 }}>หน่วย</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {rows.map((row) =>
               row.section ? (
-                <TableRow key={rowKey(row)}>
+                <TableRow
+                  key={rowKey(row)}
+                  sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}
+                >
+                  <TableCell sx={{ fontWeight: 700 }}>{row.no}</TableCell>
                   <TableCell
-                    colSpan={segs.length + 2}
-                    sx={{
-                      fontWeight: 700,
-                      color: sectionColor(row.section),
-                      bgcolor: 'action.hover',
-                    }}
+                    colSpan={segs.length + 3}
+                    sx={{ fontWeight: 800, color: sectionColor(row.section) }}
                   >
                     {row.label}
                   </TableCell>
                 </TableRow>
               ) : (
                 <TableRow key={rowKey(row)}>
-                  <TableCell sx={{ fontWeight: row.bold ? 700 : 400, whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontWeight: 700 }}>{row.no ?? ''}</TableCell>
+                  <TableCell
+                    sx={{
+                      pl: row.mode && !row.no ? 4 : 2,
+                      fontWeight: row.bold ? 700 : 400,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {row.label}
                   </TableCell>
                   {segs.map((s, i) => (
-                    <TableCell key={s.label} align="right" sx={{ py: row.input ? 0.5 : undefined }}>
+                    <TableCell
+                      key={s.label}
+                      align="right"
+                      sx={{ py: row.input && onChange ? 0.25 : undefined }}
+                    >
                       {cell(row, i)}
                     </TableCell>
                   ))}
                   <TableCell align="right" sx={{ fontWeight: 700 }}>
                     {row.total ?? ''}
                   </TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>{row.unit}</TableCell>
                 </TableRow>
               ),
             )}

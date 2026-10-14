@@ -49,7 +49,7 @@ const quickLinks: QuickLink[] = [
 ];
 
 const features = [
-  'ฟอนต์ Sarabun + Manrope / IBM Plex Sans Thai',
+  'ฟอนต์ Google Sans',
   'ธีมสีม่วง (primary) สลับ light/dark ได้',
   'Sidebar แบบจัดกลุ่ม แก้ที่ data/navigation',
 ];

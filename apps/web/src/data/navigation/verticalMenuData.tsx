@@ -125,13 +125,31 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       ],
     },
 
-    // ── คำนวณด้วยตนเอง — W6, W7 ──────────────────────────────────────
+    // ── ปรับปรุง/เปิดหลักสูตร — เรียงตามขั้น: คณะล็อกวิธีปันส่วนก่อน แล้วอาจารย์จึงคำนวณ ──
+    // (ขั้นที่ 1 เป็นของผู้ดูแลคณะ — อาจารย์/ผู้ใช้ทั่วไปไม่เห็น แต่ขั้นที่ 2 ยังเลขเดิมให้รู้ว่ามีขั้นก่อนหน้า)
+    {
+      label: 'ปรับปรุง/เปิดหลักสูตร',
+      isSection: true,
+      children: [
+        { label: '1. ตั้งค่าวิธีปันส่วน (คณะ)', href: '/admin/fixed-cost-lock', icon: '🔒' },
+        {
+          label: '2. จุดคุ้มทุนรายหลักสูตร',
+          icon: '🎓',
+          children: [
+            { label: 'ปรับปรุงหลักสูตรเดิม', href: '/scenario/program/improve' },
+            { label: 'เปิดหลักสูตรใหม่', href: '/scenario/program/new' },
+            { label: 'ปรับปรุงหลักสูตร (ปรับ 3 ทาง)', href: '/scenario/program2' },
+          ],
+        },
+      ],
+    },
+
+    // ── คำนวณด้วยตนเอง — W6 ─────────────────────────────────────────
     {
       label: 'คำนวณด้วยตนเอง',
       isSection: true,
       children: [
         { label: 'จุดคุ้มทุนรายคณะ', href: '/scenario/faculty', icon: '🧮' },
-        { label: 'จุดคุ้มทุนรายหลักสูตร', href: '/scenario/program', icon: '🎓' },
         ...(SHOW_ADMISSION_PLAN
           ? [{ label: 'แผนการรับนิสิต', href: '/scenario/admission-plan', icon: '👥' }]
           : []),

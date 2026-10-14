@@ -37,26 +37,15 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
         },
       },
 
-      // Active item — tinted panel + theme-coloured text + 3px leading bar.
-      // Mirrors .sb-item.active in mockup/assets/beps.css (see the mockup for the reference look).
+      // Active item — แถบไล่สีฟ้าทึบ ตัวอักษรขาว ตามธีม MSU-KPI
       [`&:not(.${menuClasses.subMenuRoot}) > .${menuClasses.button}.${menuClasses.active}`]: {
-        position: 'relative',
-        color: 'var(--mui-palette-primary-main)',
-        backgroundColor: 'var(--mui-palette-primary-lighterOpacity)',
-        boxShadow: 'inset 0 0 0 1px var(--mui-palette-primary-lightOpacity)',
+        color: 'var(--mui-palette-primary-contrastText)',
+        backgroundImage:
+          'linear-gradient(270deg, var(--mui-palette-primary-main), var(--mui-palette-primary-light))',
+        boxShadow: '0 2px 6px rgb(var(--mui-palette-primary-mainChannel) / 0.35)',
         fontWeight: 600,
         [`& .${menuClasses.icon}`]: {
-          color: 'var(--mui-palette-primary-main)',
-        },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          insetInlineStart: 0,
-          insetBlock: '20%',
-          inlineSize: '3px',
-          borderStartEndRadius: '3px',
-          borderEndEndRadius: '3px',
-          backgroundColor: 'var(--mui-palette-primary-main)',
+          color: 'inherit',
         },
       },
     }),
@@ -70,12 +59,15 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
       ...((!isPopoutWhenCollapsed || popoutExpanded || (popoutCollapsed && level === 0)) && {
         transition: `padding-inline-start ${transitionDuration}ms ease-in-out`,
         paddingInlineStart: theme.spacing(
-          collapsedNotHovered ? ((collapsedWidth as number) - 25) / 8 : 3.5,
+          collapsedNotHovered ? ((collapsedWidth as number) - 25) / 8 : 5.5,
         ),
         paddingInlineEnd: theme.spacing(
           collapsedNotHovered ? ((collapsedWidth as number) - 25) / 8 - 1.25 : 3.5,
         ),
-        borderRadius: 8,
+        // กางเมนู: แคปซูลโค้งเฉพาะขวา ชิดขอบซ้าย (แบบ MSU-KPI) · ยุบเมนู: มุมโค้งรอบด้าน
+        ...(collapsedNotHovered
+          ? { borderRadius: 8 }
+          : { borderStartEndRadius: 50, borderEndEndRadius: 50 }),
       }),
       ...(!active && {
         '&:hover, &:focus-visible': {

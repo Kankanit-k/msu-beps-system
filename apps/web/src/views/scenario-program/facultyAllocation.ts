@@ -22,13 +22,12 @@ import type {
   PolicyIssue,
 } from '@beps/calc-engine';
 
-/** `SHEET` = ใช้ส่วนแบ่งที่ชีตปันไว้แล้ว (ตัวเลขตรงกับ Excel) · ที่เหลือ = 3 วิธีตามมติ */
-export type AllocMethod = 'SHEET' | FixedCostMethod;
+/** 3 วิธีตามมติ — คณะเลือกและล็อกที่หน้าตั้งค่าวิธีปันส่วน (ไม่มีแบบ "ตามชีต" แล้ว) */
+export type AllocMethod = FixedCostMethod;
 
 export const ALLOC_METHOD_LABEL: Record<AllocMethod, string> = {
-  SHEET: 'ตามชีต (เดิม)',
-  PER_HEAD_FTES: 'คิดตามรายหัวนิสิต (FTES)',
-  EQUAL_PROGRAM: 'หารเท่ากันทุกหลักสูตรในคณะ',
+  PER_HEAD_FTES: 'หารตามรายหัวนิสิต',
+  EQUAL_PROGRAM: 'หารเท่ากันทุกหลักสูตร',
   CUSTOM_PCT: 'กำหนดสัดส่วน % เอง',
 };
 
@@ -208,7 +207,7 @@ export interface AllocChoice {
 }
 
 export const DEFAULT_ALLOC_CHOICE: AllocChoice = {
-  method: 'SHEET',
+  method: 'PER_HEAD_FTES',
   bucketLevel: 'EDUCATION_LEVEL',
   subMethod: 'PER_HEAD_FTES',
   pct: {},
@@ -223,8 +222,7 @@ export const DEFAULT_ALLOC_CHOICE: AllocChoice = {
  * ยกเว้นกลุ่มที่มีหลักสูตรใหม่: ช่องว่างไม่ส่งบรรทัด → engine ติด V2 (หลักสูตรไม่อยู่ในกลุ่มใด)
  * ไม่งั้นลืมกรอก = หลักสูตรใหม่ไม่รับต้นทุนส่วนกลางเลย แล้ว Q* ต่ำเกินจริงโดยไม่มีใครเห็น
  */
-export function policyOf(c: AllocChoice, buckets: readonly AllocBucket[]): FixedCostPolicy | null {
-  if (c.method === 'SHEET') return null;
+export function policyOf(c: AllocChoice, buckets: readonly AllocBucket[]): FixedCostPolicy {
   if (c.method !== 'CUSTOM_PCT') return { method: c.method };
 
   return {

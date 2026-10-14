@@ -74,6 +74,25 @@ export const embeddedShareOf = (p: ProgRow): number => {
   return sum(b.fix) + b.dep - p.tfcProg;
 };
 
+/**
+ * เปลี่ยนจำนวนนิสิตโดยให้รายได้ต่อหัว (R) และต้นทุนผันแปรต่อหัว (AVC) คงเดิม — ปรับรายได้/ต้นทุนผันแปรตามสัดส่วน Q
+ * s = ค่าตั้งต้นที่ใช้เทียบ (s.q = 0 ยังไม่มี R/AVC → เปลี่ยนแค่ Q)
+ */
+export const scaleQ = (b: CostBlock, q: number, s: CostBlock = b): CostBlock => {
+  if (s.q <= 0) return { ...b, q };
+
+  const k = q / s.q;
+
+  return {
+    ...b,
+    q,
+    gov: s.gov * k,
+    income: s.income * k,
+    var: s.var.map((x) => x * k),
+    genEd: s.genEd * k,
+  };
+};
+
 /** โหมดกรอกเอง: ค่าธรรมเนียมรายการหลัก/หักสมทบ คิดจากอัตรา × Q × ภาค (T38, T39) */
 export const withPerHeadCharges = (b: CostBlock, semesters: number): CostBlock => ({
   ...b,
@@ -120,6 +139,78 @@ export function blockResult(b: CostBlock, mode: RevenueMode, fixAdj = 0): BlockR
     qStar,
     beRevenue: qStar !== null && r !== null ? qStar * r : null,
     diff: qStar !== null ? b.q - qStar : null,
+  };
+}
+
+/* ---------------- 3 ทางปรับให้คุ้มทุน (ค่าเทอม · จำนวนนิสิต · ต้นทุนผันแปร) ---------------- */
+
+export interface Levers {
+  q: number;
+  /** ค่าเทอม = งบเงินรายได้ต่อคน (บาท/คน/ปี) */
+  fee: number;
+  /** % ลดต้นทุนผันแปรที่หลักสูตรคุมได้ (หมวด VARIABLE_CATS) */
+  cut: number;
+}
+
+/** ค่าตั้งต้นจากตัวเลขชีต — applyLevers(b, leversOf(b)) ได้ก้อนเดิม */
+export const leversOf = (b: CostBlock): Levers => ({
+  q: b.q,
+  fee: b.q > 0 ? b.income / b.q : 0,
+  cut: 0,
+});
+
+/**
+ * ปรับก้อนต้นทุนตาม 3 ทาง โดยคงตัวเลขต่อคนตามชีต: เงินแผ่นดิน/ต้นทุนผันแปรขยับตามจำนวนนิสิต
+ * ลด % เฉพาะหมวดผันแปรของหลักสูตร — ศึกษาทั่วไป/ค่าธรรมเนียมรายการหลัก/หักสมทบเป็นอัตรากลาง ลดเองไม่ได้
+ */
+export function applyLevers(base: CostBlock, l: Levers): CostBlock {
+  const s = base.q > 0 ? l.q / base.q : 0;
+  const cut = s * (1 - l.cut / 100);
+
+  return {
+    ...base,
+    q: l.q,
+    gov: base.gov * s,
+    income: l.fee * l.q,
+    var: base.var.map((v) => v * cut),
+    genEd: base.genEd * s,
+    mainFee: base.mainFee * s,
+    uniShare: base.uniShare * s,
+  };
+}
+
+export interface LeverTargets {
+  /** จำนวนนิสิตขั้นต่ำ — null เมื่อ R ≤ AVC (ยิ่งรับยิ่งขาดทุน) */
+  q: number | null;
+  /** ค่าเทอมขั้นต่ำ บาท/คน/ปี */
+  fee: number | null;
+  /** % ลดต้นทุนผันแปรขั้นต่ำ — null เมื่อลดหมดแล้วก็ยังไม่คุ้มทุน */
+  cut: number | null;
+}
+
+/**
+ * ค่าที่ต้องปรับ "ทางเดียว" (อีก 2 ทางคงไว้) ให้กำไร ≥ 0 — แก้สมการ TR = TC จาก TFC/R/AVC ของผลปัจจุบัน
+ * @param base ก้อนตามชีต (ก่อนลด %) · @param b ก้อนหลังปรับ · @param r ผลของ b ในโหมดนั้น
+ */
+export function leverTargets(
+  base: CostBlock,
+  l: Levers,
+  b: CostBlock,
+  r: BlockResult,
+  mode: RevenueMode,
+): LeverTargets {
+  if (b.q <= 0 || r.r === null || r.avc === null) return { q: null, fee: null, cut: null };
+  const govPerHead = mode === 'with_government' ? b.gov / b.q : 0;
+  const avcNeeded = r.r - r.tfc / b.q;
+  // ต้นทุนผันแปรที่ลดได้ต่อคน ก่อนลด % · ส่วนที่เหลือของ AVC ลดไม่ได้
+  const ctrl0 = base.q > 0 ? sum(base.var) / base.q : 0;
+  const fixedAvc = r.avc - ctrl0 * (1 - l.cut / 100);
+  const cut = ctrl0 > 0 ? Math.ceil((1 - (avcNeeded - fixedAvc) / ctrl0) * 100) : null;
+
+  return {
+    q: r.qStar !== null && r.qStar > 0 ? r.qStar : null,
+    fee: Math.max(0, Math.ceil(r.avc + r.tfc / b.q - govPerHead)),
+    cut: cut !== null && cut <= 100 ? Math.max(0, cut) : null,
   };
 }
 

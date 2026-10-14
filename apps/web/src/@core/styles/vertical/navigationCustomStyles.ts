@@ -55,14 +55,13 @@ const navigationCustomStyles = (verticalNavOptions: VerticalNavState, theme: The
     [`& .${menuClasses.root}`]: {
       paddingBlockEnd: theme.spacing(2),
 
-      // Left/right gutter so items aren't flush against the sidebar edges
+      // กางเมนู: รายการชิดขอบซ้าย เว้นขวา แบบ Materio/MSU-KPI · ยุบเมนู: เว้นสองข้างเท่ากัน
       ...(collapsedNotHovered
         ? {
             paddingInline: theme.spacing(1.25),
           }
         : {
-            paddingInlineStart: theme.spacing(3),
-            paddingInlineEnd: theme.spacing(3),
+            paddingInlineEnd: theme.spacing(4),
           }),
     },
     // bgColorContainer is the flex column holding header → menu → SidebarFooter.

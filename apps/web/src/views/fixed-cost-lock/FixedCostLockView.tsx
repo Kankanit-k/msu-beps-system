@@ -1,0 +1,554 @@
+'use client';
+
+/**
+ * ตั้งค่าวิธีปันส่วนต้นทุนคงที่ของคณะ — ขั้นที่ 1 ก่อนอาจารย์ประจำหลักสูตรปรับปรุง/เปิดหลักสูตร
+ *
+ * ตามมติประชุม: คณะประชุมตกลงแล้วผู้ดูแลคณะเลือก 1 ใน 3 วิธี (หารรายหัว · หารเท่ากันทุกหลักสูตร · กำหนด %)
+ * แล้วกดล็อก → มีผลทันที · ปลดล็อกเปลี่ยนวิธีเองได้ · อาจารย์ใช้ตามที่ล็อกและแก้ไม่ได้
+ */
+import { useEffect, useMemo, useState } from 'react';
+
+// MUI Imports
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import Autocomplete from '@mui/material/Autocomplete';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Snackbar from '@mui/material/Snackbar';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
+import Stepper from '@mui/material/Stepper';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+
+import { MOCK_RUN } from '@components/PageHeaderBar';
+import StepperCustomDot from '@components/stepper-dot';
+import { useAuthUser } from '@/hooks/AuthHooks';
+import { useRole } from '@/hooks/useRole';
+import { roleDisplay } from '@/configs/accessControl';
+import { fmtMillion } from '@views/breakeven/calc';
+import { FACULTIES, facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
+import MethodCards from '@views/fixed-cost-policy/MethodCards';
+import PercentTable, { fillRemainderPct } from '@views/fixed-cost-policy/PercentTable';
+import {
+  ALLOC_METHOD_LABEL,
+  allocateFaculty,
+  allocBuckets,
+  DEFAULT_ALLOC_CHOICE,
+  policyOf,
+  type AllocChoice,
+  type FacultyScenario,
+} from '@views/scenario-program/facultyAllocation';
+import { progOptionLabel } from '@views/scenario-program/programData';
+
+import { fmtLockedAt, lockFaculty, unlockFaculty, useFacultyLock } from './lockStore';
+
+const STEPS = ['เลือกคณะ', 'เลือกวิธีปันส่วน', 'ตรวจส่วนแบ่งรายหลักสูตร', 'ล็อก'];
+const ROWS_PER_PAGE = 10;
+const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
+const fmtD = (v: number) => {
+  const x = Math.round(v);
+
+  return x === 0 ? '0' : `${x > 0 ? '+' : '−'}${Math.abs(x).toLocaleString('th-TH')}`;
+};
+
+/* ---------- ร่างที่ยังไม่ล็อก (ต่อคณะ) — กันกรอก % หายเมื่อปิด/รีโหลด ---------- */
+const DRAFT_KEY = 'beps:fixed-cost-lock:draft:v1';
+type Drafts = Record<string, AllocChoice & { savedAt: string }>;
+
+const readDrafts = (): Drafts => {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+
+    return raw ? (JSON.parse(raw) as Drafts) : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeDrafts = (d: Drafts) => {
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+  } catch {
+    // โหมดส่วนตัว/พื้นที่เต็ม — ยังตั้งค่าได้ แค่ไม่จำร่าง
+  }
+};
+
+/** ส่วนแบ่งส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม) ที่ชีตแท็บ 3 ปันไว้ */
+const sheetShareOf = poolAmountOf('ALL');
+
+const FixedCostLockView = () => {
+  const year = MOCK_RUN.budgetYear;
+  const { role, scope, ready: roleReady } = useRole();
+  const { user } = useAuthUser();
+  // ผู้ดูแลคณะตั้งค่าได้เฉพาะคณะของตน · ผู้ดูแลมหาวิทยาลัยเลือกได้ทุกคณะ
+  const scopedFac = role === 'deptAdmin' ? scope.faculty : null;
+  /** ล็อก/ปลดล็อกได้เฉพาะผู้ดูแลคณะ (ที่ระบุคณะแล้ว) และผู้ดูแลมหาวิทยาลัย */
+  const denied =
+    role === 'universityAdmin'
+      ? null
+      : role === 'deptAdmin'
+        ? scopedFac
+          ? null
+          : 'ยังไม่ได้ระบุคณะของผู้ดูแล — เลือกคณะจากเมนูโปรไฟล์ (มุมมองสิทธิ์ → ผู้ดูแลระดับหน่วยงาน) ก่อน'
+        : role === 'lecturer'
+          ? 'หน้านี้สำหรับผู้ดูแลคณะเท่านั้น — อาจารย์ประจำหลักสูตรใช้วิธีปันส่วนที่คณะล็อกไว้ และแก้ไขไม่ได้'
+          : 'หน้านี้สำหรับผู้ดูแลคณะเท่านั้น';
+  const facultyOptions = scopedFac ? [scopedFac] : FACULTIES;
+
+  const [fac, setFac] = useState<string | null>(null);
+  const [choice, setChoice] = useState<AllocChoice>(DEFAULT_ALLOC_CHOICE);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<'lock' | 'unlock' | 'clear' | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [page, setPage] = useState(0);
+  const { lock, ready } = useFacultyLock(year, fac);
+  const locked = !!lock;
+
+  useEffect(() => {
+    if (scopedFac) setFac(scopedFac);
+  }, [scopedFac]);
+
+  // เปลี่ยนคณะ → ล็อกแล้วแสดงค่าที่ล็อก · ยังไม่ล็อกแสดงร่างของคณะนั้น
+  useEffect(() => {
+    if (!fac || !ready) return;
+    const d = readDrafts()[fac];
+
+    if (lock) setChoice(lock.choice);
+    else if (d)
+      setChoice({
+        method: d.method,
+        bucketLevel: d.bucketLevel,
+        subMethod: d.subMethod,
+        pct: d.pct,
+      });
+    else setChoice(DEFAULT_ALLOC_CHOICE);
+    setSavedAt(lock ? null : (d?.savedAt ?? null));
+    setPage(0);
+  }, [fac, ready, lock]);
+
+  const update = (patch: Partial<AllocChoice>) => {
+    if (!fac || locked) return;
+    const next = { ...choice, ...patch };
+    const at = new Date().toISOString();
+
+    setChoice(next);
+    writeDrafts({ ...readDrafts(), [fac]: { ...next, savedAt: at } });
+    setSavedAt(at);
+  };
+
+  /* ---------- ผลปันส่วนของทั้งคณะตามวิธีที่เลือก (ชุดคำนวณเดียวกับหน้าคำนวณรายหลักสูตร) ---------- */
+  const rows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
+  const scenario: FacultyScenario | null = useMemo(() => {
+    if (!fac) return null;
+    const programs = rows.map(({ p, id }) => ({
+      id,
+      label: progOptionLabel(p),
+      educationLevel: p.lvl,
+      q: p.Q,
+      sheetShare: sheetShareOf(p),
+    }));
+
+    return { pool: programs.reduce((a, p) => a + p.sheetShare, 0), programs };
+  }, [fac, rows]);
+  const buckets = scenario ? allocBuckets(scenario, choice.bucketLevel) : [];
+  const outcome = scenario ? allocateFaculty(scenario, policyOf(choice, buckets)) : null;
+  const errors = outcome?.issues.filter((i) => i.severity === 'error') ?? [];
+  const warnings = outcome?.issues.filter((i) => i.severity === 'warning') ?? [];
+  const byId = new Map(rows.map((r) => [r.id, r.p]));
+
+  const lockBlocker = !fac
+    ? 'เลือกคณะก่อน'
+    : rows.length === 0
+      ? 'คณะนี้ไม่มีหลักสูตรในชุดข้อมูล'
+      : !outcome?.applied
+        ? 'แก้ข้อทักท้วงของวิธีปันส่วนก่อน (เช่น % รวมไม่ครบ 100)'
+        : null;
+  const activeStep = !fac ? 0 : locked ? 4 : lockBlocker ? 1 : 3;
+
+  const lockedBy = user?.STAFFNAME
+    ? `${user.STAFFNAME} ${user.STAFFSURNAME ?? ''}`.trim()
+    : `${roleDisplay[role].label}${fac ? ` ${fac}` : ''}`;
+
+  const doLock = () => {
+    setConfirm(null);
+    if (!fac || lockBlocker) return;
+    if (!lockFaculty({ year, faculty: fac, choice, lockedBy })) {
+      setToast({ msg: 'ล็อกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้บันทึกข้อมูล', ok: false });
+
+      return;
+    }
+
+    const d = readDrafts();
+
+    delete d[fac];
+    writeDrafts(d);
+    setToast({
+      msg: `ล็อกวิธี "${ALLOC_METHOD_LABEL[choice.method]}" ของ${fac}แล้ว — มีผลทันที`,
+      ok: true,
+    });
+  };
+
+  const doUnlock = () => {
+    setConfirm(null);
+    if (!fac) return;
+    // เก็บค่าที่เคยล็อกเป็นร่าง — ปลดล็อกเพื่อแก้นิดเดียวไม่ต้องกรอกใหม่หมด
+    writeDrafts({ ...readDrafts(), [fac]: { ...choice, savedAt: new Date().toISOString() } });
+    setToast(
+      unlockFaculty(year, fac)
+        ? {
+            msg: `ปลดล็อก${fac}แล้ว — แก้ไขวิธีปันส่วนได้ อาจารย์จะคำนวณไม่ได้จนกว่าจะล็อกอีกครั้ง`,
+            ok: true,
+          }
+        : { msg: 'ปลดล็อกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้บันทึกข้อมูล', ok: false },
+    );
+  };
+
+  const fill = () => {
+    const res = fillRemainderPct(buckets, choice.pct);
+
+    if (!res) return;
+    if ('error' in res) setToast({ msg: res.error, ok: false });
+    else update({ pct: res.pct });
+  };
+
+  const shares = outcome?.shares ?? [];
+
+  if (!roleReady) return null;
+  if (denied) {
+    return (
+      <Alert severity="warning" icon={<i className="ri-lock-line" />}>
+        <AlertTitle>ตั้งค่าวิธีปันส่วนต้นทุนคงที่ไม่ได้</AlertTitle>
+        {denied}
+      </Alert>
+    );
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Box>
+        <Typography variant="h5" fontWeight={700}>
+          ตั้งค่าวิธีปันส่วนต้นทุนคงที่ของคณะ
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          ขั้นที่ 1 ก่อนปรับปรุง/เปิดหลักสูตร · ปีงบประมาณ {year} ·
+          คณะประชุมตกลงแล้วเลือกวิธีและกดล็อก — มีผลทันที อาจารย์ประจำหลักสูตรใช้วิธีนี้และแก้ไม่ได้
+        </Typography>
+      </Box>
+
+      <Card>
+        <CardContent>
+          <Stepper activeStep={activeStep} alternativeLabel>
+            {STEPS.map((label, i) => (
+              <Step key={label} completed={i < activeStep}>
+                <StepLabel StepIconComponent={StepperCustomDot}>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </CardContent>
+      </Card>
+
+      {/* ---------- 1. คณะ + สถานะ ---------- */}
+      <Card>
+        <CardHeader title="1. คณะ / หน่วยงาน" />
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Autocomplete
+            options={facultyOptions}
+            value={fac}
+            disabled={!!scopedFac}
+            onChange={(_, v) => setFac(v)}
+            sx={{ maxWidth: 480 }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="คณะ"
+                helperText={scopedFac ? 'ผู้ดูแลคณะตั้งค่าได้เฉพาะคณะของตน' : undefined}
+              />
+            )}
+          />
+          {fac && ready && lock && (
+            <Alert
+              severity="success"
+              icon={<i className="ri-lock-line" />}
+              action={
+                <Button color="inherit" size="small" onClick={() => setConfirm('unlock')}>
+                  ปลดล็อก
+                </Button>
+              }
+            >
+              <AlertTitle>ล็อกแล้ว — {ALLOC_METHOD_LABEL[lock.choice.method]}</AlertTitle>
+              เมื่อ {fmtLockedAt(lock.lockedAt)} โดย {lock.lockedBy} · อาจารย์ประจำหลักสูตรใน{fac}
+              ปรับปรุง/เปิดหลักสูตรได้แล้ว
+            </Alert>
+          )}
+          {fac && ready && !lock && (
+            <Alert severity="warning" icon={<i className="ri-lock-unlock-line" />}>
+              ยังไม่ล็อก — อาจารย์ประจำหลักสูตรใน{fac}ยังเริ่มคำนวณไม่ได้
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {fac && scenario && (
+        <>
+          {/* ---------- 2. วิธี ---------- */}
+          <Card>
+            <CardHeader
+              title="2. เลือกวิธีปันส่วนตามมติคณะ"
+              subheader={`ก้อนต้นทุนคงที่ส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม) ${fmtMillion(scenario.pool)} ลบ. แบ่งลง ${rows.length} หลักสูตร`}
+            />
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Box
+                aria-disabled={locked}
+                sx={locked ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+              >
+                <MethodCards
+                  value={choice.method}
+                  onChange={(method) => update({ method })}
+                  current={lock?.choice.method}
+                />
+              </Box>
+              {choice.method === 'CUSTOM_PCT' && (
+                <PercentTable
+                  buckets={buckets}
+                  pct={choice.pct}
+                  onPctChange={(k, v) => update({ pct: { ...choice.pct, [k]: v } })}
+                  bucketLevel={choice.bucketLevel}
+                  onBucketLevelChange={(bucketLevel) => update({ bucketLevel })}
+                  subMethod={choice.subMethod}
+                  onSubMethodChange={(subMethod) => update({ subMethod })}
+                  onFillRemainder={fill}
+                  onClearDraft={() => setConfirm('clear')}
+                  draftSavedAt={savedAt}
+                  readOnly={locked}
+                  hideControls
+                />
+              )}
+              {choice.method === 'CUSTOM_PCT' && choice.bucketLevel === 'PROGRAM' && !locked && (
+                <Alert severity="info" variant="outlined">
+                  กำหนด % รายหลักสูตร: หลักสูตรที่จะเปิดใหม่ยังไม่มี % —
+                  อาจารย์จะเปิดหลักสูตรใหม่ไม่ได้จนกว่าคณะจะปลดล็อกและเพิ่มสัดส่วนให้
+                  ถ้าต้องการรองรับหลักสูตรใหม่ ให้กำหนดรายระดับการศึกษา
+                </Alert>
+              )}
+              {!locked && choice.method !== 'CUSTOM_PCT' && savedAt && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="caption" color="text.disabled">
+                    บันทึกร่างอัตโนมัติ {new Date(savedAt).toLocaleTimeString('th-TH')}
+                  </Typography>
+                  <Button size="small" color="secondary" onClick={() => setConfirm('clear')}>
+                    ล้างร่าง
+                  </Button>
+                </Box>
+              )}
+              {errors.map((i) => (
+                <Alert key={i.code} severity="error">
+                  {i.message}
+                  {i.refs?.length ? ` — ${i.refs.join(', ')}` : ''}
+                </Alert>
+              ))}
+              {warnings.map((i) => (
+                <Alert key={i.code} severity="warning" variant="outlined">
+                  {i.message}
+                </Alert>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* ---------- 3. ตรวจผล ---------- */}
+          <Card>
+            <CardHeader
+              title="3. ตรวจส่วนแบ่งรายหลักสูตร"
+              subheader="ส่วนแบ่งต้นทุนคงที่ส่วนกลางที่แต่ละหลักสูตรจะได้ เทียบกับที่ชีตปันไว้ · แดง = รับภาระเพิ่ม · เขียว = ภาระลดลง"
+            />
+            <CardContent>
+              {!outcome?.applied ? (
+                <Alert severity="info">
+                  แก้ข้อทักท้วงในข้อ 2 ก่อน จึงจะเห็นส่วนแบ่งรายหลักสูตร
+                </Alert>
+              ) : (
+                <>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>หลักสูตร</TableCell>
+                          <TableCell>ระดับ</TableCell>
+                          <TableCell align="right">นิสิต</TableCell>
+                          <TableCell align="right">ตามชีต (บาท)</TableCell>
+                          <TableCell align="right">ตามวิธีนี้ (บาท)</TableCell>
+                          <TableCell align="right">ผลต่าง</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {shares.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE).map((s) => {
+                          const p = byId.get(s.id);
+                          const d = s.after - s.before;
+
+                          return (
+                            <TableRow key={s.id} hover>
+                              <TableCell>{s.label}</TableCell>
+                              <TableCell sx={{ whiteSpace: 'nowrap' }}>{p?.lvl}</TableCell>
+                              <TableCell align="right">{fmtB(p?.Q ?? 0)}</TableCell>
+                              <TableCell align="right">{fmtB(s.before)}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                {fmtB(s.after)}
+                              </TableCell>
+                              <TableCell
+                                align="right"
+                                sx={{
+                                  color:
+                                    Math.round(d) === 0
+                                      ? 'text.disabled'
+                                      : d > 0
+                                        ? 'error.main'
+                                        : 'success.main',
+                                }}
+                              >
+                                {fmtD(d)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {shares.length > ROWS_PER_PAGE && (
+                    <TablePagination
+                      component="div"
+                      count={shares.length}
+                      page={page}
+                      rowsPerPage={ROWS_PER_PAGE}
+                      rowsPerPageOptions={[ROWS_PER_PAGE]}
+                      labelDisplayedRows={({ from, to, count }) => `${from}–${to} จาก ${count}`}
+                      onPageChange={(_, p) => setPage(p)}
+                    />
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ---------- 4. ล็อก ---------- */}
+          <Card>
+            <CardHeader title="4. ยืนยันและล็อก" />
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+              {locked ? (
+                <>
+                  <Chip color="success" icon={<i className="ri-lock-line" />} label="ล็อกแล้ว" />
+                  <Button variant="outlined" color="warning" onClick={() => setConfirm('unlock')}>
+                    ปลดล็อกเพื่อเปลี่ยนวิธี
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="contained"
+                    startIcon={<i className="ri-lock-line" />}
+                    disabled={!!lockBlocker}
+                    onClick={() => setConfirm('lock')}
+                  >
+                    ล็อกวิธีปันส่วน
+                  </Button>
+                  <Typography variant="body2" color={lockBlocker ? 'error.main' : 'text.secondary'}>
+                    {lockBlocker ??
+                      `จะล็อก "${ALLOC_METHOD_LABEL[choice.method]}" ของ${fac} ปีงบ ${year}`}
+                  </Typography>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      <Dialog open={confirm === 'lock'} onClose={() => setConfirm(null)}>
+        <DialogTitle>ล็อกวิธีปันส่วนของ{fac}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ใช้วิธี &ldquo;{ALLOC_METHOD_LABEL[choice.method]}&rdquo; กับทุกหลักสูตรใน{fac} ปีงบ{' '}
+            {year} มีผลทันที — อาจารย์ประจำหลักสูตรจะคำนวณด้วยวิธีนี้และแก้ไขไม่ได้
+            (ปลดล็อกภายหลังได้)
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirm(null)}>ยกเลิก</Button>
+          <Button variant="contained" onClick={doLock}>
+            ล็อก
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={confirm === 'unlock'} onClose={() => setConfirm(null)}>
+        <DialogTitle>ปลดล็อกวิธีปันส่วนของ{fac}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ระหว่างที่ยังไม่ล็อกใหม่ อาจารย์ประจำหลักสูตรใน{fac}จะเริ่มปรับปรุง/เปิดหลักสูตรไม่ได้
+            ค่าที่ล็อกไว้จะเก็บเป็นร่างให้แก้ต่อ
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirm(null)}>ยกเลิก</Button>
+          <Button variant="contained" color="warning" onClick={doUnlock}>
+            ปลดล็อก
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={confirm === 'clear'} onClose={() => setConfirm(null)}>
+        <DialogTitle>ล้างร่างของ{fac}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            วิธีและสัดส่วนที่เลือกไว้แต่ยังไม่ล็อกจะกลับเป็นค่าเริ่มต้น ย้อนกลับไม่ได้
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirm(null)}>ยกเลิก</Button>
+          <Button
+            color="error"
+            onClick={() => {
+              setConfirm(null);
+              if (!fac) return;
+              const d = readDrafts();
+
+              delete d[fac];
+              writeDrafts(d);
+              setChoice(DEFAULT_ALLOC_CHOICE);
+              setSavedAt(null);
+              setToast({ msg: 'ล้างร่างแล้ว', ok: true });
+            }}
+          >
+            ล้างร่าง
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)}>
+        <Alert
+          severity={toast?.ok ? 'success' : 'error'}
+          variant="filled"
+          onClose={() => setToast(null)}
+        >
+          {toast?.msg}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default FixedCostLockView;

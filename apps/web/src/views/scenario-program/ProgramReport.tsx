@@ -20,8 +20,8 @@ const fmtD = (v: number) => {
   return x === 0 ? '0' : `${x > 0 ? '+' : '−'}${Math.abs(x).toLocaleString('th-TH')}`;
 };
 
-const NAVY = '#36268c';
-const PURPLE = '#6d4cff';
+const NAVY = '#005f9f';
+const BLUE = '#0088e5';
 const GREEN = '#0f8a5f';
 const RED = '#c2383c';
 const AMBER = '#b7791f';
@@ -61,9 +61,9 @@ const Section = ({ no, title, children }: { no: number; title: string; children:
     <Typography
       sx={{
         fontWeight: 800,
-        color: PURPLE,
+        color: BLUE,
         fontSize: 11,
-        borderLeft: `3px solid ${PURPLE}`,
+        borderLeft: `3px solid ${BLUE}`,
         pl: 1,
         mb: 1.25,
         breakAfter: 'avoid',
@@ -140,7 +140,7 @@ const Letterhead = ({ right }: { right?: ReactNode }) => (
 
 /** สีประจำกรณี — ตรงกับกรอบกรณีบนหน้าจอ */
 const CASE_COLOR: Record<RevenueMode, string> = {
-  with_government: PURPLE,
+  with_government: BLUE,
   without_government: AMBER,
 };
 

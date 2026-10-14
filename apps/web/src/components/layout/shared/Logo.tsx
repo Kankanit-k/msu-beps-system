@@ -54,7 +54,7 @@ const LogoEyebrow = styled.span`
 const LogoTitle = styled.span<{ color?: CSSProperties['color'] }>`
   color: ${({ color }) => color ?? 'var(--mui-palette-text-primary)'};
   font-family:
-    var(--font-heading-latin), var(--font-heading-thai), 'Manrope', 'IBM Plex Sans Thai', sans-serif;
+    var(--font-main), var(--font-thai-fallback), 'Google Sans', 'IBM Plex Sans Thai', sans-serif;
   font-size: 1.0625rem;
   line-height: 1.2;
   font-weight: 800;

@@ -28,7 +28,11 @@ import { useAuthUser, useAuthMethod } from '@/hooks/AuthHooks';
 import { useRole, useIsAdmin } from '@/hooks/useRole';
 
 // Config Imports
-import { roleDisplay, roleOrder } from '@/configs/accessControl';
+import { roleDisplay, roleNeedsScope, roleOrder } from '@/configs/accessControl';
+import type { AppRole } from '@/configs/accessControl';
+
+// Component Imports
+import RoleScopeDialog from '@components/RoleScopeDialog';
 
 /** ซ่อนเมนู My Profile / Settings / Pricing / FAQ ชั่วคราว — ตั้งเป็น true เพื่อแสดงกลับ */
 const SHOW_PROFILE_MENU_ITEMS = false;
@@ -61,13 +65,20 @@ const UserDropdown = () => {
   const router = useRouter();
   const { user } = useAuthUser();
   const { logout } = useAuthMethod();
-  const { role, setRole } = useRole();
+  const { role, scope, setRole } = useRole();
   const isAdmin = useIsAdmin();
+  /** บทบาทที่รอเลือกคณะ/หลักสูตรก่อนสลับ */
+  const [pendingRole, setPendingRole] = useState<AppRole | null>(null);
+
+  // ขอบเขตต่อท้ายชื่อบทบาท — อาจารย์แสดงชื่อหลักสูตร (ช่องที่ 3 ของคีย์) ถ้ามี ไม่งั้นแสดงคณะ
+  const scopeLabel = roleNeedsScope(role)
+    ? (scope.program?.split('|')[2] ?? scope.faculty)
+    : null;
 
   // Accounts that may switch views show the role picked in the sidebar footer, so the
   // navbar and the sidebar never disagree about "which permission am I viewing as".
   const roleLabel = isAdmin
-    ? roleDisplay[role].label
+    ? `${roleDisplay[role].label}${scopeLabel ? ` · ${scopeLabel}` : ''}`
     : user?.SCOPES?.groupname || roleDisplay.user.label;
 
   // Signed-in staff get their own HR photo; with no STAFFID (login bypassed for the demo)
@@ -187,7 +198,8 @@ const UserDropdown = () => {
                           className="gap-3"
                           selected={role === value}
                           onClick={(e) => {
-                            setRole(value);
+                            if (roleNeedsScope(value)) setPendingRole(value);
+                            else setRole(value);
                             handleDropdownClose(e);
                           }}
                         >
@@ -231,6 +243,15 @@ const UserDropdown = () => {
           </Fade>
         )}
       </Popper>
+      <RoleScopeDialog
+        role={pendingRole}
+        initial={scope}
+        onClose={() => setPendingRole(null)}
+        onConfirm={(r, s) => {
+          setRole(r, s);
+          setPendingRole(null);
+        }}
+      />
     </>
   );
 };

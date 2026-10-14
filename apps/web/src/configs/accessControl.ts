@@ -5,6 +5,7 @@
  *
  *   public           ทุกคน (ไม่ต้องล็อกอิน)            — /login, auth API, static assets
  *   user             ผู้ใช้ที่ล็อกอินแล้ว                — the whole (private) dashboard
+ *   lecturer         อาจารย์ประจำหลักสูตร (สิทธิ์เท่า user) — ผูกกับหลักสูตรของตน ดูได้แต่แก้วิธีปันส่วนไม่ได้
  *   deptAdmin        ผู้ดูแลระดับหน่วยงาน/คณะ            — /admin/**
  *   universityAdmin  ผู้ดูแลระดับมหาวิทยาลัย             — /admin/university/**
  *
@@ -15,7 +16,7 @@
  * Used by: src/middleware.ts (enforcement) and the sidebar menu/role toggle (visibility).
  */
 
-export type AccessLevel = 'public' | 'user' | 'deptAdmin' | 'universityAdmin';
+export type AccessLevel = 'public' | 'user' | 'lecturer' | 'deptAdmin' | 'universityAdmin';
 
 // Roles a signed-in account can hold / view as (everything except 'public').
 export type AppRole = Exclude<AccessLevel, 'public'>;
@@ -23,6 +24,7 @@ export type AppRole = Exclude<AccessLevel, 'public'>;
 export const accessLevelRank: Record<AccessLevel, number> = {
   public: 0,
   user: 1,
+  lecturer: 1,
   deptAdmin: 2,
   universityAdmin: 3,
 };
@@ -92,7 +94,12 @@ export const resolveUserLevel = (token: Record<string, any> | null): AccessLevel
 
   const role = token.role ?? token.user?.role;
 
-  if (role === 'universityAdmin' || role === 'deptAdmin' || role === 'user') {
+  if (
+    role === 'universityAdmin' ||
+    role === 'deptAdmin' ||
+    role === 'lecturer' ||
+    role === 'user'
+  ) {
     return role;
   }
 
@@ -107,9 +114,24 @@ export const resolveUserLevel = (token: Record<string, any> | null): AccessLevel
  */
 export const roleDisplay: Record<AppRole, { label: string; icon: string }> = {
   user: { label: 'ผู้ใช้งานทั่วไป', icon: 'ri-user-line' },
+  lecturer: { label: 'อาจารย์ประจำหลักสูตร', icon: 'ri-graduation-cap-line' },
   deptAdmin: { label: 'ผู้ดูแลระดับหน่วยงาน', icon: 'ri-shield-user-line' },
   universityAdmin: { label: 'ผู้ดูแลระดับมหาวิทยาลัย', icon: 'ri-government-line' },
 };
 
 /** Order the viewable roles appear in both role switchers (sidebar footer + navbar dropdown). */
-export const roleOrder: AppRole[] = ['user', 'deptAdmin', 'universityAdmin'];
+export const roleOrder: AppRole[] = ['user', 'lecturer', 'deptAdmin', 'universityAdmin'];
+
+/**
+ * ขอบเขตของบัญชี — ผู้ดูแลคณะผูกกับคณะ · อาจารย์ประจำหลักสูตรผูกกับคณะ + หลักสูตร
+ * (คีย์หลักสูตร = `fac|lvl|prog|deg` เหมือน refKey ของหน้าคำนวณ)
+ * ⚠️ ตอนนี้เลือกเองจากเมนูโปรไฟล์ (มุมมองสิทธิ์) — ต่อกับ ERP เมื่อมี claim คณะ/หลักสูตร
+ */
+export interface RoleScope {
+  faculty: string | null;
+  program: string | null;
+}
+
+/** บทบาทที่ต้องระบุขอบเขต — เลือกบทบาทนี้แล้วต้องเลือกคณะ (และหลักสูตร) ด้วย */
+export const roleNeedsScope = (r: AppRole): 'faculty' | 'program' | null =>
+  r === 'deptAdmin' ? 'faculty' : r === 'lecturer' ? 'program' : null;

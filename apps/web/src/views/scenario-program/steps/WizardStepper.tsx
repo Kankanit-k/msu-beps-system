@@ -1,6 +1,6 @@
 'use client';
 
-// แถบขั้นตอน (ด้านบน) + แถบนำทางติดขอบล่างพร้อมจุดคุ้มทุนสด — ขั้นที่ 1–2 ต้องครบตามลำดับ ครบแล้วกดข้ามขั้นได้อิสระ
+// แถบขั้นตอน (ด้านบน) + แถบนำทางติดขอบล่างพร้อมจุดคุ้มทุนสด — ขั้นที่ 1 ต้องครบก่อน ครบแล้วกดข้ามขั้นได้อิสระ
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -13,38 +13,61 @@ import StepLabel from '@mui/material/StepLabel';
 import Stepper from '@mui/material/Stepper';
 import Typography from '@mui/material/Typography';
 
-import StepperCustomDot from '@components/stepper-dot';
-
 import type { CostGroup } from '../CostBlockTable';
 
-export const STEPS = [
-  'ข้อมูลหลักสูตร',
-  'ปันส่วนต้นทุนคงที่',
-  'ต้นทุนและรายได้',
-  'สัดส่วนนิสิต',
-  'สรุปและบันทึก',
-];
+export const STEP_LABEL = {
+  program: 'ข้อมูลหลักสูตร',
+  cost: 'ต้นทุนและรายได้',
+  mix: 'สัดส่วนนิสิต',
+  summary: 'สรุปและบันทึก',
+};
+
+export type StepKey = keyof typeof STEP_LABEL;
 
 const fmtN = (v: number) => (Math.round(v) || 0).toLocaleString('th-TH');
 
 interface StepperProps {
+  steps: string[];
+  /** คำอธิบายสั้นใต้ชื่อขั้น — บอกผู้ใช้ใหม่ว่าขั้นนี้ทำอะไร */
+  hints?: string[];
   active: number;
   /** ขั้นสุดท้ายที่ไปได้ — ขั้นหลังจากนี้ล็อกจนกว่าขั้นก่อนหน้าจะครบ */
   maxStep: number;
   onGo: (i: number) => void;
 }
 
-export const WizardStepper = ({ active, maxStep, onGo }: StepperProps) => (
+export const WizardStepper = ({ steps, hints, active, maxStep, onGo }: StepperProps) => (
   <Card>
-    <CardContent sx={{ overflowX: 'auto' }}>
-      <Stepper activeStep={active} alternativeLabel nonLinear sx={{ minWidth: 520 }}>
-        {STEPS.map((label, i) => {
+    <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+      <Stepper activeStep={active} nonLinear>
+        {steps.map((label, i) => {
           const disabled = i > maxStep;
 
           return (
             <Step key={label} completed={i < active} disabled={disabled}>
-              <StepButton onClick={() => !disabled && onGo(i)}>
-                <StepLabel StepIconComponent={StepperCustomDot}>{label}</StepLabel>
+              {/* StepButton ส่ง optional ทับของ StepLabel — ต้องใส่ที่นี่ */}
+              <StepButton
+                onClick={() => !disabled && onGo(i)}
+                optional={
+                  hints?.[i] && (
+                    <Typography variant="caption" color="text.secondary">
+                      {hints[i]}
+                    </Typography>
+                  )
+                }
+              >
+                {/* ไอคอนตัวเลขของ MUI — ผู้ใช้เห็นลำดับ 1 2 3 · จอแคบโชว์ชื่อเฉพาะขั้นปัจจุบัน */}
+                <StepLabel
+                  sx={{
+                    '& .MuiStepLabel-labelContainer': {
+                      display: { xs: i === active ? 'block' : 'none', sm: 'block' },
+                    },
+                  }}
+                >
+                  <Box component="span" sx={{ fontWeight: i === active ? 700 : 500 }}>
+                    ขั้นที่ {i + 1} · {label}
+                  </Box>
+                </StepLabel>
               </StepButton>
             </Step>
           );
@@ -52,6 +75,83 @@ export const WizardStepper = ({ active, maxStep, onGo }: StepperProps) => (
       </Stepper>
     </CardContent>
   </Card>
+);
+
+export interface GuideItem {
+  text: string;
+  /** ทำแล้ว — ขึ้นเครื่องหมายถูก · undefined = ข้อแนะนำ ไม่มีสถานะ */
+  done?: boolean;
+}
+
+interface GuideProps {
+  active: number;
+  total: number;
+  title: string;
+  items: GuideItem[];
+}
+
+/** กล่องบอกว่า "ขั้นนี้ต้องทำอะไร" เรียงเป็นข้อ — อ่านจากบนลงล่างตามลำดับการ์ดในหน้า */
+export const StepGuide = ({ active, total, title, items }: GuideProps) => (
+  <Box
+    sx={{
+      display: 'flex',
+      gap: 3,
+      alignItems: 'flex-start',
+      p: 3,
+      borderRadius: 1,
+      border: 1,
+      borderColor: 'primary.light',
+      bgcolor: 'var(--mui-palette-primary-lighterOpacity)',
+    }}
+  >
+    <Box
+      sx={{
+        flexShrink: 0,
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        bgcolor: 'primary.main',
+        color: 'primary.contrastText',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 700,
+        fontSize: 20,
+      }}
+    >
+      {active + 1}
+    </Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography variant="subtitle1" fontWeight={700} color="primary.main">
+        ขั้นที่ {active + 1} จาก {total}: {title}
+      </Typography>
+      <Box component="ol" sx={{ m: 0, mt: 1, pl: 0, listStyle: 'none' }}>
+        {items.map((it, i) => (
+          <Typography
+            key={it.text}
+            component="li"
+            variant="body2"
+            sx={{ display: 'flex', gap: 1.5, alignItems: 'baseline', py: 0.25 }}
+          >
+            <Box
+              component="span"
+              sx={{
+                flexShrink: 0,
+                fontWeight: 700,
+                color: it.done ? 'success.main' : 'text.secondary',
+                minWidth: 20,
+              }}
+            >
+              {it.done ? '✓' : `${i + 1}.`}
+            </Box>
+            <Box component="span" sx={{ color: it.done ? 'text.secondary' : 'text.primary' }}>
+              {it.text}
+            </Box>
+          </Typography>
+        ))}
+      </Box>
+    </Box>
+  </Box>
 );
 
 /** จุดคุ้มทุนของคอลัมน์ที่แก้ได้ (คอลัมน์สุดท้าย) แยกกรณีรวม/ไม่รวมเงินแผ่นดิน */
@@ -63,7 +163,7 @@ const LiveResult = ({ groups }: { groups: CostGroup[] }) => (
       const ok = qStar !== null && qStar >= 0 && c.block.q >= qStar;
 
       return (
-        <Typography key={g.key} variant="body2" sx={{ whiteSpace: 'nowrap' }}>
+        <Typography key={g.key} variant="body2" sx={{ whiteSpace: { sm: 'nowrap' } }}>
           <Box component="span" sx={{ color: `${g.color}.main`, fontWeight: 700 }}>
             {g.title}
           </Box>{' '}
@@ -78,6 +178,7 @@ const LiveResult = ({ groups }: { groups: CostGroup[] }) => (
 );
 
 interface NavProps {
+  steps: string[];
   active: number;
   /** เหตุผลที่ยังไปขั้นถัดไปไม่ได้ — null = ไปต่อได้ */
   lockReason: string | null;
@@ -87,8 +188,8 @@ interface NavProps {
   onRestart: () => void;
 }
 
-export const WizardNav = ({ active, lockReason, groups, onGo, onRestart }: NavProps) => {
-  const last = active === STEPS.length - 1;
+export const WizardNav = ({ steps, active, lockReason, groups, onGo, onRestart }: NavProps) => {
+  const last = active === steps.length - 1;
 
   return (
     <Box
@@ -101,7 +202,7 @@ export const WizardNav = ({ active, lockReason, groups, onGo, onRestart }: NavPr
         alignItems: 'center',
         gap: 2,
         px: 3,
-        py: 2,
+        py: 1,
         borderTop: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
@@ -135,7 +236,7 @@ export const WizardNav = ({ active, lockReason, groups, onGo, onRestart }: NavPr
         )}
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ ml: { xs: 'auto', sm: 0 } }}>
-        ขั้นตอนที่ {active + 1} / {STEPS.length}
+        ขั้นตอนที่ {active + 1} / {steps.length}
       </Typography>
       {last ? (
         <Button variant="contained" onClick={onRestart} startIcon={<i className="ri-add-line" />}>

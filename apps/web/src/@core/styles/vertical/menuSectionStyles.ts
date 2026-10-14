@@ -22,7 +22,8 @@ const menuSectionStyles = (
       marginBlockStart: theme.spacing(6),
       [`& .${menuClasses.menuSectionContent}`]: {
         color: 'var(--mui-palette-primary-main)',
-        paddingInline: '0 !important',
+        // ป้ายหมวดเยื้องเท่ากับไอคอนของรายการเมนู
+        paddingInline: `${theme.spacing(5.5)} 0 !important`,
         paddingBlock: `${theme.spacing(collapsedNotHovered ? 3.875 : 1.5)} !important`,
         gap: theme.spacing(2.5),
         ...(collapsedNotHovered && {

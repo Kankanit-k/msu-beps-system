@@ -118,6 +118,12 @@ type Props = {
   onClearDraft: () => void;
   /** เวลาที่บันทึกร่างล่าสุด — `null` = ยังไม่เคยบันทึก (หรือเบราว์เซอร์ไม่ให้เก็บ) */
   draftSavedAt: string | null;
+  /** ป้ายสั้น — ใช้ในหน้าปรับปรุงหลักสูตร */
+  compact?: boolean;
+  /** ดูอย่างเดียว — คณะล็อกวิธีปันส่วนแล้ว */
+  readOnly?: boolean;
+  /** ซ่อนแถบเลือกระดับ/วิธีย่อย + ปุ่มเฉลี่ย/ล้างร่าง — หน้าล็อกวิธี (ยังไม่ทำในเฟสนี้) */
+  hideControls?: boolean;
 };
 
 const ROWS_PER_PAGE = [10, 25, 50];
@@ -134,6 +140,9 @@ const PercentTable = ({
   onFillRemainder,
   onClearDraft,
   draftSavedAt,
+  compact = false,
+  readOnly = false,
+  hideControls = false,
 }: Props) => {
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(10);
@@ -162,74 +171,80 @@ const PercentTable = ({
 
   return (
     <Stack spacing={4}>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={4}
-        sx={{ alignItems: { md: 'flex-end' } }}
-      >
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-            กำหนดสัดส่วนที่ระดับ
-          </Typography>
-          <ToggleButtonGroup
-            exclusive
-            size="small"
-            color="primary"
-            value={bucketLevel}
-            onChange={(_, v: BucketLevel | null) => v && onBucketLevelChange(v)}
-          >
-            <ToggleButton value="EDUCATION_LEVEL">ระดับการศึกษา</ToggleButton>
-            <ToggleButton value="PROGRAM">รายหลักสูตร</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        {bucketLevel === 'EDUCATION_LEVEL' && (
+      {!hideControls && (
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={4}
+          sx={{ alignItems: { md: 'flex-end' } }}
+        >
           <Box>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-              ภายในกลุ่มเดียวกัน แบ่งต่อด้วยวิธี
+              {compact ? 'แบ่งตาม' : 'กำหนดสัดส่วนที่ระดับ'}
             </Typography>
             <ToggleButtonGroup
               exclusive
               size="small"
               color="primary"
-              value={subMethod}
-              onChange={(_, v: FixedCostSubMethod | null) => v && onSubMethodChange(v)}
+              disabled={readOnly}
+              value={bucketLevel}
+              onChange={(_, v: BucketLevel | null) => v && onBucketLevelChange(v)}
             >
-              <ToggleButton value="PER_HEAD_FTES">ตามรายหัว</ToggleButton>
-              <ToggleButton value="EQUAL_PROGRAM">หารเท่ากัน</ToggleButton>
+              <ToggleButton value="EDUCATION_LEVEL">ระดับการศึกษา</ToggleButton>
+              <ToggleButton value="PROGRAM">รายหลักสูตร</ToggleButton>
             </ToggleButtonGroup>
           </Box>
-        )}
 
-        <Box sx={{ display: 'flex', gap: 2, marginInlineStart: { md: 'auto' } }}>
-          <Tooltip title="เติมส่วนที่ยังขาดให้ครบ 100% โดยเฉลี่ยลงกลุ่มที่ยังไม่ได้กรอก (ถ้ากรอกครบทุกกลุ่มแล้ว จะเฉลี่ยใหม่ทั้งหมด)">
-            <span>
+          {bucketLevel === 'EDUCATION_LEVEL' && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                {compact ? 'ในกลุ่ม' : 'ภายในกลุ่มเดียวกัน แบ่งต่อด้วยวิธี'}
+              </Typography>
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                color="primary"
+                disabled={readOnly}
+                value={subMethod}
+                onChange={(_, v: FixedCostSubMethod | null) => v && onSubMethodChange(v)}
+              >
+                <ToggleButton value="PER_HEAD_FTES">ตามรายหัว</ToggleButton>
+                <ToggleButton value="EQUAL_PROGRAM">หารเท่ากัน</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          )}
+
+          {!readOnly && (
+            <Box sx={{ display: 'flex', gap: 2, marginInlineStart: { md: 'auto' } }}>
+              <Tooltip title="เติมส่วนที่ยังขาดให้ครบ 100% โดยเฉลี่ยลงกลุ่มที่ยังไม่ได้กรอก (ถ้ากรอกครบทุกกลุ่มแล้ว จะเฉลี่ยใหม่ทั้งหมด)">
+                <span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<i className="ri-scales-line" />}
+                    onClick={onFillRemainder}
+                  >
+                    {compact ? 'เฉลี่ย' : 'เฉลี่ยส่วนที่เหลือ'}
+                  </Button>
+                </span>
+              </Tooltip>
               <Button
                 variant="outlined"
+                color="secondary"
                 size="small"
-                startIcon={<i className="ri-scales-line" />}
-                onClick={onFillRemainder}
+                startIcon={<i className="ri-delete-bin-line" />}
+                onClick={onClearDraft}
               >
-                เฉลี่ยส่วนที่เหลือ
+                {compact ? 'ล้าง' : 'ล้างร่าง'}
               </Button>
-            </span>
-          </Tooltip>
-          <Button
-            variant="outlined"
-            color="secondary"
-            size="small"
-            startIcon={<i className="ri-delete-bin-line" />}
-            onClick={onClearDraft}
-          >
-            ล้างร่าง
-          </Button>
-        </Box>
-      </Stack>
+            </Box>
+          )}
+        </Stack>
+      )}
 
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
           <Typography variant="body2" fontWeight={600}>
-            ผลรวมสัดส่วน
+            {compact ? 'รวม' : 'ผลรวมสัดส่วน'}
           </Typography>
           <Chip
             size="small"
@@ -242,7 +257,7 @@ const PercentTable = ({
               {diff > 0
                 ? `ยังขาดอีก ${diff.toLocaleString('th-TH', { maximumFractionDigits: PCT_DECIMALS })}%`
                 : `เกินมา ${Math.abs(diff).toLocaleString('th-TH', { maximumFractionDigits: PCT_DECIMALS })}%`}
-              {' — ต้องเป็น 100% พอดีจึงเสนอได้'}
+              {compact ? '' : ' — ต้องเป็น 100% พอดีจึงเสนอได้'}
             </Typography>
           )}
           {draftSavedAt && (
@@ -259,13 +274,24 @@ const PercentTable = ({
         />
       </Box>
 
-      {buckets.length > 0 && buckets.every((b) => (pct[b.key] ?? '').trim() === '') && (
-        <Alert severity="info">
-          ยังไม่ได้กรอกสัดส่วน — กด <strong>เฉลี่ยส่วนที่เหลือ</strong>{' '}
-          เพื่อเริ่มจากหารเท่ากันทุกกลุ่ม แล้วค่อยปรับตัวเลขตามมติ · ผลรวมต้องเป็น 100%
-          พอดีจึงจะจำลองผลได้
-        </Alert>
-      )}
+      {!readOnly &&
+        !hideControls &&
+        buckets.length > 0 &&
+        buckets.every((b) => (pct[b.key] ?? '').trim() === '') && (
+          <Alert severity="info">
+            {compact ? (
+              <>
+                กด <strong>เฉลี่ย</strong> เพื่อเริ่ม แล้วปรับ % ให้รวม 100
+              </>
+            ) : (
+              <>
+                ยังไม่ได้กรอกสัดส่วน — กด <strong>เฉลี่ยส่วนที่เหลือ</strong>{' '}
+                เพื่อเริ่มจากหารเท่ากันทุกกลุ่ม แล้วค่อยปรับตัวเลขตามมติ · ผลรวมต้องเป็น 100%
+                พอดีจึงจะจำลองผลได้
+              </>
+            )}
+          </Alert>
+        )}
 
       {buckets.length === 0 ? (
         <Alert severity="warning">
@@ -297,24 +323,30 @@ const PercentTable = ({
                       <TableCell align="right">{fmtInt(b.programCount)}</TableCell>
                       <TableCell align="right">{fmtInt(b.q)}</TableCell>
                       <TableCell align="right">
-                        <TextField
-                          size="small"
-                          value={pct[b.key] ?? ''}
-                          placeholder="0"
-                          error={Boolean(err)}
-                          helperText={err ?? ' '}
-                          onChange={(e) => onPctChange(b.key, e.target.value)}
-                          onBlur={() => setTouched((t) => ({ ...t, [b.key]: true }))}
-                          inputProps={{
-                            inputMode: 'decimal',
-                            style: { textAlign: 'right' },
-                            'aria-label': `สัดส่วนของ ${b.label}`,
-                          }}
-                          sx={{
-                            width: 140,
-                            '& .MuiFormHelperText-root': { textAlign: 'right', mx: 0 },
-                          }}
-                        />
+                        {readOnly ? (
+                          <Typography variant="body2" fontWeight={700}>
+                            {(pct[b.key] ?? '').trim() || '0'}%
+                          </Typography>
+                        ) : (
+                          <TextField
+                            size="small"
+                            value={pct[b.key] ?? ''}
+                            placeholder="0"
+                            error={Boolean(err)}
+                            helperText={err ?? ' '}
+                            onChange={(e) => onPctChange(b.key, e.target.value)}
+                            onBlur={() => setTouched((t) => ({ ...t, [b.key]: true }))}
+                            inputProps={{
+                              inputMode: 'decimal',
+                              style: { textAlign: 'right' },
+                              'aria-label': `สัดส่วนของ ${b.label}`,
+                            }}
+                            sx={{
+                              width: 140,
+                              '& .MuiFormHelperText-root': { textAlign: 'right', mx: 0 },
+                            }}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   );

@@ -25,7 +25,7 @@ export interface ChartCase {
 
 /** สีตามกรอบกรณีในการ์ดเทียบจุดคุ้มทุน (primary / warning) */
 const CASE = {
-  with_government: { color: '#6d4cff', dark: '#5938e0', short: 'รวมเงินแผ่นดิน' },
+  with_government: { color: '#0088e5', dark: '#005f9f', short: 'รวมเงินแผ่นดิน' },
   without_government: { color: '#ffb400', dark: '#b07a00', short: 'ไม่รวมเงินแผ่นดิน' },
 } as const;
 
