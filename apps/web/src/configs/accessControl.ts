@@ -135,3 +135,10 @@ export interface RoleScope {
 /** บทบาทที่ต้องระบุขอบเขต — เลือกบทบาทนี้แล้วต้องเลือกคณะ (และหลักสูตร) ด้วย */
 export const roleNeedsScope = (r: AppRole): 'faculty' | 'program' | null =>
   r === 'deptAdmin' ? 'faculty' : r === 'lecturer' ? 'program' : null;
+
+/**
+ * ออกรายงาน PDF จุดคุ้มทุน (ใช้แนบขอปรับปรุง/เปิดหลักสูตร) ได้เฉพาะกองแผนและอาจารย์ประจำหลักสูตร —
+ * ผู้ใช้ทั่วไป/ผู้ดูแลคณะจำลองและบันทึกผลได้ แต่ออกรายงานไม่ได้ (ตัดสินใจ 2026-10-14)
+ * ⚠️ ตอนนี้ซ่อนแค่ฝั่ง UI — เมื่อมี API ออกรายงานต้องเช็กซ้ำฝั่งเซิร์ฟเวอร์
+ */
+export const canExportReport = (r: AppRole): boolean => r === 'universityAdmin' || r === 'lecturer';

@@ -17,7 +17,8 @@ const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 interface Props {
   entry: ProgramHistoryEntry | null;
   onClose: () => void;
-  onReport: (id: number) => void;
+  /** ว่าง = บทบาทนี้ออกรายงานไม่ได้ — ซ่อนปุ่ม */
+  onReport?: (id: number) => void;
   onStartNew: () => void;
 }
 
@@ -77,13 +78,15 @@ const SaveSuccessDialog = ({ entry, onClose, onReport, onStartNew }: Props) => (
         </DialogContent>
         <DialogActions sx={{ flexWrap: 'wrap', justifyContent: 'center', gap: 1, pb: 4 }}>
           <Button onClick={onClose}>อยู่หน้านี้ต่อ</Button>
-          <Button
-            variant="outlined"
-            startIcon={<i className="ri-file-pdf-2-line" />}
-            onClick={() => onReport(entry.id)}
-          >
-            ดูรายงาน PDF
-          </Button>
+          {onReport && (
+            <Button
+              variant="outlined"
+              startIcon={<i className="ri-file-pdf-2-line" />}
+              onClick={() => onReport(entry.id)}
+            >
+              ดูรายงาน PDF
+            </Button>
+          )}
           <Button
             variant="contained"
             autoFocus

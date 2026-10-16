@@ -131,9 +131,9 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       label: 'ปรับปรุง/เปิดหลักสูตร',
       isSection: true,
       children: [
-        { label: '1. ตั้งค่าวิธีปันส่วน (คณะ)', href: '/admin/fixed-cost-lock', icon: '🔒' },
+        { label: 'ตั้งค่าวิธีปันส่วน (คณะ)', href: '/admin/fixed-cost-lock', icon: '🔒' },
         {
-          label: '2. จุดคุ้มทุนรายหลักสูตร',
+          label: 'จุดคุ้มทุนรายหลักสูตร',
           icon: '🎓',
           children: [
             { label: 'ปรับปรุงหลักสูตรเดิม', href: '/scenario/program/improve' },
@@ -150,6 +150,7 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       isSection: true,
       children: [
         { label: 'จุดคุ้มทุนรายคณะ', href: '/scenario/faculty', icon: '🧮' },
+        { label: 'ห้องจำลองแผนรับนิสิต', href: '/scenario/sandbox', icon: '🧪' },
         ...(SHOW_ADMISSION_PLAN
           ? [{ label: 'แผนการรับนิสิต', href: '/scenario/admission-plan', icon: '👥' }]
           : []),

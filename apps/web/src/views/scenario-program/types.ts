@@ -68,4 +68,6 @@ export interface ProgramHistoryEntry {
   mode: RevenueMode;
   /** รายละเอียดทุกขั้นตอน (ไม่มี = บันทึกก่อนมีฟิลด์นี้ → รายงานแบบสรุป) */
   detail?: ProgramReportDetail;
+  /** ข้อมูลฟอร์ม ณ ตอนบันทึก (Draft ใน ScenarioProgramView) — ใช้เปิดกลับมาแก้ไข · ไม่มี = บันทึกก่อนมีฟิลด์นี้ */
+  input?: object;
 }

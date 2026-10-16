@@ -1,6 +1,6 @@
 'use client';
 
-// ประวัติการคำนวณ — ทุกรายการออกรายงาน PDF ได้
+// ประวัติการคำนวณ — เปิดกลับมาดู/แก้ไข ลบทีละรายการ · ออกรายงาน PDF เฉพาะบทบาทที่ได้รับสิทธิ์
 
 // MUI Imports
 import Button from '@mui/material/Button';
@@ -23,11 +23,17 @@ const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 
 interface Props {
   history: ProgramHistoryEntry[];
-  onPrint: (id: number) => void;
+  /** ว่าง = บทบาทนี้ออกรายงานไม่ได้ — ไม่มีคอลัมน์รายงาน */
+  onPrint?: (id: number) => void;
   onClear: () => void;
+  /** เปิดผลที่บันทึกไว้กลับเข้าฟอร์ม — ดูและแก้ไขต่อ (บันทึกแล้วทับรายการเดิม) */
+  onOpen: (h: ProgramHistoryEntry) => void;
+  onDelete: (h: ProgramHistoryEntry) => void;
+  /** รายการที่กำลังเปิดแก้ไขอยู่ — ไฮไลต์แถว */
+  editingId?: number | null;
 }
 
-const HistoryTable = ({ history, onPrint, onClear }: Props) => (
+const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }: Props) => (
   <Card>
     <CardHeader
       title={<DotTitle color="warning.main">ประวัติการคำนวณ</DotTitle>}
@@ -39,7 +45,7 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
           onClick={onClear}
           sx={{ mr: 2, borderRadius: 5 }}
         >
-          ล้าง
+          ล้างทั้งหมด
         </Button>
       }
     />
@@ -57,7 +63,7 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
               <TableCell align="right">จุดคุ้มทุน (คน) กรณีรวมเงินแผ่นดิน</TableCell>
               <TableCell align="right">จุดคุ้มทุน (คน) กรณีไม่รวมเงินแผ่นดิน</TableCell>
               <TableCell align="right">สถานะ</TableCell>
-              <TableCell align="right">รายงาน</TableCell>
+              <TableCell align="right">จัดการ</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -66,7 +72,7 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
               const okB = h.withoutGov.qStar !== null && h.withoutGov.q >= h.withoutGov.qStar;
 
               return (
-                <TableRow key={h.id} hover>
+                <TableRow key={h.id} hover selected={h.id === editingId}>
                   <TableCell sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}>
                     {h.time}
                   </TableCell>
@@ -108,17 +114,34 @@ const HistoryTable = ({ history, onPrint, onClear }: Props) => (
                       color={okA ? 'success' : 'error'}
                     />
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                     <Button
                       size="small"
-                      onClick={() => onPrint(h.id)}
+                      disabled={!h.input}
+                      onClick={() => onOpen(h)}
                       title={
-                        h.detail
-                          ? 'ออกรายงาน PDF ครบทุกขั้นตอนของผลคำนวณนี้'
-                          : 'บันทึกก่อนมีรายงานฉบับเต็ม — ออกได้เฉพาะแบบสรุป'
+                        h.input
+                          ? 'เปิดผลนี้กลับเข้าฟอร์ม — ดูและแก้ไขต่อได้'
+                          : 'บันทึกก่อนมีการเก็บข้อมูลฟอร์ม — เปิดแก้ไขไม่ได้'
                       }
                     >
-                      🖨 ออกรายงาน PDF
+                      {h.id === editingId ? 'กำลังแก้ไข' : 'เปิด / แก้ไข'}
+                    </Button>
+                    {onPrint && (
+                      <Button
+                        size="small"
+                        onClick={() => onPrint(h.id)}
+                        title={
+                          h.detail
+                            ? 'ออกรายงาน PDF ครบทุกขั้นตอนของผลคำนวณนี้'
+                            : 'บันทึกก่อนมีรายงานฉบับเต็ม — ออกได้เฉพาะแบบสรุป'
+                        }
+                      >
+                        🖨 PDF
+                      </Button>
+                    )}
+                    <Button size="small" color="error" onClick={() => onDelete(h)}>
+                      ลบ
                     </Button>
                   </TableCell>
                 </TableRow>

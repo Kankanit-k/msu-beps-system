@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -12,6 +13,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
 
@@ -20,6 +22,7 @@ import DataCaveatNotes from '@components/DataCaveatNotes';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
 
 // Data / calc Imports
+import { canExportReport } from '@/configs/accessControl';
 import { RAW } from '@/data/mockup';
 import { computeBreakEven, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
 import { feesForProgram } from '@views/tuition/feeData';
@@ -43,6 +46,7 @@ import {
   type FacultyScenario,
 } from './facultyAllocation';
 import { type ModeCosts } from './StudentMixTable';
+import { buildSegments, scaleSegs } from './segments';
 import CostStep from './steps/CostStep';
 import HistoryTable from './steps/HistoryTable';
 import SaveSuccessDialog from './steps/SaveSuccessDialog';
@@ -60,10 +64,8 @@ import {
 import {
   blockFromProgram,
   blockResult,
-  defaultYears,
   embeddedShareOf,
   emptyBlock,
-  segmentLabels,
   scaleQ,
   withPerHeadCharges,
   type CostBlock,
@@ -106,10 +108,10 @@ const STEP_KEYS: Record<Purpose, StepKey[]> = {
 /** คำอธิบายสั้นใต้ชื่อขั้นในแถบขั้นตอน — ผู้ใช้ใหม่เห็นทันทีว่าแต่ละขั้นทำอะไร */
 const STEP_HINT: Record<Purpose, Record<StepKey, string>> = {
   improve: {
-    program: 'เลือกหลักสูตร แล้วทดลองปรับจำนวนนิสิต/ค่าธรรมเนียม',
+    program: 'เลือกหลักสูตร ปรับจำนวนนิสิต/ค่าธรรมเนียม',
     cost: '',
-    mix: 'แบ่งนิสิตไทย/ต่างชาติ/นอกเวลา (ถ้ามี)',
-    summary: 'ตรวจผล บันทึก และออกรายงาน PDF',
+    mix: 'แบ่งนิสิตไทย/ต่างชาติ/นอกเวลา',
+    summary: 'บันทึก และออกรายงาน PDF',
   },
   new: {
     program: 'ตั้งชื่อ และเลือกหลักสูตรอ้างอิง',
@@ -127,62 +129,6 @@ const bothModes = (b: CostBlock): ManualBlocks => ({
   with_government: b,
   without_government: structuredClone(b),
 });
-
-/** เงินแผ่นดิน บาท/ภาค/คน ตั้งต้นตามแท็บ 4 (Y14) — ใส่ให้กลุ่มปกติไทย ปกติต่างชาติ และต่อเนื่อง */
-const DEFAULT_GOV_PER_SEM = 3550;
-
-/** ตั้งต้นตารางสัดส่วนนิสิต: จำนวนนิสิตไทย/ต่างชาติจากหลักสูตรอ้างอิง · ค่าธรรมเนียมจากแท็บค่าธรรมเนียม68 */
-function buildSegments(level: string, ref: ProgRow | null, semesters: number): Segment[] {
-  const fees = ref ? feesForProgram(ref.fac, ref.deg) : [];
-  const inTime = fees.find((f) => f.mode === 'ในเวลา');
-  const offTime = fees.find((f) => f.mode === 'นอกเวลา');
-  const thaiReg = inTime?.rate ?? 18000;
-  const fee = [
-    thaiReg,
-    offTime?.rate ?? 0,
-    inTime?.rateIntl ?? 25000,
-    offTime?.rateIntl ?? 0,
-    thaiReg,
-  ];
-  const n = [ref?.qT ?? 0, 0, ref?.qF ?? 0, 0, 0];
-  const years = defaultYears(level);
-
-  return segmentLabels(level).map((label, i) => ({
-    label,
-    n: n[i]!,
-    fee: fee[i]!,
-    gov: i % 2 === 0 ? DEFAULT_GOV_PER_SEM : 0,
-    semesters,
-    years: i === 4 ? 2 : years,
-  }));
-}
-
-/**
- * กระจายจำนวนนิสิตรวมใหม่ลงแต่ละกลุ่มตามสัดส่วนเดิม (ปัดแบบเศษมากสุดได้ก่อน ให้รวมได้ q พอดี)
- * ยังไม่มีนิสิตในกลุ่มไหนเลย → ใส่ทั้งหมดที่กลุ่มแรก
- */
-function scaleSegs(segs: Segment[], q: number): Segment[] {
-  const total = segs.reduce((a, x) => a + x.n, 0);
-
-  if (total === q) return segs;
-  if (total <= 0) return segs.map((x, i) => ({ ...x, n: i === 0 ? q : 0 }));
-
-  const raw = segs.map((x) => (x.n * q) / total);
-  const n = raw.map(Math.floor);
-  let left = q - n.reduce((a, v) => a + v, 0);
-
-  raw
-    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
-    .sort((a, b) => b.frac - a.frac)
-    .forEach(({ i }) => {
-      if (left > 0) {
-        n[i]!++;
-        left--;
-      }
-    });
-
-  return segs.map((x, i) => ({ ...x, n: n[i]! }));
-}
 
 /* ---------- ร่างฟอร์ม — กันข้อมูลหายเมื่อปิด/รีโหลดหน้า ---------- */
 const DRAFT_KEY = 'beps.scenario-program.draft';
@@ -268,6 +214,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const { role, scope } = useRole();
   const scopedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
   const scopedProg = role === 'lecturer' ? scope.program : null;
+  const canReport = canExportReport(role);
   // ปรับปรุงหลักสูตรเดิม — ตารางคำนวณจุดคุ้มทุนแก้ได้เฉพาะจำนวนนิสิตและค่าธรรมเนียมการศึกษา (ทุกบทบาท)
   const basicOnly = purpose === 'improve';
   /**
@@ -286,51 +233,79 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [toast, setToast] = useState<string | null>(null);
   const [draftReady, setDraftReady] = useState(false);
 
+  /** ผลที่บันทึกไว้ซึ่งเปิดกลับมาแก้ไขอยู่ — บันทึกแล้วทับรายการนี้แทนการเพิ่มรายการใหม่ */
+  const [editingId, setEditingId] = useState<number | null>(null);
+  /** ตารางสัดส่วนนิสิตปรับตามจำนวนนิสิตที่เปลี่ยน — ตั้งไว้ก่อนเปิดร่าง/ผลที่บันทึก จะได้ไม่ถูกปรับทับ */
+  const prevQ = useRef<number | null>(null);
+
+  /** เทข้อมูลฟอร์ม (ร่าง หรือผลที่บันทึกไว้) กลับเข้าฟอร์ม */
+  const applyDraft = (d: Draft) => {
+    setNewName(d.newName ?? '');
+    setNameTouched(false);
+    setFac(d.fac);
+    setLevel(d.level);
+    setSemesters(d.semesters);
+    setRefProg(RAW.PROGS.find((p) => refKeyOf(p) === d.refKey) ?? null);
+    // ร่างรุ่นก่อน: basis 'manual' แปลว่ากรอกเองล้วนก็ต่อเมื่อเปิดใหม่และไม่มีหลักสูตรอ้างอิง
+    setManualOnly(purpose === 'new' && (d.manualOnly ?? (d.basis === 'manual' && !d.refKey)));
+    // ร่างรุ่นก่อนมีก้อนเดียว — ใช้ตั้งต้นทั้งสองกรณี
+    const manualBlocks = 'q' in d.manual ? bothModes(d.manual) : d.manual;
+
+    setManual(manualBlocks);
+    prevQ.current = manualBlocks[mode].q;
+    // ร่างเก่าเก็บชื่อหัวคอลัมน์แบบเดิม/ป.โท-เอกมี 4 คอลัมน์ — ใช้ชื่อปัจจุบันและเติมคอลัมน์ที่ขาด
+    const blank = buildSegments(d.level, null, d.semesters);
+
+    setSegs(blank.map((b, i) => ({ ...(d.segs[i] ?? b), label: b.label })));
+    // ร่างรุ่นก่อนไม่ได้จำ — ตัวเลขกำหนดเองตั้งต้นจากหลักสูตรอ้างอิงเสมอ
+    const ref = RAW.PROGS.find((p) => refKeyOf(p) === d.refKey);
+
+    setManualEmbedded(d.manualEmbedded ?? (ref ? embeddedShareOf(ref) : 0));
+    // ร่างรุ่นก่อนไม่มีขั้นยืนยัน — มีหลักสูตรแล้วถือว่ายืนยัน ตัวเลขที่ทดลองไว้จะได้ไม่ถูกรีเซ็ต
+    setConfirmed(d.confirmed ?? !!ref);
+  };
+
   // อ่านหลัง mount เท่านั้น — อ่านตอน render แรกจะทำให้ SSR กับ client ไม่ตรงกัน
   useEffect(() => {
-    setHistory(loadHistory());
-    const d = loadDraft(purpose);
+    const saved = loadHistory();
 
-    if (d) {
-      setNewName(d.newName ?? '');
-      setFac(d.fac);
-      setLevel(d.level);
-      setSemesters(d.semesters);
-      setRefProg(RAW.PROGS.find((p) => refKeyOf(p) === d.refKey) ?? null);
-      // ร่างรุ่นก่อน: basis 'manual' แปลว่ากรอกเองล้วนก็ต่อเมื่อเปิดใหม่และไม่มีหลักสูตรอ้างอิง
-      setManualOnly(purpose === 'new' && (d.manualOnly ?? (d.basis === 'manual' && !d.refKey)));
-      // ร่างรุ่นก่อนมีก้อนเดียว — ใช้ตั้งต้นทั้งสองกรณี
-      setManual('q' in d.manual ? bothModes(d.manual) : d.manual);
-      // ร่างเก่าเก็บชื่อหัวคอลัมน์แบบเดิม/ป.โท-เอกมี 4 คอลัมน์ — ใช้ชื่อปัจจุบันและเติมคอลัมน์ที่ขาด
-      const blank = buildSegments(d.level, null, d.semesters);
+    setHistory(saved);
+    // ?open=<id> — เปิดผลที่บันทึกไว้จากอีกหน้า (ปรับปรุง ↔ เปิดใหม่) มาแก้ไข
+    const openId = Number(new URLSearchParams(window.location.search).get('open'));
+    const opened = openId ? saved.find((h) => h.id === openId && h.input) : undefined;
 
-      setSegs(blank.map((b, i) => ({ ...(d.segs[i] ?? b), label: b.label })));
-      // ร่างรุ่นก่อนไม่ได้จำ — ตัวเลขกำหนดเองตั้งต้นจากหลักสูตรอ้างอิงเสมอ
-      const ref = RAW.PROGS.find((p) => refKeyOf(p) === d.refKey);
+    if (opened) {
+      applyDraft(opened.input as Draft);
+      setEditingId(opened.id);
+      setPendingStep(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    } else {
+      const d = loadDraft(purpose);
 
-      setManualEmbedded(d.manualEmbedded ?? (ref ? embeddedShareOf(ref) : 0));
-      // ร่างรุ่นก่อนไม่มีขั้นยืนยัน — มีหลักสูตรแล้วถือว่ายืนยัน ตัวเลขที่ทดลองไว้จะได้ไม่ถูกรีเซ็ต
-      setConfirmed(d.confirmed ?? !!ref);
+      if (d) applyDraft(d);
     }
 
     setDraftReady(true);
   }, []);
 
+  /** ข้อมูลฟอร์มปัจจุบัน — เก็บเป็นร่าง และแนบไปกับผลที่บันทึกเพื่อเปิดกลับมาแก้ไข */
+  const currentDraft = (): Draft => ({
+    purpose,
+    newName,
+    fac,
+    level,
+    semesters,
+    refKey: refProg ? refKeyOf(refProg) : null,
+    manualOnly,
+    manual,
+    segs,
+    manualEmbedded,
+    confirmed,
+  });
+
   useEffect(() => {
     if (!draftReady) return;
-    saveDraft(purpose, {
-      purpose,
-      newName,
-      fac,
-      level,
-      semesters,
-      refKey: refProg ? refKeyOf(refProg) : null,
-      manualOnly,
-      manual,
-      segs,
-      manualEmbedded,
-      confirmed,
-    });
+    saveDraft(purpose, currentDraft());
   }, [
     draftReady,
     purpose,
@@ -349,7 +324,6 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   // ตารางสัดส่วนนิสิตตั้งต้นจากจำนวนนิสิตที่จำลองในคอลัมน์ที่แก้ได้ ของกรณีที่เลือกที่หัวหน้า
   // ปรับเฉพาะตอน Q หรือกรณีเปลี่ยน — แก้รายกลุ่มในขั้นสัดส่วนแล้วไม่ถูกทับ
   const targetQ = manual[mode].q;
-  const prevQ = useRef<number | null>(null);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -635,6 +609,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     setManual(bothModes(emptyBlock()));
     setManualEmbedded(0);
     setSegs(buildSegments(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี', null, 2));
+    setEditingId(null);
     saveDraft(purpose, null);
   };
 
@@ -662,9 +637,10 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
       })[m];
     };
 
+    const editing = history.some((h) => h.id === editingId);
     const entry: ProgramHistoryEntry = {
-      id: Date.now(),
-      time: new Date().toLocaleTimeString('th-TH'),
+      id: editing && editingId ? editingId : Date.now(),
+      time: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
       name,
       fac: fac ?? '',
       level,
@@ -746,13 +722,48 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         segs,
         mixCosts,
       },
+      input: currentDraft(),
     };
 
-    const next = [entry, ...history];
+    // แก้ไขผลเดิม → ทับรายการเดิมและยกขึ้นบนสุด · ไม่ได้แก้ไข → เพิ่มรายการใหม่
+    const next = [entry, ...history.filter((h) => h.id !== entry.id)];
 
     setHistory(next);
     saveHistory(next);
+    setEditingId(entry.id);
     setSavedEntry(entry);
+  };
+
+  const router = useRouter();
+  /** เปิดผลที่บันทึกไว้แล้วไปขั้นสรุป — รอให้ขั้นที่ 1 ผ่าน (วิธีปันส่วนของคณะโหลดเสร็จ) ก่อน */
+  const [pendingStep, setPendingStep] = useState(false);
+
+  const openEntry = (h: ProgramHistoryEntry) => {
+    if (!h.input) return;
+
+    if (h.isNew !== isNew) {
+      // คนละหน้ากัน (ปรับปรุง ↔ เปิดใหม่) — ไปหน้านั้นแล้วเปิดที่นั่น
+      router.push(`/scenario/program/${h.isNew ? 'new' : 'improve'}?open=${h.id}`);
+
+      return;
+    }
+
+    applyDraft(h.input as Draft);
+    setEditingId(h.id);
+    setPendingStep(true);
+    setToast(`เปิด "${h.name}" แล้ว — แก้ไขได้ กดบันทึกเพื่อทับผลเดิม`);
+  };
+
+  /** รายการที่รอยืนยันการลบ */
+  const [deleteTarget, setDeleteTarget] = useState<ProgramHistoryEntry | null>(null);
+
+  const deleteEntry = (h: ProgramHistoryEntry) => {
+    const next = history.filter((x) => x.id !== h.id);
+
+    setHistory(next);
+    saveHistory(next);
+    if (editingId === h.id) setEditingId(null);
+    setToast(`ลบ "${h.name}" แล้ว`);
   };
 
   const uni = computeBreakEven(RAW.UNI, mode);
@@ -839,6 +850,12 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     setStep(Math.min(i, maxStep));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    if (!pendingStep || !lockReady || maxStep === 0) return;
+    setPendingStep(false);
+    goTo(maxStep);
+  }, [pendingStep, lockReady, maxStep]);
   /** เริ่มคำนวณหลักสูตรถัดไป — ล้างฟอร์มแล้วกลับขั้นที่ 1 (ประวัติยังอยู่) */
   const startNew = () => {
     clearForm();
@@ -882,6 +899,26 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
             />
           )}
 
+          {editingId !== null && history.some((h) => h.id === editingId) && (
+            <Alert
+              severity="info"
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    setEditingId(null);
+                    setToast('เลิกแก้ไขแล้ว — กดบันทึกจะเพิ่มเป็นรายการใหม่');
+                  }}
+                >
+                  บันทึกเป็นรายการใหม่แทน
+                </Button>
+              }
+            >
+              กำลังแก้ไขผลที่บันทึกไว้: {history.find((h) => h.id === editingId)?.name} — กดบันทึกจะทับผลเดิม
+            </Alert>
+          )}
+
           {/* ปันส่วนต้นทุนคงที่: คณะล็อกไว้แล้ว แก้ไม่ได้ — อยู่บนสุดของขั้นที่ 1 หุบไว้ บอกแค่วิธีที่คณะเลือก */}
           {stepKey === 'program' && fac && lock && (
             <FixedCostAllocationCard
@@ -889,12 +926,12 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               isNew={isNew}
               hasRef={isNew ? manualEmbedded !== 0 : !!refProg}
               lock={lock}
-              buckets={allocBucketList}
               pool={facPool}
               rows={facRows}
               outcome={activeOutcome}
               targetId={targetOf('manual')}
               targetLabel={allocTargetLabel}
+              targetQ={targetQ}
               mode={mode}
               collapsible
             />
@@ -947,8 +984,11 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
           {locked && history.length > 0 && (
             <HistoryTable
               history={history}
-              onPrint={printReport}
+              onPrint={canReport ? printReport : undefined}
               onClear={() => setConfirm('history')}
+              onOpen={openEntry}
+              onDelete={setDeleteTarget}
+              editingId={editingId}
             />
           )}
 
@@ -1028,8 +1068,11 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               saveBlocker={saveBlocker}
               onSave={handleSave}
               history={history}
-              onPrint={printReport}
+              onPrint={canReport ? printReport : undefined}
               onClearHistory={() => setConfirm('history')}
+              onOpenHistory={openEntry}
+              onDeleteHistory={setDeleteTarget}
+              editingId={editingId}
             />
           )}
 
@@ -1076,6 +1119,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               } else {
                 setHistory([]);
                 saveHistory([]);
+                setEditingId(null);
                 setToast('ล้างประวัติการคำนวณแล้ว');
               }
 
@@ -1087,13 +1131,40 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>ลบผลการจำลองนี้?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            &quot;{deleteTarget?.name}&quot; ({deleteTarget?.time}) จะถูกลบออกจากประวัติถาวร
+            และหน้า &quot;แผนการรับนิสิต&quot; จะเลือกผลนี้ไม่ได้อีก
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>ยกเลิก</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              if (deleteTarget) deleteEntry(deleteTarget);
+              setDeleteTarget(null);
+            }}
+          >
+            ลบ
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <SaveSuccessDialog
         entry={savedEntry}
         onClose={() => setSavedEntry(null)}
-        onReport={(id) => {
-          setSavedEntry(null);
-          printReport(id);
-        }}
+        onReport={
+          canReport
+            ? (id) => {
+                setSavedEntry(null);
+                printReport(id);
+              }
+            : undefined
+        }
         onStartNew={() => {
           setSavedEntry(null);
           startNew();
@@ -1116,7 +1187,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
       />
 
       {/* รายงานสำหรับพิมพ์เท่านั้น — ซ่อนบนหน้าจอปกติ แสดงเฉพาะตอนสั่งพิมพ์ (window.print) */}
-      {printEntry && (
+      {canReport && printEntry && (
         <Box sx={{ display: 'none', '@media print': { display: 'block' } }}>
           <ProgramReport entry={printEntry} />
         </Box>

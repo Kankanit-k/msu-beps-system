@@ -35,12 +35,10 @@ import type { RevenueMode } from '@beps/calc-engine';
 import { DotTitle } from '@components/ChartBits';
 import type { ProgRow } from '@/data/mockup';
 import { fmtMillion, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
-import PercentTable from '@views/fixed-cost-policy/PercentTable';
 import { fmtLockedAt, type FacultyLock } from '@views/fixed-cost-lock/lockStore';
 
 import {
   ALLOC_METHOD_LABEL,
-  type AllocBucket,
   type AllocChoice,
   type AllocMethod,
   type AllocOutcome,
@@ -67,7 +65,6 @@ interface Props {
   hasRef: boolean;
   /** วิธีที่คณะล็อกไว้ — หน้านี้ดูได้อย่างเดียว แก้ที่หน้าตั้งค่าวิธีปันส่วน (ผู้ดูแลคณะ) */
   lock: FacultyLock;
-  buckets: AllocBucket[];
   pool: number;
   /** หลักสูตรเดิมของคณะ (ใช้คำนวณ Q* ของหลักสูตรอื่นแบบชีต) */
   rows: { id: string; p: ProgRow }[];
@@ -76,6 +73,8 @@ interface Props {
   /** หลักสูตรที่กำลังคำนวณ (คอลัมน์ที่ใช้คำนวณ) */
   targetId: string | null;
   targetLabel: string;
+  /** จำนวนนิสิตของหลักสูตรที่กำลังคำนวณ */
+  targetQ: number;
   mode: RevenueMode;
   /** ตัวหนังสือน้อย — คำอธิบายย้ายไป tooltip และแสดงขั้นตอนเป็นแผนภาพ ก้อนคณะ → แบ่ง → หลักสูตรนี้ */
   compact?: boolean;
@@ -228,11 +227,22 @@ const ImpactCard = ({ r }: { r: ImpactRow }) => {
   );
 
   return (
-    <Box sx={{ p: 3, border: '1px solid var(--mui-palette-divider)', borderRadius: 1 }}>
+    <Box
+      sx={{
+        p: 3,
+        border: '1px solid',
+        borderColor: r.selected ? 'primary.main' : 'divider',
+        bgcolor: r.selected ? 'primary.lightOpacity' : undefined,
+        borderRadius: 1,
+      }}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 2 }}>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
             {r.prog}
+            {r.selected && (
+              <Chip size="small" color="primary" label="หลักสูตรที่เลือก" sx={{ ml: 1.5 }} />
+            )}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {r.deg} · {r.lvl} · นิสิต {fmtB(r.q)} คน
@@ -262,6 +272,8 @@ type ImpactRow = {
   after: number;
   qBefore: number;
   qAfter: number;
+  /** หลักสูตรที่กำลังปรับปรุง — ปักไว้แถวแรกเพื่อเทียบ */
+  selected?: boolean;
 };
 
 const ImpactStat = (props: { icon: string; color: string; label: string; value: string }) => (
@@ -359,12 +371,12 @@ const FixedCostAllocationCard = ({
   isNew,
   hasRef,
   lock,
-  buckets,
   pool,
   rows,
   outcome,
   targetId,
   targetLabel,
+  targetQ,
   mode,
   compact = false,
   collapsible = false,
@@ -385,7 +397,6 @@ const FixedCostAllocationCard = ({
     const byId = new Map(outcome.shares.map((s) => [s.id, s]));
 
     return rows
-      .filter((r) => r.id !== targetId)
       .map(({ id, p }) => {
         const s = byId.get(id)!;
         const after = { ...p, TFC: p.TFC - s.before + s.after };
@@ -400,21 +411,28 @@ const FixedCostAllocationCard = ({
           after: s.after,
           qBefore: sheetQStar(p, mode),
           qAfter: sheetQStar(after, mode),
+          ...(id === targetId ? { q: targetQ, selected: true } : {}),
         };
       })
-      .sort((a, b) => Math.abs(b.after - b.before) - Math.abs(a.after - a.before));
-  }, [outcome, rows, targetId, mode]);
+      .sort(
+        (a, b) =>
+          Number(!!b.selected) - Number(!!a.selected) ||
+          Math.abs(b.after - b.before) - Math.abs(a.after - a.before),
+      );
+  }, [outcome, rows, targetId, targetQ, mode]);
+  /** หลักสูตรอื่นในคณะ (ไม่รวมหลักสูตรที่เลือก) — ใช้นับสรุป */
+  const others = impact.filter((r) => !r.selected);
 
   const smallScreen = useMediaQuery((t: Theme) => t.breakpoints.down('md'));
 
   const impactSummary = useMemo(
     () => ({
-      up: impact.filter((r) => Math.round(r.after - r.before) > 0).length,
-      down: impact.filter((r) => Math.round(r.after - r.before) < 0).length,
-      flipped: impact.filter((r) => isBreakEven(r.q, r.qBefore) && !isBreakEven(r.q, r.qAfter))
+      up: others.filter((r) => Math.round(r.after - r.before) > 0).length,
+      down: others.filter((r) => Math.round(r.after - r.before) < 0).length,
+      flipped: others.filter((r) => isBreakEven(r.q, r.qBefore) && !isBreakEven(r.q, r.qAfter))
         .length,
     }),
-    [impact],
+    [others],
   );
 
   const counted = outcome?.shares.reduce((s, x) => s + x.after, 0) ?? 0;
@@ -435,11 +453,6 @@ const FixedCostAllocationCard = ({
               />
             )}
           </Box>
-        }
-        subheader={
-          compact || !open
-            ? undefined
-            : 'งบสำนักงาน/ส่วนกลางคณะ + ค่าเสื่อม ถูกปันลงทุกหลักสูตรในคณะก่อน แล้วจึงคำนวณจุดคุ้มทุนของหลักสูตรนี้จากส่วนแบ่งที่ได้'
         }
         action={
           collapsible ? (
@@ -471,13 +484,9 @@ const FixedCostAllocationCard = ({
                   label={ALLOC_METHOD_LABEL[choice.method]}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  คณะล็อกไว้เมื่อ {fmtLockedAt(lock.lockedAt)} โดย {lock.lockedBy} ·
-                  แก้วิธีปันส่วนในหน้านี้ไม่ได้
+                  ล็อกโดย {lock.lockedBy} · {fmtLockedAt(lock.lockedAt)}
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {METHOD_HINT[choice.method]}
-              </Typography>
 
               {compact ? (
                 <AllocFlow
@@ -491,18 +500,18 @@ const FixedCostAllocationCard = ({
                 <Grid container spacing={3} sx={{ mb: 3 }}>
                   {(
                     [
-                      ['ก้อนส่วนกลางคณะ', `${fmtMillion(pool)} ลบ.`, 'ยอดเดียวกันทุกวิธี'],
+                      ['ก้อนส่วนกลางคณะ', `${fmtMillion(pool)} ลบ.`, ''],
                       [
                         'หลักสูตรที่ร่วมแบ่ง',
                         `${rows.length + (isNew ? 1 : 0)} หลักสูตร`,
-                        isNew ? `เดิม ${rows.length} + หลักสูตรใหม่ 1` : 'ทุกหลักสูตรในคณะ',
+                        isNew ? `เดิม ${rows.length} + หลักสูตรใหม่ 1` : '',
                       ],
                       [
                         `ส่วนแบ่งของ${targetLabel}`,
                         target ? `${fmtB(target.after)} บาท` : '—',
                         target
                           ? `ตามชีต ${fmtB(target.before)} · ผลต่าง ${fmtD(target.after - target.before)}`
-                          : 'เลือกหลักสูตรก่อน',
+                          : '',
                       ],
                     ] as const
                   ).map(([label, value, note]) => (
@@ -530,23 +539,21 @@ const FixedCostAllocationCard = ({
                 </Alert>
               )}
 
-              {choice.method === 'CUSTOM_PCT' && (
-                <Box sx={{ mb: 3 }}>
-                  <PercentTable
-                    buckets={buckets}
-                    pct={choice.pct}
-                    onPctChange={() => {}}
-                    bucketLevel={choice.bucketLevel}
-                    onBucketLevelChange={() => {}}
-                    subMethod={choice.subMethod}
-                    onSubMethodChange={() => {}}
-                    onFillRemainder={() => {}}
-                    onClearDraft={() => {}}
-                    draftSavedAt={null}
-                    compact={compact}
-                    readOnly
-                    hideControls
-                  />
+              {target && pool > 0 && (
+                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mb: 3 }}>
+                  <Typography variant="body2">
+                    {targetLabel} มีนิสิต <b>{fmtB(targetQ)} คน</b>
+                  </Typography>
+                  <Typography variant="body2">
+                    ได้สัดส่วน{' '}
+                    <b>
+                      {((target.after / pool) * 100).toLocaleString('th-TH', {
+                        maximumFractionDigits: 2,
+                      })}
+                      %
+                    </b>{' '}
+                    ของก้อนส่วนกลางคณะ
+                  </Typography>
                 </Box>
               )}
 
@@ -583,7 +590,7 @@ const FixedCostAllocationCard = ({
                     }}
                   >
                     {compact ? 'ผลกระทบต่อหลักสูตรอื่น' : 'ดูผลกระทบต่อหลักสูตรอื่นในคณะ'} (
-                    {impact.length})
+                    {others.length})
                   </Button>
                   {compact ? (
                     <Tooltip title={`ส่วนกลางคณะที่ถูกนับรวมทุกหลักสูตร ${fmtB(counted)} บาท`}>
@@ -638,7 +645,7 @@ const FixedCostAllocationCard = ({
             {isNew && ' · หลักสูตรใหม่เข้ามาแบ่งก้อนเดียวกัน หลักสูตรเดิมจึงได้ส่วนแบ่งลดลง'}
           </Typography>
 
-          {impact.length > 0 && (
+          {others.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
               <ImpactStat
                 icon="ri-arrow-up-line"
@@ -735,13 +742,25 @@ const FixedCostAllocationCard = ({
                       {impact
                         .slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE)
                         .map((r) => (
-                          <TableRow key={r.id} hover>
+                          <TableRow
+                            key={r.id}
+                            hover
+                            sx={r.selected ? { bgcolor: 'primary.lightOpacity' } : undefined}
+                          >
                             <TableCell sx={{ minWidth: 220 }}>
                               <Typography
                                 variant="body2"
-                                sx={{ fontWeight: 500, color: 'text.primary' }}
+                                sx={{ fontWeight: r.selected ? 700 : 500, color: 'text.primary' }}
                               >
                                 {r.prog}
+                                {r.selected && (
+                                  <Chip
+                                    size="small"
+                                    color="primary"
+                                    label="หลักสูตรที่เลือก"
+                                    sx={{ ml: 1.5 }}
+                                  />
+                                )}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {r.deg} · {r.lvl}

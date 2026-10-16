@@ -30,31 +30,19 @@ import Typography from '@mui/material/Typography';
 import type { RevenueMode } from '@beps/calc-engine';
 
 import { DotTitle } from '@components/ChartBits';
-import { MOCK_RUN } from '@components/PageHeaderBar';
 import NumberTextField from '@components/NumberTextField';
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
-import { facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
-import { useFacultyLock } from '@views/fixed-cost-lock/lockStore';
 import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
 import { useRole } from '@/hooks/useRole';
 
 import BreakEvenChart from './BreakEvenChart';
 import FixedCostAllocationCard from './FixedCostAllocationCard';
 import {
-  allocateFaculty,
-  allocBuckets,
-  DEFAULT_ALLOC_CHOICE,
-  policyOf,
-  shareOf,
-  type FacultyScenario,
-} from './facultyAllocation';
-import {
   applyLevers,
   blockFromProgram,
   blockResult,
-  embeddedShareOf,
   emptyBlock,
   FIXED_CATS,
   leversOf,
@@ -69,6 +57,7 @@ import {
 } from './newProgramCalc';
 import { EDUCATION_LEVELS, PG_DATA, progOptionLabel } from './programData';
 import ProgramPicker from './steps/ProgramPicker';
+import { useFacultyAllocation } from './useFacultyAllocation';
 
 const MODES: RevenueMode[] = ['with_government', 'without_government'];
 const fmt = (v: number | null) =>
@@ -92,9 +81,6 @@ interface Draft {
   semesters: number;
   lever?: Levers;
 }
-
-/** ส่วนแบ่งส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม) ที่ชีตแท็บ 3 ปันไว้ */
-const sheetShareOf = poolAmountOf('ALL');
 
 const loadDraft = (): Draft | null => {
   try {
@@ -480,8 +466,15 @@ const QuickCalcView = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   /** วิธีปันส่วนที่คณะล็อกไว้ — ยังไม่ล็อก = ยังปรับปรุงหลักสูตรไม่ได้ */
-  const { lock, ready: lockReady } = useFacultyLock(MOCK_RUN.budgetYear, fac);
-  const alloc = lock?.choice ?? DEFAULT_ALLOC_CHOICE;
+  const {
+    lock,
+    lockReady,
+    facRows,
+    facPool,
+    refId,
+    afterOutcome,
+    adjOf,
+  } = useFacultyAllocation(fac, refProg, lever.q);
   /** ผู้ดูแลคณะ/อาจารย์ทำได้เฉพาะคณะ (และหลักสูตร) ของตน */
   const { role, scope } = useRole();
   const scopedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
@@ -536,46 +529,6 @@ const QuickCalcView = () => {
   const leverBlock = baseBlock ? applyLevers(baseBlock, lever) : emptyBlock();
   const calcBlock = semesters === 2 ? leverBlock : withPerHeadCharges(leverBlock, semesters);
 
-  /* ---------- ปันส่วนต้นทุนคงที่ส่วนกลางคณะใหม่ทั้งคณะ (facultyAllocation.ts — เหมือน W7 กรณีปรับปรุง) ---------- */
-  const facRows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
-  const facPrograms = useMemo(
-    () =>
-      facRows.map(({ p, id }) => ({
-        id,
-        label: progOptionLabel(p),
-        educationLevel: p.lvl,
-        q: p.Q,
-        sheetShare: sheetShareOf(p),
-      })),
-    [facRows],
-  );
-  const facPool = facPrograms.reduce((a, p) => a + p.sheetShare, 0);
-  const refId = facRows.find((r) => r.p === refProg)?.id ?? null;
-  /** ปัจจุบันใช้นิสิตจริง · หลังปรับปรุงแทนนิสิตของหลักสูตรนี้ด้วยค่าที่กรอก */
-  const scenarioOf = (after: boolean): FacultyScenario | null =>
-    refId && refProg
-      ? {
-          pool: facPool,
-          programs: facPrograms,
-          embedded: { id: refId, amount: embeddedShareOf(refProg) },
-          ...(after ? { qOverride: { id: refId, q: lever.q } } : {}),
-        }
-      : null;
-  const afterScenario = scenarioOf(true);
-  const allocBucketList = afterScenario ? allocBuckets(afterScenario, alloc.bucketLevel) : [];
-  const allocPolicy = lock ? policyOf(alloc, allocBucketList) : null;
-  const outcomeOf = (after: boolean) => {
-    const sc = scenarioOf(after);
-
-    return sc ? allocateFaculty(sc, allocPolicy) : null;
-  };
-  const afterOutcome = outcomeOf(true);
-  /** ส่วนที่ต้องบวกเข้า TFC — 0 เมื่อตามชีต หรือนโยบายยังไม่ผ่านการตรวจ */
-  const adjOf = (after: boolean) => {
-    const o = after ? afterOutcome : outcomeOf(false);
-
-    return o && refId ? (shareOf(o, refId)?.adj ?? 0) : 0;
-  };
   const afterAdj = adjOf(true);
 
   const resultsOf = (b: CostBlock, adj: number) =>
@@ -687,12 +640,12 @@ const QuickCalcView = () => {
                 isNew={false}
                 hasRef
                 lock={lock}
-                buckets={allocBucketList}
                 pool={facPool}
                 rows={facRows}
                 outcome={afterOutcome}
                 targetId={refId}
                 targetLabel="หลักสูตรนี้"
+                targetQ={lever.q}
                 mode="with_government"
                 compact
               />

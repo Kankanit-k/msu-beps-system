@@ -4,6 +4,7 @@ import {
   allocateFaculty,
   allocBuckets,
   DEFAULT_ALLOC_CHOICE,
+  levelCapIssue,
   NEW_PROGRAM_ID,
   policyOf,
   shareOf,
@@ -46,9 +47,10 @@ describe('allocateFaculty', () => {
     };
     const o = allocateFaculty(sc, { method: 'PER_HEAD_FTES' });
 
-    // 600 หัว → ใหม่ 100/600, A 400/600
-    expect(shareOf(o, NEW_PROGRAM_ID)?.after).toBeCloseTo(166_666.67, 2);
-    expect(shareOf(o, 'a')?.after).toBeCloseTo(666_666.67, 2);
+    // แบ่งเฉพาะก้อน ป.ตรี 800k (แบบชีต) — 500 หัว → ใหม่ 100/500, A 400/500 · โท/เอกไม่ขยับ
+    expect(shareOf(o, NEW_PROGRAM_ID)?.after).toBeCloseTo(160_000, 2);
+    expect(shareOf(o, 'a')?.after).toBeCloseTo(640_000, 2);
+    expect(shareOf(o, 'b')?.after).toBe(150_000);
     expect(shareOf(o, 'a')!.adj).toBeLessThan(0);
     expect(total(o.shares)).toBe(100_000_000);
   });
@@ -63,15 +65,53 @@ describe('allocateFaculty', () => {
     expect(shareOf(o, NEW_PROGRAM_ID)?.adj).toBeCloseTo(250_000 - 150_000, 2);
   });
 
-  it('ปรับจำนวนนิสิตของหลักสูตรเดิม: ตามรายหัวแล้วส่วนแบ่งทุกหลักสูตรขยับ', () => {
+  it('หารรายหัว = ตามชีต: ชีตแยกก้อนตามระดับก่อน อัตราต่อหัวต่างระดับจึงไม่เท่ากัน', () => {
+    const sc: FacultyScenario = {
+      pool: 1_000_000,
+      programs: [
+        { id: 'a', label: 'ตรี A', educationLevel: 'ปริญญาตรี', q: 300, sheetShare: 600_000 },
+        { id: 'a2', label: 'ตรี A2', educationLevel: 'ปริญญาตรี', q: 100, sheetShare: 200_000 },
+        { id: 'b', label: 'โท B', educationLevel: 'ปริญญาโท', q: 100, sheetShare: 150_000 },
+        { id: 'c', label: 'เอก C', educationLevel: 'ปริญญาเอก', q: 25, sheetShare: 50_000 },
+      ],
+    };
+    const o = allocateFaculty(sc, { method: 'PER_HEAD_FTES' });
+
+    expect(o.shares.map((s) => s.after)).toEqual([600_000, 200_000, 150_000, 50_000]);
+  });
+
+  it('ปรับจำนวนนิสิตของหลักสูตรเดิม: ส่วนแบ่งขยับภายในระดับเดียวกัน', () => {
+    const sc: FacultyScenario = {
+      ...base,
+      programs: [
+        ...base.programs.slice(0, 1),
+        { id: 'a2', label: 'ตรี A2', educationLevel: 'ปริญญาตรี', q: 0, sheetShare: 0 },
+        ...base.programs.slice(1),
+      ],
+    };
     const o = allocateFaculty(
-      { ...base, qOverride: { id: 'c', q: 125 } },
+      { ...sc, qOverride: { id: 'a2', q: 100 } },
       { method: 'PER_HEAD_FTES' },
     );
 
-    // 400 + 75 + 125 = 600
-    expect(shareOf(o, 'c')?.after).toBeCloseTo(208_333.33, 2);
-    expect(shareOf(o, 'b')?.after).toBe(125_000);
+    // ก้อน ป.ตรี 800k แบ่ง 400 + 100 หัว
+    expect(shareOf(o, 'a2')?.after).toBeCloseTo(160_000, 2);
+    expect(shareOf(o, 'a')?.after).toBeCloseTo(640_000, 2);
+    expect(shareOf(o, 'b')?.after).toBe(150_000);
+    expect(total(o.shares)).toBe(100_000_000);
+  });
+
+  it('หลักสูตรใหม่เปิดระดับที่คณะยังไม่มี: หารรายหัวทั้งคณะแทน', () => {
+    const o = allocateFaculty(
+      {
+        ...base,
+        newProgram: { label: 'ใหม่', educationLevel: 'ป.บัณฑิต', q: 100, sheetShare: 0 },
+      },
+      { method: 'PER_HEAD_FTES' },
+    );
+
+    // 600 หัว
+    expect(shareOf(o, NEW_PROGRAM_ID)?.after).toBeCloseTo(166_666.67, 2);
     expect(total(o.shares)).toBe(100_000_000);
   });
 
@@ -164,5 +204,41 @@ describe('allocateFaculty', () => {
     expect(shareOf(o, 'c')?.adj).toBeCloseTo(333_333.33 - 20_000, 2);
     // หลักสูตรอื่นยังเทียบกับแท็บ 3 ตามรายงาน
     expect(shareOf(o, 'b')?.before).toBe(150_000);
+  });
+});
+
+describe('levelCapIssue (กำหนด % รายหลักสูตร คุมด้วย % รายระดับ)', () => {
+  const sc: FacultyScenario = {
+    ...base,
+    programs: [
+      ...base.programs,
+      { id: 'a2', label: 'ตรี A2', educationLevel: 'ปริญญาตรี', q: 100, sheetShare: 0 },
+    ],
+  };
+  const buckets = allocBuckets(sc, 'PROGRAM');
+  const choice = (pct: Record<string, string>) => ({
+    ...DEFAULT_ALLOC_CHOICE,
+    method: 'CUSTOM_PCT' as const,
+    bucketLevel: 'PROGRAM' as const,
+    levelPct: { ปริญญาตรี: '90', ปริญญาโท: '5', ปริญญาเอก: '5' },
+    pct,
+  });
+
+  it('หลักสูตรในระดับรวมเท่า % ของระดับ = ผ่าน', () => {
+    expect(levelCapIssue(choice({ a: '60', a2: '30', b: '5', c: '5' }), buckets)).toBeNull();
+  });
+
+  it('ป.ตรี เกิน 90 แม้รวมทั้งคณะได้ 100 = ไม่ผ่าน', () => {
+    expect(levelCapIssue(choice({ a: '70', a2: '25', b: '5', c: '0' }), buckets)).toMatch(/ปริญญาตรี/);
+  });
+
+  it('% รายระดับรวมไม่ครบ 100 = ไม่ผ่าน', () => {
+    const c = { ...choice({ a: '60', a2: '30', b: '5', c: '5' }), levelPct: { ปริญญาตรี: '90' } };
+
+    expect(levelCapIssue(c, buckets)).toMatch(/รายระดับ/);
+  });
+
+  it('วิธีอื่นไม่คุม', () => {
+    expect(levelCapIssue(DEFAULT_ALLOC_CHOICE, buckets)).toBeNull();
   });
 });

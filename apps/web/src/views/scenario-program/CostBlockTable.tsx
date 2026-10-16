@@ -76,10 +76,12 @@ interface Line {
   /** เงินแผ่นดิน — ไม่นับในกลุ่มไม่รวมเงินแผ่นดิน */
   govOnly?: boolean;
   highlight?: boolean;
-  /** แก้ได้แม้จำกัดสิทธิ์ (ผู้ปรับปรุงหลักสูตร/อาจารย์) — จำนวนนิสิต และค่าธรรมเนียมการศึกษา */
+  /** แก้ได้แม้จำกัดสิทธิ์ (ผู้ปรับปรุงหลักสูตร/อาจารย์) — จำนวนนิสิต */
   basic?: boolean;
   /** แถวผลลัพธ์ที่ยังแสดงเมื่อจำกัดสิทธิ์ (basicOnly) — ให้เห็นผลของการปรับ */
   result?: boolean;
+  /** แสดงเฉพาะตอนจำกัดสิทธิ์ (basicOnly) */
+  basicOnlyRow?: boolean;
 }
 
 export interface CostColumn {
@@ -104,7 +106,7 @@ interface Props {
   onChange: (mode: RevenueMode, b: CostBlock) => void;
   /** แสดงแถวปรับส่วนแบ่งส่วนกลางคณะ — เฉพาะเมื่อใช้วิธีปันส่วนอื่นที่ไม่ใช่ตามชีต */
   showAllocAdj?: boolean;
-  /** แสดงเฉพาะแถว basic (จำนวนนิสิต · ค่าธรรมเนียมการศึกษา) ที่แก้ได้ และแถวผลลัพธ์ (result) */
+  /** แสดงเฉพาะแถว basic (จำนวนนิสิต · ค่าธรรมเนียมต่อคน) ที่แก้ได้ และแถวผลลัพธ์ (result) */
   basicOnly?: boolean;
 }
 
@@ -138,6 +140,16 @@ const LINES: Line[] = [
     result: true,
   },
   {
+    // จำลองปรับค่าธรรมเนียม — รายได้ค่าธรรมเนียม (2.2) = อัตราต่อคน × Q
+    label: '2.1 ค่าธรรมเนียมการศึกษาต่อคน',
+    get: (b) => (b.q > 0 ? b.income / b.q : null),
+    unit: 'บาท/คน',
+    depth: 1,
+    basic: true,
+    basicOnlyRow: true,
+    set: (b, v) => (b.q > 0 ? { ...b, income: v * b.q } : b),
+  },
+  {
     label: '2.1 งบประมาณเงินแผ่นดิน',
     get: (b) => b.gov,
     unit: 'บาท',
@@ -150,7 +162,8 @@ const LINES: Line[] = [
     get: (b) => b.income,
     unit: 'บาท',
     depth: 1,
-    basic: true,
+    // จำกัดสิทธิ์ (basicOnly) — แสดงเฉยๆ ไม่ให้กรอก
+    result: true,
     set: (b, v) => ({ ...b, income: v }),
   },
   { label: 'รายได้ต่อหน่วย : คน (R)', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
@@ -251,7 +264,9 @@ const LINES: Line[] = [
 const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = false }: Props) => {
   const editStart = useRef<CostBlock | null>(null);
   const lines = LINES.filter((l) =>
-    basicOnly ? l.basic || l.result : showAllocAdj || l.id !== ALLOC_ADJ,
+    basicOnly
+      ? l.basic || l.result
+      : !l.basicOnlyRow && (showAllocAdj || l.id !== ALLOC_ADJ),
   );
   const nCols = groups.reduce((a, g) => a + g.cols.length, 0);
   const valueWidth = { xs: 120, sm: nCols > 2 ? 140 : 180 };

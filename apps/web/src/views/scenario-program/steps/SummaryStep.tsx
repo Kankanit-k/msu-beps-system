@@ -29,8 +29,13 @@ interface Props {
   saveBlocker: string | null;
   onSave: () => void;
   history: ProgramHistoryEntry[];
-  onPrint: (id: number) => void;
+  /** ว่าง = บทบาทนี้ออกรายงานไม่ได้ (ดู canExportReport) — ซ่อนปุ่ม */
+  onPrint?: (id: number) => void;
   onClearHistory: () => void;
+  onOpenHistory: (h: ProgramHistoryEntry) => void;
+  onDeleteHistory: (h: ProgramHistoryEntry) => void;
+  /** กำลังแก้ไขผลที่บันทึกไว้ — บันทึกแล้วทับรายการเดิม */
+  editingId: number | null;
 }
 
 const SummaryStep = (props: Props) => {
@@ -83,20 +88,26 @@ const SummaryStep = (props: Props) => {
           >
             {props.saveBlocker ?? 'ตรวจตารางคำนวณและสัดส่วนนิสิตแล้ว กดบันทึกเพื่อเก็บผล'}
           </Typography>
-          <Button
-            variant="outlined"
-            disabled={!latest}
-            onClick={() => latest && props.onPrint(latest.id)}
-            title={
-              latest
-                ? 'เปิดหน้าต่างพิมพ์ของเบราว์เซอร์ — เลือก "บันทึกเป็น PDF" ได้'
-                : 'บันทึกผลก่อนเพื่อเปิดใช้งาน'
-            }
-          >
-            🖨 ออกรายงาน PDF
-          </Button>
+          {props.onPrint ? (
+            <Button
+              variant="outlined"
+              disabled={!latest}
+              onClick={() => latest && props.onPrint?.(latest.id)}
+              title={
+                latest
+                  ? 'เปิดหน้าต่างพิมพ์ของเบราว์เซอร์ — เลือก "บันทึกเป็น PDF" ได้'
+                  : 'บันทึกผลก่อนเพื่อเปิดใช้งาน'
+              }
+            >
+              🖨 ออกรายงาน PDF
+            </Button>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              ผลจำลองเท่านั้น — ออกรายงานได้เฉพาะกองแผนและอาจารย์ประจำหลักสูตร
+            </Typography>
+          )}
           <Button variant="contained" disabled={!!props.saveBlocker} onClick={props.onSave}>
-            บันทึกผลคำนวณ
+            {props.editingId ? 'บันทึกการแก้ไข' : 'บันทึกผลคำนวณ'}
           </Button>
         </CardContent>
       </Card>
@@ -104,12 +115,19 @@ const SummaryStep = (props: Props) => {
       {latest ? (
         <>
           <LatestResultCard latest={latest} />
-          <HistoryTable history={history} onPrint={props.onPrint} onClear={props.onClearHistory} />
+          <HistoryTable
+            history={history}
+            onPrint={props.onPrint}
+            onClear={props.onClearHistory}
+            onOpen={props.onOpenHistory}
+            onDelete={props.onDeleteHistory}
+            editingId={props.editingId}
+          />
         </>
       ) : (
         <Alert severity="info" variant="outlined">
-          กด &quot;บันทึกผลคำนวณ&quot; เพื่อเก็บผลไว้ในประวัติ เปิดใช้งานปุ่มออกรายงาน PDF
-          และใช้จุดคุ้มทุนในหน้าแผนการรับนิสิต
+          กด &quot;บันทึกผลคำนวณ&quot; เพื่อเก็บผลไว้ในประวัติ
+          {props.onPrint ? ' เปิดใช้งานปุ่มออกรายงาน PDF' : ''} และใช้จุดคุ้มทุนในหน้าแผนการรับนิสิต
         </Alert>
       )}
     </Box>

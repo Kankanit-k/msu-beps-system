@@ -116,6 +116,36 @@ const weightInputs = (sc: FacultyScenario) => [
 ];
 
 /**
+ * หารรายหัวแบบชีต: ชีตแยกก้อนส่วนกลางตามระดับการศึกษาก่อน (ป.ตรี / โท / เอก / …) แล้วหารรายหัวในระดับนั้น
+ * — อัตราต่อหัวจึงต่างกันระหว่างระดับ (เช่น วิทยาศาสตร์ ป.ตรี 63,257 · บัณฑิต 56,299)
+ * ทำเป็นกำหนด % รายระดับ = สัดส่วนที่ชีตปันให้ระดับนั้น แล้วแบ่งต่อตามหัว — จำนวนนิสิตเท่าชีต ตัวเลขจึงเท่าชีต
+ *
+ * @returns `null` เมื่อใช้แบบชีตไม่ได้ (ก้อน 0 หรือหลักสูตรใหม่เปิดระดับที่คณะยังไม่มี) → หารรายหัวทั้งคณะแทน
+ */
+function sheetPerHead(sc: FacultyScenario) {
+  if (!(sc.pool > 0)) return null;
+  const byLevel = new Map<string, number>();
+
+  for (const p of sc.programs)
+    byLevel.set(p.educationLevel, (byLevel.get(p.educationLevel) ?? 0) + p.sheetShare);
+  const sum = [...byLevel.values()].reduce((a, v) => a + v, 0);
+
+  if (!(sum > 0)) return null;
+  const lines = [...byLevel].map(([bucketKey, v]) => ({ bucketKey, pct: (v / sum) * 100 }));
+
+  // กันผลรวมทศนิยมลอยตัวไม่ถึง 100 พอดี (engine ยอมคลาด 1e-9)
+  const last = lines[lines.length - 1];
+
+  if (last) last.pct = 100 - lines.slice(0, -1).reduce((a, l) => a + l.pct, 0);
+  const drivers = buildFixedCostDrivers(
+    { method: 'CUSTOM_PCT', bucketLevel: 'EDUCATION_LEVEL', subMethod: 'PER_HEAD_FTES', lines },
+    weightInputs(sc),
+  );
+
+  return drivers.valid ? { ...drivers, method: 'PER_HEAD_FTES' as const } : null;
+}
+
+/**
  * ปันส่วนก้อนส่วนกลางคณะใหม่ตามนโยบาย
  *
  * @param policy `null` = ตามชีต (ไม่ปันใหม่ ส่วนแบ่งเท่าเดิม)
@@ -139,7 +169,9 @@ export function allocateFaculty(sc: FacultyScenario, policy: FixedCostPolicy | n
 
   if (!policy) return unchanged([]);
 
-  const drivers = buildFixedCostDrivers(policy, weightInputs(sc));
+  const drivers =
+    (policy.method === 'PER_HEAD_FTES' && sheetPerHead(sc)) ||
+    buildFixedCostDrivers(policy, weightInputs(sc));
 
   // นโยบายที่ไม่ผ่าน (เช่น % ไม่ครบ 100) ห้ามเอาตัวเลขไปใช้ — engine ยัง normalize ให้ได้ผลออกมา
   // แต่ตัวเลขนั้นไม่ใช่สิ่งที่คณะตั้งใจ จึงคงตามชีตไว้แล้วรายงานข้อทักท้วงแทน
@@ -161,6 +193,8 @@ export interface AllocBucket {
   q: number;
   /** กลุ่มนี้มีหลักสูตรใหม่อยู่ — ต้องกรอก % เอง ช่องว่างไม่นับเป็น 0 */
   hasNew?: boolean;
+  /** ระดับการศึกษาของหลักสูตร (เฉพาะรายหลักสูตร) — ใช้คุมเพดาน % ของระดับ */
+  group?: string;
 }
 
 /** กลุ่มที่ต้องกำหนด % ของสถานการณ์นี้ — หลักสูตรใหม่ต้องมีที่อยู่ด้วย ไม่งั้นติด V2 */
@@ -174,6 +208,7 @@ export function allocBuckets(sc: FacultyScenario, level: BucketLevel): AllocBuck
       programCount: 1,
       q: r.ftes,
       hasNew: r.programVersionId === NEW_PROGRAM_ID,
+      group: r.educationLevel,
     }));
   }
 
@@ -204,6 +239,8 @@ export interface AllocChoice {
   subMethod: FixedCostSubMethod;
   /** bucketKey → % ตามที่พิมพ์ */
   pct: Record<string, string>;
+  /** รายหลักสูตร: % ของแต่ละระดับการศึกษา (เช่น ป.ตรี 90 / โท 5 / เอก 5) — หลักสูตรในระดับรวมกันต้องเท่านี้ */
+  levelPct?: Record<string, string>;
 }
 
 export const DEFAULT_ALLOC_CHOICE: AllocChoice = {
@@ -239,4 +276,76 @@ export function policyOf(c: AllocChoice, buckets: readonly AllocBucket[]): Fixed
       return [{ bucketKey: b.key, pct: Number.isFinite(v) ? Math.round(v * 1e4) / 1e4 : NaN }];
     }),
   };
+}
+
+const pctNum = (raw?: string) => {
+  const v = Number((raw ?? '').trim() || 0);
+
+  return Number.isFinite(v) ? Math.round(v * 1e4) / 1e4 : NaN;
+};
+const round4 = (v: number) => Math.round(v * 1e4) / 1e4;
+
+/** เพดาน % รายระดับที่ใช้คุมการกรอกรายหลักสูตร — `undefined` เมื่อไม่ใช่กำหนด % รายหลักสูตร */
+export function levelCapsOf(c: AllocChoice, levels: readonly string[]) {
+  if (c.method !== 'CUSTOM_PCT' || c.bucketLevel !== 'PROGRAM') return undefined;
+
+  return Object.fromEntries(levels.map((l) => [l, pctNum(c.levelPct?.[l])]));
+}
+
+/**
+ * กำหนด % รายหลักสูตร: % รายระดับต้องรวม 100 และหลักสูตรในแต่ละระดับรวมกันต้องเท่ากับ % ของระดับนั้นพอดี
+ * — engine ตรวจแค่รวมทั้งคณะ 100 จึงต้องคุมที่นี่ ไม่งั้น ป.ตรี กิน % ของ ป.โท ได้
+ *
+ * @returns ข้อความที่ต้องแก้ก่อนล็อก หรือ `null` เมื่อผ่าน
+ */
+export function levelCapIssue(c: AllocChoice, buckets: readonly AllocBucket[]): string | null {
+  const levels = [...new Set(buckets.map((b) => b.group ?? ''))];
+  const caps = levelCapsOf(c, levels);
+
+  if (!caps) return null;
+  const capSum = round4(levels.reduce((a, l) => a + caps[l]!, 0));
+
+  if (capSum !== 100) return `% รายระดับการศึกษารวมต้องเป็น 100% พอดี (ตอนนี้ ${capSum}%)`;
+
+  for (const l of levels) {
+    const sum = round4(
+      buckets.filter((b) => (b.group ?? '') === l).reduce((a, b) => a + pctNum(c.pct[b.key]), 0),
+    );
+
+    if (sum !== caps[l])
+      return `หลักสูตร${l}รวมกัน ${sum}% — ต้องเท่ากับ ${caps[l]}% ที่กำหนดให้ระดับ${l}`;
+  }
+
+  return null;
+}
+
+/**
+ * กำหนด % รายหลักสูตร: แบ่ง % ของแต่ละระดับลงหลักสูตรในระดับตามจำนวนนิสิตรายหัว (Q ตามชีต)
+ * — คนเยอะได้ % มาก รวมกันเท่า % ของระดับพอดี (ปัด 4 ตำแหน่งแบบเศษเหลือมากสุดได้ก่อน)
+ * ระดับที่นิสิตรวมเป็น 0 หารเท่ากัน
+ */
+export function splitLevelPctByFtes(
+  caps: Record<string, number>,
+  buckets: readonly AllocBucket[],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+
+  for (const [lvl, cap] of Object.entries(caps)) {
+    const members = buckets.filter((b) => (b.group ?? '') === lvl);
+    const totalQ = members.reduce((a, b) => a + b.q, 0);
+    const units = Math.round(cap * 1e4);
+    const raw = members.map((b) => (totalQ > 0 ? (units * b.q) / totalQ : units / members.length));
+    const base = raw.map(Math.floor);
+    let left = units - base.reduce((a, v) => a + v, 0);
+
+    raw
+      .map((v, i) => ({ i, frac: v - base[i]! }))
+      .sort((a, b) => b.frac - a.frac)
+      .forEach(({ i }) => {
+        if (left-- > 0) base[i]!++;
+      });
+    members.forEach((b, i) => (out[b.key] = String(base[i]! / 1e4)));
+  }
+
+  return out;
 }
