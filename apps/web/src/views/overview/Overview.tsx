@@ -32,6 +32,7 @@ import FacultyFilter from '@components/FacultyFilter';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
+import { useRole } from '@/hooks/useRole';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
@@ -56,7 +57,15 @@ const FAC_NAMES = RAW.FACS.map((f) => f.name);
 const Overview = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
 
-  const [selectedFacs, setSelectedFacs] = useState<string[]>([]);
+  const [pickedFacs, setSelectedFacs] = useState<string[]>([]);
+
+  // ผู้ดูแลคณะ/อาจารย์ เห็นได้เฉพาะคณะของตน — ล็อกตัวกรองไว้ที่คณะนั้น
+  const { role, scope } = useRole();
+  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
+  const selectedFacs = useMemo(
+    () => (lockedFac ? [lockedFac] : pickedFacs),
+    [lockedFac, pickedFacs],
+  );
 
   // ไม่เลือกคณะใดเลย = ทั้งมหาวิทยาลัย (พฤติกรรมเดิมของหน้า)
   const isFiltered = selectedFacs.length > 0;
@@ -78,7 +87,6 @@ const Overview = () => {
     () => computeBreakEven(isFiltered ? sumRows(facs) : RAW.UNI, mode),
     [isFiltered, facs, mode],
   );
-  const dep = isFiltered ? facs.reduce((a, f) => a + f.dep, 0) : RAW.UNI.dep;
 
   // Q* ให้ตรงกับชีต: รายหลักสูตรแล้วบวกขึ้นเป็นคณะ/มหาวิทยาลัย (ไม่ใช่ Q* จากยอดรวม)
   const progQStars = useMemo(
@@ -109,19 +117,41 @@ const Overview = () => {
     () => [...facResults].sort((a, b) => b.res.profit - a.res.profit),
     [facResults],
   );
-  const top = sortedByProfit.filter((x) => x.res.profit > 0).slice(0, 6);
-  const bottom = [...sortedByProfit]
+
+  // ดูคณะเดียว → กราฟและตารางจัดอันดับแตกเป็นรายหลักสูตรในคณะนั้น, หลายคณะ → รายคณะ
+  const byProgram = isFiltered && facs.length === 1;
+  const unitRows = useMemo<UnitRow[]>(
+    () =>
+      byProgram
+        ? progQStars.map(({ p, qStar }) => ({
+            key: `${p.lvl}|${p.prog}|${p.deg}`,
+            label: p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`,
+            res: computeBreakEven(p, mode),
+            qStar,
+          }))
+        : facResults.map((x) => ({
+            key: x.fac.name,
+            label: shortFacName(x.fac.name),
+            res: x.res,
+            qStar: x.qStar,
+          })),
+    [byProgram, progQStars, facResults, mode],
+  );
+  const rankedByProfit = [...unitRows].sort((a, b) => b.res.profit - a.res.profit);
+  const top = rankedByProfit.filter((x) => x.res.profit > 0).slice(0, 6);
+  const bottom = rankedByProfit
     .filter((x) => x.res.profit < 0)
     .reverse()
     .slice(0, 6);
+  const unitName = byProgram ? 'หลักสูตร' : 'คณะ';
 
   const nLoss = facResults.filter((x) => x.res.profit < 0).length;
 
   const best = sortedByProfit[0];
   const worst = sortedByProfit[sortedByProfit.length - 1];
 
-  // กราฟแท่งเรียงตามจำนวนนิสิตเหมือน mockup — คณะใหญ่สุดอยู่บนสุด
-  const barRows = useMemo(() => [...facResults].sort((a, b) => b.fac.Q - a.fac.Q), [facResults]);
+  // กราฟแท่งเรียงตามจำนวนนิสิตเหมือน mockup — ใหญ่สุดอยู่บนสุด
+  const barRows = useMemo(() => [...unitRows].sort((a, b) => b.res.q - a.res.q), [unitRows]);
 
   const barOptions: ApexOptions = {
     chart: { type: 'bar', toolbar: { show: false }, parentHeightOffset: 0 },
@@ -134,10 +164,10 @@ const Overview = () => {
     dataLabels: { enabled: false },
     stroke: { width: 0 },
     xaxis: {
-      categories: barRows.map((f) => shortFacName(f.fac.name)),
-      labels: { style: { fontSize: '11px' } },
+      categories: barRows.map((r) => r.label),
+      labels: { style: { fontSize: '12px' } },
     },
-    yaxis: { labels: { style: { fontSize: '10px' }, maxWidth: 240 } },
+    yaxis: { labels: { style: { fontSize: '12px' }, maxWidth: 260 } },
     legend: { show: false },
     grid: {
       borderColor: 'var(--mui-palette-divider)',
@@ -151,13 +181,13 @@ const Overview = () => {
     },
   };
   const barSeries = [
-    { name: 'รายได้รวม (TR)', data: barRows.map((f) => Number((f.res.tr / 1e6).toFixed(2))) },
-    { name: 'ต้นทุนรวม (TC)', data: barRows.map((f) => Number((f.res.tc / 1e6).toFixed(2))) },
+    { name: 'รายได้รวม', data: barRows.map((f) => Number((f.res.tr / 1e6).toFixed(2))) },
+    { name: 'ต้นทุนรวม', data: barRows.map((f) => Number((f.res.tc / 1e6).toFixed(2))) },
   ];
 
   const donutOptions: ApexOptions = {
     chart: { type: 'donut' },
-    labels: ['ต้นทุนคงที่ (TFC)', 'ต้นทุนผันแปร (TVC)'],
+    labels: ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
     colors: ['var(--mui-palette-primary-main)', 'var(--mui-palette-warning-main)'],
     legend: { show: false },
     dataLabels: { enabled: false },
@@ -180,7 +210,6 @@ const Overview = () => {
     <Box>
       <PageHeaderBar
         title={isFiltered ? `ภาพรวม — ${scopeLabel}` : 'ภาพรวมมหาวิทยาลัย'}
-        code="W1"
         mode={mode}
         onModeChange={setMode}
         q={uni.q}
@@ -198,13 +227,19 @@ const Overview = () => {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
-            <FacultyFilter options={FAC_NAMES} value={selectedFacs} onChange={setSelectedFacs} />
-            <Typography variant="body2" color="text.secondary">
-              {isFiltered
-                ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
-                : `แสดงทุกคณะ (${RAW.FACS.length}) · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
-            </Typography>
-            {isFiltered && (
+            {lockedFac ? (
+              <Chip variant="outlined" icon={<i className="ri-lock-line" />} label={lockedFac} />
+            ) : (
+              <FacultyFilter options={FAC_NAMES} value={pickedFacs} onChange={setSelectedFacs} />
+            )}
+            {!lockedFac && (
+              <Typography variant="body2" color="text.secondary">
+                {isFiltered
+                  ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
+                  : `แสดงทุกคณะ (${RAW.FACS.length}) · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
+              </Typography>
+            )}
+            {isFiltered && !lockedFac && (
               <Button
                 size="small"
                 variant="text"
@@ -231,7 +266,7 @@ const Overview = () => {
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
-            label={mode === 'with_government' ? 'รายได้รวม (TR)' : 'รายได้เงินรายได้'}
+            label={mode === 'with_government' ? 'รายได้รวม' : 'รายได้เงินรายได้'}
             value={fmtMillion(uni.tr)}
             unit="ล้านบาท"
             accent="info"
@@ -239,16 +274,11 @@ const Overview = () => {
           />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            label="ต้นทุนรวม (TC)"
-            value={fmtMillion(uni.tc)}
-            unit="ล้านบาท"
-            accent="secondary"
-          />
+          <KpiCard label="ต้นทุนรวม" value={fmtMillion(uni.tc)} unit="ล้านบาท" accent="secondary" />
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
-            label="ส่วนเกิน/ขาดทุน (π)"
+            label="ส่วนเกิน/ขาดทุน"
             value={`${uni.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(uni.profit))}`}
             unit={`ล้านบาท · ${profitPctOfTr.toFixed(1)}% ของรายได้`}
             accent="success"
@@ -259,7 +289,7 @@ const Overview = () => {
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
-            label="รายได้ต่อหัว (R)"
+            label="รายได้ต่อหัว"
             value={uni.r !== null ? fmtInt(uni.r) : '—'}
             unit="บาท/คน"
             accent="warning"
@@ -268,9 +298,19 @@ const Overview = () => {
         </Grid>
         <Grid size={{ xs: 6, sm: 4, md: 2 }}>
           <KpiCard
-            label="นิสิต ณ จุดคุ้มทุน (Q*)"
+            label="นิสิต ณ จุดคุ้มทุน"
             value={fmtInt(uniQStar)}
-            unit={`คน · จริง ${fmtInt(uni.q)} คน`}
+            unit={
+              <>
+                {`คน · จริง ${fmtInt(uni.q)} คน / `}
+                <Box
+                  component="span"
+                  sx={{ color: uni.q < uniQStar ? 'error.main' : 'success.main', fontWeight: 600 }}
+                >
+                  {uni.q < uniQStar ? 'ขาด' : 'เกิน'} {fmtInt(Math.abs(uniQStar - uni.q))} คน
+                </Box>
+              </>
+            }
             accent="primary"
             valueColor="var(--mui-palette-primary-main)"
           />
@@ -282,7 +322,9 @@ const Overview = () => {
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardHeader
               title={
-                <DotTitle color="primary.main">รายได้รวม (TR) เทียบ ต้นทุนรวม (TC) รายคณะ</DotTitle>
+                <DotTitle color="primary.main">
+                  รายได้รวม เทียบ ต้นทุนรวม {byProgram ? 'รายหลักสูตร' : 'รายคณะ'}
+                </DotTitle>
               }
               subheader="เรียงตามจำนวนนิสิต · หน่วยล้านบาท"
             />
@@ -290,12 +332,18 @@ const Overview = () => {
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
                 <LegendItem
                   color={TR_COLOR}
-                  label={mode === 'with_government' ? 'รายได้รวม (TR)' : 'เงินรายได้'}
+                  label={mode === 'with_government' ? 'รายได้รวม' : 'เงินรายได้'}
                 />
-                <LegendItem color={TC_COLOR} label="ต้นทุนรวม (TC)" />
+                <LegendItem color={TC_COLOR} label="ต้นทุนรวม" />
               </Box>
               {/* กราฟวางแบบ absolute เพื่อไม่ดันความสูงแถว — การ์ดนี้จึงสูงเท่าการ์ดโครงสร้างต้นทุน */}
-              <Box sx={{ flex: 1, position: 'relative', minHeight: 360 }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  position: 'relative',
+                  minHeight: Math.max(360, barRows.length * 24),
+                }}
+              >
                 <Box sx={{ position: 'absolute', inset: 0 }}>
                   <AppReactApexCharts
                     type="bar"
@@ -314,7 +362,7 @@ const Overview = () => {
           <Card sx={{ height: '100%' }}>
             <CardHeader
               title={<DotTitle color="success.main">โครงสร้างต้นทุนรวม</DotTitle>}
-              subheader="ต้นทุนคงที่ (TFC) เทียบ ต้นทุนผันแปร (TVC)"
+              subheader="ต้นทุนคงที่ เทียบ ต้นทุนผันแปร"
             />
             <CardContent>
               <AppReactApexCharts
@@ -325,24 +373,8 @@ const Overview = () => {
                 series={donutSeries}
               />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 4 }}>
-                <CostRow
-                  label="ต้นทุนคงที่ (TFC)"
-                  value={uni.tfc}
-                  total={uni.tc}
-                  color="primary.main"
-                />
-                <CostRow
-                  label="ต้นทุนผันแปร (TVC)"
-                  value={uni.tvc}
-                  total={uni.tc}
-                  color="warning.main"
-                />
-                <CostRow
-                  label="ค่าเสื่อมราคา (รวมอยู่ในต้นทุนคงที่)"
-                  value={dep}
-                  total={uni.tc}
-                  color="success.main"
-                />
+                <CostRow label="ต้นทุนคงที่" value={uni.tfc} total={uni.tc} color="primary.main" />
+                <CostRow label="ต้นทุนผันแปร" value={uni.tvc} total={uni.tc} color="warning.main" />
               </Box>
             </CardContent>
           </Card>
@@ -351,8 +383,9 @@ const Overview = () => {
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <FacultyTable
-            title="คณะที่มีส่วนเกินสูงสุด"
+          <RankTable
+            title={`${unitName}ที่มีส่วนเกินสูงสุด`}
+            unitHeader={unitName}
             chipLabel="ส่วนเกินสูงสุด"
             chipColor="success"
             rows={top}
@@ -361,8 +394,9 @@ const Overview = () => {
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          <FacultyTable
-            title="คณะที่ต้องเฝ้าระวัง (ขาดทุน)"
+          <RankTable
+            title={`${unitName}ที่ต้องเฝ้าระวัง (ขาดทุน)`}
+            unitHeader={unitName}
             chipLabel="เฝ้าระวัง"
             chipColor="error"
             rows={bottom}
@@ -387,6 +421,7 @@ const Overview = () => {
             flexDirection: 'column',
             gap: 2,
             '& > li': { position: 'relative', pl: 4 },
+            '& .MuiTypography-body2': { fontSize: '0.875rem' },
             '& > li::before': {
               content: '"▸"',
               position: 'absolute',
@@ -478,14 +513,17 @@ const CostRow = ({
   </Box>
 );
 
-type FacultyRow = {
-  fac: (typeof RAW.FACS)[number];
+/** แถวของกราฟ/ตารางจัดอันดับ — คณะ หรือ หลักสูตร (เมื่อดูคณะเดียว) */
+type UnitRow = {
+  key: string;
+  label: string;
   res: ReturnType<typeof computeBreakEven>;
   qStar: number;
 };
 
-const FacultyTable = ({
+const RankTable = ({
   title,
+  unitHeader,
   chipLabel,
   chipColor,
   rows,
@@ -493,9 +531,10 @@ const FacultyTable = ({
   valueHeader,
 }: {
   title: string;
+  unitHeader: string;
   chipLabel: string;
   chipColor: 'success' | 'error';
-  rows: FacultyRow[];
+  rows: UnitRow[];
   sign: '+' | '−';
   valueHeader: string;
 }) => (
@@ -506,13 +545,19 @@ const FacultyTable = ({
     />
     <CardContent sx={{ pt: 0 }}>
       <TableContainer>
-        <Table size="small">
+        <Table
+          size="small"
+          sx={{
+            '& th': { fontSize: '0.8125rem', whiteSpace: 'nowrap' },
+            '& td, & td .MuiTypography-root': { fontSize: '0.875rem' },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell>#</TableCell>
-              <TableCell>คณะ</TableCell>
+              <TableCell>{unitHeader}</TableCell>
               <TableCell align="right">{valueHeader}</TableCell>
-              <TableCell align="right">จุดคุ้มทุน / นิสิตจริง (Q*/Q)</TableCell>
+              <TableCell align="right">นิสิต ณ จุดคุ้มทุน / นิสิตจริง</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -526,9 +571,9 @@ const FacultyTable = ({
               </TableRow>
             )}
             {rows.map((r, i) => (
-              <TableRow key={r.fac.name}>
+              <TableRow key={r.key}>
                 <TableCell>{i + 1}</TableCell>
-                <TableCell>{shortFacName(r.fac.name)}</TableCell>
+                <TableCell>{r.label}</TableCell>
                 <TableCell align="right">
                   <Typography
                     variant="body2"

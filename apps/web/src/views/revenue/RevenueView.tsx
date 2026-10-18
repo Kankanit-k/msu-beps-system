@@ -13,6 +13,10 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
@@ -23,6 +27,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
@@ -39,6 +45,8 @@ import FacultyFilter from '@components/FacultyFilter';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
+import { useRole } from '@/hooks/useRole';
+import { downloadCsv } from '@/utils/csv';
 
 // Data / calc Imports
 import { chargesOf, RAW, sumCharges } from '@/data/mockup';
@@ -136,6 +144,21 @@ const LEVEL_COLOR: Record<(typeof LEVEL_ORDER)[number], string> = {
   'อื่น ๆ': 'var(--mui-palette-secondary-main)',
 };
 
+/** ตัวกรองระดับเมื่อดูคณะเดียว — บัณฑิตศึกษา = ทุกกลุ่มที่ไม่ใช่ปริญญาตรี (โท/เอก/ป.บัณฑิต/ประกาศนียบัตร) */
+type LevelScope = 'all' | 'ug' | 'grad';
+
+const LEVEL_SCOPE_LABEL: Record<LevelScope, string> = {
+  all: 'ทุกระดับ',
+  ug: 'ปริญญาตรี',
+  grad: 'บัณฑิตศึกษา',
+};
+
+const inLevel = (p: ProgRow, level: LevelScope) =>
+  level === 'all' || (level === 'ug') === (p.grp === 'ปริญญาตรี');
+
+/** ชื่อหลักสูตรบนกราฟ — ระบุระดับต่อท้ายเมื่อไม่ใช่ปริญญาตรี เพราะชื่อซ้ำกันได้ข้ามระดับ */
+const progLabel = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);
+
 type Alert = {
   severity: 'error' | 'warning' | 'success' | 'info';
   title: string;
@@ -151,9 +174,19 @@ const ALERT_ICON: Record<Alert['severity'], string> = {
 
 const RevenueView = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
-  const [selectedFacs, setSelectedFacs] = useState<string[]>([]);
+  const [pickedFacs, setSelectedFacs] = useState<string[]>([]);
+  const [level, setLevel] = useState<LevelScope>('all');
+  const [detail, setDetail] = useState<ProgRow | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // ผู้ดูแลคณะ/อาจารย์ เห็นได้เฉพาะคณะของตน — ล็อกตัวกรองไว้ที่คณะนั้น
+  const { role, scope: roleScope } = useRole();
+  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const selectedFacs = useMemo(
+    () => (lockedFac ? [lockedFac] : pickedFacs),
+    [lockedFac, pickedFacs],
+  );
 
   // ไม่เลือกคณะใดเลย = ดูทุกคณะ (พฤติกรรมเดิมของหน้า)
   const facs: FacRow[] = useMemo(
@@ -162,13 +195,30 @@ const RevenueView = () => {
   );
 
   const isFiltered = selectedFacs.length > 0;
+
+  // ดูคณะเดียว → กราฟแตกเป็นรายหลักสูตร และกรองระดับการศึกษาได้
+  const byProgram = isFiltered && facs.length === 1;
+  const levelScope: LevelScope = byProgram ? level : 'all';
+
+  // หลักสูตรในขอบเขตที่กำลังแสดง (คณะที่เลือก × ระดับ)
+  const scopeProgs = useMemo(
+    () =>
+      RAW.PROGS.filter(
+        (p) => (!isFiltered || selectedFacs.includes(p.fac)) && inLevel(p, levelScope),
+      ),
+    [isFiltered, selectedFacs, levelScope],
+  );
   const scopeLabel =
     !isFiltered || facs.length === 0
       ? 'ทั้งมหาวิทยาลัย'
       : ((facs.length === 1 ? facs[0]?.name : undefined) ?? `${facs.length} คณะที่เลือก`);
 
   // ขอบเขตที่กำลังแสดง — ทั้งมหาวิทยาลัยเมื่อไม่กรอง / ผลรวมของคณะที่เลือกเมื่อกรอง
-  const scope = useMemo<ScopeRow>(() => (isFiltered ? sumRows(facs) : RAW.UNI), [isFiltered, facs]);
+  // กรองระดับ → รวมจากหลักสูตรแทนแถวคณะ (sumRows ยังให้ Q* แบบชีตเพราะเป็นผลบวกของหลักสูตร)
+  const scope = useMemo<ScopeRow>(
+    () => (levelScope !== 'all' ? sumRows(scopeProgs) : isFiltered ? sumRows(facs) : RAW.UNI),
+    [levelScope, scopeProgs, isFiltered, facs],
+  );
 
   const uni = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
   const scopeRes = useMemo(() => computeBreakEven(scope, mode), [scope, mode]);
@@ -180,22 +230,52 @@ const RevenueView = () => {
   );
 
   // หลักสูตรในขอบเขตที่กำลังแสดง — เรียงส่วนต่างจากน้อยไปมาก เพื่อให้หลักสูตรที่มีปัญหาขึ้นก่อน
-  const progRows = useMemo(() => {
-    const inScope: ProgRow[] = isFiltered
-      ? RAW.PROGS.filter((p) => selectedFacs.includes(p.fac))
-      : RAW.PROGS;
+  const progRows = useMemo(
+    () =>
+      scopeProgs
+        .map((p) => {
+          const res = computeBreakEven(p, mode);
 
-    return inScope
-      .map((p) => {
-        const res = computeBreakEven(p, mode);
-
-        return { p, res, status: statusOf(res) };
-      })
-      .sort((a, b) => a.res.profit - b.res.profit);
-  }, [isFiltered, selectedFacs, mode]);
+          return { p, res, status: statusOf(res) };
+        })
+        .sort((a, b) => a.res.profit - b.res.profit),
+    [scopeProgs, mode],
+  );
 
   // ตัวกรอง/โหมดเปลี่ยน = ชุดข้อมูลเปลี่ยน จึงกลับไปหน้าแรกของตารางเสมอ
-  useEffect(() => setPage(0), [selectedFacs, mode]);
+  useEffect(() => setPage(0), [selectedFacs, mode, levelScope]);
+
+  const exportExcel = () =>
+    downloadCsv(`รายได้-ต้นทุน-รายหลักสูตร-${scopeLabel}-${LEVEL_SCOPE_LABEL[levelScope]}`, [
+      [
+        'หลักสูตร',
+        'คณะ',
+        'ระดับ',
+        'นิสิต',
+        'เงินแผ่นดิน (บาท)',
+        'เงินรายได้ (บาท)',
+        'รายได้ (บาท)',
+        'ต้นทุน (บาท)',
+        'ส่วนต่าง (บาท)',
+        'อัตราคุ้มทุน (%)',
+        'นิสิต ณ จุดคุ้มทุน (คน)',
+        'สถานะ',
+      ],
+      ...progRows.map(({ p, res, status }) => [
+        p.prog,
+        p.fac,
+        p.lvl,
+        p.Q,
+        Math.round(p.st),
+        Math.round(p.own),
+        Math.round(res.tr),
+        Math.round(res.tc),
+        Math.round(res.profit),
+        res.tc > 0 ? pct(res.tr, res.tc) : '',
+        res.qStar ?? '',
+        PROG_STATUS_LABEL[status],
+      ]),
+    ]);
 
   // สถานะคุ้มทุนของขอบเขตที่กำลังแสดง — ใช้ระบายสีการ์ด KPI และเกจ
   const coverage = coverageOf(scopeRes.tr, scopeRes.tc);
@@ -311,8 +391,28 @@ const RevenueView = () => {
 
   // กราฟองค์ประกอบรายได้ — แสดงเงินแผ่นดินและเงินรายได้เสมอ ไม่ขึ้นกับโหมดฐานรายได้
   // เพราะจุดประสงค์คือเทียบสัดส่วนแหล่งเงินของแต่ละคณะ (ตรงกับ mockup)
+  // ดูคณะเดียว → รายหลักสูตร เรียงรายได้มากสุดขึ้นก่อน
+  const chartProgs = useMemo(
+    () => [...scopeProgs].sort((a, b) => b.st + b.own - (a.st + a.own)),
+    [scopeProgs],
+  );
+  const chartRows: { label: string; st: number; own: number }[] = byProgram
+    ? chartProgs.map((p) => ({ label: progLabel(p), st: p.st, own: p.own }))
+    : facs.map((f) => ({ label: shortFacName(f.name), st: f.st, own: f.own }));
+
   const stackedOptions: ApexOptions = {
-    chart: { type: 'bar', stacked: true, toolbar: { show: false }, parentHeightOffset: 0 },
+    chart: {
+      type: 'bar',
+      stacked: true,
+      toolbar: { show: false },
+      parentHeightOffset: 0,
+      events: byProgram
+        ? {
+            dataPointSelection: (_e, _c, { dataPointIndex }: { dataPointIndex: number }) =>
+              setDetail(chartProgs[dataPointIndex] ?? null),
+          }
+        : {},
+    },
     plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '75%' } },
     colors: ['var(--mui-palette-primary-main)', 'var(--mui-palette-warning-main)'],
     dataLabels: { enabled: false },
@@ -324,10 +424,10 @@ const RevenueView = () => {
       yaxis: { lines: { show: false } },
     },
     xaxis: {
-      categories: facs.map((f) => shortFacName(f.name)),
-      labels: { style: { fontSize: '11px' } },
+      categories: chartRows.map((r) => r.label),
+      labels: { style: { fontSize: '12px' } },
     },
-    yaxis: { labels: { style: { fontSize: '10px' }, maxWidth: 240 } },
+    yaxis: { labels: { style: { fontSize: '12px' }, maxWidth: 280 } },
     tooltip: {
       y: {
         formatter: (v: number) => `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ.`,
@@ -337,9 +437,9 @@ const RevenueView = () => {
   const stackedSeries = [
     {
       name: 'เงินรายได้ (ค่าธรรมเนียม)',
-      data: facs.map((f) => Number((f.own / 1e6).toFixed(2))),
+      data: chartRows.map((r) => Number((r.own / 1e6).toFixed(2))),
     },
-    { name: 'เงินแผ่นดิน', data: facs.map((f) => Number((f.st / 1e6).toFixed(2))) },
+    { name: 'เงินแผ่นดิน', data: chartRows.map((r) => Number((r.st / 1e6).toFixed(2))) },
   ];
 
   // เกจครึ่งวงกลม — ApexCharts radialBar รับได้แค่ 0–100 จึงตัดปลายไว้ที่ 100 แล้วแสดงค่าจริงบนป้าย
@@ -365,7 +465,7 @@ const RevenueView = () => {
       },
     },
     stroke: { lineCap: 'round' },
-    labels: [qRatio === null ? 'ไม่มีจุดคุ้มทุน' : `${COVERAGE_LABEL[qCoverage]} (Q/Q*)`],
+    labels: [qRatio === null ? 'ไม่มีจุดคุ้มทุน' : COVERAGE_LABEL[qCoverage]],
   };
   const gaugeSeries = [qRatio === null ? 0 : Math.min(qRatio, 100)];
 
@@ -412,11 +512,10 @@ const RevenueView = () => {
     <Box>
       <PageHeaderBar
         title="รายได้รายคณะ"
-        code="W4"
         mode={mode}
         onModeChange={setMode}
-        q={uni.q}
-        profit={uni.profit}
+        q={lockedFac ? scopeRes.q : uni.q}
+        profit={lockedFac ? scopeRes.profit : uni.profit}
       />
 
       {SHOW_OVERVIEW_NOTES && (
@@ -430,20 +529,49 @@ const RevenueView = () => {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
-            <FacultyFilter options={FAC_NAMES} value={selectedFacs} onChange={setSelectedFacs} />
-            <Typography variant="body2" color="text.secondary">
-              {isFiltered
-                ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
-                : `แสดงทุกคณะ (${RAW.FACS.length}) · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
-            </Typography>
-            {isFiltered && (
+            {lockedFac ? (
+              <Chip variant="outlined" icon={<i className="ri-lock-line" />} label={lockedFac} />
+            ) : (
+              <FacultyFilter options={FAC_NAMES} value={pickedFacs} onChange={setSelectedFacs} />
+            )}
+            {byProgram && (
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                exclusive
+                value={level}
+                onChange={(_, v: LevelScope | null) => v && setLevel(v)}
+              >
+                {(Object.keys(LEVEL_SCOPE_LABEL) as LevelScope[]).map((l) => (
+                  <ToggleButton key={l} value={l}>
+                    {LEVEL_SCOPE_LABEL[l]}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            )}
+            {!lockedFac && (
+              <Typography variant="body2" color="text.secondary">
+                {isFiltered
+                  ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
+                  : `แสดงทุกคณะ (${RAW.FACS.length}) · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
+              </Typography>
+            )}
+            <Button
+              variant="outlined"
+              startIcon={<i className="ri-download-2-line" />}
+              onClick={exportExcel}
+              disabled={progRows.length === 0}
+              sx={{ marginInlineStart: 'auto' }}
+            >
+              ส่งออก Excel
+            </Button>
+            {isFiltered && !lockedFac && (
               <Button
                 size="small"
                 variant="text"
                 color="secondary"
                 startIcon={<i className="ri-close-line" />}
                 onClick={() => setSelectedFacs([])}
-                sx={{ marginInlineStart: 'auto' }}
               >
                 ล้างตัวกรอง
               </Button>
@@ -453,10 +581,10 @@ const RevenueView = () => {
       </Card>
 
       {/* แถบ KPI ผู้บริหาร — 5 ตัวเลขที่ตอบคำถาม "คณะนี้คุ้มทุนไหม" ได้ในบรรทัดเดียว */}
-      <Grid container spacing={4} columns={{ xs: 2, sm: 4, md: 10 }} sx={{ mb: 2 }}>
+      <Grid container spacing={4} columns={{ xs: 2, sm: 4, md: 10 }} sx={{ mb: 4 }}>
         <Grid size={2}>
           <KpiCard
-            label={mode === 'with_government' ? 'รายได้รวม (TR)' : 'เงินรายได้ (ค่าธรรมเนียม)'}
+            label={mode === 'with_government' ? 'รายได้รวม' : 'เงินรายได้ (ค่าธรรมเนียม)'}
             value={fmtMillion(scopeRes.tr)}
             unit={
               mode === 'with_government'
@@ -469,7 +597,7 @@ const RevenueView = () => {
         </Grid>
         <Grid size={2}>
           <KpiCard
-            label="ต้นทุนรวม (TC)"
+            label="ต้นทุนรวม"
             value={fmtMillion(scopeRes.tc)}
             unit={`ล้านบาท · คงที่ ${fmtMillion(scopeRes.tfc)} + ผันแปร ${fmtMillion(scopeRes.tvc)}`}
             accent="secondary"
@@ -486,7 +614,7 @@ const RevenueView = () => {
         </Grid>
         <Grid size={2}>
           <KpiCard
-            label="อัตราความคุ้มทุน (TR/TC)"
+            label="อัตราความคุ้มทุน"
             value={coverageRatio === null ? '—' : `${coverageRatio.toFixed(1)}%`}
             unit={COVERAGE_LABEL[coverage]}
             accent={coverageAccent}
@@ -495,27 +623,25 @@ const RevenueView = () => {
         </Grid>
         <Grid size={2}>
           <KpiCard
-            label="รายได้เฉลี่ย / นิสิต (R)"
+            label="รายได้เฉลี่ย / นิสิต"
             value={fmtInt(scopeRes.r)}
-            unit={`บาท/คน · ต้นทุน/หัว (ATC) ${fmtInt(scopeRes.atc)} บาท`}
+            unit={`บาท/คน · ต้นทุน/หัว ${fmtInt(scopeRes.atc)} บาท`}
             accent="success"
             valueColor="var(--mui-palette-success-main)"
           />
         </Grid>
       </Grid>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 4, paddingInline: 1 }}>
-        <LegendItem color="success.main" label="สูงกว่าจุดคุ้มทุน (TR/TC ≥ 105%)" />
-        <LegendItem color="warning.main" label="ใกล้จุดคุ้มทุน (95–105%)" />
-        <LegendItem color="error.main" label="ต่ำกว่าจุดคุ้มทุน (< 95%)" />
-      </Box>
-
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ blockSize: '100%' }}>
             <CardHeader
-              title={<DotTitle color="primary.main">องค์ประกอบรายได้รายคณะ</DotTitle>}
-              subheader="เงินแผ่นดิน + เงินรายได้ (ล้านบาท)"
+              title={
+                <DotTitle color="primary.main">
+                  องค์ประกอบรายได้{byProgram ? 'รายหลักสูตร' : 'รายคณะ'}
+                </DotTitle>
+              }
+              subheader={`เงินแผ่นดิน + เงินรายได้ (ล้านบาท)${byProgram ? ' · คลิกแท่งเพื่อดูรายละเอียด' : ''}`}
               action={
                 <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
                   <Chip
@@ -534,9 +660,9 @@ const RevenueView = () => {
               }
             />
             <CardContent>
-              {facs.length === 0 ? (
+              {chartRows.length === 0 ? (
                 <Typography color="text.secondary" align="center" sx={{ py: 10 }}>
-                  ไม่มีคณะที่ตรงกับตัวกรอง
+                  {byProgram ? 'ไม่มีหลักสูตรในระดับนี้' : 'ไม่มีคณะที่ตรงกับตัวกรอง'}
                 </Typography>
               ) : (
                 <>
@@ -546,7 +672,7 @@ const RevenueView = () => {
                   </Box>
                   <AppReactApexCharts
                     type="bar"
-                    height={340}
+                    height={Math.max(340, chartRows.length * 28)}
                     width="100%"
                     options={stackedOptions}
                     series={stackedSeries}
@@ -562,7 +688,7 @@ const RevenueView = () => {
           <Card sx={{ blockSize: '100%' }}>
             <CardHeader
               title={<DotTitle color="success.main">จุดคุ้มทุนของ{scopeLabel}</DotTitle>}
-              subheader="เทียบจำนวนนิสิตปัจจุบันกับจุดคุ้มทุน (Q*)"
+              subheader="เทียบจำนวนนิสิตปัจจุบันกับนิสิต ณ จุดคุ้มทุน"
             />
             <CardContent>
               <Stack
@@ -574,7 +700,7 @@ const RevenueView = () => {
               >
                 <Box sx={{ textAlign: 'center', minInlineSize: 96 }}>
                   <Typography variant="caption" color="text.secondary">
-                    จุดคุ้มทุน (Q*)
+                    นิสิต ณ จุดคุ้มทุน
                   </Typography>
                   <Typography className="num" variant="h4" fontWeight={700}>
                     {fmtInt(qStar)}
@@ -650,7 +776,7 @@ const RevenueView = () => {
       <Card sx={{ mb: 4 }}>
         <CardHeader
           title={<DotTitle color="success.main">ตารางรายได้ · ต้นทุน · ส่วนเกิน รายคณะ</DotTitle>}
-          subheader={`${facs.length} คณะ/วิทยาลัย · หน่วยล้านบาท ยกเว้นรายได้ต่อนิสิต 1 คน (บาท) และจำนวนนิสิตจุดคุ้มทุน (คน) · เงินสมทบเป็นข้อมูลประกอบ นับรวมอยู่ในต้นทุนผันแปรของต้นทุนรวมแล้ว`}
+          subheader={`${facs.length} คณะ/วิทยาลัย${levelScope !== 'all' ? ' · ทุกระดับ (ไม่ขึ้นกับตัวกรองระดับ)' : ''} · หน่วยล้านบาท ยกเว้นรายได้ต่อนิสิต 1 คน (บาท) และจำนวนนิสิตจุดคุ้มทุน (คน) · เงินสมทบเป็นข้อมูลประกอบ นับรวมอยู่ในต้นทุนผันแปรของต้นทุนรวมแล้ว`}
           action={
             <Tooltip title="เงินสมทบมหาวิทยาลัย + ค่าธรรมเนียมรายการหลัก ที่หักตามรายหัวนิสิต ของคณะที่กำลังแสดง">
               <Chip
@@ -793,7 +919,7 @@ const RevenueView = () => {
                 <TableCell align="right">ต้นทุน</TableCell>
                 <TableCell align="right">ส่วนต่าง</TableCell>
                 <TableCell align="right">อัตราคุ้มทุน</TableCell>
-                <TableCell align="right">จุดคุ้มทุน (Q*)</TableCell>
+                <TableCell align="right">นิสิต ณ จุดคุ้มทุน</TableCell>
                 <TableCell>สถานะ</TableCell>
               </TableRow>
             </TableHead>
@@ -1014,7 +1140,81 @@ const RevenueView = () => {
           </Card>
         </Grid>
       </Grid>
+
+      <ProgramDetailDialog prog={detail} mode={mode} onClose={() => setDetail(null)} />
     </Box>
+  );
+};
+
+/** รายละเอียดหลักสูตรเมื่อคลิกแท่งกราฟองค์ประกอบรายได้ */
+const ProgramDetailDialog = ({
+  prog,
+  mode,
+  onClose,
+}: {
+  prog: ProgRow | null;
+  mode: RevenueMode;
+  onClose: () => void;
+}) => {
+  const res = prog ? computeBreakEven(prog, mode) : null;
+  const lines: [string, string][] =
+    prog && res
+      ? [
+          ['ระดับ', prog.lvl],
+          ['นิสิต', `${fmtInt(prog.Q)} คน`],
+          ['เงินรายได้ (ค่าธรรมเนียม)', `${fmtInt(prog.own)} บาท`],
+          ['เงินแผ่นดิน', `${fmtInt(prog.st)} บาท`],
+          [mode === 'with_government' ? 'รายได้รวม' : 'เงินรายได้', `${fmtInt(res.tr)} บาท`],
+          ['ต้นทุนคงที่', `${fmtInt(res.tfc)} บาท`],
+          ['ต้นทุนผันแปร', `${fmtInt(res.tvc)} บาท`],
+          ['ต้นทุนรวม', `${fmtInt(res.tc)} บาท`],
+          ['ส่วนต่าง', `${res.profit >= 0 ? '+' : '−'}${fmtInt(Math.abs(res.profit))} บาท`],
+          ['รายได้ต่อนิสิต', `${fmtInt(res.r)} บาท/คน`],
+          [
+            'นิสิต ณ จุดคุ้มทุน',
+            res.qStar === null ? 'ไม่มีจุดคุ้มทุน' : `${fmtInt(res.qStar)} คน`,
+          ],
+        ]
+      : [];
+
+  return (
+    <Dialog open={!!prog} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>{prog ? progLabel(prog) : ''}</DialogTitle>
+      <DialogContent>
+        {prog && res && (
+          <Stack spacing={1.5}>
+            {lines.map(([k, v]) => (
+              <Stack key={k} direction="row" justifyContent="space-between" spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  {k}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                  className="num"
+                  color={
+                    k === 'ส่วนต่าง' ? (res.profit >= 0 ? 'success.main' : 'error.main') : undefined
+                  }
+                >
+                  {v}
+                </Typography>
+              </Stack>
+            ))}
+            <Box sx={{ pt: 1 }}>
+              <Chip
+                size="small"
+                variant="tonal"
+                color={PROG_STATUS_COLOR[statusOf(res)]}
+                label={PROG_STATUS_LABEL[statusOf(res)]}
+              />
+            </Box>
+          </Stack>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>ปิด</Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

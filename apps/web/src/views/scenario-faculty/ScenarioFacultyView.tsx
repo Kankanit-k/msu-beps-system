@@ -257,7 +257,6 @@ const ScenarioFacultyView = () => {
     <Box>
       <PageHeaderBar
         title="คำนวณจุดคุ้มทุนรายคณะ"
-        code="W6"
         mode={mode}
         onModeChange={setMode}
         q={uni.q}

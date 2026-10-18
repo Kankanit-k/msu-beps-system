@@ -453,7 +453,6 @@ const CrossAnalysisView = () => {
       <Box sx={{ '& > :last-child': { mb: 0 } }}>
         <PageHeaderBar
           title="วิเคราะห์เชิงเปรียบเทียบ และตารางสีเปรียบเทียบ"
-          code="W5"
           mode={mode}
           onModeChange={setMode}
           q={uniRes.q}

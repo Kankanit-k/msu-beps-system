@@ -79,4 +79,6 @@ export interface RawData {
   PROGS: ProgRow[];
   /** true = ชุดข้อมูลตัวอย่าง (สุ่มรบกวนแล้ว) · false = ข้อมูลจริงจาก Google Sheet (scripts/import-breakeven-sheet.mjs) */
   __sample: boolean;
+  /** เวลาที่ดึงข้อมูลจากชีต (ISO) — แสดงเป็น "ข้อมูล ณ วันที่" บนหัวหน้า */
+  __asOf?: string;
 }

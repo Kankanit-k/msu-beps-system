@@ -168,7 +168,7 @@ export const RAW: RawData = `;
 
 writeFileSync(
   OUT,
-  header + JSON.stringify({ UNI, FACS, DEPTS, PROGS, __sample: false }) + ';\n',
+  header + JSON.stringify({ UNI, FACS, DEPTS, PROGS, __sample: false, __asOf: new Date().toISOString() }) + ';\n',
   'utf8',
 );
 

@@ -343,7 +343,6 @@ const FixedCostPolicyView = () => {
     <Box>
       <PageHeaderBar
         title="นโยบายต้นทุนคงที่รายคณะ"
-        code="W20"
         mode={mode}
         onModeChange={setMode}
         q={scope.q}

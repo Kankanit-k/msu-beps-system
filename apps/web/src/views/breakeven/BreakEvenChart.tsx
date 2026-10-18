@@ -401,7 +401,6 @@ const BreakEvenChart = () => {
     <Box>
       <PageHeaderBar
         title="กราฟจุดคุ้มทุน"
-        code="W3"
         mode={mode}
         onModeChange={setMode}
         q={uniRes.q}

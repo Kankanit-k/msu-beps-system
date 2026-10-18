@@ -372,7 +372,6 @@ const PerheadView = () => {
     <Box>
       <PageHeaderBar
         title="รายได้ vs ต้นทุนต่อหัวนิสิต"
-        code="W4"
         mode={mode}
         onModeChange={setMode}
         q={uniRes.q}

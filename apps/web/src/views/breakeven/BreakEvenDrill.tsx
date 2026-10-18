@@ -343,7 +343,6 @@ const BreakEvenDrill = () => {
     <Box>
       <PageHeaderBar
         title="จุดคุ้มทุน: คณะ · ระดับ · หลักสูตร"
-        code="W2"
         mode={mode}
         onModeChange={setMode}
         q={uniRes.q}

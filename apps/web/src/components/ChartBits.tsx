@@ -19,7 +19,7 @@ export const DotTitle = ({ color, children }: { color: string; children: ReactNo
 export const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
     <Box sx={{ width: 11, height: 11, borderRadius: '3px', bgcolor: color }} />
-    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+    <Typography variant="body2" color="text.secondary" fontWeight={500}>
       {label}
     </Typography>
   </Box>

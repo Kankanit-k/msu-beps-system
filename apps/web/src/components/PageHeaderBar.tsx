@@ -3,9 +3,6 @@
 // MUI Imports
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
-import FormControl from '@mui/material/FormControl';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
@@ -13,7 +10,8 @@ import Typography from '@mui/material/Typography';
 // Type Imports
 import type { RevenueMode } from '@beps/calc-engine';
 
-// Calc Imports
+// Data / Calc Imports
+import { RAW } from '@/data/mockup';
 import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
 /**
@@ -29,11 +27,19 @@ export const MOCK_RUN = {
   approved: true,
 };
 
+// "ข้อมูล ณ วันที่ 16/10/2569 เวลา 11:38" — ปี พ.ศ. ตามเวลาไทย
+const asOf = RAW.__asOf ? new Date(RAW.__asOf) : null;
+const DATA_LABEL = [
+  RAW.__sample && 'ข้อมูลตัวอย่าง',
+  asOf &&
+    `ข้อมูล ณ วันที่ ${asOf.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' })} เวลา ${asOf.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })}`,
+]
+  .filter(Boolean)
+  .join(' · ');
+
 type Props = {
   /** ชื่อหน้า เช่น "รายได้รายคณะ" */
   title: string;
-  /** รหัสหน้าจอตาม SA.md เช่น "W4" — แสดงเป็นชิปข้างชื่อ (หน้าที่ไม่มีรหัสใน SA.md ไม่ต้องส่ง) */
-  code?: string;
   mode: RevenueMode;
   onModeChange: (mode: RevenueMode) => void;
   /** จำนวนนิสิตของขอบเขตที่หน้านั้นแสดง (ปกติคือทั้งมหาวิทยาลัย) */
@@ -43,17 +49,14 @@ type Props = {
 };
 
 /**
- * แถบหัวหน้าจอ — ชื่อหน้า + บริบทรอบคำนวณ + สวิตช์ฐานรายได้ + ชิปสรุป
+ * แถบหัวหน้าจอ — ชื่อหน้า + สวิตช์ฐานรายได้ + วันที่ของข้อมูล + ชิปสรุป
  * ใช้ร่วมกันทุกหน้าที่อ่านตัวเลขจากรอบคำนวณเดียวกัน เพื่อไม่ให้แต่ละหน้าประกอบหัวเอง
  */
-const PageHeaderBar = ({ title, code, mode, onModeChange, q, profit }: Props) => (
+const PageHeaderBar = ({ title, mode, onModeChange, q, profit }: Props) => (
   <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 3, mb: 4 }}>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-      <Typography variant="h5" fontWeight={700}>
-        {title}
-      </Typography>
-      {code && <Chip size="small" label={code} variant="tonal" color="primary" />}
-    </Box>
+    <Typography variant="h5" fontWeight={700} sx={{ fontSize: '1.375rem' }}>
+      {title}
+    </Typography>
 
     <Box
       sx={{
@@ -64,45 +67,8 @@ const PageHeaderBar = ({ title, code, mode, onModeChange, q, profit }: Props) =>
         marginInlineStart: 'auto',
       }}
     >
-      <FormControl size="small">
-        <Select value={MOCK_RUN.budgetYear} sx={{ minWidth: 148 }}>
-          {MOCK_RUN.budgetYears.map((y) => (
-            <MenuItem key={y} value={y}>
-              ปีงบประมาณ {y}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          px: 3,
-          py: 1.25,
-          border: 1,
-          borderColor: 'divider',
-          borderRadius: 1,
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Typography variant="body2" fontWeight={700} color="primary.main">
-          Run #{MOCK_RUN.id}
-        </Typography>
-        <Typography sx={{ fontSize: '0.6875rem' }} color="text.secondary">
-          คำนวณ {MOCK_RUN.computedAt} · คิดค่า {MOCK_RUN.method}
-        </Typography>
-        <Chip
-          size="small"
-          variant="tonal"
-          color={MOCK_RUN.approved ? 'success' : 'warning'}
-          label={MOCK_RUN.approved ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
-        />
-      </Box>
-
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }} color="text.secondary">
+        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} color="text.secondary">
           ฐานรายได้:
         </Typography>
         <ToggleButtonGroup
@@ -119,6 +85,12 @@ const PageHeaderBar = ({ title, code, mode, onModeChange, q, profit }: Props) =>
         </ToggleButtonGroup>
       </Box>
 
+      <Chip
+        size="small"
+        color={RAW.__sample ? 'warning' : 'info'}
+        variant="tonal"
+        label={DATA_LABEL}
+      />
       <Chip size="small" color="primary" variant="tonal" label={`${fmtInt(q)} นิสิต`} />
       <Chip
         size="small"

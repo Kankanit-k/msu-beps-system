@@ -214,7 +214,6 @@ const CostView = () => {
     <Box>
       <PageHeaderBar
         title="โครงสร้างต้นทุน"
-        code="W4"
         mode={mode}
         onModeChange={setMode}
         q={uni.q}
