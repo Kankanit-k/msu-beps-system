@@ -9,6 +9,9 @@ import Grid from '@mui/material/Grid';
 import Radio from '@mui/material/Radio';
 import Typography from '@mui/material/Typography';
 
+// Component Imports
+import CustomAvatar from '@core/components/mui/Avatar';
+
 // Type Imports
 import type { FixedCostMethod } from '@beps/calc-engine';
 
@@ -19,35 +22,27 @@ export const METHOD_META: {
   label: string;
   icon: string;
   summary: string;
-  pros: string;
-  cons: string;
 }[] = [
   {
     value: 'PER_HEAD_FTES',
     no: '1',
     label: 'คิดตามรายหัวนิสิต',
-    icon: 'ri-user-star-line',
-    summary: 'หลักสูตรที่มีนิสิตมาก รับต้นทุนคงที่มากตามสัดส่วนจำนวนนิสิตเต็มเวลาเทียบเท่า (FTES)',
-    pros: 'ตรงกับวิธีที่ระบบใช้อยู่เดิม · อธิบายง่ายที่สุด · ไม่ต้องกรอกอะไรเพิ่ม',
-    cons: 'หลักสูตร ป.โท–ป.เอก ที่นิสิตน้อย จะได้ต้นทุนต่อหัวสูงจนจุดคุ้มทุน (Q*) ไม่มีความหมาย',
+    icon: 'ri-group-line',
+    summary: 'นิสิตมาก รับต้นทุนมาก ตามจำนวนนิสิต',
   },
   {
     value: 'EQUAL_PROGRAM',
     no: '2',
     label: 'หารเท่ากันทุกหลักสูตร',
-    icon: 'ri-equalizer-line',
-    summary: 'ทุกหลักสูตรที่เปิดสอนในปีนั้นรับต้นทุนคงที่เท่ากัน ไม่ว่ามีนิสิตกี่คน',
-    pros: 'มองต้นทุนคงที่เป็น "ค่าดูแลหลักสูตร" · ไม่ลงโทษหลักสูตรที่นิสิตน้อย',
-    cons: 'หลักสูตรใหญ่ได้เปรียบมาก · คณะที่มีหลักสูตรเล็กจำนวนมากจะเห็นต้นทุนกระจายผิดรูป',
+    icon: 'ri-scales-3-line',
+    summary: 'ทุกหลักสูตรรับต้นทุนเท่ากัน',
   },
   {
     value: 'CUSTOM_PCT',
     no: '3',
     label: 'กำหนดสัดส่วนเปอร์เซ็นต์เอง',
     icon: 'ri-percent-line',
-    summary: 'คณะระบุเองว่าแต่ละกลุ่ม (ระดับการศึกษา หรือรายหลักสูตร) รับกี่เปอร์เซ็นต์',
-    pros: 'สะท้อนมติของคณะได้ตรงที่สุด เช่น ป.ตรี 90% · บัณฑิตศึกษา 10%',
-    cons: 'ต้องแนบเหตุผล + เลขที่มติ · ผลรวมต้องเป็น 100% พอดี · ติดธงว่าเป็นสัดส่วนที่กำหนดเอง',
+    summary: 'คณะกำหนดสัดส่วนให้แต่ละระดับหรือหลักสูตรเอง',
   },
 ];
 
@@ -83,52 +78,41 @@ const MethodCards = ({ value, onChange, current }: Props) => (
               cursor: 'pointer',
               borderWidth: 2,
               borderStyle: 'solid',
-              borderColor: selected ? 'primary.main' : 'transparent',
+              borderColor: selected ? 'primary.main' : 'divider',
+              bgcolor: selected ? 'var(--mui-palette-primary-lightOpacity)' : undefined,
+              boxShadow: 'none',
               transition: 'border-color .2s, box-shadow .2s',
               '&:hover': { borderColor: selected ? 'primary.main' : 'primary.light' },
             }}
           >
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <i className={m.icon} style={{ fontSize: 22 }} />
-                <Typography variant="h6" sx={{ flex: 1 }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+              <CustomAvatar skin="light" color="primary" size={48}>
+                <i className={m.icon} style={{ fontSize: 24 }} />
+              </CustomAvatar>
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="h6">
                   {m.no}. {m.label}
                 </Typography>
-                {/* ตัวการ์ดทั้งใบเป็น radio อยู่แล้ว วงกลมนี้จึงเป็นภาพประกอบ ไม่ใช่ตัวควบคุมซ้อน */}
-                <Radio
-                  checked={selected}
-                  size="small"
-                  inputProps={{ tabIndex: -1, 'aria-hidden': true }}
-                />
-              </Box>
-
-              {m.value === current && (
-                <Chip
-                  size="small"
-                  variant="tonal"
-                  color="info"
-                  label="ใช้อยู่ปัจจุบัน"
-                  sx={{ alignSelf: 'flex-start' }}
-                />
-              )}
-
-              <Typography variant="body2">{m.summary}</Typography>
-
-              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                <i
-                  className="ri-thumb-up-line"
-                  style={{ fontSize: 16, marginTop: 2, opacity: 0.7 }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  {m.pros}
+                <Typography variant="body2" color="text.secondary">
+                  {m.summary}
                 </Typography>
+                {m.value === current && (
+                  <Chip
+                    size="small"
+                    variant="tonal"
+                    color="info"
+                    label="ใช้อยู่ปัจจุบัน"
+                    sx={{ alignSelf: 'flex-start' }}
+                  />
+                )}
               </Box>
-              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                <i className="ri-alert-line" style={{ fontSize: 16, marginTop: 2, opacity: 0.7 }} />
-                <Typography variant="caption" color="text.secondary">
-                  {m.cons}
-                </Typography>
-              </Box>
+              {/* ตัวการ์ดทั้งใบเป็น radio อยู่แล้ว วงกลมนี้จึงเป็นภาพประกอบ ไม่ใช่ตัวควบคุมซ้อน */}
+              <Radio
+                checked={selected}
+                size="small"
+                sx={{ mt: -1, mr: -1 }}
+                inputProps={{ tabIndex: -1, 'aria-hidden': true }}
+              />
             </CardContent>
           </Card>
         </Grid>

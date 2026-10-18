@@ -39,6 +39,7 @@ import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import { alpha } from '@mui/material/styles';
 
 import { MOCK_RUN } from '@components/PageHeaderBar';
 import { useAuthUser } from '@/hooks/AuthHooks';
@@ -64,6 +65,7 @@ import {
   type AllocChoice,
   type FacultyScenario,
 } from '@views/scenario-program/facultyAllocation';
+import { gridTableSx } from '@views/scenario-program/CostBlockTable';
 import { progOptionLabel } from '@views/scenario-program/programData';
 
 import { fmtLockedAt, lockFaculty, unlockFaculty, useFacultyLock } from './lockStore';
@@ -71,7 +73,7 @@ import { fmtLockedAt, lockFaculty, unlockFaculty, useFacultyLock } from './lockS
 /** ขั้นตอนบนหน้านี้ — hint บอกว่าขั้นนั้นต้องทำอะไร ผู้ใช้อ่านแถบขั้นตอนอย่างเดียวก็รู้ลำดับงาน */
 const STEPS = [
   { id: 'step-faculty', label: 'เลือกคณะ', hint: 'เลือกคณะที่จะตั้งค่า' },
-  { id: 'step-method', label: 'เลือกวิธีปันส่วน', hint: 'เลือก 1 ใน 3 วิธีตามมติคณะ' },
+  { id: 'step-method', label: 'เลือกวิธีแบ่งต้นทุน', hint: 'เลือก 1 ใน 3 วิธีตามมติคณะ' },
   { id: 'step-compare', label: 'เทียบผล 3 วิธี', hint: 'ดูภาระของแต่ละหลักสูตร (ไม่บังคับ)' },
   { id: 'step-lock', label: 'ยืนยันและล็อก', hint: 'กดล็อก — อาจารย์เริ่มคำนวณได้ทันที' },
 ];
@@ -158,6 +160,13 @@ const METHODS: AllocMethod[] = ['PER_HEAD_FTES', 'EQUAL_PROGRAM', 'CUSTOM_PCT'];
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
 /** ผลต่างจากชีตเป็นคำ — เลขบวก/ลบในวงเล็บสีสวนกับความรู้สึก (ลบ = ดี) ผู้ใช้อ่านสะดุด */
 const fmtDiff = (v: number) => `${v > 0 ? '▲ ภาระเพิ่ม' : '▼ ภาระลด'} ${fmtB(Math.abs(v))}`;
+/** ลำดับกลุ่มระดับในตารางเทียบ — ระดับที่ไม่รู้จักไปท้ายสุด */
+const LVL_ORDER = ['ปริญญาตรี', 'ประกาศนียบัตร', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
+const lvlRank = (lvl: string) => {
+  const i = LVL_ORDER.indexOf(lvl);
+
+  return i < 0 ? LVL_ORDER.length : i;
+};
 
 /* ---------- ร่างที่ยังไม่ล็อก (ต่อคณะ) — กันกรอก % หายเมื่อปิด/รีโหลด ---------- */
 const DRAFT_KEY = 'beps:fixed-cost-lock:draft:v1';
@@ -247,6 +256,18 @@ const FixedCostLockView = () => {
 
   /* ---------- ผลปันส่วนของทั้งคณะตามวิธีที่เลือก (ชุดคำนวณเดียวกับหน้าคำนวณรายหลักสูตร) ---------- */
   const rows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
+  /** ตารางขั้นที่ 3 จัดกลุ่มตามระดับ — sort คงลำดับเดิมภายในระดับเดียวกัน */
+  const byLevel = useMemo(
+    () => [...rows].sort((a, b) => lvlRank(a.p.lvl) - lvlRank(b.p.lvl)),
+    [rows],
+  );
+  const levelCount = useMemo(() => {
+    const m = new Map<string, number>();
+
+    rows.forEach(({ p }) => m.set(p.lvl, (m.get(p.lvl) ?? 0) + 1));
+
+    return m;
+  }, [rows]);
   const scenario: FacultyScenario | null = useMemo(() => {
     if (!fac) return null;
     const programs = rows.map(({ p, id }) => ({
@@ -455,12 +476,7 @@ const FixedCostLockView = () => {
             ))}
           </Stepper>
           {!fac && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mt: 3 }}
-            >
+            <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 3 }}>
               เริ่มที่ขั้นที่ 1 — เลือกคณะด้านล่าง แล้วขั้นที่ 2–4 จะปรากฏ
             </Typography>
           )}
@@ -514,7 +530,8 @@ const FixedCostLockView = () => {
           )}
           {fac && ready && !lock && (
             <Alert severity="warning" icon={<i className="ri-lock-unlock-line" />}>
-              ยังไม่ล็อก — อาจารย์ประจำหลักสูตรใน{fac}ยังเริ่มคำนวณไม่ได้ · ทำขั้นที่ 2–4 ต่อด้านล่าง
+              ยังไม่ล็อก — อาจารย์ประจำหลักสูตรใน{fac}ยังเริ่มคำนวณไม่ได้ · ทำขั้นที่ 2–4
+              ต่อด้านล่าง
             </Alert>
           )}
         </CardContent>
@@ -527,11 +544,11 @@ const FixedCostLockView = () => {
             <StepHeader
               no={2}
               status={status[1]!}
-              title="เลือกวิธีปันส่วนตามมติคณะ"
+              title="เลือกวิธีแบ่งต้นทุน"
               hint={
                 locked
                   ? 'ล็อกแล้ว — ปลดล็อกในขั้นที่ 4 ถ้าต้องการเปลี่ยนวิธี'
-                  : `คลิกการ์ดเพื่อเลือก 1 ใน 3 วิธี · ก้อนต้นทุนคงที่ส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม) ${fmtMillion(scenario.pool)} ลบ. แบ่งลง ${rows.length} หลักสูตร`
+                  : `แบ่งต้นทุนคงที่คณะ ${fmtMillion(scenario.pool)} ลบ. ลง ${rows.length} หลักสูตร — เลือก 1 วิธี`
               }
             />
             <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -632,7 +649,7 @@ const FixedCostLockView = () => {
                   onSubMethodChange={(subMethod) => update({ subMethod })}
                   onFillRemainder={fill}
                   onClearDraft={() => setConfirm('clear')}
-                  draftSavedAt={savedAt}
+                  draftSavedAt={null}
                   readOnly={locked}
                   hideControls
                   groupCaps={groupCaps}
@@ -645,8 +662,23 @@ const FixedCostLockView = () => {
                   ถ้าต้องการรองรับหลักสูตรใหม่ ให้กำหนดรายระดับการศึกษา
                 </Alert>
               )}
-              {!locked && choice.method !== 'CUSTOM_PCT' && savedAt && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {capIssue && !locked && <Alert severity="error">{capIssue}</Alert>}
+              {errors.map((i) => (
+                <Alert key={i.code} severity="error">
+                  {i.message}
+                  {i.refs?.length ? ` — ${i.refs.join(', ')}` : ''}
+                </Alert>
+              ))}
+              {warnings.map((i) => (
+                <Alert key={i.code} severity="warning" variant="outlined">
+                  {i.message}
+                </Alert>
+              ))}
+              {/* ร่างของทั้งขั้น (ทุกวิธี) — วางมุมขวาล่างของการ์ด */}
+              {!locked && savedAt && (
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}
+                >
                   <Typography variant="caption" color="text.disabled">
                     บันทึกร่างอัตโนมัติ {new Date(savedAt).toLocaleTimeString('th-TH')}
                   </Typography>
@@ -661,18 +693,6 @@ const FixedCostLockView = () => {
                   </Button>
                 </Box>
               )}
-              {capIssue && !locked && <Alert severity="error">{capIssue}</Alert>}
-              {errors.map((i) => (
-                <Alert key={i.code} severity="error">
-                  {i.message}
-                  {i.refs?.length ? ` — ${i.refs.join(', ')}` : ''}
-                </Alert>
-              ))}
-              {warnings.map((i) => (
-                <Alert key={i.code} severity="warning" variant="outlined">
-                  {i.message}
-                </Alert>
-              ))}
             </CardContent>
           </Card>
 
@@ -686,13 +706,11 @@ const FixedCostLockView = () => {
             />
             <CardContent>
               <TableContainer>
-                <Table size="small">
+                <Table size="small" sx={gridTableSx}>
                   <TableHead>
                     <TableRow>
                       <TableCell>หลักสูตร</TableCell>
-                      <TableCell>ระดับ</TableCell>
                       <TableCell align="right">นิสิต (คน)</TableCell>
-                      <TableCell align="right">ตามชีต (บาท)</TableCell>
                       {compare.map(({ m }) => (
                         <TableCell
                           key={m}
@@ -733,58 +751,71 @@ const FixedCostLockView = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rows
+                    {byLevel
                       .slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
-                      .map(({ p, id }) => {
-                        const before = sheetShareOf(p);
-
-                        return (
-                          <TableRow key={id} hover>
-                            <TableCell>{progOptionLabel(p)}</TableCell>
-                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{p.lvl}</TableCell>
-                            <TableCell align="right">{fmtB(p.Q)}</TableCell>
-                            <TableCell align="right">{fmtB(before)}</TableCell>
-                            {compare.map(({ m, applied, after }) => {
-                              const v = after.get(id) ?? 0;
-                              const d = v - before;
-
-                              return (
-                                <TableCell
-                                  key={m}
-                                  align="right"
-                                  sx={{
-                                    whiteSpace: 'nowrap',
-                                    ...(m === choice.method && { bgcolor: 'action.selected' }),
-                                  }}
-                                >
-                                  {applied ? (
-                                    <>
-                                      <Box component="span" sx={{ fontWeight: 700 }}>
-                                        {fmtB(v)}
-                                      </Box>
-                                      {/* เท่าชีต → ไม่ต้องโชว์ผลต่าง */}
-                                      {Math.round(d) !== 0 && (
-                                        <Box
-                                          sx={{
-                                            fontSize: '0.75rem',
-                                            color: d > 0 ? 'error.main' : 'success.main',
-                                          }}
-                                        >
-                                          {fmtDiff(d)}
-                                        </Box>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <Typography variant="caption" color="text.disabled">
-                                      —
-                                    </Typography>
-                                  )}
-                                </TableCell>
-                              );
-                            })}
+                      .flatMap(({ p, id }, i, pageRows) => [
+                        // แถวหัวกลุ่มระดับ — ขึ้นใหม่ทุกครั้งที่ระดับเปลี่ยน และที่แถวแรกของแต่ละหน้า
+                        (i === 0 || pageRows[i - 1]!.p.lvl !== p.lvl) && (
+                          <TableRow
+                            key={`lvl-${p.lvl}`}
+                            sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}
+                          >
+                            <TableCell colSpan={2 + compare.length} sx={{ fontWeight: 700 }}>
+                              {p.lvl}
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ ml: 2 }}
+                              >
+                                {levelCount.get(p.lvl)} หลักสูตร
+                              </Typography>
+                            </TableCell>
                           </TableRow>
-                        );
-                      })}
+                        ),
+                        <TableRow key={id} hover>
+                          <TableCell sx={{ pl: 4 }}>{progOptionLabel(p)}</TableCell>
+                          <TableCell align="right">{fmtB(p.Q)}</TableCell>
+                          {compare.map(({ m, applied, after }) => {
+                            const v = after.get(id) ?? 0;
+                            const d = v - sheetShareOf(p);
+
+                            return (
+                              <TableCell
+                                key={m}
+                                align="right"
+                                sx={{
+                                  whiteSpace: 'nowrap',
+                                  ...(m === choice.method && { bgcolor: 'action.selected' }),
+                                }}
+                              >
+                                {applied ? (
+                                  <>
+                                    <Box component="span" sx={{ fontWeight: 700 }}>
+                                      {fmtB(v)}
+                                    </Box>
+                                    {/* เท่าชีต → ไม่ต้องโชว์ผลต่าง */}
+                                    {Math.round(d) !== 0 && (
+                                      <Box
+                                        sx={{
+                                          fontSize: '0.75rem',
+                                          color: d > 0 ? 'error.main' : 'success.main',
+                                        }}
+                                      >
+                                        {fmtDiff(d)}
+                                      </Box>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Typography variant="caption" color="text.disabled">
+                                    —
+                                  </Typography>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>,
+                      ])}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -801,8 +832,8 @@ const FixedCostLockView = () => {
               )}
               {compare.some((c) => c.m === 'CUSTOM_PCT' && !c.applied) && (
                 <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
-                  วิธีกำหนด % เอง ยังแสดงผลไม่ได้ — เลือกวิธีนี้ในขั้นที่ 2 แล้วกรอกสัดส่วนให้ครบ 100%
-                  ก่อน
+                  วิธีกำหนด % เอง ยังแสดงผลไม่ได้ — เลือกวิธีนี้ในขั้นที่ 2 แล้วกรอกสัดส่วนให้ครบ
+                  100% ก่อน
                 </Alert>
               )}
             </CardContent>
@@ -846,7 +877,10 @@ const FixedCostLockView = () => {
                 </Box>
               ) : (
                 <>
-                  <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none', display: 'grid', gap: 1 }}>
+                  <Box
+                    component="ul"
+                    sx={{ m: 0, p: 0, listStyle: 'none', display: 'grid', gap: 1 }}
+                  >
                     {lockChecks.map((c) => (
                       <Box
                         component="li"

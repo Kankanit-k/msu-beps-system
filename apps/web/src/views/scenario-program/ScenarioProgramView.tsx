@@ -522,14 +522,15 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   /**
    * จำนวนนิสิตขั้นต่ำที่คุ้มทุนทั้งกรณีรวมและไม่รวมเงินแผ่นดิน ที่ค่าธรรมเนียมต่อหัวเดิม
    * วนหาจุดตรึง q = max Q*(q) — ปันส่วนตามรายหัวทำให้ TFC (จึง Q*) ขยับตาม q · null = หาไม่ได้ (R ≤ AVC / ไม่ลู่เข้า)
+   * modes = กรณีที่ต้องคุ้มทุน (ค่าเริ่มต้นทั้งสองกรณี)
    */
-  const breakEvenQ = (): number | null => {
+  const breakEvenQ = (modes: RevenueMode[] = MODES): number | null => {
     if (!refBlock || refBlock.q <= 0) return null;
 
     let q = refBlock.q;
 
     for (let i = 0; i < 30; i++) {
-      const needs = MODES.map(
+      const needs = modes.map(
         (m) => blockResult(withCharges(scaleQ(refBlock, q)), m, adjOf('manual', m, q)).qStar,
       );
 
@@ -552,12 +553,13 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     if (!pendingDefault || !refBlock || !lockReady) return;
     setPendingDefault(0);
     const q = breakEvenQ();
+    // กรณีรวมเงินแผ่นดินใช้ Q* หลังปรับปรุงของกรณีตัวเอง (ผู้ใช้เลือก 2026-10-18)
+    const qWith = breakEvenQ(['with_government']) ?? q;
 
-    if (q !== null)
-      setManual((x) => ({
-        with_government: scaleQ(x.with_government, q),
-        without_government: scaleQ(x.without_government, q),
-      }));
+    setManual((x) => ({
+      with_government: qWith !== null ? scaleQ(x.with_government, qWith) : x.with_government,
+      without_government: q !== null ? scaleQ(x.without_government, q) : x.without_government,
+    }));
   }, [pendingDefault, refBlock, lockReady, lock]);
 
   const pickRef = (p: ProgRow | null, lvl = level) => {
@@ -867,7 +869,6 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
       <Box sx={{ '@media print': { display: 'none' } }}>
         <PageHeaderBar
           title="คำนวณจุดคุ้มทุนรายหลักสูตร"
-          code="W7"
           mode={mode}
           onModeChange={setMode}
           q={uni.q}
