@@ -4,6 +4,7 @@ import {
   SHOW_ABOUT_PAGE,
   SHOW_FIXED_COST_POLICY,
   SHOW_SCENARIO_PROGRAM2,
+  SHOW_SCENARIO_SANDBOX,
   accessLevelRank,
   requiredLevelFor,
 } from '@/configs/accessControl';
@@ -153,7 +154,9 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
       isSection: true,
       children: [
         { label: 'จุดคุ้มทุนรายคณะ', href: '/scenario/faculty', icon: '🧮' },
-        { label: 'ห้องจำลองแผนรับนิสิต', href: '/scenario/sandbox', icon: '🧪' },
+        ...(SHOW_SCENARIO_SANDBOX
+          ? [{ label: 'ห้องจำลองแผนรับนิสิต', href: '/scenario/sandbox', icon: '🧪' }]
+          : []),
         ...(SHOW_ADMISSION_PLAN
           ? [{ label: 'แผนการรับนิสิต', href: '/scenario/admission-plan', icon: '👥' }]
           : []),

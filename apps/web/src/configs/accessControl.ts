@@ -52,6 +52,10 @@ export const SHOW_FIXED_COST_POLICY: boolean = false;
 // link and the route 404s. Flip to true to bring it back.
 export const SHOW_SCENARIO_PROGRAM2: boolean = false;
 
+// Hide the "ห้องจำลองแผนรับนิสิต" (/scenario/sandbox) page for every role for now — the menu drops
+// the link and the route 404s. Flip to true to bring it back.
+export const SHOW_SCENARIO_SANDBOX: boolean = false;
+
 // Route → minimum level. Ordered MOST-SPECIFIC FIRST; the first matching prefix wins.
 export const routeAccessRules: { prefix: string; level: AccessLevel }[] = [
   // tsc needs this assertion (the `.map` callback return isn't contextually typed against
