@@ -9,6 +9,7 @@
 import { aggregateBreakEven, calcBreakEven, DEFAULT_POLICY } from '@beps/calc-engine';
 
 import { RAW } from '@/data/mockup';
+import type { ProgRow } from '@/data/mockup';
 import type { BreakEvenInput, BreakEvenResult, RevenueMode } from '@beps/calc-engine';
 
 /** ฟิลด์ขั้นต่ำที่ทุกระดับ (UNI/FAC/DEPT/PROG) มีเหมือนกันพอจะคำนวณจุดคุ้มทุนได้ */
@@ -210,3 +211,15 @@ export const REVENUE_MODE_NOTE: Record<RevenueMode, string> = {
   without_government:
     'ฐานรายได้ = เงินรายได้/ค่าธรรมเนียมเท่านั้น (สะท้อนการเลี้ยงตัวเองของหลักสูตร)',
 };
+
+/** ตัวกรองระดับเมื่อดูคณะเดียว — บัณฑิตศึกษา = ทุกกลุ่มที่ไม่ใช่ปริญญาตรี (โท/เอก/ป.บัณฑิต/ประกาศนียบัตร) */
+export type LevelScope = 'all' | 'ug' | 'grad';
+
+export const LEVEL_SCOPE_LABEL: Record<LevelScope, string> = {
+  all: 'ทุกระดับ',
+  ug: 'ปริญญาตรี',
+  grad: 'บัณฑิตศึกษา',
+};
+
+export const inLevel = (p: ProgRow, level: LevelScope) =>
+  level === 'all' || (level === 'ug') === (p.grp === 'ปริญญาตรี');

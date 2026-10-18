@@ -3,6 +3,7 @@ import type { VerticalMenuDataType } from '@/types/menuTypes';
 import {
   SHOW_ABOUT_PAGE,
   SHOW_FIXED_COST_POLICY,
+  SHOW_SCENARIO_PROGRAM2,
   accessLevelRank,
   requiredLevelFor,
 } from '@/configs/accessControl';
@@ -138,7 +139,9 @@ const verticalMenuData = (role: AppRole = 'user'): VerticalMenuDataType[] => {
           children: [
             { label: 'ปรับปรุงหลักสูตรเดิม', href: '/scenario/program/improve' },
             { label: 'เปิดหลักสูตรใหม่', href: '/scenario/program/new' },
-            { label: 'ปรับปรุงหลักสูตร (ปรับ 3 ทาง)', href: '/scenario/program2' },
+            ...(SHOW_SCENARIO_PROGRAM2
+              ? [{ label: 'ปรับปรุงหลักสูตร (ปรับ 3 ทาง)', href: '/scenario/program2' }]
+              : []),
           ],
         },
       ],

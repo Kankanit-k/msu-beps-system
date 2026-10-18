@@ -27,7 +27,7 @@ import { RAW } from '@/data/mockup';
 import { computeBreakEven, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
 import { feesForProgram } from '@views/tuition/feeData';
 import { facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
-import { fmtLockedAt, useFacultyLock } from '@views/fixed-cost-lock/lockStore';
+import { fmtLockedAt, useFacultyLock, type FacultyLock } from '@views/fixed-cost-lock/lockStore';
 import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
 import { useRole } from '@/hooks/useRole';
 
@@ -102,20 +102,18 @@ const fmtInt = (v: number) => (Math.round(v) || 0).toLocaleString('th-TH');
 
 const STEP_KEYS: Record<Purpose, StepKey[]> = {
   improve: ['program', 'mix', 'summary'],
-  new: ['program', 'cost', 'mix', 'summary'],
+  new: ['program', 'mix', 'summary'],
 };
 
 /** คำอธิบายสั้นใต้ชื่อขั้นในแถบขั้นตอน — ผู้ใช้ใหม่เห็นทันทีว่าแต่ละขั้นทำอะไร */
 const STEP_HINT: Record<Purpose, Record<StepKey, string>> = {
   improve: {
     program: 'เลือกหลักสูตร ปรับจำนวนนิสิต/ค่าธรรมเนียม',
-    cost: '',
     mix: 'แบ่งนิสิตไทย/ต่างชาติ/นอกเวลา',
     summary: 'บันทึก และออกรายงาน PDF',
   },
   new: {
-    program: 'ตั้งชื่อ และเลือกหลักสูตรอ้างอิง',
-    cost: 'กรอก/แก้ต้นทุนและรายได้',
+    program: 'ตั้งชื่อ เลือกหลักสูตรอ้างอิง กรอกจำนวนนิสิต/ค่าธรรมเนียม',
     mix: 'แบ่งนิสิตไทย/ต่างชาติ/นอกเวลา (ถ้ามี)',
     summary: 'ตรวจผล บันทึก และออกรายงาน PDF',
   },
@@ -208,15 +206,24 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [segs, setSegs] = useState<Segment[]>(() => buildSegments(level, null, 2));
   /** คณะล็อกวิธีปันส่วนต้นทุนคงที่ไว้ (หน้าตั้งค่าวิธีปันส่วน) — หน้านี้ใช้ตามนั้น แก้ไม่ได้ */
   const year = MOCK_RUN.budgetYear;
-  const { lock, ready: lockReady } = useFacultyLock(year, fac);
+  const { lock: facLock, ready: lockReady } = useFacultyLock(year, fac);
+  /**
+   * เปิดหลักสูตรใหม่: ใช้หารรายหัวนิสิตเสมอ ไม่ตามวิธีที่คณะล็อกไว้ (ผู้ใช้สั่ง 2026-10-19 — รอมติที่ประชุม)
+   * lockedBy ว่าง = ค่าที่ระบบกำหนด ไม่ใช่คณะล็อก
+   */
+  const lock = useMemo<FacultyLock | null>(
+    () =>
+      purpose === 'new' && fac
+        ? { year, faculty: fac, choice: DEFAULT_ALLOC_CHOICE, lockedAt: '', lockedBy: '' }
+        : facLock,
+    [purpose, fac, year, facLock],
+  );
   const alloc = lock?.choice ?? DEFAULT_ALLOC_CHOICE;
   /** ผู้ดูแลคณะ/อาจารย์ทำได้เฉพาะคณะ (และหลักสูตร) ของตน */
   const { role, scope } = useRole();
   const scopedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
   const scopedProg = role === 'lecturer' ? scope.program : null;
   const canReport = canExportReport(role);
-  // ปรับปรุงหลักสูตรเดิม — ตารางคำนวณจุดคุ้มทุนแก้ได้เฉพาะจำนวนนิสิตและค่าธรรมเนียมการศึกษา (ทุกบทบาท)
-  const basicOnly = purpose === 'improve';
   /**
    * ส่วนแบ่งส่วนกลางที่ฝังอยู่ในคอลัมน์กำหนดเอง — ผูกกับ "หลักสูตรที่คัดลอกตัวเลขมา" ไม่ใช่หลักสูตรอ้างอิงปัจจุบัน
    * ล้างหลักสูตรอ้างอิงแล้วตัวเลขที่คัดลอกยังอยู่ ส่วนแบ่งที่ติดมาก็ยังต้องถูกถอดออก ไม่งั้นนับซ้ำ
@@ -351,6 +358,9 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
 
   const text = PURPOSE_TEXT[purpose];
   const refBlock = useMemo(() => (refProg ? blockFromProgram(refProg) : null), [refProg]);
+  // ตารางคำนวณจุดคุ้มทุนแก้ได้เฉพาะจำนวนนิสิตและค่าธรรมเนียมการศึกษา (ทุกบทบาท) — ปรับปรุง และเปิดใหม่ที่มีหลักสูตรอ้างอิง
+  // เปิดใหม่แบบกรอกต้นทุนเอง (ไม่มีอ้างอิง) ไม่มีต้นทุนตั้งต้น จึงยังใช้ตารางเต็ม
+  const basicOnly = purpose === 'improve' || !!refBlock;
   // มีหลักสูตรอ้างอิง → ค่าธรรมเนียมรายการหลัก/หักสมทบคิด "ต่อหัวตามจริงของหลักสูตร" × Q (ตัวเลขชีตคิดที่ 2 ภาค)
   // ต้นทุนต่อหัวจึงคงเดิมเมื่อแก้แค่จำนวนนิสิต — Q* เปลี่ยนเฉพาะเมื่อแก้ค่าธรรมเนียม (ผู้ใช้เลือก 2026-10-14)
   // ไม่มีหลักสูตรอ้างอิง (กรอกเองล้วน) → คิดตามอัตรา × Q × ภาค แบบ T38/T39
@@ -667,7 +677,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
           ? {
               method: ALLOC_METHOD_LABEL[alloc.method],
               hint: METHOD_HINT[alloc.method],
-              source: lock
+              source: lock?.lockedBy
                 ? `คณะล็อกไว้เมื่อ ${fmtLockedAt(lock.lockedAt)} โดย ${lock.lockedBy}`
                 : null,
               pool: facPool,
@@ -795,7 +805,13 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               text: 'เลือก คณะ → ระดับ → หลักสูตรอ้างอิง (หรือกด "กรอกต้นทุนเอง" ถ้าไม่มี)',
               done: groups.length > 0,
             },
-            { text: 'กด "ถัดไป" ที่แถบด้านล่าง เพื่อไปกรอกต้นทุนและรายได้' },
+            {
+              text: basicOnly
+                ? 'กรอกจำนวนนิสิต และค่าธรรมเนียมการศึกษาต่อคน ในคอลัมน์ "หลักสูตรใหม่" (การ์ด ②) — ต้นทุนใช้ตามหลักสูตรอ้างอิง'
+                : 'กรอกตัวเลขในคอลัมน์ "หลักสูตรใหม่" (การ์ด ②) ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน',
+              done: numbersOk,
+            },
+            { text: 'กด "ถัดไป" ที่แถบด้านล่าง' },
           ],
         }
       : {
@@ -812,14 +828,6 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
             { text: 'พอใจแล้วกด "ถัดไป" ที่แถบด้านล่าง' },
           ],
         },
-    cost: {
-      title: 'กรอกต้นทุนและรายได้',
-      items: [
-        { text: 'กรอก/แก้ตัวเลขในคอลัมน์ "หลักสูตรใหม่" ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน' },
-        { text: 'ต้องมีจำนวนนิสิต งบประมาณ และต้นทุน ครบทั้งสองกรณี', done: numbersOk },
-        { text: 'กด "ถัดไป" ที่แถบด้านล่าง' },
-      ],
-    },
     mix: {
       title: 'แบ่งสัดส่วนนิสิตแต่ละกลุ่ม',
       items: [
@@ -882,7 +890,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
           {text.heading}
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <WizardStepper
             steps={stepLabels}
             hints={stepHints}
@@ -916,7 +924,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
                 </Button>
               }
             >
-              กำลังแก้ไขผลที่บันทึกไว้: {history.find((h) => h.id === editingId)?.name} — กดบันทึกจะทับผลเดิม
+              กำลังแก้ไขผลที่บันทึกไว้: {history.find((h) => h.id === editingId)?.name} —
+              กดบันทึกจะทับผลเดิม
             </Alert>
           )}
 
@@ -957,15 +966,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               refOptions={refOptions}
               refProg={refProg}
               onRefChange={(p) => pickRef(p)}
-              onManual={
-                isNew && !refProg && !manualOnly
-                  ? () => {
-                      setManualOnly(true);
-                      // maxStep ยังเป็นค่าก่อนเลือกกรอกเอง — ตั้งตรง แล้วให้ effect ลดขั้นถ้าขั้นที่ 1 ยังไม่ครบ
-                      setStep(1);
-                    }
-                  : undefined
-              }
+              onManual={isNew && !refProg && !manualOnly ? () => setManualOnly(true) : undefined}
               onClear={() => setConfirm('form')}
               {...(purpose === 'improve'
                 ? {
@@ -993,13 +994,20 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
             />
           )}
 
-          {(stepKey === 'cost' || (stepKey === 'program' && !isNew && !programBlocker)) && (
+          {/* ตารางอยู่ในขั้นที่ 1 — ปรับปรุง: หลังยืนยันหลักสูตร · เปิดใหม่: เมื่อเลือกหลักสูตรอ้างอิงหรือกดกรอกเอง */}
+          {stepKey === 'program' && (isNew ? !locked : !programBlocker) && (
             <CostStep
-              title={basicOnly ? '② ทดลองปรับจำนวนนิสิต / ค่าธรรมเนียม' : undefined}
+              title={
+                basicOnly
+                  ? isNew
+                    ? '② กรอกจำนวนนิสิต / ค่าธรรมเนียม'
+                    : '② ทดลองปรับจำนวนนิสิต / ค่าธรรมเนียม'
+                  : '② ตารางคำนวณจุดคุ้มทุน'
+              }
               groups={groups}
               subheader={
                 refBlock
-                  ? `${basicOnly ? 'พิมพ์ตัวเลขใหม่ในช่องสีเหลือง (คอลัมน์ "✎ หลังปรับปรุง") — ผลจุดคุ้มทุนคำนวณให้ทันที' : text.tableHint} · ค่าธรรมเนียมรายการหลักและหักสมทบคิดต่อหัวตามจริงของหลักสูตร × จำนวนนิสิต`
+                  ? `${basicOnly ? `พิมพ์ตัวเลขใหม่ในช่องสีเหลือง (คอลัมน์ "✎ ${text.customCol}") — ผลจุดคุ้มทุนคำนวณให้ทันที` : text.tableHint} · ค่าธรรมเนียมรายการหลักและหักสมทบคิดต่อหัวตามจริงของหลักสูตร × จำนวนนิสิต`
                   : 'กรอกต้นทุนรายหมวดเองแยกกรณีรวม/ไม่รวมเงินแผ่นดิน'
               }
               showAllocAdj
@@ -1136,8 +1144,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         <DialogTitle>ลบผลการจำลองนี้?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            &quot;{deleteTarget?.name}&quot; ({deleteTarget?.time}) จะถูกลบออกจากประวัติถาวร
-            และหน้า &quot;แผนการรับนิสิต&quot; จะเลือกผลนี้ไม่ได้อีก
+            &quot;{deleteTarget?.name}&quot; ({deleteTarget?.time}) จะถูกลบออกจากประวัติถาวร และหน้า
+            &quot;แผนการรับนิสิต&quot; จะเลือกผลนี้ไม่ได้อีก
           </DialogContentText>
         </DialogContent>
         <DialogActions>

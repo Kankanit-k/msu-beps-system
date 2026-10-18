@@ -5,8 +5,9 @@
 import type { RevenueMode } from '@beps/calc-engine';
 
 import { RAW } from '@/data/mockup';
-import type { FacRow } from '@/data/mockup';
-import { computeBreakEven } from '@views/breakeven/calc';
+import type { FacRow, ProgRow } from '@/data/mockup';
+import { computeBreakEven, inLevel } from '@views/breakeven/calc';
+import type { LevelScope } from '@views/breakeven/calc';
 
 export const shortFacName = (name: string) =>
   name.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
@@ -33,9 +34,6 @@ export interface FacultyCrossRow {
   isOk: boolean;
 }
 
-/** ข้อมูลจริง → Q* แบบชีต (คณะ = ผลบวก Q* รายหลักสูตร) ผ่าน computeBreakEven */
-const calcFor = (row: FacRow, mode: RevenueMode) => computeBreakEven(row, mode);
-
 /** นับหลักสูตรที่ "ถึงจุดคุ้มทุน" ของคณะหนึ่ง — ok เฉพาะกรณี CM > 0 และ Q ถึง Q* (สอดคล้อง mockup: status()==='ok') */
 function programOkCount(facName: string, mode: RevenueMode) {
   const progs = RAW.PROGS.filter((p) => p.fac === facName);
@@ -49,35 +47,62 @@ function programOkCount(facName: string, mode: RevenueMode) {
   return { total: progs.length, ok };
 }
 
-export function buildCrossData(mode: RevenueMode): FacultyCrossRow[] {
-  return RAW.FACS.map((f) => {
-    const res = calcFor(f, mode);
-    const valid = res.qStarStatus === 'normal' && res.qStar !== null && res.qStar > 0;
-    const qStar = valid ? (res.qStar as number) : 0;
-    const util = valid ? Math.round((f.Q / qStar) * 100) : 0;
-    const R = res.r ?? 0;
-    const { total, ok } = programOkCount(f.name, mode);
+/** แถวตัวชี้วัดของคณะหรือหลักสูตรหนึ่ง — Q* แบบชีต (คณะ = ผลบวก Q* รายหลักสูตร) ผ่าน computeBreakEven — nProg/okProg = จำนวนหลักสูตรทั้งหมด/ที่คุ้มทุน */
+function toCrossRow(
+  row: FacRow | ProgRow,
+  name: string,
+  mode: RevenueMode,
+  prog: { total: number; ok: number },
+) {
+  const res = computeBreakEven(row, mode);
+  const valid = res.qStarStatus === 'normal' && res.qStar !== null && res.qStar > 0;
+  const qStar = valid ? (res.qStar as number) : 0;
+  const util = valid ? Math.round((row.Q / qStar) * 100) : 0;
+  const R = res.r ?? 0;
+  const { total, ok } = prog;
 
-    return {
-      name: f.name,
-      short: shortFacName(f.name),
-      Q: f.Q,
-      qStar,
-      valid,
-      util,
-      profitPct: Math.round((res.profitPct ?? 0) * 10) / 10,
-      R: Math.round(R),
-      AVC: Math.round(res.avc ?? 0),
-      ATC: Math.round(res.atc ?? 0),
-      CM: Math.round(res.cm ?? 0),
-      trM: res.tr / 1e6,
-      profitM: res.profit / 1e6,
-      avcRRatio: R > 0 ? Math.round(((res.avc ?? 0) / R) * 1000) / 10 : 999,
-      tfcTcRatio: res.tc > 0 ? Math.round((res.tfc / res.tc) * 1000) / 10 : 0,
-      nProg: total,
-      okProg: ok,
-      progOkRatio: total ? Math.round((ok / total) * 100) : 0,
-      isOk: valid ? f.Q >= qStar : false,
-    };
-  });
+  return {
+    name,
+    short: shortFacName(name),
+    Q: row.Q,
+    qStar,
+    valid,
+    util,
+    profitPct: Math.round((res.profitPct ?? 0) * 10) / 10,
+    R: Math.round(R),
+    AVC: Math.round(res.avc ?? 0),
+    ATC: Math.round(res.atc ?? 0),
+    CM: Math.round(res.cm ?? 0),
+    trM: res.tr / 1e6,
+    profitM: res.profit / 1e6,
+    avcRRatio: R > 0 ? Math.round(((res.avc ?? 0) / R) * 1000) / 10 : 999,
+    tfcTcRatio: res.tc > 0 ? Math.round((res.tfc / res.tc) * 1000) / 10 : 0,
+    nProg: total,
+    okProg: ok,
+    progOkRatio: total ? Math.round((ok / total) * 100) : 0,
+    isOk: valid ? row.Q >= qStar : false,
+  };
+}
+
+export function buildCrossData(mode: RevenueMode): FacultyCrossRow[] {
+  return RAW.FACS.map((f) => toCrossRow(f, f.name, mode, programOkCount(f.name, mode)));
+}
+
+/** ชื่อหลักสูตร — ปริญญาตรีแสดงชื่ออย่างเดียว ระดับอื่นต่อท้ายด้วยระดับ */
+const progName = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);
+
+/** รายหลักสูตรของคณะเดียว (ผู้ดูแลคณะ/อาจารย์) — ไม่นับหลักสูตรที่ไม่มีนิสิต · เรียงตามนิสิตจริงมากไปน้อย */
+export function buildProgramCrossData(
+  fac: string,
+  level: LevelScope,
+  mode: RevenueMode,
+): FacultyCrossRow[] {
+  return RAW.PROGS.filter((p) => p.fac === fac && p.Q > 0 && inLevel(p, level))
+    .sort((a, b) => b.Q - a.Q)
+    .map((p) => {
+      const row = toCrossRow(p, progName(p), mode, { total: 1, ok: 0 });
+      const ok = row.isOk ? 1 : 0;
+
+      return { ...row, short: row.name, okProg: ok, progOkRatio: ok * 100 };
+    });
 }

@@ -55,12 +55,14 @@ import {
   computeBreakEven,
   fmtInt,
   fmtMillion,
+  inLevel,
+  LEVEL_SCOPE_LABEL,
   REVENUE_MODE_NOTE,
   shortFacName,
   statusOf,
   sumRows as sumFinancialRows,
 } from '@views/breakeven/calc';
-import type { BEStatus } from '@views/breakeven/calc';
+import type { BEStatus, LevelScope } from '@views/breakeven/calc';
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
@@ -143,18 +145,6 @@ const LEVEL_COLOR: Record<(typeof LEVEL_ORDER)[number], string> = {
   ปริญญาเอก: 'var(--mui-palette-warning-main)',
   'อื่น ๆ': 'var(--mui-palette-secondary-main)',
 };
-
-/** ตัวกรองระดับเมื่อดูคณะเดียว — บัณฑิตศึกษา = ทุกกลุ่มที่ไม่ใช่ปริญญาตรี (โท/เอก/ป.บัณฑิต/ประกาศนียบัตร) */
-type LevelScope = 'all' | 'ug' | 'grad';
-
-const LEVEL_SCOPE_LABEL: Record<LevelScope, string> = {
-  all: 'ทุกระดับ',
-  ug: 'ปริญญาตรี',
-  grad: 'บัณฑิตศึกษา',
-};
-
-const inLevel = (p: ProgRow, level: LevelScope) =>
-  level === 'all' || (level === 'ug') === (p.grp === 'ปริญญาตรี');
 
 /** ชื่อหลักสูตรบนกราฟ — ระบุระดับต่อท้ายเมื่อไม่ใช่ปริญญาตรี เพราะชื่อซ้ำกันได้ข้ามระดับ */
 const progLabel = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);

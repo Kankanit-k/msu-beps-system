@@ -7,7 +7,9 @@ import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 
 // MUI Imports
+import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
@@ -22,6 +24,7 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import TextField from '@mui/material/TextField';
 
 import type { ApexOptions } from 'apexcharts';
 
@@ -33,6 +36,7 @@ import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
+import { useRole } from '@/hooks/useRole';
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import type { BreakEvenResult, RevenueMode, ScopeLevel } from '@beps/calc-engine';
@@ -276,8 +280,15 @@ const buildRecommendations = (
 };
 
 const BreakEvenChart = () => {
-  const [level, setLevel] = useState<AnalysisLevel>('uni');
-  const [facIdx, setFacIdx] = useState(0);
+  // ผู้ดูแลระดับคณะ/อาจารย์ เห็นเฉพาะคณะของตัวเอง — ซ่อนระดับมหาวิทยาลัยและล็อกตัวเลือกคณะ
+  const { role, scope: roleScope } = useRole();
+  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const lockedFacIdx = lockedFac ? RAW.FACS.findIndex((f) => f.name === lockedFac) : -1;
+
+  const [levelSel, setLevel] = useState<AnalysisLevel>('uni');
+  const [facSel, setFacIdx] = useState(0);
+  const level: AnalysisLevel = lockedFac && levelSel === 'uni' ? 'fac' : levelSel;
+  const facIdx = lockedFacIdx >= 0 ? lockedFacIdx : facSel;
   const [lvl, setLvl] = useState<string>('');
   const [progIdx, setProgIdx] = useState(0);
   const [mode, setMode] = useState<RevenueMode>('with_government');
@@ -290,11 +301,37 @@ const BreakEvenChart = () => {
     [fac.name, effectiveLvl],
   );
 
+  // ผู้ใช้ที่ล็อกคณะ: ค้นหาหลักสูตรทั้งคณะได้จากช่องเดียว (เรียงตามระดับการศึกษา)
+  const facProgs = useMemo(
+    () =>
+      RAW.PROGS.filter((p) => p.fac === fac.name).sort(
+        (a, b) => levelRank(a.lvl) - levelRank(b.lvl),
+      ),
+    [fac.name],
+  );
+  const pickedProg = level === 'prog' ? (progsInLevel[progIdx] ?? progsInLevel[0] ?? null) : null;
+
+  const pickProg = (p: ProgRow | null) => {
+    if (!p) {
+      setLevel('fac');
+
+      return;
+    }
+
+    setLevel('prog');
+    setLvl(p.lvl);
+    setProgIdx(RAW.PROGS.filter((x) => x.fac === p.fac && x.lvl === p.lvl).indexOf(p));
+  };
+
   const entity = useMemo(
     () => buildEntity(level, facIdx, effectiveLvl, progIdx, mode),
     [level, facIdx, effectiveLvl, progIdx, mode],
   );
   const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
+  const headRes = useMemo(
+    () => (lockedFacIdx >= 0 ? computeBreakEven(RAW.FACS[lockedFacIdx]!, mode) : uniRes),
+    [lockedFacIdx, mode, uniRes],
+  );
 
   const { res, name, q } = entity;
   const r = res.r ?? 0;
@@ -333,7 +370,7 @@ const BreakEvenChart = () => {
 
   const chartSeries = [
     {
-      name: 'รายได้รวม (TR)',
+      name: 'รายได้รวม',
       type: 'line',
       data: [
         [0, 0],
@@ -341,7 +378,7 @@ const BreakEvenChart = () => {
       ],
     },
     {
-      name: 'ต้นทุนรวม (TC)',
+      name: 'ต้นทุนรวม',
       type: 'line',
       data: [
         [0, tfc / 1e6],
@@ -349,7 +386,7 @@ const BreakEvenChart = () => {
       ],
     },
     {
-      name: 'ต้นทุนคงที่ (TFC)',
+      name: 'ต้นทุนคงที่',
       type: 'line',
       data: [
         [0, tfc / 1e6],
@@ -367,17 +404,17 @@ const BreakEvenChart = () => {
   const status = statusOf(res);
 
   const KPIS: { label: string; value: string; unit: string; accent: KpiAccent }[] = [
-    { label: 'นิสิตปัจจุบัน (Q)', value: fmtInt(q), unit: 'คน', accent: 'primary' },
+    { label: 'นิสิตปัจจุบัน', value: fmtInt(q), unit: 'คน', accent: 'primary' },
     {
-      label: 'จุดคุ้มทุน (Q*)',
+      label: 'นิสิต ณ จุดคุ้มทุน',
       value: qStar !== null ? fmtInt(qStar) : 'ไม่มี',
       unit: qStar !== null ? 'คน' : 'ไม่คุ้มทุน (CM ≤ 0)',
       accent: 'error',
     },
-    { label: 'รายได้/หัว (R)', value: fmtInt(res.r), unit: 'บาท/คน', accent: 'warning' },
-    { label: 'ต้นทุนผันแปร/หัว (AVC)', value: fmtInt(res.avc), unit: 'บาท/คน', accent: 'warning' },
+    { label: 'รายได้/หัว', value: fmtInt(res.r), unit: 'บาท/คน', accent: 'warning' },
+    { label: 'ต้นทุนผันแปร/หัว', value: fmtInt(res.avc), unit: 'บาท/คน', accent: 'warning' },
     {
-      label: 'ส่วนเกิน/หัว (CM)',
+      label: 'ส่วนเกิน/หัว',
       value: fmtInt(r - avc),
       unit: 'บาท/คน',
       accent: 'success',
@@ -403,13 +440,13 @@ const BreakEvenChart = () => {
         title="กราฟจุดคุ้มทุน"
         mode={mode}
         onModeChange={setMode}
-        q={uniRes.q}
-        profit={uniRes.profit}
+        q={headRes.q}
+        profit={headRes.profit}
       />
 
       {SHOW_BREAKEVEN_CHART_NOTES && (
         <>
-          <DataCaveatNotes profit={uniRes.profit} />
+          <DataCaveatNotes profit={headRes.profit} />
 
           <NoteBar severity="info">
             {REVENUE_MODE_NOTE[mode]} · เส้นรายได้รวม (TR) และต้นทุนรวม (TC) ตามจำนวนนิสิต
@@ -420,17 +457,44 @@ const BreakEvenChart = () => {
 
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+          {lockedFac && (
+            <Chip variant="outlined" icon={<i className="ri-lock-line" />} label={lockedFac} />
+          )}
+
+          {lockedFac && (
+            <Autocomplete
+              size="small"
+              sx={{ minWidth: 340 }}
+              options={facProgs}
+              groupBy={(p) => p.lvl}
+              getOptionLabel={(p) => p.prog}
+              isOptionEqualToValue={(a, b) => a === b}
+              value={pickedProg}
+              onChange={(_, p) => pickProg(p)}
+              noOptionsText="ไม่พบหลักสูตรที่ค้นหา"
+              renderOption={(props, p) => {
+                const { key, ...rest } = props;
+
+                return (
+                  <li key={key} {...rest}>
+                    {p.prog}
+                  </li>
+                );
+              }}
+              renderInput={(params) => <TextField {...params} placeholder="หลักสูตร" />}
+            />
+          )}
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>หน่วยวิเคราะห์</InputLabel>
             <Select label="หน่วยวิเคราะห์" value={level} onChange={(e) => setLevel(e.target.value)}>
-              <MenuItem value="uni">มหาวิทยาลัย (รวม)</MenuItem>
+              {!lockedFac && <MenuItem value="uni">มหาวิทยาลัย (รวม)</MenuItem>}
               <MenuItem value="fac">รายคณะ</MenuItem>
               <MenuItem value="dep">คณะ × ระดับการศึกษา</MenuItem>
               <MenuItem value="prog">รายหลักสูตร</MenuItem>
             </Select>
           </FormControl>
 
-          {(level === 'fac' || level === 'dep' || level === 'prog') && (
+          {!lockedFac && (level === 'fac' || level === 'dep' || level === 'prog') && (
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel>คณะ</InputLabel>
               <Select
@@ -451,7 +515,7 @@ const BreakEvenChart = () => {
             </FormControl>
           )}
 
-          {(level === 'dep' || level === 'prog') && (
+          {(level === 'dep' || (level === 'prog' && !lockedFac)) && (
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>ระดับการศึกษา</InputLabel>
               <Select
@@ -471,7 +535,7 @@ const BreakEvenChart = () => {
             </FormControl>
           )}
 
-          {level === 'prog' && (
+          {level === 'prog' && !lockedFac && (
             <FormControl size="small" sx={{ minWidth: 260 }}>
               <InputLabel>หลักสูตร</InputLabel>
               <Select
@@ -487,6 +551,15 @@ const BreakEvenChart = () => {
               </Select>
             </FormControl>
           )}
+
+          <Button
+            variant="outlined"
+            startIcon={<i className="ri-download-2-line" />}
+            onClick={() => window.print()}
+            sx={{ marginInlineStart: 'auto', '@media print': { display: 'none' } }}
+          >
+            พิมพ์ / บันทึก PDF
+          </Button>
         </CardContent>
       </Card>
 
@@ -512,10 +585,10 @@ const BreakEvenChart = () => {
             />
             <CardContent>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
-                <LegendItem color="primary.main" label="รายได้รวม (TR)" />
-                <LegendItem color="error.main" label="ต้นทุนรวม (TC)" />
-                <LegendItem color="warning.main" label="ต้นทุนคงที่ (TFC)" />
-                <LegendItem color="success.main" label="จุดคุ้มทุน (Q*)" />
+                <LegendItem color="primary.main" label="รายได้รวม" />
+                <LegendItem color="error.main" label="ต้นทุนรวม" />
+                <LegendItem color="warning.main" label="ต้นทุนคงที่" />
+                <LegendItem color="success.main" label="จุดคุ้มทุน" />
                 <LegendItem color="text.primary" label="จุดปัจจุบัน" />
               </Box>
               <AppReactApexCharts
@@ -541,9 +614,8 @@ const BreakEvenChart = () => {
                 {name}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.9 }}>
-                หน่วยนี้มีนิสิต <b>{fmtInt(q)}</b> คน ต้นทุนคงที่ (TFC) <b>{fmtMillion(tfc)}</b> ลบ.
-                ต้นทุนผันแปรต่อหัว (AVC) <b>{fmtInt(avc)}</b> บาท และรายได้ต่อหัว (R){' '}
-                <b>{fmtInt(r)}</b> บาท
+                หน่วยนี้มีนิสิต <b>{fmtInt(q)}</b> คน ต้นทุนคงที่ <b>{fmtMillion(tfc)}</b> ลบ.
+                ต้นทุนผันแปรต่อหัว <b>{fmtInt(avc)}</b> บาท และรายได้ต่อหัว <b>{fmtInt(r)}</b> บาท
                 <br />
                 <br />
                 {status === 'fcr' || status === 'none' ? (

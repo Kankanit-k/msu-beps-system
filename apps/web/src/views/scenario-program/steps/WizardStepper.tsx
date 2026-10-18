@@ -17,7 +17,6 @@ import type { CostGroup } from '../CostBlockTable';
 
 export const STEP_LABEL = {
   program: 'ข้อมูลหลักสูตร',
-  cost: 'ต้นทุนและรายได้',
   mix: 'สัดส่วนนิสิต',
   summary: 'สรุปและบันทึก',
 };

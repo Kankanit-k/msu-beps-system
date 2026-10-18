@@ -57,7 +57,7 @@ const ProgramStep = (props: Props) => {
       <CardHeader
         title={
           <DotTitle color="primary.main">
-            {purpose === 'improve' ? '① เลือกหลักสูตรที่จะปรับปรุง' : 'ข้อมูลหลักสูตร'}
+            {purpose === 'improve' ? '① เลือกหลักสูตรที่จะปรับปรุง' : '① ข้อมูลหลักสูตร'}
           </DotTitle>
         }
         subheader={
@@ -66,9 +66,27 @@ const ProgramStep = (props: Props) => {
             : 'ตั้งชื่อหลักสูตร → เลือก "คณะ" → "ระดับ" → "หลักสูตรอ้างอิง" (หรือกรอกต้นทุนเอง)'
         }
         action={
-          <Button size="small" color="secondary" onClick={props.onClear} sx={{ mr: 2 }}>
-            ล้างฟอร์ม
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, mr: 2 }}>
+            {props.onConfirm && props.confirmed && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={props.onEdit}
+                startIcon={<i className="ri-edit-line" />}
+              >
+                แก้ไขข้อมูลหลักสูตร
+              </Button>
+            )}
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              onClick={props.onClear}
+              startIcon={<i className="ri-eraser-line" />}
+            >
+              ล้างฟอร์ม
+            </Button>
+          </Box>
         }
       />
       <CardContent>
@@ -115,29 +133,29 @@ const ProgramStep = (props: Props) => {
           }
         />
 
-        {props.onConfirm && (
-          <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
-            {props.confirmed ? (
-              <Button variant="outlined" size="small" onClick={props.onEdit}>
-                แก้ไขข้อมูลหลักสูตร
-              </Button>
-            ) : (
-              <>
-                {props.confirmBlocker && (
-                  <Typography variant="caption" color="text.secondary">
-                    {props.confirmBlocker}
-                  </Typography>
-                )}
-                <Button
-                  variant="contained"
-                  size="small"
-                  disabled={!!props.confirmBlocker}
-                  onClick={props.onConfirm}
-                >
-                  ยืนยันข้อมูลหลักสูตร
-                </Button>
-              </>
+        {props.onConfirm && !props.confirmed && (
+          <Box
+            sx={{
+              mt: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 2,
+            }}
+          >
+            {props.confirmBlocker && (
+              <Typography variant="caption" color="text.secondary">
+                {props.confirmBlocker}
+              </Typography>
             )}
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!!props.confirmBlocker}
+              onClick={props.onConfirm}
+            >
+              ยืนยันข้อมูลหลักสูตร
+            </Button>
           </Box>
         )}
 
@@ -153,7 +171,7 @@ const ProgramStep = (props: Props) => {
             }
           >
             ไม่มีหลักสูตรอ้างอิง? เว้นช่องว่างไว้ แล้วกด &quot;กรอกต้นทุนเอง&quot; —
-            ไปกรอกต้นทุนรายหมวดในขั้นที่ 2
+            กรอกต้นทุนรายหมวดในตารางด้านล่าง
           </Alert>
         )}
       </CardContent>

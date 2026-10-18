@@ -10,11 +10,14 @@ import dynamic from 'next/dynamic';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Grid from '@mui/material/Grid';
 import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
@@ -31,12 +34,21 @@ import FacultyFilter from '@components/FacultyFilter';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
+import { useRole } from '@/hooks/useRole';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import type { FacRow, ProgRow } from '@/data/mockup';
-import { computeBreakEven, fmtInt, fmtMillion, shortFacName, sumRows } from '@views/breakeven/calc';
-import type { FinancialRow } from '@views/breakeven/calc';
+import {
+  computeBreakEven,
+  fmtInt,
+  fmtMillion,
+  inLevel,
+  LEVEL_SCOPE_LABEL,
+  shortFacName,
+  sumRows,
+} from '@views/breakeven/calc';
+import type { FinancialRow, LevelScope } from '@views/breakeven/calc';
 
 // View Imports
 import CostSimulator from './CostSimulator';
@@ -48,6 +60,9 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 
 /** การ์ด "ต้นทุนแยกตามที่มา" — ซ่อนไว้ก่อน เปลี่ยนเป็น true เพื่อแสดงอีกครั้ง */
 const SHOW_ORIGIN_BREAKDOWN = false;
+
+/** ตัวจำลองต้นทุนท้ายหน้า — ซ่อนไว้ก่อนเพราะจำลองแบบผิวเผินเกินไป เปลี่ยนเป็น true เพื่อแสดงอีกครั้ง */
+const SHOW_COST_SIMULATOR = false;
 
 /** สัดส่วนพร้อมเครื่องหมาย % — คืน '—' ทั้งก้อนเมื่อตัวหารเป็นศูนย์ จึงไม่มีทางได้ '—%' */
 const pctLabel = (part: number, whole: number) =>
@@ -81,7 +96,16 @@ const shadeOfBase = (t: number) => {
 const CostView = () => {
   // ต้นทุนไม่ขึ้นกับโหมดฐานรายได้ แต่ส่วนต่าง/จุดคุ้มทุนขึ้น — จึงยังต้องมีสวิตช์โหมด
   const [mode, setMode] = useState<RevenueMode>('with_government');
-  const [selectedFacs, setSelectedFacs] = useState<string[]>([]);
+  const [pickedFacs, setSelectedFacs] = useState<string[]>([]);
+  const [level, setLevel] = useState<LevelScope>('all');
+
+  // ผู้ดูแลคณะ/อาจารย์ เห็นได้เฉพาะคณะของตน — ล็อกตัวกรองไว้ที่คณะนั้น
+  const { role, scope: roleScope } = useRole();
+  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const selectedFacs = useMemo(
+    () => (lockedFac ? [lockedFac] : pickedFacs),
+    [lockedFac, pickedFacs],
+  );
 
   const uni = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
 
@@ -94,19 +118,28 @@ const CostView = () => {
   const isFiltered = selectedFacs.length > 0;
   const isSingleFac = facs.length === 1;
 
+  // ดูคณะเดียว → กรองระดับการศึกษาได้
+  const levelScope: LevelScope = isSingleFac ? level : 'all';
+
   const progs: ProgRow[] = useMemo(
-    () => (isFiltered ? RAW.PROGS.filter((p) => selectedFacs.includes(p.fac)) : RAW.PROGS),
-    [isFiltered, selectedFacs],
+    () =>
+      RAW.PROGS.filter(
+        (p) => (!isFiltered || selectedFacs.includes(p.fac)) && inLevel(p, levelScope),
+      ),
+    [isFiltered, selectedFacs, levelScope],
   );
 
+  // กรองระดับ → รวมจากหลักสูตรแทนแถวคณะ
   const scope: FinancialRow = useMemo(
-    () => (isFiltered ? sumRows(facs) : RAW.UNI),
-    [isFiltered, facs],
+    () => (levelScope !== 'all' ? sumRows(progs) : isFiltered ? sumRows(facs) : RAW.UNI),
+    [levelScope, progs, isFiltered, facs],
   );
 
-  const scopeLabel = !isFiltered
+  const facLabel = !isFiltered
     ? 'ทั้งมหาวิทยาลัย'
     : ((isSingleFac ? facs[0]?.name : undefined) ?? `${facs.length} คณะที่เลือก`);
+  const scopeLabel =
+    levelScope === 'all' ? facLabel : `${facLabel} · ${LEVEL_SCOPE_LABEL[levelScope]}`;
 
   const res = useMemo(() => computeBreakEven(scope, mode), [scope, mode]);
   const TC = scope.TFC + scope.TVC;
@@ -204,8 +237,8 @@ const CostView = () => {
 
   const stackedSeries = useMemo(
     () => [
-      { name: 'ต้นทุนคงที่ (TFC)', data: barRows.map((r) => Number((r.TFC / 1e6).toFixed(2))) },
-      { name: 'ต้นทุนผันแปร (TVC)', data: barRows.map((r) => Number((r.TVC / 1e6).toFixed(2))) },
+      { name: 'ต้นทุนคงที่', data: barRows.map((r) => Number((r.TFC / 1e6).toFixed(2))) },
+      { name: 'ต้นทุนผันแปร', data: barRows.map((r) => Number((r.TVC / 1e6).toFixed(2))) },
     ],
     [barRows],
   );
@@ -216,8 +249,8 @@ const CostView = () => {
         title="โครงสร้างต้นทุน"
         mode={mode}
         onModeChange={setMode}
-        q={uni.q}
-        profit={uni.profit}
+        q={lockedFac ? res.q : uni.q}
+        profit={lockedFac ? res.profit : uni.profit}
       />
 
       {SHOW_OVERVIEW_NOTES && (
@@ -235,13 +268,34 @@ const CostView = () => {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
-            <FacultyFilter options={FAC_NAMES} value={selectedFacs} onChange={setSelectedFacs} />
+            {lockedFac ? (
+              <Chip variant="outlined" icon={<i className="ri-lock-line" />} label={lockedFac} />
+            ) : (
+              <FacultyFilter options={FAC_NAMES} value={pickedFacs} onChange={setSelectedFacs} />
+            )}
+            {isSingleFac && (
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                exclusive
+                value={level}
+                onChange={(_, v: LevelScope | null) => v && setLevel(v)}
+              >
+                {(Object.keys(LEVEL_SCOPE_LABEL) as LevelScope[]).map((l) => (
+                  <ToggleButton key={l} value={l}>
+                    {LEVEL_SCOPE_LABEL[l]}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            )}
             <Typography variant="body2" color="text.secondary">
-              {isFiltered
-                ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
-                : `แสดงทุกคณะ (${RAW.FACS.length}) · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
+              {lockedFac
+                ? `${fmtInt(progs.length)} หลักสูตรในคณะของคุณ`
+                : isFiltered
+                  ? `กำลังแสดง ${facs.length} จาก ${RAW.FACS.length} คณะ · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นผลรวมของคณะที่เลือก`
+                  : `แสดงทุกคณะ (${RAW.FACS.length}) · ${fmtInt(progs.length)} หลักสูตร · ตัวเลขสรุปเป็นระดับมหาวิทยาลัย`}
             </Typography>
-            {isFiltered && (
+            {isFiltered && !lockedFac && (
               <Button
                 size="small"
                 variant="text"
@@ -259,16 +313,11 @@ const CostView = () => {
 
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <KpiCard
-            label="ต้นทุนรวม (TC)"
-            value={fmtMillion(TC)}
-            unit="ล้านบาท"
-            accent="secondary"
-          />
+          <KpiCard label="ต้นทุนรวม" value={fmtMillion(TC)} unit="ล้านบาท" accent="secondary" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <KpiCard
-            label="ต้นทุน/นิสิต (ATC)"
+            label="ต้นทุน/นิสิต"
             value={fmtInt(res.atc)}
             unit="บาท/คน"
             accent="info"
@@ -277,7 +326,7 @@ const CostView = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <KpiCard
-            label="ต้นทุนคงที่ (TFC)"
+            label="ต้นทุนคงที่"
             value={fmtMillion(scope.TFC)}
             unit={`ล้านบาท · ${pctLabel(scope.TFC, TC)} ของต้นทุนรวม`}
             accent="primary"
@@ -286,7 +335,7 @@ const CostView = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <KpiCard
-            label="ต้นทุนผันแปร (TVC)"
+            label="ต้นทุนผันแปร"
             value={fmtMillion(scope.TVC)}
             unit={`ล้านบาท · ${pctLabel(scope.TVC, TC)} ของต้นทุนรวม`}
             accent="warning"
@@ -412,12 +461,12 @@ const CostView = () => {
                   {isSingleFac ? 'โครงสร้างต้นทุนรายหลักสูตร' : 'โครงสร้างต้นทุนรายคณะ'}
                 </DotTitle>
               }
-              subheader={`คงที่ (TFC) + ผันแปร (TVC) · ล้านบาท · ${scopeLabel}`}
+              subheader={`คงที่ + ผันแปร · ล้านบาท · ${scopeLabel}`}
             />
             <CardContent sx={{ pt: 0 }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 1 }}>
-                <LegendItem color="primary.main" label="ต้นทุนคงที่ (TFC)" />
-                <LegendItem color="warning.main" label="ต้นทุนผันแปร (TVC)" />
+                <LegendItem color="primary.main" label="ต้นทุนคงที่" />
+                <LegendItem color="warning.main" label="ต้นทุนผันแปร" />
               </Box>
               {barRows.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 10 }} align="center">
@@ -516,7 +565,9 @@ const CostView = () => {
         scopeLabel={scopeLabel}
       />
 
-      <CostSimulator key={scopeLabel} base={scope} mode={mode} scopeLabel={scopeLabel} />
+      {SHOW_COST_SIMULATOR && (
+        <CostSimulator key={scopeLabel} base={scope} mode={mode} scopeLabel={scopeLabel} />
+      )}
     </Box>
   );
 };

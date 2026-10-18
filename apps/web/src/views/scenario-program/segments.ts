@@ -10,26 +10,27 @@ import { defaultYears, segmentLabels, type Segment } from './newProgramCalc';
 /** เงินแผ่นดิน บาท/ภาค/คน ตั้งต้นตามแท็บ 4 (Y14) — ใส่ให้กลุ่มปกติไทย ปกติต่างชาติ และต่อเนื่อง */
 export const DEFAULT_GOV_PER_SEM = 3550;
 
-/** ตั้งต้นตารางสัดส่วนนิสิต: จำนวนนิสิตไทย/ต่างชาติจากหลักสูตรอ้างอิง · ค่าธรรมเนียมจากแท็บค่าธรรมเนียม68 */
+/**
+ * ตั้งต้นตารางสัดส่วนนิสิต: จำนวนนิสิตไทย/ต่างชาติจากหลักสูตรอ้างอิง · ค่าธรรมเนียมจากแท็บค่าธรรมเนียม68
+ * ค่าธรรมเนียมใส่เฉพาะกลุ่มที่มีอัตรา — ไม่มี (เช่น ปร.ด. วิศวกรรมเครื่องกล ไม่มีในเวลา, ต่อเนื่อง 2 ปี) เว้นว่าง (0)
+ */
 export function buildSegments(level: string, ref: ProgRow | null, semesters: number): Segment[] {
   const fees = ref ? feesForProgram(ref.fac, ref.deg) : [];
   const inTime = fees.find((f) => f.mode === 'ในเวลา');
   const offTime = fees.find((f) => f.mode === 'นอกเวลา');
-  const thaiReg = inTime?.rate ?? 18000;
-  const fee = [
-    thaiReg,
-    offTime?.rate ?? 0,
-    inTime?.rateIntl ?? 25000,
-    offTime?.rateIntl ?? 0,
-    thaiReg,
-  ];
-  const n = [ref?.qT ?? 0, 0, ref?.qF ?? 0, 0, 0];
+  const fee = [inTime?.rate, offTime?.rate, inTime?.rateIntl, offTime?.rateIntl, null];
+  // หลักสูตรที่มีอัตราเฉพาะนอกเวลา — นิสิตอยู่กลุ่มนอกเวลา
+  const offOnly = !inTime && !!offTime;
+  const qT = ref?.qT ?? 0;
+  const qF = ref?.qF ?? 0;
+  const n = offOnly ? [0, qT, 0, qF, 0] : [qT, 0, qF, 0, 0];
   const years = defaultYears(level);
 
   return segmentLabels(level).map((label, i) => ({
     label,
     n: n[i]!,
-    fee: fee[i]!,
+    fee: fee[i] ?? 0,
+    // ตามแท็บ 4 (Y14/AA14/AC14): ปกติ/ในเวลา ทั้งไทยและต่างชาติ และต่อเนื่อง ได้เงินแผ่นดิน · พิเศษ/นอกเวลาไม่ได้
     gov: i % 2 === 0 ? DEFAULT_GOV_PER_SEM : 0,
     semesters,
     years: i === 4 ? 2 : years,

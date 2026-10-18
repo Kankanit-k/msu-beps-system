@@ -264,7 +264,7 @@ export interface MixResult {
 
 export function mixResult(segs: Segment[], tfc: number, avc: number, mode: RevenueMode): MixResult {
   const n = sum(segs.map((s) => s.n));
-  const rows = segs.map((s) => {
+  const rows = segs.map((s, i) => {
     const perSem = s.fee + (mode === 'with_government' ? s.gov : 0);
     const share = n ? s.n / n : 0;
     const revenue = perSem * s.n * s.semesters;
@@ -273,7 +273,8 @@ export function mixResult(segs: Segment[], tfc: number, avc: number, mode: Reven
 
     return {
       share,
-      perHeadProgram: perSem * s.semesters * s.years,
+      // ตามแท็บ 4 แถว 17: รวมเงินแผ่นดินเฉพาะคอลัมน์แรก (Y17) — คอลัมน์อื่นคิดค่าธรรมเนียมอย่างเดียว (Z17:AC17)
+      perHeadProgram: (i === 0 ? perSem : s.fee) * s.semesters * s.years,
       revenue,
       tfc: segTfc,
       tvc: segTvc,

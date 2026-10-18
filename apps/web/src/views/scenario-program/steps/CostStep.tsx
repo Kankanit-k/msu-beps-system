@@ -45,7 +45,14 @@ const CostStep = ({
       subheader={subheader}
       action={
         onReset && (
-          <Button size="small" color="secondary" onClick={onReset} sx={{ mr: 2 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            onClick={onReset}
+            startIcon={<i className="ri-refresh-line" />}
+            sx={{ mr: 2 }}
+          >
             {resetLabel}
           </Button>
         )

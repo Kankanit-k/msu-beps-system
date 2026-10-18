@@ -30,6 +30,8 @@ import {
 /** ตีเส้นทุกช่อง หัวตารางพื้นฟ้าอ่อน — แบบเดียวกับตารางระบบ KPI */
 export const gridTableSx = {
   '& th, & td': { border: 1, borderColor: 'divider' },
+  // ธีมตัดเส้นล่างของแถวสุดท้ายออก — ใส่คืนให้ตารางปิดกรอบครบ
+  '& tbody tr:last-of-type td': { borderBottom: 1, borderColor: 'divider' },
   '& thead th': {
     bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
     fontWeight: 700,
@@ -122,7 +124,7 @@ const setArr = (k: 'fix' | 'var', i: number) => (b: CostBlock, v: number) => ({
 const LINES: Line[] = [
   {
     no: 1,
-    label: 'จำนวนนักศึกษาจริง : คน (Q)',
+    label: 'จำนวนนักศึกษาจริง',
     get: (b) => b.q,
     unit: 'คน',
     depth: 0,
@@ -135,7 +137,7 @@ const LINES: Line[] = [
   },
   {
     no: 2,
-    label: 'รายได้รวม (Total Revenue : TR)',
+    label: 'รายได้รวม',
     get: (_, r) => r.tr,
     unit: 'บาท',
     depth: 0,
@@ -168,17 +170,17 @@ const LINES: Line[] = [
     result: true,
     set: (b, v) => ({ ...b, income: v }),
   },
-  { label: 'รายได้ต่อหน่วย : คน (R)', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
+  { label: 'รายได้ต่อหน่วย', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
   {
     no: 3,
-    label: 'ต้นทุนรวม (Total Cost : TC)',
+    label: 'ต้นทุนรวม',
     get: (_, r) => r.tc,
     unit: 'บาท',
     depth: 0,
     result: true,
   },
   {
-    label: '3.1 ต้นทุนคงที่รวม (Total Fixed Cost : TFC)',
+    label: '3.1 ต้นทุนคงที่รวม',
     get: (_, r) => r.tfc,
     unit: 'บาท',
     depth: 1,
@@ -206,7 +208,7 @@ const LINES: Line[] = [
     depth: 2,
   },
   {
-    label: '3.2 ต้นทุนผันแปร (Total Variable Cost : TVC)',
+    label: '3.2 ต้นทุนผันแปร',
     get: (_, r) => r.tvc,
     unit: 'บาท',
     depth: 1,
@@ -238,10 +240,10 @@ const LINES: Line[] = [
     unit: 'บาท',
     depth: 2,
   },
-  { label: 'ต้นทุนผันแปรต่อหน่วย (AVC)', get: (_, r) => r.avc, unit: 'บาท/คน', depth: 1 },
+  { label: 'ต้นทุนผันแปรต่อหน่วย', get: (_, r) => r.avc, unit: 'บาท/คน', depth: 1 },
   {
     no: 4,
-    label: 'จำนวนนิสิต ณ จุดคุ้มทุน (Q*)',
+    label: 'จำนวนนิสิต ณ จุดคุ้มทุน',
     get: (_, r) => r.qStar,
     unit: 'คน',
     depth: 0,
@@ -250,7 +252,7 @@ const LINES: Line[] = [
   },
   { no: 5, label: 'รายได้ ณ จุดคุ้มทุน', get: (_, r) => r.beRevenue, unit: 'บาท', depth: 0 },
   {
-    label: 'Diff (นิสิตจริง − จุดคุ้มทุน)',
+    label: 'Diff (นิสิตจริง − นิสิต ณ จุดคุ้มทุน)',
     get: (_, r) => r.diff,
     unit: 'คน',
     depth: 0,
@@ -258,7 +260,7 @@ const LINES: Line[] = [
     result: true,
   },
   {
-    label: 'ผลการคุ้มทุน (Q ≥ Q*)',
+    label: 'ผลการคุ้มทุน',
     get: (_, r) => r.diff,
     unit: '',
     depth: 0,
@@ -270,12 +272,12 @@ const LINES: Line[] = [
 /** สถานะคุ้มทุนของคอลัมน์ — Q ≥ Q* = คุ้มทุน · Q* ติดลบ/หาไม่ได้ = ไม่มีจุดคุ้มทุน */
 const statusOf = (r: BlockResult) =>
   r.qStar === null || r.qStar < 0 || r.diff === null
-    ? { ok: false, label: 'ไม่มีจุดคุ้มทุน' }
+    ? { ok: false, title: 'ไม่มีจุดคุ้มทุน', detail: '' }
     : r.diff > 0
-      ? { ok: true, label: `✓ คุ้มทุนแล้ว · เกิน ${fmt(r.diff)} คน` }
+      ? { ok: true, title: 'คุ้มทุน', detail: `เกิน ${fmt(r.diff)} คน` }
       : r.diff === 0
-        ? { ok: true, label: '✓ คุ้มทุนแล้ว · พอดีจุดคุ้มทุน' }
-        : { ok: false, label: `✗ ยังไม่คุ้มทุน · ขาด ${fmt(-r.diff)} คน` };
+        ? { ok: true, title: 'คุ้มทุน', detail: 'พอดีจุดคุ้มทุน' }
+        : { ok: false, title: 'ยังไม่คุ้มทุน', detail: `ขาด ${fmt(-r.diff)} คน` };
 
 /**
  * ตารางรายการแบบแท็บ 4 (ลำดับ · รายการ · จำนวน · หน่วย) — แยกกลุ่มกรณีรวม/ไม่รวมเงินแผ่นดิน
@@ -287,7 +289,9 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
     basicOnly ? l.basic || l.result : !l.basicOnlyRow && (showAllocAdj || l.id !== ALLOC_ADJ),
   );
   const nCols = groups.reduce((a, g) => a + g.cols.length, 0);
-  const valueWidth = { xs: 120, sm: nCols > 2 ? 140 : 180 };
+  // คอลัมน์ตัวเลข (รวมผลต่าง) กว้างเท่ากันและคงที่ — table-layout: fixed กันช่องยืด/หดตามตัวเลขที่พิมพ์
+  const nValueCols = groups.reduce((a, g) => a + g.cols.length + (g.cols.length === 2 ? 1 : 0), 0);
+  const valueWidth = nCols > 2 ? 140 : 180;
   const anyNegative = groups.some((g) =>
     g.cols.some((c) => c.result.qStar !== null && c.result.qStar < 0),
   );
@@ -310,15 +314,28 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
       <Table
         size="small"
         sx={{
-          minWidth: nCols > 2 ? 1100 : nCols > 1 ? 720 : undefined,
+          tableLayout: 'fixed',
+          minWidth: 48 + 240 + 64 + nValueCols * valueWidth,
           ...gridTableSx,
+          // แบบจำกัดสิทธิ์: แถวเตี้ยลงให้การ์ด ①② พอดีจอโดยไม่ต้องเลื่อน
+          // (คีย์ซ้ำกับ gridTableSx — ต้องรวมเส้นไว้ด้วย ไม่งั้นเส้นตารางหาย)
+          ...(basicOnly && {
+            '& th, & td': { ...gridTableSx['& th, & td'], py: 1.25, px: 2, fontSize: '0.875rem' },
+            '& thead th': { ...gridTableSx['& thead th'], fontSize: '0.875rem' },
+          }),
         }}
       >
+        <colgroup>
+          <col style={{ width: 48 }} />
+          <col />
+          {Array.from({ length: nValueCols }, (_, i) => (
+            <col key={i} style={{ width: valueWidth }} />
+          ))}
+          <col style={{ width: 64 }} />
+        </colgroup>
         <TableHead>
           <TableRow>
-            <TableCell rowSpan={2} sx={{ width: 48 }}>
-              ลำดับ
-            </TableCell>
+            <TableCell rowSpan={2}>ลำดับ</TableCell>
             <TableCell rowSpan={2}>รายการ</TableCell>
             {groups.map((g) => (
               <TableCell
@@ -330,19 +347,17 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
                 {g.title}
               </TableCell>
             ))}
-            <TableCell rowSpan={2} sx={{ width: 64 }}>
-              หน่วย
-            </TableCell>
+            <TableCell rowSpan={2}>หน่วย</TableCell>
           </TableRow>
           <TableRow>
             {groups.map((g) => [
               ...g.cols.map((c) => (
-                <TableCell key={`${g.key}-${c.key}`} align="right" sx={{ width: valueWidth }}>
+                <TableCell key={`${g.key}-${c.key}`} align="right">
                   {c.editable ? `✎ ${c.title}` : c.title}
                 </TableCell>
               )),
               g.cols.length === 2 && (
-                <TableCell key={`${g.key}-diff`} align="right" sx={{ width: { xs: 100, sm: 120 } }}>
+                <TableCell key={`${g.key}-diff`} align="right">
                   ผลต่าง
                 </TableCell>
               ),
@@ -378,9 +393,18 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
                         <TableCell key={`${g.key}-${c.key}`} align="right">
                           <Chip
                             size="small"
-                            variant={sts[ci]!.ok ? 'filled' : 'tonal'}
+                            variant="tonal"
                             color={sts[ci]!.ok ? 'success' : 'error'}
-                            label={sts[ci]!.label}
+                            icon={
+                              <i
+                                className={
+                                  sts[ci]!.ok ? 'ri-checkbox-circle-fill' : 'ri-close-circle-fill'
+                                }
+                              />
+                            }
+                            label={sts[ci]!.title}
+                            // จำนวนที่เกิน/ขาดเห็นในแถว Diff ด้านบนแล้ว — ไว้ใน tooltip ไม่กินความสูงแถว
+                            title={sts[ci]!.detail || undefined}
                             sx={{ fontWeight: 700 }}
                           />
                         </TableCell>

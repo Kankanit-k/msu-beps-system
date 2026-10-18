@@ -449,7 +449,7 @@ const FixedCostAllocationCard = ({
                 color="primary"
                 variant="tonal"
                 icon={<i className="ri-lock-line" />}
-                label={`คณะเลือก: ${ALLOC_METHOD_LABEL[choice.method]}`}
+                label={`${lock.lockedBy ? 'คณะเลือก' : 'หลักสูตรใหม่ใช้'}: ${ALLOC_METHOD_LABEL[choice.method]}`}
               />
             )}
           </Box>
@@ -484,7 +484,9 @@ const FixedCostAllocationCard = ({
                   label={ALLOC_METHOD_LABEL[choice.method]}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  ล็อกโดย {lock.lockedBy} · {fmtLockedAt(lock.lockedAt)}
+                  {lock.lockedBy
+                    ? `ล็อกโดย ${lock.lockedBy} · ${fmtLockedAt(lock.lockedAt)}`
+                    : 'หลักสูตรใหม่ใช้หารรายหัวนิสิตเสมอ ไม่ตามวิธีที่คณะล็อกไว้'}
                 </Typography>
               </Box>
 
@@ -535,7 +537,7 @@ const FixedCostAllocationCard = ({
               {isNew && !hasRef && (
                 <Alert severity="info" variant="outlined" sx={{ mb: 3 }}>
                   ไม่มีหลักสูตรอ้างอิง — ต้นทุนคงที่ที่กรอกในตารางถือเป็นต้นทุนตรงของหลักสูตร
-                  ระบบบวกส่วนแบ่งส่วนกลางคณะให้ตามวิธีที่คณะล็อกไว้
+                  ระบบบวกส่วนแบ่งส่วนกลางคณะให้ตามวิธี{ALLOC_METHOD_LABEL[choice.method]}
                 </Alert>
               )}
 

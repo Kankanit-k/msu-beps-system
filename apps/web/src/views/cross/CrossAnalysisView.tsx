@@ -19,6 +19,9 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 // Third-party Imports
 import type { ApexOptions } from 'apexcharts';
@@ -32,9 +35,17 @@ import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
-import { computeBreakEven, REVENUE_MODE_NOTE } from '@views/breakeven/calc';
+import { useRole } from '@/hooks/useRole';
+import {
+  computeBreakEven,
+  inLevel,
+  LEVEL_SCOPE_LABEL,
+  REVENUE_MODE_NOTE,
+  sumRows,
+} from '@views/breakeven/calc';
+import type { LevelScope } from '@views/breakeven/calc';
 
-import { buildCrossData } from './crossData';
+import { buildCrossData, buildProgramCrossData } from './crossData';
 import type { FacultyCrossRow } from './crossData';
 import { HEATMAP_METRICS, HEAT_SCALE_GRADIENT, heatCellColor } from './heatmapMetrics';
 
@@ -48,9 +59,18 @@ const fmtM = (v: number) =>
   v.toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 // ---- ธีมกราฟ Scatter: จุดเขียว/ชมพูมีขอบเข้ม · เส้น grid ทั้งสองแกน · ช่วงแกนปัดเป็นเลขกลม ----
-const SCATTER_COLORS = { ok: '#2bb389', okStroke: '#1d8f6c', loss: '#ef6b95', lossStroke: '#d94677' };
+const SCATTER_COLORS = {
+  ok: '#2bb389',
+  okStroke: '#1d8f6c',
+  loss: '#ef6b95',
+  lossStroke: '#d94677',
+};
 const AXIS_LABEL_STYLE = { colors: 'var(--mui-palette-text-secondary)', fontSize: '11px' };
-const AXIS_TITLE_STYLE = { color: 'var(--mui-palette-text-secondary)', fontSize: '11px', fontWeight: 500 };
+const AXIS_TITLE_STYLE = {
+  color: 'var(--mui-palette-text-secondary)',
+  fontSize: '11px',
+  fontWeight: 500,
+};
 
 /**
  * ช่วงแกนปัดเป็นพหุคูณของ step (เผื่อขอบ ~2% ให้จุดชิดขอบยัง hover ได้) + จำนวนช่องให้ tick ตรงเลขกลม
@@ -91,7 +111,12 @@ const QUADRANT_STYLE = {
 };
 
 const SCATTER_BASE: ApexOptions = {
-  chart: { type: 'scatter', toolbar: { show: false }, zoom: { enabled: false }, parentHeightOffset: 0 },
+  chart: {
+    type: 'scatter',
+    toolbar: { show: false },
+    zoom: { enabled: false },
+    parentHeightOffset: 0,
+  },
   colors: [SCATTER_COLORS.ok, SCATTER_COLORS.loss],
   fill: { opacity: 0.9 },
   markers: {
@@ -121,11 +146,11 @@ const SCATTER_BASE: ApexOptions = {
   tooltip: { intersect: true, shared: false },
 };
 
-type QuadrantInfo = { label: string; icon: string; color: string; rows: unknown[] };
+type QuadrantInfo = { label: string; icon: string; color: string; rows: unknown[]; unit: string };
 
 const QuadrantLabel = ({ q }: { q: QuadrantInfo }) => (
   <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: q.color }}>
-    {q.icon} {q.label} · {q.rows.length} คณะ
+    {q.icon} {q.label} · {q.rows.length} {q.unit}
   </Typography>
 );
 
@@ -141,10 +166,22 @@ type SortKey = 'profitPct' | 'util' | 'CM' | 'profitM' | 'avcRRatio';
 
 const SORT_OPTIONS: { key: SortKey; label: string; hint: string }[] = [
   { key: 'profitPct', label: 'อัตรากำไร', hint: 'อัตรากำไร % (Profit Margin)' },
-  { key: 'util', label: 'นิสิตจริงเทียบจุดคุ้มทุน', hint: 'นิสิตจริงเทียบจุดคุ้มทุน % (Utilization = Q/Q*)' },
-  { key: 'CM', label: 'ส่วนเกินต่อหัว', hint: 'ส่วนเกินต่อหัว (CM) = รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว' },
+  {
+    key: 'util',
+    label: 'นิสิตจริงเทียบจุดคุ้มทุน',
+    hint: 'นิสิตจริงเทียบจุดคุ้มทุน % (Utilization = Q/Q*)',
+  },
+  {
+    key: 'CM',
+    label: 'ส่วนเกินต่อหัว',
+    hint: 'ส่วนเกินต่อหัว (CM) = รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว',
+  },
   { key: 'profitM', label: 'กำไร/ขาดทุน', hint: 'กำไร/ขาดทุน (ล้านบาท)' },
-  { key: 'avcRRatio', label: 'สัดส่วนต้นทุนผันแปรต่อรายได้', hint: 'สัดส่วนต้นทุนผันแปรต่อรายได้ % (AVC/R) — เรียงน้อยไปมาก' },
+  {
+    key: 'avcRRatio',
+    label: 'สัดส่วนต้นทุนผันแปรต่อรายได้',
+    hint: 'สัดส่วนต้นทุนผันแปรต่อรายได้ % (AVC/R) — เรียงน้อยไปมาก',
+  },
 ];
 
 /** หัวคอลัมน์ตารางจัดอันดับ — sort = คีย์ที่คอลัมน์นี้ใช้เรียง (ไว้เน้นหัวคอลัมน์ที่กำลังเรียง) */
@@ -153,17 +190,32 @@ const RANK_COLUMNS: { label: string; hint?: string; align?: 'right'; sort?: Sort
   { label: 'คณะ / วิทยาลัย' },
   { label: 'นิสิตจริง', hint: 'นิสิตจริง (Q) คน', align: 'right' },
   { label: 'จุดคุ้มทุน', hint: 'จุดคุ้มทุน (Q*) คน', align: 'right' },
-  { label: 'นิสิตจริงเทียบจุดคุ้มทุน', hint: 'นิสิตจริงเทียบจุดคุ้มทุน % (Utilization = Q/Q*)', align: 'right', sort: 'util' },
+  {
+    label: 'นิสิตจริงเทียบจุดคุ้มทุน',
+    hint: 'นิสิตจริงเทียบจุดคุ้มทุน % (Utilization = Q/Q*)',
+    align: 'right',
+    sort: 'util',
+  },
   { label: 'หลักสูตรที่คุ้มทุน', hint: 'หลักสูตรที่ถึงจุดคุ้มทุน / ทั้งหมด', align: 'right' },
   { label: 'อัตรากำไร', hint: 'อัตรากำไร % (Profit Margin)', align: 'right', sort: 'profitPct' },
   { label: 'ส่วนเกินต่อหัว', hint: 'ส่วนเกินต่อหัว (CM) บาท', align: 'right', sort: 'CM' },
-  { label: 'สัดส่วนต้นทุนผันแปรต่อรายได้', hint: 'สัดส่วนต้นทุนผันแปรต่อรายได้ % (AVC/R)', align: 'right', sort: 'avcRRatio' },
+  {
+    label: 'สัดส่วนต้นทุนผันแปรต่อรายได้',
+    hint: 'สัดส่วนต้นทุนผันแปรต่อรายได้ % (AVC/R)',
+    align: 'right',
+    sort: 'avcRRatio',
+  },
   { label: 'กำไร/ขาดทุน (ล้านบาท)', align: 'right', sort: 'profitM' },
   { label: 'สถานะ', align: 'right' },
 ];
 
 /** สีตัวเลขในตารางจัดอันดับ — เขียวเข้ม/แดงเลือดหมู/ส้มอิฐ อ่านง่ายบนพื้นขาวกว่าสีเขียว-เหลืองสดของธีม */
-const RANK_TONE = { good: '#1e7b4d', bad: '#be123c', mid: '#b45309', muted: 'var(--mui-palette-text-disabled)' };
+const RANK_TONE = {
+  good: '#1e7b4d',
+  bad: '#be123c',
+  mid: '#b45309',
+  muted: 'var(--mui-palette-text-disabled)',
+};
 
 /** ป้ายสถานะ: ผ่าน = เขียวอ่อน · ไม่ผ่าน / ไม่มีจุดคุ้มทุน = ชมพู */
 const STATUS_CHIP = {
@@ -219,10 +271,40 @@ const CrossAnalysisView = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [sortKey, setSortKey] = useState<SortKey>('profitPct');
 
-  // ตัวเลขระดับมหาวิทยาลัยสำหรับชิปบนหัวหน้าจอและแถบข้อจำกัดข้อมูล (เหมือนหน้าอื่น)
-  const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
+  const [level, setLevel] = useState<LevelScope>('all');
 
-  const data = useMemo(() => buildCrossData(mode), [mode]);
+  // ผู้ดูแลคณะ/อาจารย์ เห็นได้เฉพาะคณะของตน — แตกเป็นรายหลักสูตรของคณะนั้น
+  const { role, scope: roleScope } = useRole();
+  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const unitWord = lockedFac ? 'หลักสูตร' : 'คณะ';
+
+  // ชิปบนหัวหน้าจอ — ผู้ดูแลคณะเห็นของคณะตน (ตามระดับที่เลือก) ที่เหลือเห็นระดับมหาวิทยาลัย
+  const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
+  const headRes = useMemo(() => {
+    if (!lockedFac) return uniRes;
+    const fac = RAW.FACS.find((f) => f.name === lockedFac);
+    const scope =
+      level === 'all' && fac
+        ? fac
+        : sumRows(RAW.PROGS.filter((p) => p.fac === lockedFac && inLevel(p, level)));
+
+    return computeBreakEven(scope, mode);
+  }, [lockedFac, level, mode, uniRes]);
+
+  const data = useMemo(
+    () => (lockedFac ? buildProgramCrossData(lockedFac, level, mode) : buildCrossData(mode)),
+    [lockedFac, level, mode],
+  );
+  // ดูรายหลักสูตร → ไม่มีคอลัมน์ "หลักสูตรที่คุ้มทุน" (หลักสูตรเดียวต่อแถว)
+  const heatMetrics = useMemo(
+    () => (lockedFac ? HEATMAP_METRICS.filter((m) => m.key !== 'progOkRatio') : HEATMAP_METRICS),
+    [lockedFac],
+  );
+  const rankColumns = lockedFac
+    ? RANK_COLUMNS.filter((c) => c.label !== 'หลักสูตรที่คุ้มทุน').map((c) =>
+        c.label === 'คณะ / วิทยาลัย' ? { ...c, label: 'หลักสูตร' } : c,
+      )
+    : RANK_COLUMNS;
   const valid = useMemo(() => data.filter((d) => d.valid), [data]);
   const excludedCount = data.length - valid.length;
 
@@ -234,8 +316,8 @@ const CrossAnalysisView = () => {
 
   // ---- Heatmap: ตารางสี ไล่เฉดต่อคอลัมน์ (min-max ของแต่ละตัวชี้วัด) — พอร์ตจากตาราง HTML ต้นฉบับ ----
   const columnValues = useMemo(
-    () => HEATMAP_METRICS.map((m) => data.map((d) => d[m.key] as number)),
-    [data],
+    () => heatMetrics.map((m) => data.map((d) => d[m.key] as number)),
+    [data, heatMetrics],
   );
 
   // ---- Scatter: แยก 2 ชุด (ถึง/ไม่ถึงจุดคุ้มทุน) ให้สีและขอบต่างกัน · เก็บคณะไว้ใน meta ให้ tooltip ไม่พึ่ง index ----
@@ -260,15 +342,24 @@ const CrossAnalysisView = () => {
     }) => {
       const d = w.config.series[seriesIndex]?.data[dataPointIndex]?.meta;
 
-      return d ? `<div style="padding:8px 10px;font-size:12px"><b>${d.name}</b><br/>${body(d)}</div>` : '';
+      return d
+        ? `<div style="padding:8px 10px;font-size:12px"><b>${d.name}</b><br/>${body(d)}</div>`
+        : '';
     };
 
   const pct = (v: number) => `${v >= 0 ? '+' : ''}${v}%`;
 
   // ---- Scatter 1: Q* เทียบ กำไร% ----
   const scatter1Series = toScatterSeries((d) => ({ x: d.qStar, y: d.profitPct }));
-  const s1x = niceRange(valid.map((d) => d.qStar), 1000, true);
-  const s1y = niceRange(valid.map((d) => d.profitPct), 20);
+  const s1x = niceRange(
+    valid.map((d) => d.qStar),
+    1000,
+    true,
+  );
+  const s1y = niceRange(
+    valid.map((d) => d.profitPct),
+    20,
+  );
 
   const scatter1Options: ApexOptions = {
     ...SCATTER_BASE,
@@ -286,15 +377,23 @@ const CrossAnalysisView = () => {
     tooltip: {
       ...SCATTER_BASE.tooltip,
       custom: tooltipFor(
-        (d) => `จุดคุ้มทุน ${fmtN(d.qStar)} คน · นิสิตจริง ${fmtN(d.Q)} คน<br/>อัตรากำไร ${pct(d.profitPct)}`,
+        (d) =>
+          `จุดคุ้มทุน ${fmtN(d.qStar)} คน · นิสิตจริง ${fmtN(d.Q)} คน<br/>อัตรากำไร ${pct(d.profitPct)}`,
       ),
     },
   };
 
   // ---- Scatter 2: AVC/R% เทียบ Utilization% ----
   const scatter2Series = toScatterSeries((d) => ({ x: d.avcRRatio, y: d.util }));
-  const s2x = niceRange(valid.map((d) => d.avcRRatio), 5);
-  const s2y = niceRange(valid.map((d) => d.util), 50, true);
+  const s2x = niceRange(
+    valid.map((d) => d.avcRRatio),
+    5,
+  );
+  const s2y = niceRange(
+    valid.map((d) => d.util),
+    50,
+    true,
+  );
 
   const scatter2Options: ApexOptions = {
     ...SCATTER_BASE,
@@ -316,7 +415,8 @@ const CrossAnalysisView = () => {
     tooltip: {
       ...SCATTER_BASE.tooltip,
       custom: tooltipFor(
-        (d) => `สัดส่วนต้นทุนผันแปรต่อรายได้ ${d.avcRRatio}%<br/>นิสิตจริงเทียบจุดคุ้มทุน ${d.util}%`,
+        (d) =>
+          `สัดส่วนต้นทุนผันแปรต่อรายได้ ${d.avcRRatio}%<br/>นิสิตจริงเทียบจุดคุ้มทุน ${d.util}%`,
       ),
     },
   };
@@ -326,16 +426,21 @@ const CrossAnalysisView = () => {
   const growth = valid.filter((d) => d.util >= 100 && d.profitPct < 0);
   const recover = valid.filter((d) => d.util < 100 && d.profitPct >= 0);
   const risk = valid.filter((d) => d.util < 100 && d.profitPct < 0);
-  const qStars = { ...QUADRANT_STYLE.stars, rows: stars };
-  const qRecover = { ...QUADRANT_STYLE.recover, rows: recover };
-  const qGrowth = { ...QUADRANT_STYLE.growth, rows: growth };
-  const qRisk = { ...QUADRANT_STYLE.risk, rows: risk };
+  const qStars = { ...QUADRANT_STYLE.stars, rows: stars, unit: unitWord };
+  const qRecover = { ...QUADRANT_STYLE.recover, rows: recover, unit: unitWord };
+  const qGrowth = { ...QUADRANT_STYLE.growth, rows: growth, unit: unitWord };
+  const qRisk = { ...QUADRANT_STYLE.risk, rows: risk, unit: unitWord };
   const quadrants = [qStars, qRecover, qGrowth, qRisk];
 
   // z = √รายได้รวม — ApexCharts ปรับรัศมีตาม z แบบเส้นตรง จึงใช้รากที่สองให้ "พื้นที่" ฟองแปรตามรายได้
   const bubbleSeries = quadrants.map((q) => ({
     name: q.label,
-    data: q.rows.map((d) => ({ x: d.util, y: d.profitPct, z: Math.sqrt(Math.max(d.trM, 0)), meta: d })),
+    data: q.rows.map((d) => ({
+      x: d.util,
+      y: d.profitPct,
+      z: Math.sqrt(Math.max(d.trM, 0)),
+      meta: d,
+    })),
   }));
 
   // แกนต้องคร่อมเส้นแบ่ง (Util 100%, กำไร 0%) เสมอ — ป้ายกลุ่มเหนือ/ใต้กราฟจึงตรงกับฝั่งของเส้นแบ่ง
@@ -403,9 +508,7 @@ const CrossAnalysisView = () => {
   if (risk.length) {
     insights.push({
       severity: 'error',
-      html: `กลุ่มเสี่ยง — ${risk.length} คณะ (นิสิตไม่ถึงจุดคุ้มทุนและขาดทุน): ${[
-        ...risk,
-      ]
+      html: `กลุ่มเสี่ยง — ${risk.length} ${unitWord} (นิสิตไม่ถึงจุดคุ้มทุนและขาดทุน): ${[...risk]
         .sort((a, b) => a.profitPct - b.profitPct)
         .slice(0, 3)
         .map((d) => `${d.short} (นิสิตจริงเทียบจุดคุ้มทุน ${d.util}% · อัตรากำไร ${d.profitPct}%)`)
@@ -416,14 +519,14 @@ const CrossAnalysisView = () => {
   if (invalid.length) {
     insights.push({
       severity: 'error',
-      html: `${invalid.length} คณะมีรายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (ส่วนเกินต่อหัวติดลบหรือเป็นศูนย์): ${invalid.map((d) => `${d.short} (ส่วนเกินต่อหัว ${fmtB(d.CM)} บาท)`).join(', ')} → ใช้เป้าหมายคืนทุนเต็มจำนวน (ต้นทุนรวม ÷ รายได้ต่อหัว) แทนจุดคุ้มทุน · ควรขึ้นค่าธรรมเนียมหรือลดต้นทุนผันแปร`,
+      html: `${invalid.length} ${unitWord}มีรายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (ส่วนเกินต่อหัวติดลบหรือเป็นศูนย์): ${invalid.map((d) => `${d.short} (ส่วนเกินต่อหัว ${fmtB(d.CM)} บาท)`).join(', ')} → ใช้เป้าหมายคืนทุนเต็มจำนวน (ต้นทุนรวม ÷ รายได้ต่อหัว) แทนจุดคุ้มทุน · ควรขึ้นค่าธรรมเนียมหรือลดต้นทุนผันแปร`,
     });
   }
 
   if (stars.length) {
     insights.push({
       severity: 'success',
-      html: `⭐ กลุ่มดาวเด่น — ${stars.length} คณะ (นิสิตเกินจุดคุ้มทุนและมีกำไร): ${[
+      html: `⭐ กลุ่มดาวเด่น — ${stars.length} ${unitWord} (นิสิตเกินจุดคุ้มทุนและมีกำไร): ${[
         ...stars,
       ]
         .sort((a, b) => b.profitPct - a.profitPct)
@@ -436,7 +539,7 @@ const CrossAnalysisView = () => {
   if (hiAVC.length) {
     insights.push({
       severity: 'warning',
-      html: `${hiAVC.length} คณะมีสัดส่วนต้นทุนผันแปรต่อรายได้ตั้งแต่ 50% ขึ้นไป (ต้นทุนผันแปรกินรายได้เกินครึ่ง) — ขาดทุน <b>${hiAVC.filter((d) => d.profitPct < 0).length}/${hiAVC.length}</b> คณะ`,
+      html: `${hiAVC.length} ${unitWord}มีสัดส่วนต้นทุนผันแปรต่อรายได้ตั้งแต่ 50% ขึ้นไป (ต้นทุนผันแปรกินรายได้เกินครึ่ง) — ขาดทุน <b>${hiAVC.filter((d) => d.profitPct < 0).length}/${hiAVC.length}</b> ${unitWord}`,
     });
   }
 
@@ -455,8 +558,8 @@ const CrossAnalysisView = () => {
           title="วิเคราะห์เชิงเปรียบเทียบ และตารางสีเปรียบเทียบ"
           mode={mode}
           onModeChange={setMode}
-          q={uniRes.q}
-          profit={uniRes.profit}
+          q={headRes.q}
+          profit={headRes.profit}
         />
 
         {SHOW_CROSS_NOTES && (
@@ -464,20 +567,42 @@ const CrossAnalysisView = () => {
             <DataCaveatNotes profit={uniRes.profit} />
 
             <NoteBar severity="info">
-              {REVENUE_MODE_NOTE[mode]} · นิสิตจริงเทียบจุดคุ้มทุน
-              โดยจุดคุ้มทุน = ผลรวมรายหลักสูตร · คณะที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร จะไม่มีจุดคุ้มทุน
-              (แสดง —)
+              {REVENUE_MODE_NOTE[mode]} · นิสิตจริงเทียบจุดคุ้มทุน โดยจุดคุ้มทุน = ผลรวมรายหลักสูตร
+              · คณะที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร จะไม่มีจุดคุ้มทุน (แสดง —)
             </NoteBar>
           </>
         )}
       </Box>
+
+      {lockedFac && (
+        <Card>
+          <CardContent>
+            <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Chip variant="outlined" icon={<i className="ri-lock-line" />} label={lockedFac} />
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                exclusive
+                value={level}
+                onChange={(_, v: LevelScope | null) => v && setLevel(v)}
+              >
+                {(Object.keys(LEVEL_SCOPE_LABEL) as LevelScope[]).map((l) => (
+                  <ToggleButton key={l} value={l}>
+                    {LEVEL_SCOPE_LABEL[l]}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Heatmap */}
       <Card>
         <CardHeader
           title={
             <DotTitle color="primary.main">
-              ตารางสีเปรียบเทียบ — ตัวชี้วัดสำคัญรายคณะ
+              ตารางสีเปรียบเทียบ — ตัวชี้วัดสำคัญราย{unitWord}
             </DotTitle>
           }
           subheader="เขียว = ดี · แดง = ต้องปรับปรุง (ปรับตามทิศทางของแต่ละตัวชี้วัด)"
@@ -513,16 +638,24 @@ const CrossAnalysisView = () => {
             >
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.6875rem', py: 1, width: '1%', whiteSpace: 'nowrap' }}>
-                    คณะ / วิทยาลัย
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: '0.6875rem',
+                      py: 1,
+                      width: '1%',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {lockedFac ? 'หลักสูตร' : 'คณะ / วิทยาลัย'}
                   </TableCell>
-                  {HEATMAP_METRICS.map((m) => (
+                  {heatMetrics.map((m) => (
                     <TableCell
                       key={m.key}
                       align="center"
                       title={`${m.label} (${m.unit})`}
                       // ทุกคอลัมน์ตัวชี้วัดกว้างเท่ากัน — คอลัมน์ชื่อคณะหดตามเนื้อหา (width 1%)
-                      sx={{ py: 1, px: 1, lineHeight: 1.25, width: `${100 / HEATMAP_METRICS.length}%` }}
+                      sx={{ py: 1, px: 1, lineHeight: 1.25, width: `${100 / heatMetrics.length}%` }}
                     >
                       <Typography
                         sx={{ fontSize: '0.6875rem', fontWeight: 700, display: 'block' }}
@@ -538,8 +671,8 @@ const CrossAnalysisView = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data.map((d) => (
-                  <TableRow key={d.name}>
+                {data.map((d, rowIdx) => (
+                  <TableRow key={`${rowIdx}-${d.name}`}>
                     <TableCell
                       sx={{
                         py: 0.75,
@@ -575,7 +708,7 @@ const CrossAnalysisView = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    {HEATMAP_METRICS.map((m, colIdx) => {
+                    {heatMetrics.map((m, colIdx) => {
                       const val = d[m.key] as number;
                       const { bg, fg } = heatCellColor(val, m.good, columnValues[colIdx] ?? []);
 
@@ -616,13 +749,11 @@ const CrossAnalysisView = () => {
             <CardHeader
               titleTypographyProps={{ fontSize: '1rem' }}
               title={
-                <DotTitle color="warning.main">
-                  กราฟการกระจาย: จุดคุ้มทุน เทียบ อัตรากำไร
-                </DotTitle>
+                <DotTitle color="warning.main">กราฟการกระจาย: จุดคุ้มทุน เทียบ อัตรากำไร</DotTitle>
               }
               subheader={
                 excludedCount > 0
-                  ? `กราฟไม่รวม ${excludedCount} คณะที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (ไม่มีจุดคุ้มทุน) — ดูในตาราง`
+                  ? `กราฟไม่รวม ${excludedCount} ${unitWord}ที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (ไม่มีจุดคุ้มทุน) — ดูในตาราง`
                   : undefined
               }
               subheaderTypographyProps={{ color: 'error', fontSize: '0.75rem', fontWeight: 500 }}
@@ -662,11 +793,7 @@ const CrossAnalysisView = () => {
       {/* Quadrant bubble */}
       <Card>
         <CardHeader
-          title={
-            <DotTitle color="primary.main">
-              จัดกลุ่มคณะตามประสิทธิภาพ 4 กลุ่ม
-            </DotTitle>
-          }
+          title={<DotTitle color="primary.main">จัดกลุ่ม{unitWord}ตามประสิทธิภาพ 4 กลุ่ม</DotTitle>}
           subheader="แกนนอน = นิสิตจริงเทียบจุดคุ้มทุน % · แกนตั้ง = อัตรากำไร % · ขนาดวงกลม = รายได้รวม · เส้นประ = นิสิตเท่าจุดคุ้มทุนพอดี (100%) / กำไรเท่าศูนย์"
         />
         <CardContent>
@@ -743,12 +870,8 @@ const CrossAnalysisView = () => {
             >
               <TableHead>
                 <TableRow>
-                  {RANK_COLUMNS.map((c) => (
-                    <TableCell
-                      key={c.label}
-                      align={c.align}
-                      title={c.hint}
-                    >
+                  {rankColumns.map((c) => (
+                    <TableCell key={c.label} align={c.align} title={c.hint}>
                       {c.label}
                     </TableCell>
                   ))}
@@ -759,7 +882,9 @@ const CrossAnalysisView = () => {
                   const bad = !d.valid;
 
                   // เขียว = ดี · แดง = แย่ (ตามทิศทางของแต่ละตัวชี้วัด)
-                  const tone = (good: boolean) => ({ color: good ? RANK_TONE.good : RANK_TONE.bad });
+                  const tone = (good: boolean) => ({
+                    color: good ? RANK_TONE.good : RANK_TONE.bad,
+                  });
                   const avcTone =
                     d.avcRRatio >= 999
                       ? RANK_TONE.muted
@@ -771,7 +896,7 @@ const CrossAnalysisView = () => {
                   const chip = bad ? STATUS_CHIP.none : d.isOk ? STATUS_CHIP.ok : STATUS_CHIP.fail;
 
                   return (
-                    <TableRow key={d.name} hover>
+                    <TableRow key={`${i}-${d.name}`} hover>
                       <TableCell>
                         <RankBadge rank={i + 1} />
                       </TableCell>
@@ -792,13 +917,18 @@ const CrossAnalysisView = () => {
                       </TableCell>
                       <TableCell
                         align="right"
-                        sx={{ fontWeight: 600, ...(bad ? { color: RANK_TONE.muted } : tone(d.util >= 100)) }}
+                        sx={{
+                          fontWeight: 600,
+                          ...(bad ? { color: RANK_TONE.muted } : tone(d.util >= 100)),
+                        }}
                       >
                         {bad ? '—' : `${d.util}%`}
                       </TableCell>
-                      <TableCell align="right" sx={tone(d.progOkRatio >= 50)}>
-                        {d.okProg}/{d.nProg}
-                      </TableCell>
+                      {!lockedFac && (
+                        <TableCell align="right" sx={tone(d.progOkRatio >= 50)}>
+                          {d.okProg}/{d.nProg}
+                        </TableCell>
+                      )}
                       <TableCell align="right" sx={{ fontWeight: 600, ...tone(d.profitPct >= 0) }}>
                         {pct(d.profitPct)}
                       </TableCell>
@@ -817,7 +947,9 @@ const CrossAnalysisView = () => {
                         <Chip
                           size="small"
                           label={bad ? '⚠ ไม่มีจุดคุ้มทุน' : d.isOk ? '✓ ผ่าน' : '⚠ ไม่ผ่าน'}
-                          title={bad ? 'รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร — ไม่มีจุดคุ้มทุน' : undefined}
+                          title={
+                            bad ? 'รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร — ไม่มีจุดคุ้มทุน' : undefined
+                          }
                           sx={{
                             fontSize: '0.6875rem',
                             fontWeight: 700,
@@ -848,7 +980,10 @@ const CrossAnalysisView = () => {
 
             return (
               <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'baseline' }}>
-                <Typography component="span" sx={{ color: ic.color, fontWeight: 700, flexShrink: 0, fontSize: '0.8125rem' }}>
+                <Typography
+                  component="span"
+                  sx={{ color: ic.color, fontWeight: 700, flexShrink: 0, fontSize: '0.8125rem' }}
+                >
                   {ic.icon}
                 </Typography>
                 <Typography
