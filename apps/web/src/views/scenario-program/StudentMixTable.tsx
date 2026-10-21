@@ -167,15 +167,18 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     m === 'with_government' ? 'primary.main' : 'warning.main';
 
   const cell = (row: RowDef, i: number): ReactNode => {
-    // นิสิตต่างชาติไม่ได้เงินแผ่นดิน — ไม่มีช่องให้กรอก
-    if (row.input === 'gov' && isForeignSeg(i)) return '—';
-    if (row.input && !onChange) return fmt(segs[i]![row.input]);
+    // นิสิตต่างชาติไม่ได้เงินแผ่นดิน — กล่องพิมพ์ไม่ได้ ค่า 0
+    const locked = row.input === 'gov' && isForeignSeg(i);
+
+    if (row.input && !onChange) return locked ? '—' : fmt(segs[i]![row.input]);
     if (row.input) {
       return (
         <NumberTextField
           size="small"
-          value={segs[i]![row.input]}
-          disabled={row.disabled}
+          showZero
+          value={locked ? 0 : segs[i]![row.input]}
+          disabled={row.disabled || locked}
+          title={locked ? 'นิสิตต่างชาติไม่ได้เงินแผ่นดิน' : undefined}
           onChange={(v) => set(i, row.input!, v)}
           slotProps={{
             htmlInput: {

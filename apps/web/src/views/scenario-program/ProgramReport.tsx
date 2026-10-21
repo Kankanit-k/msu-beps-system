@@ -1,5 +1,5 @@
 // รายงานสำหรับพิมพ์/บันทึกเป็น PDF ผ่านกล่องโต้ตอบพิมพ์ของเบราว์เซอร์ (window.print())
-// ฉบับย่อ 2 หน้า 7 หัวข้อ — แสดงทั้งกรณีรวมและไม่รวมเงินแผ่นดินคู่กัน จากภาพที่บันทึกไว้ ไม่คำนวณซ้ำจากฟอร์มปัจจุบัน
+// ฉบับย่อ 2 หน้า 7 หัวข้อ — แสดงเฉพาะกรณีรวมเงินแผ่นดิน (ผู้ใช้สั่ง 2026-10-21) จากภาพที่บันทึกไว้ ไม่คำนวณซ้ำจากฟอร์มปัจจุบัน
 import type { ReactNode } from 'react';
 
 import Box from '@mui/material/Box';
@@ -391,10 +391,7 @@ interface Props {
 }
 
 const ProgramReport = ({ entry }: Props) => {
-  const cases: Case[] = [
-    { mode: 'with_government', r: entry.withGov },
-    { mode: 'without_government', r: entry.withoutGov },
-  ];
+  const cases: Case[] = [{ mode: 'with_government', r: entry.withGov }];
   // ปัดรายได้รวม/ต้นทุนรวมเป็นบาทก่อนลบ — ผู้อ่านคิดตามตัวเลขในรายงานแล้วได้ผลตรงกัน
   const profitOf = (r: BreakEvenResult) => Math.round(r.tr) - Math.round(r.tc);
   const okOf = (r: BreakEvenResult) => r.qStar !== null && r.qStar >= 0 && r.q >= r.qStar;
@@ -440,7 +437,7 @@ const ProgramReport = ({ entry }: Props) => {
                   {typeLabel}
                 </Pill>
                 <Pill bg="#fff1cc" color="#8a5a00">
-                  ฐานรายได้: รวมและไม่รวมเงินแผ่นดิน
+                  ฐานรายได้: {REVENUE_MODE_LABEL.with_government}
                 </Pill>
               </Box>
             </Box>
@@ -591,8 +588,7 @@ const ProgramReport = ({ entry }: Props) => {
             <PrintChart cases={cases} />
           </Box>
           <Typography sx={{ fontSize: 10, color: 'text.secondary', textAlign: 'center', mt: 1 }}>
-            จุดคุ้มทุนคือจุดที่เส้นรายได้รวมตัดกับเส้นต้นทุนรวม · สีม่วง = รวมเงินแผ่นดิน · สีส้ม =
-            ไม่รวมเงินแผ่นดิน
+            จุดคุ้มทุนคือจุดที่เส้นรายได้รวมตัดกับเส้นต้นทุนรวม
           </Typography>
         </Section>
 

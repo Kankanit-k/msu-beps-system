@@ -27,7 +27,7 @@ const MixStep = (props: Props) => (
   <Card>
     <CardHeader
       title={
-        <DotTitle color="warning.main">การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน</DotTitle>
+        <DotTitle color="warning.main">③ การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน</DotTitle>
       }
       subheader={
         props.note && (

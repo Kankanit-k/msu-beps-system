@@ -6,13 +6,15 @@ import TextField, { type TextFieldProps } from '@mui/material/TextField';
 type Props = Omit<TextFieldProps, 'value' | 'onChange' | 'type'> & {
   value: number;
   onChange: (value: number) => void;
+  /** แสดง 0 แทนช่องว่าง */
+  showZero?: boolean;
 };
 
-/** ช่องกรอกจำนวนเต็มที่แสดงคั่นหลักพันด้วย , (เช่น 1,000,000) — ค่า 0 แสดงเป็นช่องว่าง */
-const NumberTextField = ({ value, onChange, slotProps, ...rest }: Props) => (
+/** ช่องกรอกจำนวนเต็มที่แสดงคั่นหลักพันด้วย , (เช่น 1,000,000) — ค่า 0 แสดงเป็นช่องว่าง เว้นแต่ showZero */
+const NumberTextField = ({ value, onChange, slotProps, showZero, ...rest }: Props) => (
   <TextField
     {...rest}
-    value={value ? value.toLocaleString('en-US') : ''}
+    value={value || showZero ? value.toLocaleString('en-US') : ''}
     onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, '')) || 0)}
     slotProps={{ ...slotProps, htmlInput: { inputMode: 'numeric', ...slotProps?.htmlInput } }}
   />
