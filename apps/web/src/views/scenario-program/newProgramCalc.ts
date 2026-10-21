@@ -228,7 +228,7 @@ export interface Segment {
   years: number;
 }
 
-/** ชื่อกลุ่มนิสิต (Masterโครงสร้าง J:M) + "ต่อเนื่อง 2 ปี" — ป.ตรี เรียก ปกติ/พิเศษ, บัณฑิตศึกษา เรียก ในเวลา/นอกเวลา */
+/** ชื่อกลุ่มนิสิต (Masterโครงสร้าง J:M) + "เทียบเข้า" (เดิม ต่อเนื่อง 2 ปี) — ป.ตรี เรียก ปกติ/พิเศษ, บัณฑิตศึกษา เรียก ในเวลา/นอกเวลา */
 export function segmentLabels(level: string): string[] {
   const [a, b] = level === 'ปริญญาตรี' ? ['ปกติ', 'พิเศษ'] : ['ในเวลา', 'นอกเวลา'];
 
@@ -237,10 +237,14 @@ export function segmentLabels(level: string): string[] {
     `นิสิตไทย (${b})`,
     `นิสิตต่างชาติ (${a})`,
     `นิสิตต่างชาติ (${b})`,
-    'ต่อเนื่อง 2 ปี',
+    'เทียบเข้า',
   ];
 }
 
+/** คอลัมน์นิสิตต่างชาติ (ลำดับ 2–3 ของ segmentLabels) — ไม่ได้เงินแผ่นดิน */
+export const isForeignSeg = (i: number) => i === 2 || i === 3;
+
+/** ป.บัณฑิต / ประกาศนียบัตร = 1 ปี (2 เทอม ตามค่าตั้งต้นเทอม/ปี) */
 export const defaultYears = (level: string) =>
   level === 'ปริญญาตรี' ? 4 : level === 'ปริญญาเอก' ? 3 : level === 'ปริญญาโท' ? 2 : 1;
 
@@ -265,7 +269,8 @@ export interface MixResult {
 export function mixResult(segs: Segment[], tfc: number, avc: number, mode: RevenueMode): MixResult {
   const n = sum(segs.map((s) => s.n));
   const rows = segs.map((s, i) => {
-    const perSem = s.fee + (mode === 'with_government' ? s.gov : 0);
+    // นิสิตต่างชาติไม่รวมเงินแผ่นดิน — ร่างเก่าที่เคยใส่ไว้ก็ไม่นับ
+    const perSem = s.fee + (mode === 'with_government' && !isForeignSeg(i) ? s.gov : 0);
     const share = n ? s.n / n : 0;
     const revenue = perSem * s.n * s.semesters;
     const segTfc = tfc * share;

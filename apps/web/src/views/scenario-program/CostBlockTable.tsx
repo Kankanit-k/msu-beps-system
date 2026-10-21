@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -42,16 +42,37 @@ export const gridTableSx = {
 } satisfies SxProps<Theme>;
 
 /** ช่องที่ต้องกรอก — พื้นเหลืองอ่อน กรอบน้ำเงิน ตัวหนา ให้เห็นชัดว่าพิมพ์ตรงนี้ */
+/** ช่องกรอกในตาราง — กรอบฟ้า + ดินสอนำหน้า ให้เห็นทันทีว่าแก้ได้ · โฟกัสแล้วเป็นพื้นขาวมีวงแสง */
 export const editInputSx = {
   width: '100%',
   '& .MuiOutlinedInput-root': {
     bgcolor: (t) => alpha(t.palette.warning.main, 0.12),
     fontWeight: 700,
+    borderRadius: 1.5,
+    cursor: 'text',
+    transition: 'background-color .15s, box-shadow .15s',
+    '&::before': {
+      content: '"✎"',
+      pl: 1,
+      color: 'primary.main',
+      fontWeight: 400,
+    },
+    '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
+    '&:hover:not(.Mui-focused):not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'primary.main',
+    },
+    '&.Mui-focused': {
+      bgcolor: 'background.paper',
+      boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.25)}`,
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main', borderWidth: 2 },
+    '&.Mui-disabled': { bgcolor: 'action.hover', '&::before': { content: 'none' } },
   },
   '& .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'primary.main',
+    borderColor: (t) => alpha(t.palette.primary.main, 0.45),
     borderWidth: 1.5,
   },
+  '& .Mui-disabled .MuiOutlinedInput-notchedOutline': { borderColor: 'divider', borderWidth: 1 },
 } satisfies SxProps<Theme>;
 
 const fmt = (v: number | null) =>
@@ -60,7 +81,7 @@ const fmt = (v: number | null) =>
 const fmtDiff = (v: number) => {
   const x = Math.round(v);
 
-  return x === 0 ? '0' : `${x > 0 ? '+' : '−'}${Math.abs(x).toLocaleString('th-TH')}`;
+  return x === 0 ? '0' : `${x > 0 ? '▲' : '▼'} ${Math.abs(x).toLocaleString('th-TH')}`;
 };
 
 interface Line {
@@ -80,8 +101,6 @@ interface Line {
   highlight?: boolean;
   /** แก้ได้แม้จำกัดสิทธิ์ (ผู้ปรับปรุงหลักสูตร/อาจารย์) — จำนวนนิสิต */
   basic?: boolean;
-  /** แถวผลลัพธ์ที่ยังแสดงเมื่อจำกัดสิทธิ์ (basicOnly) — ให้เห็นผลของการปรับ */
-  result?: boolean;
   /** แสดงเฉพาะตอนจำกัดสิทธิ์ (basicOnly) */
   basicOnlyRow?: boolean;
   /** แถวสรุปคุ้มทุน/ไม่คุ้มทุน — แสดงเป็นป้ายแทนตัวเลข */
@@ -110,7 +129,7 @@ interface Props {
   onChange: (mode: RevenueMode, b: CostBlock) => void;
   /** แสดงแถวปรับส่วนแบ่งส่วนกลางคณะ — เฉพาะเมื่อใช้วิธีปันส่วนอื่นที่ไม่ใช่ตามชีต */
   showAllocAdj?: boolean;
-  /** แสดงเฉพาะแถว basic (จำนวนนิสิต · ค่าธรรมเนียมต่อคน) ที่แก้ได้ และแถวผลลัพธ์ (result) */
+  /** ตารางเต็มแบบแท็บ 4 แต่แก้ได้เฉพาะแถว basic (จำนวนนิสิต · ค่าธรรมเนียมต่อคนต่อปี) */
   basicOnly?: boolean;
 }
 
@@ -124,7 +143,7 @@ const setArr = (k: 'fix' | 'var', i: number) => (b: CostBlock, v: number) => ({
 const LINES: Line[] = [
   {
     no: 1,
-    label: 'จำนวนนักศึกษาจริง',
+    label: 'จำนวนนักศึกษาจริง : คน (Q)',
     get: (b) => b.q,
     unit: 'คน',
     depth: 0,
@@ -137,21 +156,10 @@ const LINES: Line[] = [
   },
   {
     no: 2,
-    label: 'รายได้รวม',
+    label: 'รายได้รวม (Total Revenue : TR)',
     get: (_, r) => r.tr,
     unit: 'บาท',
     depth: 0,
-    result: true,
-  },
-  {
-    // จำลองปรับค่าธรรมเนียม — รายได้ค่าธรรมเนียม (2.2) = อัตราต่อคน × Q
-    label: '2.1 ค่าธรรมเนียมการศึกษาต่อคน',
-    get: (b) => (b.q > 0 ? b.income / b.q : null),
-    unit: 'บาท/คน',
-    depth: 1,
-    basic: true,
-    basicOnlyRow: true,
-    set: (b, v) => (b.q > 0 ? { ...b, income: v * b.q } : b),
   },
   {
     label: '2.1 งบประมาณเงินแผ่นดิน',
@@ -167,20 +175,28 @@ const LINES: Line[] = [
     unit: 'บาท',
     depth: 1,
     // จำกัดสิทธิ์ (basicOnly) — แสดงเฉยๆ ไม่ให้กรอก
-    result: true,
     set: (b, v) => ({ ...b, income: v }),
   },
-  { label: 'รายได้ต่อหน่วย', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
+  {
+    // จำลองปรับค่าธรรมเนียม — รายได้ค่าธรรมเนียม (2.2) = อัตราต่อคนต่อปี × Q
+    label: '- ค่าธรรมเนียมการศึกษาต่อคนต่อปี',
+    get: (b) => (b.q > 0 ? b.income / b.q : null),
+    unit: 'บาท/คน/ปี',
+    depth: 2,
+    basic: true,
+    basicOnlyRow: true,
+    set: (b, v) => (b.q > 0 ? { ...b, income: v * b.q } : b),
+  },
+  { label: 'รายได้ต่อหน่วย : คน (R)', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
   {
     no: 3,
-    label: 'ต้นทุนรวม',
+    label: 'ต้นทุนรวม (Total Cost : TC)',
     get: (_, r) => r.tc,
     unit: 'บาท',
     depth: 0,
-    result: true,
   },
   {
-    label: '3.1 ต้นทุนคงที่รวม',
+    label: '3.1 ต้นทุนคงที่รวม (Total Fixed Cost : TFC)',
     get: (_, r) => r.tfc,
     unit: 'บาท',
     depth: 1,
@@ -208,7 +224,7 @@ const LINES: Line[] = [
     depth: 2,
   },
   {
-    label: '3.2 ต้นทุนผันแปร',
+    label: '3.2 ต้นทุนผันแปร (Total Variable Cost : TVC)',
     get: (_, r) => r.tvc,
     unit: 'บาท',
     depth: 1,
@@ -240,15 +256,14 @@ const LINES: Line[] = [
     unit: 'บาท',
     depth: 2,
   },
-  { label: 'ต้นทุนผันแปรต่อหน่วย', get: (_, r) => r.avc, unit: 'บาท/คน', depth: 1 },
+  { label: 'ต้นทุนผันแปรต่อหน่วย (AVC)', get: (_, r) => r.avc, unit: 'บาท/คน', depth: 1 },
   {
     no: 4,
-    label: 'จำนวนนิสิต ณ จุดคุ้มทุน',
+    label: 'จำนวนนิสิต ณ จุดคุ้มทุน (Q)',
     get: (_, r) => r.qStar,
     unit: 'คน',
     depth: 0,
     highlight: true,
-    result: true,
   },
   { no: 5, label: 'รายได้ ณ จุดคุ้มทุน', get: (_, r) => r.beRevenue, unit: 'บาท', depth: 0 },
   {
@@ -257,17 +272,23 @@ const LINES: Line[] = [
     unit: 'คน',
     depth: 0,
     highlight: true,
-    result: true,
   },
   {
     label: 'ผลการคุ้มทุน',
     get: (_, r) => r.diff,
     unit: '',
     depth: 0,
-    result: true,
     status: true,
   },
 ];
+
+/** หมวดรายจ่ายใต้ข้อ 3 (ต้นทุนรวม) — หุบได้ ให้เห็นส่วนบน (Q/รายได้) กับส่วนล่าง (จุดคุ้มทุน) ในจอเดียว */
+const COST_DETAIL = new Set(
+  LINES.slice(
+    LINES.findIndex((l) => l.no === 3),
+    LINES.findIndex((l) => l.no === 4),
+  ).filter((l) => l.depth === 2),
+);
 
 /** สถานะคุ้มทุนของคอลัมน์ — Q ≥ Q* = คุ้มทุน · Q* ติดลบ/หาไม่ได้ = ไม่มีจุดคุ้มทุน */
 const statusOf = (r: BlockResult) =>
@@ -285,8 +306,13 @@ const statusOf = (r: BlockResult) =>
  */
 const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = false }: Props) => {
   const editStart = useRef<CostBlock | null>(null);
-  const lines = LINES.filter((l) =>
-    basicOnly ? l.basic || l.result : !l.basicOnlyRow && (showAllocAdj || l.id !== ALLOC_ADJ),
+  // แก้ได้เฉพาะ Q/ค่าธรรมเนียม → หุบหมวดรายจ่ายไว้ก่อน · กรอกต้นทุนเองต้องเห็นช่องกรอกทุกหมวด
+  const [costOpen, setCostOpen] = useState(!basicOnly);
+  const lines = LINES.filter(
+    (l) =>
+      (basicOnly || !l.basicOnlyRow) &&
+      (showAllocAdj || l.id !== ALLOC_ADJ) &&
+      (costOpen || !COST_DETAIL.has(l)),
   );
   const nCols = groups.reduce((a, g) => a + g.cols.length, 0);
   // คอลัมน์ตัวเลข (รวมผลต่าง) กว้างเท่ากันและคงที่ — table-layout: fixed กันช่องยืด/หดตามตัวเลขที่พิมพ์
@@ -317,7 +343,7 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
           tableLayout: 'fixed',
           minWidth: 48 + 240 + 64 + nValueCols * valueWidth,
           ...gridTableSx,
-          // แบบจำกัดสิทธิ์: แถวเตี้ยลงให้การ์ด ①② พอดีจอโดยไม่ต้องเลื่อน
+          // แบบจำกัดสิทธิ์: แถวเตี้ยลง ตารางเต็มแบบแท็บ 4 จะได้ไม่ยาวเกินไป
           // (คีย์ซ้ำกับ gridTableSx — ต้องรวมเส้นไว้ด้วย ไม่งั้นเส้นตารางหาย)
           ...(basicOnly && {
             '& th, & td': { ...gridTableSx['& th, & td'], py: 1.25, px: 2, fontSize: '0.875rem' },
@@ -374,8 +400,42 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
             >
               <TableCell sx={{ fontWeight: 700 }}>{l.no ?? ''}</TableCell>
               <TableCell sx={{ pl: 2 + l.depth * 2, fontWeight: l.depth < 2 ? 700 : 400 }}>
-                {l.label}
-                {l.highlight && !l.label.startsWith('Diff') && anyNegative && (
+                {l.no === 3 ? (
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={() => setCostOpen((o) => !o)}
+                    aria-expanded={costOpen}
+                    sx={{
+                      all: 'unset',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      '&:focus-visible': { outline: 2, outlineColor: 'primary.main' },
+                    }}
+                  >
+                    <i
+                      className={costOpen ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}
+                      style={{ fontSize: 18 }}
+                    />
+                    {l.label}
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: 12,
+                        fontWeight: 400,
+                        color: 'primary.main',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {costOpen ? 'ซ่อนรายหมวด' : 'ดูรายหมวด'}
+                    </Box>
+                  </Box>
+                ) : (
+                  l.label
+                )}
+                {l.no === 4 && anyNegative && (
                   <Chip
                     size="small"
                     color="warning"
@@ -427,15 +487,16 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
                           {sts[0]!.ok === sts[1]!.ok
                             ? 'คงเดิม'
                             : sts[1]!.ok
-                              ? '↑ กลายเป็นคุ้มทุน'
-                              : '↓ กลายเป็นไม่คุ้มทุน'}
+                              ? '▲ กลายเป็นคุ้มทุน'
+                              : '▼ กลายเป็นไม่คุ้มทุน'}
                         </TableCell>
                       ),
                     ];
                   })
                 : groups.map((g) => {
                     const excluded = !!l.govOnly && g.mode === 'without_government';
-                    const values = g.cols.map((c) => l.get(c.block, c.result));
+                    // ไม่นับเงินแผ่นดิน → แสดง "—" ทั้งค่าและผลต่าง
+                    const values = g.cols.map((c) => (excluded ? null : l.get(c.block, c.result)));
                     const d =
                       g.cols.length === 2 && values[0] !== null && values[1] !== null
                         ? values[1]! - values[0]!
@@ -480,7 +541,6 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
                                 sx={{
                                   fontWeight: l.depth < 2 ? 700 : 400,
                                   color: colorOf(l, v, negative, excluded),
-                                  textDecoration: excluded ? 'line-through' : undefined,
                                 }}
                               >
                                 {fmt(v)}

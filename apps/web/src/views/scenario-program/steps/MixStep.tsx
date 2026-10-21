@@ -30,20 +30,11 @@ const MixStep = (props: Props) => (
         <DotTitle color="warning.main">การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน</DotTitle>
       }
       subheader={
-        <>
-          {props.note && (
-            <Typography
-              component="span"
-              variant="body2"
-              color="primary.main"
-              sx={{ display: 'block' }}
-            >
-              {props.note}
-            </Typography>
-          )}
-          แสดงกรณีรวมและไม่รวมเงินแผ่นดินคู่กัน · ปันต้นทุนคงที่ตามสัดส่วนนิสิต · ต้นทุนผันแปร = AVC
-          × จำนวนนิสิต · รายรับต่อปี = (ค่าธรรมเนียม + เงินแผ่นดิน) × นิสิต × เทอม
-        </>
+        props.note && (
+          <Typography component="span" variant="body2" color="primary.main">
+            {props.note}
+          </Typography>
+        )
       }
     />
     <CardContent>

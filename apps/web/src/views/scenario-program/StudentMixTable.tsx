@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -22,7 +22,7 @@ import NumberTextField from '@components/NumberTextField';
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
 import { editInputSx, gridTableSx } from './CostBlockTable';
-import { mixResult, type MixResult, type Segment, type SegmentResult } from './newProgramCalc';
+import { isForeignSeg, mixResult, type MixResult, type Segment, type SegmentResult } from './newProgramCalc';
 
 const fmt = (v: number) => (Number.isFinite(v) ? Math.round(v).toLocaleString('th-TH') : '—');
 const pct = (v: number) => `${(v * 100).toLocaleString('th-TH', { maximumFractionDigits: 1 })}%`;
@@ -65,14 +65,37 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     MODES.map((m) => [m, mixResult(segs, costs[m].tfc, costs[m].avc, m)]),
   ) as Record<RevenueMode, MixResult>;
   const base = mixes.with_government;
+  // แถว 7/8 (ผลรายกรณี) หุบ/กางได้ — ตั้งต้นหุบไว้ ให้เห็นกล่องสรุปด้านล่าง · รายงานพิมพ์กางเสมอ
+  const [openModes, setOpenModes] = useState<RevenueMode[]>([]);
+  const isOpen = (m: RevenueMode) => !onChange || openModes.includes(m);
+  const toggle = (m: RevenueMode) =>
+    setOpenModes((o) => (o.includes(m) ? o.filter((x) => x !== m) : [...o, m]));
   const set = (i: number, k: InputKey, v: number) =>
     onChange?.(segs.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
 
   const outRows = (m: RevenueMode): RowDef[] => {
     const mix = mixes[m];
 
+    const section: RowDef = {
+      label: REVENUE_MODE_LABEL[m],
+      section: m,
+      no: m === 'with_government' ? '7' : '8',
+    };
+
+    const profit: RowDef = {
+      label: 'กำไร (ขาดทุน)',
+      mode: m,
+      out: (r) => fmt(r.profit),
+      total: fmt(mix.total.profit),
+      bold: true,
+      unit: 'บาท',
+    };
+
+    // หุบแล้วยังเห็นกำไร (ขาดทุน) — บรรทัดล่างสุดที่ต้องรู้
+    if (!isOpen(m)) return [section, profit];
+
     return [
-      { label: REVENUE_MODE_LABEL[m], section: m, no: m === 'with_government' ? '7' : '8' },
+      section,
       {
         label: 'รายรับตลอดหลักสูตร ต่อคน',
         mode: m,
@@ -101,14 +124,7 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
         total: fmt(mix.total.tvc),
         unit: 'บาท',
       },
-      {
-        label: 'กำไร (ขาดทุน)',
-        mode: m,
-        out: (r) => fmt(r.profit),
-        total: fmt(mix.total.profit),
-        bold: true,
-        unit: 'บาท',
-      },
+      profit,
     ];
   };
 
@@ -135,11 +151,24 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     { no: '6', label: 'จำนวนปีการศึกษา', input: 'years', unit: 'ปี' },
     ...MODES.flatMap(outRows),
   ];
+  const sectionLabel = (m: RevenueMode, label: string) =>
+    onChange ? (
+      <>
+        {isOpen(m) ? '▾' : '▸'} {label}
+        <Box component="span" sx={{ ml: 1, fontWeight: 400, fontSize: 12, color: 'text.secondary' }}>
+          {isOpen(m) ? 'คลิกเพื่อหุบ' : 'คลิกเพื่อดูรายรับ/ต้นทุน'}
+        </Box>
+      </>
+    ) : (
+      label
+    );
   const rowKey = (row: RowDef) => `${row.mode ?? row.section ?? ''}:${row.label}`;
   const sectionColor = (m: RevenueMode) =>
     m === 'with_government' ? 'primary.main' : 'warning.main';
 
   const cell = (row: RowDef, i: number): ReactNode => {
+    // นิสิตต่างชาติไม่ได้เงินแผ่นดิน — ไม่มีช่องให้กรอก
+    if (row.input === 'gov' && isForeignSeg(i)) return '—';
     if (row.input && !onChange) return fmt(segs[i]![row.input]);
     if (row.input) {
       return (
@@ -239,14 +268,16 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
                     <Typography
                       key={rowKey(row)}
                       variant="caption"
+                      onClick={() => toggle(row.section!)}
                       sx={{
                         display: 'block',
                         mt: 1.5,
                         fontWeight: 700,
                         color: sectionColor(row.section),
+                        cursor: 'pointer',
                       }}
                     >
-                      {row.label}
+                      {sectionLabel(row.section, row.label)}
                     </Typography>
                   ) : (
                     <Box
@@ -295,14 +326,20 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
               row.section ? (
                 <TableRow
                   key={rowKey(row)}
-                  sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}
+                  hover={!!onChange}
+                  onClick={() => toggle(row.section!)}
+                  aria-expanded={isOpen(row.section)}
+                  sx={{
+                    bgcolor: (t) => alpha(t.palette.primary.main, 0.05),
+                    cursor: onChange ? 'pointer' : undefined,
+                  }}
                 >
                   <TableCell sx={{ fontWeight: 700 }}>{row.no}</TableCell>
                   <TableCell
                     colSpan={segs.length + 3}
                     sx={{ fontWeight: 800, color: sectionColor(row.section) }}
                   >
-                    {row.label}
+                    {sectionLabel(row.section, row.label)}
                   </TableCell>
                 </TableRow>
               ) : (

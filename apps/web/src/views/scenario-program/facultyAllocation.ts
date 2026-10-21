@@ -321,8 +321,9 @@ export function levelCapIssue(c: AllocChoice, buckets: readonly AllocBucket[]): 
 
 /**
  * กำหนด % รายหลักสูตร: แบ่ง % ของแต่ละระดับลงหลักสูตรในระดับตามจำนวนนิสิตรายหัว (Q ตามชีต)
- * — คนเยอะได้ % มาก รวมกันเท่า % ของระดับพอดี (ปัด 4 ตำแหน่งแบบเศษเหลือมากสุดได้ก่อน)
- * ระดับที่นิสิตรวมเป็น 0 หารเท่ากัน
+ * — คนเยอะได้ % มาก ปัดเป็นจำนวนเต็ม (เศษเหลือมากสุดได้ก่อน) ให้รวมเท่า % ของระดับพอดี
+ * ทุกหลักสูตรได้อย่างน้อย 1% กันหลักสูตรถูกปัดเป็น 0 แล้วไม่ได้ปันส่วน
+ * ถ้า % ของระดับมีทศนิยม เศษทศนิยมนั้นไปอยู่กับหลักสูตรที่นิสิตมากสุด · ระดับที่นิสิตรวมเป็น 0 หารเท่ากัน
  */
 export function splitLevelPctByFtes(
   caps: Record<string, number>,
@@ -332,9 +333,27 @@ export function splitLevelPctByFtes(
 
   for (const [lvl, cap] of Object.entries(caps)) {
     const members = buckets.filter((b) => (b.group ?? '') === lvl);
-    const totalQ = members.reduce((a, b) => a + b.q, 0);
-    const units = Math.round(cap * 1e4);
-    const raw = members.map((b) => (totalQ > 0 ? (units * b.q) / totalQ : units / members.length));
+
+    if (!members.length) continue;
+    const units = Math.floor(round4(cap));
+    // ขั้นต่ำ 1% ต่อหลักสูตร (ถ้า % ระดับพอ) — หลักสูตรที่สัดส่วนได้ไม่ถึง 1 ล็อกไว้ 1 แล้วแบ่งที่เหลือใหม่
+    const min = units >= members.length ? 1 : 0;
+    const pinned = new Set<number>();
+    let raw: number[] = [];
+
+    for (;;) {
+      const free = members.map((_, i) => i).filter((i) => !pinned.has(i));
+      const rest = units - pinned.size * min;
+      const freeQ = free.reduce((a, i) => a + members[i]!.q, 0);
+
+      raw = members.map((b, i) =>
+        pinned.has(i) ? min : freeQ > 0 ? (rest * b.q) / freeQ : rest / free.length,
+      );
+      const low = free.filter((i) => raw[i]! < min);
+
+      if (!low.length) break;
+      low.forEach((i) => pinned.add(i));
+    }
     const base = raw.map(Math.floor);
     let left = units - base.reduce((a, v) => a + v, 0);
 
@@ -344,7 +363,10 @@ export function splitLevelPctByFtes(
       .forEach(({ i }) => {
         if (left-- > 0) base[i]!++;
       });
-    members.forEach((b, i) => (out[b.key] = String(base[i]! / 1e4)));
+    const top = members.reduce((m, b, i) => (b.q > members[m]!.q ? i : m), 0);
+
+    base[top] = round4(base[top]! + round4(cap) - units);
+    members.forEach((b, i) => (out[b.key] = String(base[i])));
   }
 
   return out;

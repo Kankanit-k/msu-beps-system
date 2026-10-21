@@ -45,6 +45,7 @@ import { MOCK_RUN } from '@components/PageHeaderBar';
 import { useAuthUser } from '@/hooks/AuthHooks';
 import { useRole } from '@/hooks/useRole';
 import { roleDisplay } from '@/configs/accessControl';
+import type { ProgRow } from '@/data/mockup';
 import { fmtMillion } from '@views/breakeven/calc';
 import { FACULTIES, facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
 import MethodCards from '@views/fixed-cost-policy/MethodCards';
@@ -66,7 +67,7 @@ import {
   type FacultyScenario,
 } from '@views/scenario-program/facultyAllocation';
 import { gridTableSx } from '@views/scenario-program/CostBlockTable';
-import { progOptionLabel } from '@views/scenario-program/programData';
+import { progDegreeLabel } from '@views/scenario-program/programData';
 
 import { fmtLockedAt, lockFaculty, unlockFaculty, useFacultyLock } from './lockStore';
 
@@ -160,8 +161,8 @@ const METHODS: AllocMethod[] = ['PER_HEAD_FTES', 'EQUAL_PROGRAM', 'CUSTOM_PCT'];
 const fmtB = (v: number) => Math.round(v).toLocaleString('th-TH');
 /** ผลต่างจากชีตเป็นคำ — เลขบวก/ลบในวงเล็บสีสวนกับความรู้สึก (ลบ = ดี) ผู้ใช้อ่านสะดุด */
 const fmtDiff = (v: number) => `${v > 0 ? '▲ ภาระเพิ่ม' : '▼ ภาระลด'} ${fmtB(Math.abs(v))}`;
-/** ลำดับกลุ่มระดับในตารางเทียบ — ระดับที่ไม่รู้จักไปท้ายสุด */
-const LVL_ORDER = ['ปริญญาตรี', 'ประกาศนียบัตร', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
+/** ลำดับระดับทั้งหน้า (ขั้นที่ 2 + ตารางเทียบ) — ระดับที่ไม่รู้จักไปท้ายสุด */
+const LVL_ORDER = ['ประกาศนียบัตร', 'ปริญญาตรี', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
 const lvlRank = (lvl: string) => {
   const i = LVL_ORDER.indexOf(lvl);
 
@@ -256,6 +257,15 @@ const FixedCostLockView = () => {
 
   /* ---------- ผลปันส่วนของทั้งคณะตามวิธีที่เลือก (ชุดคำนวณเดียวกับหน้าคำนวณรายหลักสูตร) ---------- */
   const rows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
+  /** แสดงแค่ชื่อปริญญา — ชื่อซ้ำในระดับเดียวกัน (6 คู่ในชีต) ต่อชื่อหลักสูตรในวงเล็บให้แยกได้ */
+  const progName = useMemo(() => {
+    const n = new Map<string, number>();
+    const key = (p: ProgRow) => `${p.lvl}|${progDegreeLabel(p)}`;
+
+    rows.forEach(({ p }) => n.set(key(p), (n.get(key(p)) ?? 0) + 1));
+
+    return (p: ProgRow) => (n.get(key(p))! > 1 ? `${progDegreeLabel(p)} (${p.prog})` : progDegreeLabel(p));
+  }, [rows]);
   /** ตารางขั้นที่ 3 จัดกลุ่มตามระดับ — sort คงลำดับเดิมภายในระดับเดียวกัน */
   const byLevel = useMemo(
     () => [...rows].sort((a, b) => lvlRank(a.p.lvl) - lvlRank(b.p.lvl)),
@@ -272,19 +282,21 @@ const FixedCostLockView = () => {
     if (!fac) return null;
     const programs = rows.map(({ p, id }) => ({
       id,
-      label: progOptionLabel(p),
+      label: progName(p),
       educationLevel: p.lvl,
       q: p.Q,
       sheetShare: sheetShareOf(p),
     }));
 
     return { pool: programs.reduce((a, p) => a + p.sheetShare, 0), programs };
-  }, [fac, rows]);
-  const buckets = scenario ? allocBuckets(scenario, choice.bucketLevel) : [];
+  }, [fac, rows, progName]);
+  const byLvl = (bs: ReturnType<typeof allocBuckets>) =>
+    [...bs].sort((a, b) => lvlRank(a.group ?? a.key) - lvlRank(b.group ?? b.key));
+  const buckets = scenario ? byLvl(allocBuckets(scenario, choice.bucketLevel)) : [];
   const outcome = scenario ? allocateFaculty(scenario, policyOf(choice, buckets)) : null;
   const errors = outcome?.issues.filter((i) => i.severity === 'error') ?? [];
   // รายหลักสูตร: % รายระดับก่อน แล้วหลักสูตรในระดับรวมกันต้องเท่า % ของระดับ
-  const levelBuckets = scenario ? allocBuckets(scenario, 'EDUCATION_LEVEL') : [];
+  const levelBuckets = scenario ? byLvl(allocBuckets(scenario, 'EDUCATION_LEVEL')) : [];
   const groupCaps = levelCapsOf(
     choice,
     levelBuckets.map((b) => b.key),
@@ -774,7 +786,7 @@ const FixedCostLockView = () => {
                           </TableRow>
                         ),
                         <TableRow key={id} hover>
-                          <TableCell sx={{ pl: 4 }}>{progOptionLabel(p)}</TableCell>
+                          <TableCell sx={{ pl: 4 }}>{progName(p)}</TableCell>
                           <TableCell align="right">{fmtB(p.Q)}</TableCell>
                           {compare.map(({ m, applied, after }) => {
                             const v = after.get(id) ?? 0;
