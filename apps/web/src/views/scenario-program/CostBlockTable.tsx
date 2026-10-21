@@ -16,12 +16,11 @@ import { alpha, type SxProps, type Theme } from '@mui/material/styles';
 import type { RevenueMode } from '@beps/calc-engine';
 
 import NumberTextField from '@components/NumberTextField';
+import { useRates, type RateKey } from '@views/per-head-rates/rateStore';
 
 import {
   FIXED_CATS,
-  MAIN_FEE_RATE,
   scaleQ,
-  UNI_SHARE_RATE,
   VARIABLE_CATS,
   type BlockResult,
   type CostBlock,
@@ -80,6 +79,8 @@ interface Line {
   highlight?: boolean;
   /** แก้ได้แม้จำกัดสิทธิ์ (ผู้ปรับปรุงหลักสูตร/อาจารย์) — จำนวนนิสิต */
   basic?: boolean;
+  /** ต่อท้ายชื่อด้วยอัตรารายหัวที่อนุมัติ (หน้าตั้งค่าระบบ) */
+  rate?: RateKey;
   /** แถวผลลัพธ์ที่ยังแสดงเมื่อจำกัดสิทธิ์ (basicOnly) — ให้เห็นผลของการปรับ */
   result?: boolean;
   /** แสดงเฉพาะตอนจำกัดสิทธิ์ (basicOnly) */
@@ -229,13 +230,14 @@ const LINES: Line[] = [
     set: (b, v) => ({ ...b, genEd: v }),
   },
   {
-    label: `- ค่าธรรมเนียมรายการหลัก (${MAIN_FEE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
+    label: '- ค่าธรรมเนียมรายการหลัก',
     get: (b) => b.mainFee,
     unit: 'บาท',
     depth: 2,
   },
   {
-    label: `- หักสมทบมหาวิทยาลัย (${UNI_SHARE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
+    label: '- หักสมทบมหาวิทยาลัย',
+    rate: 'uniShare',
     get: (b) => b.uniShare,
     unit: 'บาท',
     depth: 2,
@@ -284,6 +286,7 @@ const statusOf = (r: BlockResult) =>
  * แต่ละกลุ่ม: อ้างอิงหลักสูตรเดิม | กำหนดเอง | ผลต่าง
  */
 const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = false }: Props) => {
+  const rates = useRates();
   const editStart = useRef<CostBlock | null>(null);
   const lines = LINES.filter((l) =>
     basicOnly ? l.basic || l.result : !l.basicOnlyRow && (showAllocAdj || l.id !== ALLOC_ADJ),
@@ -375,6 +378,7 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
               <TableCell sx={{ fontWeight: 700 }}>{l.no ?? ''}</TableCell>
               <TableCell sx={{ pl: 2 + l.depth * 2, fontWeight: l.depth < 2 ? 700 : 400 }}>
                 {l.label}
+                {l.rate && ` (${rates[l.rate].toLocaleString('th-TH')} บ./คน/ภาค)`}
                 {l.highlight && !l.label.startsWith('Diff') && anyNegative && (
                   <Chip
                     size="small"
