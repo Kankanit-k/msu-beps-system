@@ -29,7 +29,7 @@ import Grid from '@mui/material/Grid';
 import type { ApexOptions } from 'apexcharts';
 
 // Component Imports
-import { DotTitle } from '@components/ChartBits';
+import { BarTitle, KPI_COLORS } from '@components/ChartBits';
 
 import type { FacultyCrossRow } from './crossData';
 import { HEATMAP_METRICS, HEAT_SCALE_GRADIENT, heatCellColor } from './heatmapMetrics';
@@ -44,12 +44,12 @@ export const fmtM = (v: number) =>
   v.toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 export const pct = (v: number) => `${v >= 0 ? '+' : ''}${v}%`;
 
-// ---- ธีมกราฟ Scatter: จุดเขียว/ชมพูมีขอบเข้ม · เส้น grid ทั้งสองแกน · ช่วงแกนปัดเป็นเลขกลม ----
+// ---- ธีมกราฟ Scatter (สีแบบ MSU-KPI): จุดเขียว/แดงมีขอบเข้ม · เส้น grid ทั้งสองแกน · ช่วงแกนปัดเป็นเลขกลม ----
 const SCATTER_COLORS = {
-  ok: '#2bb389',
-  okStroke: '#1d8f6c',
-  loss: '#ef6b95',
-  lossStroke: '#d94677',
+  ok: KPI_COLORS.green,
+  okStroke: '#1f9d57',
+  loss: KPI_COLORS.red,
+  lossStroke: '#d63a3f',
 };
 export const AXIS_LABEL_STYLE = { colors: 'var(--mui-palette-text-secondary)', fontSize: '11px' };
 export const AXIS_TITLE_STYLE = {
@@ -172,11 +172,7 @@ export const HeatmapCard = ({
   return (
     <Card>
       <CardHeader
-        title={
-          <DotTitle color="primary.main">
-            {title ?? `ตารางสีเปรียบเทียบ — ตัวชี้วัดสำคัญราย${unitWord}`}
-          </DotTitle>
-        }
+        title={<BarTitle>{title ?? `ตารางสีเปรียบเทียบ — ตัวชี้วัดสำคัญราย${unitWord}`}</BarTitle>}
         subheader="เขียว = ดี · แดง = ต้องปรับปรุง (ปรับตามทิศทางของแต่ละตัวชี้วัด)"
         action={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pr: 2 }}>
@@ -409,9 +405,7 @@ export const ScatterPair = ({ rows, unitWord }: { rows: FacultyCrossRow[]; unitW
         <Card sx={{ height: '100%' }}>
           <CardHeader
             titleTypographyProps={{ fontSize: '1rem' }}
-            title={
-              <DotTitle color="warning.main">กราฟการกระจาย: จุดคุ้มทุน เทียบ อัตรากำไร</DotTitle>
-            }
+            title={<BarTitle>กราฟการกระจาย: จุดคุ้มทุน เทียบ อัตรากำไร</BarTitle>}
             subheader={
               excludedCount > 0
                 ? `กราฟไม่รวม ${excludedCount} ${unitWord}ที่รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (ไม่มีจุดคุ้มทุน) — ดูในตาราง`
@@ -434,9 +428,9 @@ export const ScatterPair = ({ rows, unitWord }: { rows: FacultyCrossRow[]; unitW
           <CardHeader
             titleTypographyProps={{ fontSize: '1rem' }}
             title={
-              <DotTitle color="error.main">
+              <BarTitle>
                 กราฟการกระจาย: สัดส่วนต้นทุนผันแปรต่อรายได้ เทียบ นิสิตจริงเทียบจุดคุ้มทุน
-              </DotTitle>
+              </BarTitle>
             }
           />
           <CardContent>
@@ -627,7 +621,7 @@ export const RankingCard = ({
   return (
     <Card>
       <CardHeader
-        title={<DotTitle color="success.main">ตารางจัดอันดับ — เรียงตาม</DotTitle>}
+        title={<BarTitle>ตารางจัดอันดับ — เรียงตาม</BarTitle>}
         subheader={
           compare
             ? `ก่อนปรับ = ข้อมูลจริงตามชีต · หลังปรับ = ผลล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตร (เก็บในเบราว์เซอร์เครื่องนี้) · มี ${after?.size ?? 0} หลักสูตรที่บันทึกไว้`
@@ -643,18 +637,13 @@ export const RankingCard = ({
                 size="small"
                 title={o.hint}
                 variant={sortKey === o.key ? 'contained' : 'outlined'}
-                color="secondary"
+                color={sortKey === o.key ? 'primary' : 'secondary'}
                 onClick={() => setSortKey(o.key)}
                 sx={{
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   px: 2,
                   minWidth: 0,
-                  ...(sortKey === o.key && {
-                    bgcolor: '#312e81',
-                    color: '#fff',
-                    '&:hover': { bgcolor: '#3730a3' },
-                  }),
                 }}
               >
                 {o.label}

@@ -43,7 +43,11 @@ const LogoText = styled.div<LogoTextProps>`
 const LogoEyebrow = styled.span`
   display: flex;
   flex-direction: column;
-  color: var(--mui-palette-primary-main);
+  /* navy เดียวกับแถบเมนูที่เลือก (#022975) · โหมดมืดใช้สีหลักของธีม เพราะ navy บนพื้นมืดอ่านไม่ออก */
+  color: #022975;
+  *:where([data-dark]) & {
+    color: var(--mui-palette-primary-main);
+  }
   font-size: 0.6rem;
   line-height: 1.15;
   font-weight: 700;

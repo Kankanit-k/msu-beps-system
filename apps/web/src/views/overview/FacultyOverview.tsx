@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import Alert from '@mui/material/Alert';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
@@ -19,6 +20,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import LinearProgress from '@mui/material/LinearProgress';
+import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -37,9 +39,15 @@ import type { ApexOptions } from 'apexcharts';
 import type { BreakEvenResult, RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
-import { LegendItem } from '@components/ChartBits';
+import {
+  BarTitle,
+  BEPS,
+  KPI_BAR_TRACK,
+  kpiBarLabels,
+  LegendItem,
+} from '@components/ChartBits';
 import InfoTip from '@components/InfoTip';
-import KpiCard from '@components/KpiCard';
+import KpiTile from '@components/KpiTile';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
 import { isUniversityLevel, lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
@@ -56,6 +64,7 @@ import {
   REVENUE_MODE_LABEL,
   sheetQStar,
   shortFacName,
+  sumRows,
 } from '@views/breakeven/calc';
 import { buildProgramCrossData, progKey, progName } from '@views/cross/crossData';
 import { HeatmapCard, RankingCard, ScatterPair } from '@views/cross/CrossPanels';
@@ -69,9 +78,21 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 
 const FAC_NAMES = RAW.FACS.map((f) => f.name);
 
-/** สีชุดเดียวกับหน้ารายได้/โครงสร้างต้นทุน: น้ำเงิน = เงินแผ่นดิน/คงที่ · ส้ม = เงินรายได้/ผันแปร */
-const C_GOV = 'var(--mui-palette-primary-main)';
-const C_OWN = 'var(--mui-palette-warning-main)';
+/** สีชุดเดียวกับภาพรวมมหาวิทยาลัย (BEPS): รายได้ = ม่วงเข้ม/อ่อน · ต้นทุน = ชมพูเข้ม/อ่อน */
+/** ตัวกรองระดับการศึกษา — ชุดเดียวกับภาพรวมมหาวิทยาลัย ("ทุกระดับ" รวม ป.บัณฑิต/ประกาศนียบัตรด้วย) */
+const LEVELS = [
+  { key: 'all', label: 'ทุกระดับ', lvl: null },
+  { key: 'b', label: 'ตรี', lvl: 'ปริญญาตรี' },
+  { key: 'm', label: 'โท', lvl: 'ปริญญาโท' },
+  { key: 'd', label: 'เอก', lvl: 'ปริญญาเอก' },
+] as const;
+
+const C = {
+  own: BEPS.revenue.dark,
+  st: BEPS.revenue.light,
+  fixed: BEPS.cost.dark,
+  variable: BEPS.cost.light,
+};
 
 const INFO = {
   q: 'จำนวนนิสิตจริงทุกชั้นปีของคณะ (ตามข้อมูลชีต)',
@@ -118,15 +139,19 @@ const FacultyOverview = () => {
   const facName = lockedFac ?? pickedFac;
   const fac = RAW.FACS.find((f) => f.name === facName) ?? RAW.FACS[0]!;
 
-  const year = MOCK_RUN.budgetYear;
+  const [level, setLevel] = useState<(typeof LEVELS)[number]['key']>('all');
+  const levelOpt = LEVELS.find((l) => l.key === level) ?? LEVELS[0];
+
+  // ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล
+  const [year, setYear] = useState(MOCK_RUN.budgetYear);
   const { lock } = useFacultyLock(year, fac.name);
 
-  const res = useMemo(() => computeBreakEven(fac, mode), [fac, mode]);
-
-  // หลักสูตรที่มีนิสิต — เรียงตามระดับ แล้วตามนิสิตมากไปน้อย
+  // หลักสูตรที่มีนิสิต (ตามระดับที่กรอง) — เรียงตามระดับ แล้วตามนิสิตมากไปน้อย
   const progs = useMemo<ProgStat[]>(
     () =>
-      RAW.PROGS.filter((p) => p.fac === fac.name && p.Q > 0)
+      RAW.PROGS.filter(
+        (p) => p.fac === fac.name && p.Q > 0 && (!levelOpt.lvl || p.lvl === levelOpt.lvl),
+      )
         .sort((a, b) => levelRank(a.lvl) - levelRank(b.lvl) || b.Q - a.Q)
         .map((p) => ({
           p,
@@ -135,8 +160,15 @@ const FacultyOverview = () => {
           qStarGov: sheetQStar(p, 'with_government'),
           qStarOwn: sheetQStar(p, 'without_government'),
         })),
-    [fac.name],
+    [fac.name, levelOpt],
   );
+
+  // ทุกระดับ = แถวคณะในชีต · กรองระดับ = รวมหลักสูตรในระดับนั้น (Q* = ผลบวก Q* แบบชีต)
+  const scopeRow = useMemo(
+    () => (levelOpt.lvl ? sumRows(progs.map((x) => x.p)) : fac),
+    [levelOpt, progs, fac],
+  );
+  const res = useMemo(() => computeBreakEven(scopeRow, mode), [scopeRow, mode]);
 
   const levels = useMemo<LevelStat[]>(() => {
     const m = new Map<string, LevelStat>();
@@ -168,7 +200,11 @@ const FacultyOverview = () => {
     return [...m.values()];
   }, [progs]);
 
-  const crossRows = useMemo(() => buildProgramCrossData(fac.name, 'all', mode), [fac.name, mode]);
+  const crossRows = useMemo(() => {
+    const keys = new Set(progs.map((x) => x.key));
+
+    return buildProgramCrossData(fac.name, 'all', mode).filter((x) => x.key && keys.has(x.key));
+  }, [fac.name, mode, progs]);
 
   // ผลหลังปรับ = รายการล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตรเดิม (เก็บในเบราว์เซอร์เครื่องนี้)
   const [history, setHistory] = useState<ReturnType<typeof loadHistory>>([]);
@@ -209,6 +245,8 @@ const FacultyOverview = () => {
   const qStar = res.qStar ?? 0;
   const gap = qStar - res.q;
   const tfcShare = res.tc > 0 ? res.tfc / res.tc : 0;
+  /** นิสิตจริงคิดเป็นกี่ % ของจุดคุ้มทุน */
+  const reached = qStar > 0 ? Math.min(100, (res.q / qStar) * 100) : 0;
 
   const openDetail = (key?: string) => {
     const hit = progs.find((x) => x.key === key);
@@ -226,19 +264,6 @@ const FacultyOverview = () => {
         profit={res.profit}
         extra={
           <>
-            {canPick && (
-              <Autocomplete
-                size="small"
-                disableClearable
-                options={FAC_NAMES}
-                value={pickedFac}
-                onChange={(_, v) => setPickedFac(v)}
-                sx={{ width: 240 }}
-                noOptionsText="ไม่พบคณะที่ค้นหา"
-                renderInput={(params) => <TextField {...params} label="เลือกคณะ" />}
-              />
-            )}
-            <Chip size="small" color="primary" variant="tonal" label={`ปีงบ ${year}`} />
             <Tooltip
               arrow
               title={
@@ -258,79 +283,141 @@ const FacultyOverview = () => {
         }
       />
 
-      {/* B · การ์ด 6 ใบ */}
+      {/* ตัวกรอง — ระดับการศึกษา + คณะ + ปีงบ (แบบเดียวกับภาพรวมมหาวิทยาลัย) */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ py: '10px !important' }}>
+          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Autocomplete
+              size="small"
+              disableClearable
+              options={LEVELS}
+              getOptionLabel={(l) => l.label}
+              isOptionEqualToValue={(a, b) => a.key === b.key}
+              value={levelOpt}
+              onChange={(_, v) => setLevel(v.key)}
+              sx={{ width: 180 }}
+              renderInput={(params) => <TextField {...params} label="ระดับการศึกษา" />}
+            />
+            {/* ระดับคณะ/อาจารย์เห็นคณะตนเองเท่านั้น — แสดงไว้แต่เปลี่ยนไม่ได้ */}
+            <Autocomplete
+              size="small"
+              disableClearable
+              disabled={!canPick}
+              options={FAC_NAMES}
+              value={fac.name}
+              onChange={(_, v) => setPickedFac(v)}
+              sx={{ width: 300 }}
+              noOptionsText="ไม่พบคณะที่ค้นหา"
+              renderInput={(params) => <TextField {...params} label="คณะ" />}
+            />
+            <Autocomplete
+              size="small"
+              disableClearable
+              options={[...MOCK_RUN.budgetYears].reverse()}
+              getOptionDisabled={(y) => y !== MOCK_RUN.budgetYear}
+              getOptionLabel={(y) => (y === MOCK_RUN.budgetYear ? y : `${y} (ยังไม่มีข้อมูล)`)}
+              value={year}
+              onChange={(_, v) => setYear(v)}
+              sx={{ width: 150 }}
+              renderInput={(params) => <TextField {...params} label="ปีงบประมาณ" />}
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ marginInlineStart: 'auto', whiteSpace: 'nowrap' }}
+            >
+              {progs.length} หลักสูตร · หน่วยเงิน: ล้านบาท (ลบ.)
+            </Typography>
+            {level !== 'all' && (
+              <Button
+                size="small"
+                color="secondary"
+                startIcon={<i className="ri-close-line" />}
+                onClick={() => setLevel('all')}
+              >
+                ล้างตัวกรอง
+              </Button>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* B · การ์ด 6 ใบ (แบบ MSU-KPI) */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            dense
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
             label="นิสิตปัจจุบัน"
             value={fmtInt(res.q)}
-            unit={`คน · ${progs.length} หลักสูตร`}
+            suffix="คน"
             accent="primary"
-            valueColor="var(--mui-palette-primary-main)"
+            icon="ri-group-line"
+            progress={reached}
+            footer={`${reached.toFixed(0)}% ของจุดคุ้มทุน · ${progs.length} หลักสูตร`}
             info={INFO.q}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            dense
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
             label="นิสิต ณ จุดคุ้มทุน"
             value={fmtInt(qStar)}
-            unit={
-              <Box
-                component="span"
-                sx={{ color: gap > 0 ? 'error.main' : 'success.main', fontWeight: 600 }}
-              >
-                {gap > 0 ? `ขาดอีก ${fmtInt(gap)} คน` : `เกินมา ${fmtInt(-gap)} คน`}
-              </Box>
-            }
-            accent="error"
-            valueColor="var(--mui-palette-error-main)"
+            suffix="คน"
+            accent={gap > 0 ? 'error' : 'success'}
+            color={BEPS.breakEven}
+            icon="ri-focus-3-line"
+            progress={reached}
+            footer={gap > 0 ? `ขาดอีก ${fmtInt(gap)} คน` : `เกินมา ${fmtInt(-gap)} คน`}
             info={INFO.qStar}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            dense
-            label="รายได้/หัว"
-            value={fmtInt(r)}
-            unit={`บาท/คน · รวม ${fmtMillion(res.tr)} ลบ.`}
-            accent="warning"
-            valueColor="var(--mui-palette-warning-main)"
-            info={INFO.r}
-          />
-        </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            dense
-            label="ต้นทุนผันแปร/หัว"
-            value={fmtInt(avc)}
-            unit={`บาท/คน · รวม ${fmtMillion(res.tc)} ลบ.`}
-            accent="warning"
-            valueColor="var(--mui-palette-warning-main)"
-            info={INFO.avc}
-          />
-        </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            dense
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
             label="ส่วนเกิน/หัว"
             value={fmtInt(r - avc)}
-            unit="บาท/คน"
-            accent="success"
-            valueColor="var(--mui-palette-success-main)"
+            suffix="บาท"
+            accent={r - avc >= 0 ? 'success' : 'error'}
+            color={C.own}
+            icon="ri-add-circle-line"
+            progress={r ? ((r - avc) / r) * 100 : 0}
+            footer={`${r ? (((r - avc) / r) * 100).toFixed(0) : 0}% ของรายได้/หัว`}
             info={INFO.cm}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <KpiCard
-            dense
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="ต้นทุนผันแปร/หัว"
+            value={fmtInt(avc)}
+            suffix="บาท"
+            accent="warning"
+            color={C.fixed}
+            icon="ri-shopping-cart-2-line"
+            progress={r ? (avc / r) * 100 : 0}
+            footer={`ต้นทุนรวม ${fmtMillion(res.tc)} ลบ.`}
+            info={INFO.avc}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
             label="ส่วนเกิน/ขาดทุน"
             value={`${res.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(res.profit))}`}
-            unit={`ลบ. · ${res.tr ? ((res.profit / res.tr) * 100).toFixed(1) : '0'}% ของรายได้`}
+            suffix="ลบ."
             accent={res.profit >= 0 ? 'success' : 'error'}
-            valueColor={`var(--mui-palette-${res.profit >= 0 ? 'success' : 'error'}-main)`}
+            color={BEPS.profit}
+            icon={res.profit >= 0 ? 'ri-arrow-up-circle-line' : 'ri-arrow-down-circle-line'}
+            progress={res.tr ? (Math.abs(res.profit) / res.tr) * 100 : 0}
+            footer={`${res.tr ? ((res.profit / res.tr) * 100).toFixed(1) : '0'}% ของรายได้`}
             info={INFO.profit}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="รายได้/หัว"
+            value={fmtInt(r)}
+            suffix="บาท"
+            accent="warning"
+            icon="ri-money-dollar-circle-line"
+            progress={res.tc ? (res.tr / res.tc) * 100 : 0}
+            footer={`รายได้รวม ${fmtMillion(res.tr)} ลบ.`}
+            info={INFO.r}
           />
         </Grid>
       </Grid>
@@ -367,7 +454,9 @@ const FacultyOverview = () => {
         <CardContent>
           {progs.length === 0 ? (
             <Typography color="text.secondary" align="center" sx={{ py: 8 }}>
-              คณะนี้ยังไม่มีหลักสูตรที่มีนิสิตในปีงบ {year} — เลือกคณะอื่นด้านบน
+              {levelOpt.lvl
+                ? `คณะนี้ไม่มีหลักสูตรระดับ${levelOpt.lvl}ที่มีนิสิตในปีงบ ${year} — เลือกระดับหรือคณะอื่นด้านบน`
+                : `คณะนี้ยังไม่มีหลักสูตรที่มีนิสิตในปีงบ ${year} — เลือกคณะอื่นด้านบน`}
             </Typography>
           ) : tab === 'rev' ? (
             <StackedProgramBar
@@ -375,8 +464,13 @@ const FacultyOverview = () => {
               info="เงินแผ่นดิน = งบประมาณแผ่นดินที่ปันให้หลักสูตร · เงินรายได้ = ค่าธรรมเนียมการศึกษา · กดแท่งเพื่อดูรายละเอียดหลักสูตร"
               progs={progs}
               series={[
-                { name: 'เงินแผ่นดิน', color: C_GOV, pick: (p) => p.st },
-                { name: 'เงินรายได้', color: C_OWN, pick: (p) => p.own },
+                { name: 'เงินรายได้', color: NAVY.dark, pick: (p) => p.own },
+                {
+                  name: 'เงินแผ่นดิน',
+                  color: NAVY.light,
+                  labelColor: NAVY.dark,
+                  pick: (p) => p.st,
+                },
               ]}
               onPick={(key) => openDetail(key)}
             />
@@ -388,8 +482,13 @@ const FacultyOverview = () => {
                   info="ต้นทุนคงที่ = ไม่เปลี่ยนตามจำนวนนิสิต (บุคลากร ค่าเสื่อม ส่วนกลางที่ปันมา) · ต้นทุนผันแปร = เพิ่มตามจำนวนนิสิต · กดแท่งเพื่อดูรายละเอียด"
                   progs={progs}
                   series={[
-                    { name: 'ต้นทุนคงที่', color: C_GOV, pick: (p) => p.TFC },
-                    { name: 'ต้นทุนผันแปร', color: C_OWN, pick: (p) => p.TVC },
+                    { name: 'ต้นทุนคงที่', color: C.fixed, pick: (p) => p.TFC },
+                    {
+                      name: 'ต้นทุนผันแปร',
+                      color: C.variable,
+                      labelColor: BEPS.cost.onLight,
+                      pick: (p) => p.TVC,
+                    },
                   ]}
                   onPick={(key) => openDetail(key)}
                 />
@@ -407,9 +506,11 @@ const FacultyOverview = () => {
           ) : (
             <Grid container spacing={4}>
               <Grid size={{ xs: 12, md: 6 }}>
-                <Typography fontWeight={600} sx={{ mb: 2 }}>
-                  กราฟจุดคุ้มทุนของคณะ ({REVENUE_MODE_LABEL[mode]}){' '}
-                  <InfoTip text="จุดตัดของเส้นรายได้รวมกับเส้นต้นทุนรวม = จุดคุ้มทุน · จุดสีเข้ม = จำนวนนิสิตปัจจุบัน" />
+                <Typography component="div" fontWeight={600} sx={{ mb: 2 }}>
+                  <BarTitle>
+                    กราฟจุดคุ้มทุนของคณะ ({REVENUE_MODE_LABEL[mode]}){' '}
+                    <InfoTip text="จุดตัดของเส้นรายได้รวมกับเส้นต้นทุนรวม = จุดคุ้มทุน · จุดสีเข้ม = จำนวนนิสิตปัจจุบัน" />
+                  </BarTitle>
                 </Typography>
                 <BreakEvenLineChart res={res} q={res.q} height={340} />
               </Grid>
@@ -483,8 +584,8 @@ const SplitBar = ({
       <Box
         sx={{
           display: 'flex',
-          height: 6,
-          borderRadius: 3,
+          height: 10,
+          borderRadius: '4px',
           overflow: 'hidden',
           bgcolor: 'action.hover',
         }}
@@ -492,7 +593,10 @@ const SplitBar = ({
         {parts.map((x) => (
           <Box
             key={x.label}
-            sx={{ width: total ? `${(Math.max(x.value, 0) / total) * 100}%` : 0, bgcolor: x.color }}
+            sx={{
+              width: total ? `${(Math.max(x.value, 0) / total) * 100}%` : 0,
+              bgcolor: x.color,
+            }}
           />
         ))}
       </Box>
@@ -500,15 +604,47 @@ const SplitBar = ({
   );
 };
 
+/** โทนน้ำเงินเข้ม (navy) ของกราฟรายได้รายหลักสูตร — แบบโดนัท "Weekly Sales" ของ Materio */
+const NAVY = { dark: BEPS.profit, light: '#9a9fc4' };
+
+/** โทนสีของการ์ดระดับการศึกษา (แบบโดนัท "Weekly Sales" ของ Materio) — เข้ม → อ่อน */
+type LvTone = { dark: string; mid: string; light: string; pale: string };
+
+const LV_PURPLE: LvTone = { dark: '#8c57ff', mid: '#a985ff', light: '#cbb3ff', pale: '#e2d6ff' };
+const LV_PINK: LvTone = { dark: '#f0436b', mid: '#f47a94', light: '#f7a1b2', pale: '#fbd0d9' };
+const LV_BLUE: LvTone = { dark: '#2a86e7', mid: '#64a8f0', light: '#93c3f4', pale: '#c9e1fa' };
+
+/** ตรี = ม่วง · โท = ชมพู · เอก = ฟ้า · ระดับอื่นใช้ม่วงไปก่อน */
+const LV_TONE: Record<string, LvTone> = {
+  ปริญญาตรี: LV_PURPLE,
+  ปริญญาโท: LV_PINK,
+  ปริญญาเอก: LV_BLUE,
+};
+
 /** นิสิตจริงเทียบเป้า (= จุดคุ้มทุน) ของกรณีหนึ่ง — ป้าย | แถบ | ตัวเลข ในบรรทัดเดียว */
-const TargetRow = ({ label, q, target }: { label: string; q: number; target: number }) => {
+const TargetRow = ({
+  label,
+  q,
+  target,
+  color,
+}: {
+  label: string;
+  q: number;
+  target: number;
+  color: string;
+}) => {
   const none = target <= 0;
   const ok = !none && q >= target;
   const pctReached = none ? 0 : Math.min(100, (q / target) * 100);
 
   return (
     <Box
-      sx={{ display: 'grid', gridTemplateColumns: '104px 1fr auto', alignItems: 'center', gap: 1.5 }}
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: '104px 1fr auto',
+        alignItems: 'center',
+        gap: 1.5,
+      }}
     >
       <Typography variant="caption" color="text.secondary" noWrap>
         {label}
@@ -516,8 +652,12 @@ const TargetRow = ({ label, q, target }: { label: string; q: number; target: num
       <LinearProgress
         variant="determinate"
         value={pctReached}
-        color={ok ? 'success' : 'error'}
-        sx={{ height: 6, borderRadius: 3 }}
+        sx={{
+          height: 10,
+          borderRadius: '4px',
+          bgcolor: 'action.hover',
+          '& .MuiLinearProgress-bar': { bgcolor: color },
+        }}
       />
       <Typography
         variant="caption"
@@ -536,6 +676,7 @@ const TargetRow = ({ label, q, target }: { label: string; q: number; target: num
 const LevelCard = ({ l, mode }: { l: LevelStat; mode: RevenueMode }) => {
   const tr = mode === 'with_government' ? l.st + l.own : l.own;
   const profit = tr - l.TFC - l.TVC;
+  const tone = LV_TONE[l.lvl] ?? LV_PURPLE;
 
   return (
     <Card>
@@ -571,19 +712,19 @@ const LevelCard = ({ l, mode }: { l: LevelStat; mode: RevenueMode }) => {
         <SplitBar
           title="รายได้"
           parts={[
-            { label: 'แผ่นดิน', value: l.st, color: C_GOV },
-            { label: 'เงินรายได้', value: l.own, color: C_OWN },
+            { label: 'เงินรายได้', value: l.own, color: tone.dark },
+            { label: 'แผ่นดิน', value: l.st, color: tone.light },
           ]}
         />
         <SplitBar
           title="ต้นทุน"
           parts={[
-            { label: 'คงที่', value: l.TFC, color: C_GOV },
-            { label: 'ผันแปร', value: l.TVC, color: C_OWN },
+            { label: 'คงที่', value: l.TFC, color: tone.mid },
+            { label: 'ผันแปร', value: l.TVC, color: tone.pale },
           ]}
         />
-        <TargetRow label="รวมเงินแผ่นดิน" q={l.Q} target={l.qStarGov} />
-        <TargetRow label="ไม่รวมเงินแผ่นดิน" q={l.Q} target={l.qStarOwn} />
+        <TargetRow label="รวมเงินแผ่นดิน" q={l.Q} target={l.qStarGov} color={tone.dark} />
+        <TargetRow label="ไม่รวมเงินแผ่นดิน" q={l.Q} target={l.qStarOwn} color={tone.dark} />
       </CardContent>
     </Card>
   );
@@ -600,7 +741,7 @@ const StackedProgramBar = ({
   title: string;
   info: string;
   progs: ProgStat[];
-  series: { name: string; color: string; pick: (p: ProgRow) => number }[];
+  series: { name: string; color: string; labelColor?: string; pick: (p: ProgRow) => number }[];
   onPick: (key: string) => void;
 }) => {
   const options: ApexOptions = {
@@ -621,14 +762,23 @@ const StackedProgramBar = ({
       bar: {
         horizontal: true,
         barHeight: '70%',
-        borderRadius: 3,
+        borderRadius: 4,
         borderRadiusApplication: 'end',
         borderRadiusWhenStacked: 'last',
+        colors: KPI_BAR_TRACK,
       },
     },
     colors: series.map((s) => s.color),
     fill: { opacity: 1 },
-    dataLabels: { enabled: false },
+    // ตัวเลขขาวบนสีเข้ม / สีเข้มบนสีอ่อน แบบภาพรวมมหาวิทยาลัย
+    dataLabels: {
+      ...kpiBarLabels(5),
+      style: {
+        fontSize: '10px',
+        fontWeight: 700,
+        colors: series.map((s) => s.labelColor ?? '#fff'),
+      },
+    },
     legend: { show: false },
     grid: {
       borderColor: 'var(--mui-palette-divider)',
@@ -662,8 +812,10 @@ const StackedProgramBar = ({
 
   return (
     <Box>
-      <Typography fontWeight={600} sx={{ mb: 1 }}>
-        {title} <InfoTip text={info} />
+      <Typography component="div" fontWeight={600} sx={{ mb: 1 }}>
+        <BarTitle>
+          {title} <InfoTip text={info} />
+        </BarTitle>
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 1 }}>
         {series.map((s) => (
@@ -692,7 +844,7 @@ const CostDonut = ({ tfc, tvc }: { tfc: number; tvc: number }) => {
   const options: ApexOptions = {
     chart: { type: 'donut' },
     labels: ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
-    colors: [C_GOV, C_OWN],
+    colors: [C.fixed, C.variable],
     legend: { show: false },
     dataLabels: { enabled: false },
     stroke: { width: 3, colors: ['var(--mui-palette-background-paper)'] },
@@ -706,8 +858,8 @@ const CostDonut = ({ tfc, tvc }: { tfc: number; tvc: number }) => {
 
   return (
     <Box>
-      <Typography fontWeight={600} sx={{ mb: 2 }}>
-        โครงสร้างต้นทุนรวมของคณะ
+      <Typography component="div" fontWeight={600} sx={{ mb: 2 }}>
+        <BarTitle>โครงสร้างต้นทุนรวมของคณะ</BarTitle>
       </Typography>
       <AppReactApexCharts
         type="donut"
@@ -718,8 +870,8 @@ const CostDonut = ({ tfc, tvc }: { tfc: number; tvc: number }) => {
       />
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
         {[
-          { label: 'ต้นทุนคงที่', v: tfc, c: C_GOV },
-          { label: 'ต้นทุนผันแปร', v: tvc, c: C_OWN },
+          { label: 'ต้นทุนคงที่', v: tfc, c: C.fixed },
+          { label: 'ต้นทุนผันแปร', v: tvc, c: C.variable },
         ].map((x) => (
           <Box key={x.label} sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <LegendItem color={x.c} label={x.label} />
@@ -785,9 +937,11 @@ const ProgramTargetTable = ({
 
   return (
     <Box>
-      <Typography fontWeight={600} sx={{ mb: 2 }}>
-        นิสิตจริง เทียบ เป้า (จุดคุ้มทุน) รายหลักสูตร{' '}
-        <InfoTip text="เป้า = จำนวนนิสิตที่ต้องมีเพื่อให้คุ้มทุน · ตัวเลขเขียว = นิสิตจริงถึงเป้าแล้ว · แดง = ยังไม่ถึง · — = รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (รับเพิ่มยิ่งขาดทุน)" />
+      <Typography component="div" fontWeight={600} sx={{ mb: 2 }}>
+        <BarTitle>
+          นิสิตจริง เทียบ เป้า (จุดคุ้มทุน) รายหลักสูตร{' '}
+          <InfoTip text="เป้า = จำนวนนิสิตที่ต้องมีเพื่อให้คุ้มทุน · ตัวเลขเขียว = นิสิตจริงถึงเป้าแล้ว · แดง = ยังไม่ถึง · — = รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (รับเพิ่มยิ่งขาดทุน)" />
+        </BarTitle>
       </Typography>
       <TableContainer sx={{ maxHeight: 380 }}>
         <Table size="small" stickyHeader sx={{ '& .MuiTableCell-root': { fontSize: '0.8125rem' } }}>

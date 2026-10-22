@@ -68,7 +68,7 @@ const themeConfig: Config = {
   templateSubtitle: 'Break-Even Point System',
   templateSubtitleTh: 'ระบบวิเคราะห์จุดคุ้มทุน',
   homePageUrl: '/overview',
-  settingsCookieName: 'erp-msu-pms-v2', // v2 = ธีมฟ้า MSU-KPI (ล้างสีม่วงที่จำไว้ในคุกกี้เดิม)
+  settingsCookieName: 'erp-msu-pms-v3', // v2 = ธีมฟ้า MSU-KPI · v3 = เนื้อหาเต็มจอ (ล้าง contentWidth compact ที่จำไว้)
   mode: 'system', // 'system', 'light', 'dark'
   skin: 'default', // 'default', 'bordered'
   semiDark: false, // true, false
@@ -77,15 +77,15 @@ const themeConfig: Config = {
   compactContentWidth: 1440, // in px
   navbar: {
     type: 'static', // 'fixed', 'static' — static: แถบโปรไฟล์เลื่อนหายไป ให้ PageHeaderBar ติดหัวแทน
-    contentWidth: 'compact', // 'compact', 'wide'
+    contentWidth: 'wide', // 'compact', 'wide'
     floating: false, //! true, false (This will not work in the Horizontal Layout)
     detached: true, //! true, false (This will not work in the Horizontal Layout or floating navbar is enabled)
     blur: true, // true, false
   },
-  contentWidth: 'compact', // 'compact', 'wide'
+  contentWidth: 'wide', // 'compact', 'wide' — เต็มจอแบบ MSU-KPI
   footer: {
     type: 'static', // 'fixed', 'static'
-    contentWidth: 'compact', // 'compact', 'wide'
+    contentWidth: 'wide', // 'compact', 'wide'
     detached: true, //! true, false (This will not work in the Horizontal Layout)
   },
   disableRipple: false, // true, false

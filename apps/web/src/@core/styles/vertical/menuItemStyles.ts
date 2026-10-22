@@ -8,6 +8,11 @@ import type { MenuItemStyles } from '@menu/types';
 // Util Imports
 import { menuClasses } from '@menu/utils/menuClasses';
 
+/** สีรายการที่เลือกในเมนูซ้าย — navy #022975 ไล่ไปโทนอ่อน แบบ Materio (Primary Color #022975) */
+const MENU_NAVY = '#022975';
+const MENU_NAVY_LIGHT = '#7387ae';
+const MENU_NAVY_CHANNEL = '2 41 117';
+
 const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): MenuItemStyles => {
   // Vars
   const { isCollapsed, isHovered, collapsedWidth, isPopoutWhenCollapsed, transitionDuration } =
@@ -37,12 +42,13 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
         },
       },
 
-      // Active item — แถบไล่สีฟ้าทึบ ตัวอักษรขาว ตามธีม MSU-KPI
+      // Active item — แถบไล่สี navy ตัวอักษรขาว (แบบ Materio CRM)
       [`&:not(.${menuClasses.subMenuRoot}) > .${menuClasses.button}.${menuClasses.active}`]: {
-        color: 'var(--mui-palette-primary-contrastText)',
-        backgroundImage:
-          'linear-gradient(270deg, var(--mui-palette-primary-main), var(--mui-palette-primary-light))',
-        boxShadow: '0 2px 6px rgb(var(--mui-palette-primary-mainChannel) / 0.35)',
+        color: '#fff',
+        // ขวา navy ทึบ → ซ้ายเทาอมฟ้า (#7387ae = สีที่วัดจากเมนู Materio) · ใช้สีทึบ ไม่ให้พื้นสีธีมใต้รายการโผล่
+        backgroundColor: 'transparent',
+        backgroundImage: `linear-gradient(270deg, ${MENU_NAVY}, ${MENU_NAVY_LIGHT} 94%)`,
+        boxShadow: `0 2px 6px rgb(${MENU_NAVY_CHANNEL} / 0.35)`,
         fontWeight: 600,
         [`& .${menuClasses.icon}`]: {
           color: 'inherit',

@@ -26,7 +26,7 @@ export interface ChartCase {
 /** สีตามกรอบกรณีในการ์ดเทียบจุดคุ้มทุน (primary / warning) */
 const CASE = {
   with_government: { color: '#0088e5', dark: '#005f9f', short: 'รวมเงินแผ่นดิน' },
-  without_government: { color: '#ffb400', dark: '#b07a00', short: 'ไม่รวมเงินแผ่นดิน' },
+  without_government: { color: '#ffac2a', dark: '#b07a00', short: 'ไม่รวมเงินแผ่นดิน' },
 } as const;
 
 /**
@@ -64,7 +64,7 @@ const BreakEvenChart = ({ cases }: { cases: ChartCase[] }) => {
     ...costCases.map((c) => ({
       name: `ต้นทุนรวม${suffix(c)}`,
       data: points.map((n) => [n, (c.tfc + c.avc * n) / 1e6]),
-      color: '#ff4c51',
+      color: '#ff5154',
       width: 2.5,
       dash: sameCost || c.mode === 'with_government' ? 0 : 4,
     })),

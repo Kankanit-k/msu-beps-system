@@ -3,6 +3,7 @@ import type { VerticalMenuDataType } from '@/types/menuTypes';
 import {
   DEFAULT_ROLE,
   SHOW_ABOUT_PAGE,
+  SHOW_COST_PAGE,
   SHOW_FIXED_COST_POLICY,
   SHOW_SCENARIO_PROGRAM2,
   SHOW_SCENARIO_SANDBOX,
@@ -108,7 +109,7 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
         { label: 'คณะ · ระดับ · หลักสูตร', href: '/breakeven', icon: '🧭' },
         { label: 'กราฟจุดคุ้มทุน', href: '/breakeven/chart', icon: '📈' },
         { label: 'รายได้รายคณะ', href: '/revenue', icon: '💰' },
-        { label: 'โครงสร้างต้นทุน', href: '/cost', icon: '🏗️' },
+        ...(SHOW_COST_PAGE ? [{ label: 'โครงสร้างต้นทุน', href: '/cost', icon: '🏗️' }] : []),
         { label: 'รายได้ vs ต้นทุนต่อหัว', href: '/perhead', icon: '🧑‍🎓' },
         { label: 'วิเคราะห์เชิงเปรียบเทียบ', href: '/cross', icon: '🔍' },
       ],

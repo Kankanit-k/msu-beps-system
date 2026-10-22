@@ -24,7 +24,7 @@ import { calcBreakEvenBothModes } from '@beps/calc-engine';
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtM = (v: number) =>
   (v / 1_000_000).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-// warning.main (#FFB400) บนพื้นเหลืองอ่อนอ่านยาก — ใช้อำพันเข้มในโหมดสว่าง
+// warning.main (#FFAC2A) บนพื้นเหลืองอ่อนอ่านยาก — ใช้อำพันเข้มในโหมดสว่าง
 // (object ไม่ใช่ function เพราะไฟล์นี้เป็น server component; selector = theme.applyStyles('dark'))
 const warnText = {
   color: '#8A5A00',

@@ -30,16 +30,24 @@ import type { ApexOptions } from 'apexcharts';
 import type { ReactNode } from 'react';
 
 // Component Imports
-import { DotTitle, LegendItem } from '@components/ChartBits';
+import {
+  BarTitle,
+  BEPS,
+  FIN_COLORS,
+  KPI_BAR_TRACK,
+  KPI_COLORS as KPI,
+  kpiBarLabels,
+  LegendItem,
+} from '@components/ChartBits';
 import FacultyFilter from '@components/FacultyFilter';
+import KpiTile from '@components/KpiTile';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
-import { isUniversityLevel } from '@/configs/accessControl';
-import { useRole } from '@/hooks/useRole';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
 import type { RevenueMode } from '@beps/calc-engine';
-import { fmtMillion, shortFacName } from '@views/breakeven/calc';
+import { fmtInt, fmtMillion, sheetQStar, shortFacName } from '@views/breakeven/calc';
+import { composeCost } from '@views/cost/costParts';
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
@@ -61,23 +69,49 @@ const LEVELS: { key: string; label: string; groups: LvKey[] }[] = [
   { key: 'b', label: 'ตรี', groups: ['b'] },
   { key: 'm', label: 'โท', groups: ['m'] },
   { key: 'd', label: 'เอก', groups: ['d'] },
-  { key: 'bm', label: 'ตรี เทียบ โท', groups: ['b', 'm'] },
-  { key: 'bd', label: 'ตรี เทียบ เอก', groups: ['b', 'd'] },
-  { key: 'md', label: 'โท เทียบ เอก', groups: ['m', 'd'] },
+  // ตัวเลือกเทียบระดับ (ตรี เทียบ โท ฯลฯ) ถอดออก 2026-10-22 — ใส่ groups 2 ระดับกลับมาเพื่อเปิดใช้อีกครั้ง
 ];
 
 /** สีของแต่ละระดับเมื่อเทียบ — เข้ม = ส่วนแรกของแท่ง (เงินรายได้/ต้นทุนคงที่) · อ่อน = ส่วนที่สอง */
 const PAL = [
-  { dark: '#3492ec', light: '#9fcdf6' },
-  { dark: '#ff9f43', light: '#ffd2a6' },
+  { dark: '#1565c0', light: '#64b5f6' },
+  { dark: '#ef6c00', light: '#ffb74d' },
 ];
 
-const C = {
-  own: '#3492ec', // เงินรายได้ (= รายได้ไม่รวมเงินแผ่นดิน)
-  st: '#8fc4f5', // เงินแผ่นดิน
-  fixed: 'var(--mui-palette-primary-main)',
-  variable: 'var(--mui-palette-warning-main)',
+/** สีองค์ประกอบต้นทุนในการ์ด ④ (ตามลำดับ composeCost) */
+const PART_COLORS = [
+  KPI.blue,
+  KPI.cyan,
+  KPI.purple,
+  KPI.green,
+  KPI.orange,
+  KPI.amber,
+  KPI.red,
+  KPI.grey,
+];
+
+/** ชื่อย่อองค์ประกอบต้นทุนสำหรับการ์ด ④ (ชื่อเต็มอยู่ใน costParts — แสดงตอนชี้) */
+const PART_SHORT: Record<string, string> = {
+  tfcProg: 'คงที่ทางตรงหลักสูตร',
+  tvcProg: 'ผันแปรทางตรงหลักสูตร',
+  tfcOffice: 'ส่วนกลางคณะ (คงที่)',
+  tvcOffice: 'ส่วนกลางคณะ (ผันแปร)',
+  dep: 'ค่าเสื่อมครุภัณฑ์',
+  genEd: 'วิชาศึกษาทั่วไป (GE)',
+  matchMain: 'สมทบรายการหลัก',
+  matchUni: 'สมทบมหาวิทยาลัย',
 };
+
+const C = FIN_COLORS;
+
+/** สีกราฟ ① ตามกราฟ "Data Science" ของ Materio — ม่วงเข้ม/ม่วงอ่อน (รางเทาอ่อนเหมือนกราฟอื่น) */
+const C1 = { own: BEPS.revenue.dark, st: BEPS.revenue.light };
+
+/** สีกราฟ ② โทนชมพูแบบโดนัท "Weekly Sales" ของ Materio — ชมพูเข้ม/ชมพูอ่อน */
+const C2 = { fixed: BEPS.cost.dark, variable: BEPS.cost.light };
+
+/** สีกราฟ ③ โทนฟ้าแบบโดนัท "Weekly Sales" ของ Materio — ฟ้าเข้ม = รายได้ · ฟ้าอ่อน = ต้นทุน */
+const C3 = { rev: BEPS.compare.dark, cost: BEPS.compare.light };
 
 /** ยอดรวมของคณะ (เฉพาะหลักสูตรในระดับที่เลือก) — ต้นทุนเท่ากันทั้งสองฐานรายได้ */
 type FacSum = {
@@ -164,11 +198,21 @@ const barOptions = (
   unit: 'ล้านบาท' | '%' = 'ล้านบาท',
 ): ApexOptions => ({
   chart: { type: 'bar', toolbar: { show: false }, parentHeightOffset: 0, ...extra.chart },
-  plotOptions: { bar: { horizontal: true, borderRadius: 2, barHeight: '78%' } },
+  // แบบ MSU-KPI: แท่งทึบมุมมน บนรางสีพื้น + ตัวเลขสีขาวในแท่ง (ซ่อนเมื่อแท่งสั้นเกินจะอ่าน)
+  plotOptions: {
+    bar: {
+      horizontal: true,
+      borderRadius: 4,
+      borderRadiusApplication: 'end',
+      borderRadiusWhenStacked: 'last',
+      barHeight: '74%',
+      colors: KPI_BAR_TRACK,
+    },
+  },
   colors,
   fill: { opacity: 1 },
-  dataLabels: { enabled: false },
   stroke: { width: 0 },
+  dataLabels: unit === '%' ? kpiBarLabels(15, '%') : kpiBarLabels(20),
   legend: { show: false },
   xaxis: {
     categories,
@@ -212,10 +256,8 @@ const UniversityDashboard = () => {
   const [level, setLevel] = useState('all');
   const [pickedFacs, setPickedFacs] = useState<string[]>([]);
   const [year, setYear] = useState(MOCK_RUN.budgetYear);
-
-  // ทุกบทบาทเห็นทั้งมหาวิทยาลัย — ตัวกรองคณะมีเฉพาะระดับมหาวิทยาลัย
-  const { role } = useRole();
-  const canFilterFac = isUniversityLevel(role);
+  // การ์ด ④: คงที่/ผันแปร หรือแตกองค์ประกอบต้นทุน (ย้ายมาจากหน้าโครงสร้างต้นทุนเดิม)
+  const [costView, setCostView] = useState<'fv' | 'parts'>('fv');
 
   const levelOpt = LEVELS.find((l) => l.key === level) ?? LEVELS[0]!;
   const groupNames = levelOpt.groups.map((g) => LV[g].label);
@@ -232,6 +274,19 @@ const UniversityDashboard = () => {
     return maps.map((m) => names.map((n) => m.get(n) ?? emptySum(n)));
   }, [levelOpt, pickedFacs]);
   const rows = grid[0] ?? [];
+
+  // หลักสูตรในขอบเขตที่แสดง (ระดับเดียว + คณะที่กรอง)
+  const scopeProgs = useMemo(() => {
+    const lvl = LV[levelOpt.groups[0]!].lvl;
+
+    return RAW.PROGS.filter(
+      (p) => (!lvl || p.lvl === lvl) && (!pickedFacs.length || pickedFacs.includes(p.fac)),
+    );
+  }, [levelOpt, pickedFacs]);
+
+  // องค์ประกอบต้นทุนของขอบเขตที่แสดง — รวบจากรายหลักสูตร
+  const composition = useMemo(() => composeCost(scopeProgs), [scopeProgs]);
+  const parts = composition.parts.filter((p) => p.amount > 0).sort((a, b) => b.amount - a.amount);
 
   // ยอดรวมของแต่ละระดับ (การ์ด ④) และรวมทุกระดับที่แสดง (หัวหน้า)
   const totals = grid.map((g) =>
@@ -259,6 +314,15 @@ const UniversityDashboard = () => {
   const totTc = tot.tfc + tot.tvc;
   const totTr = mode === 'with_government' ? tot.st + tot.own : tot.own;
 
+  // การ์ดตัวเลขด้านบน — Q* แบบชีต = ผลบวก Q* รายหลักสูตร (ค่าติดลบนับรวมเหมือนชีต)
+  const withStudents = scopeProgs.filter((p) => p.Q > 0);
+  const qStar = withStudents.reduce((a, p) => a + sheetQStar(p, mode), 0);
+  const profit = totTr - totTc;
+  const rHead = tot.Q ? totTr / tot.Q : 0;
+  const costHead = tot.Q ? totTc / tot.Q : 0;
+  const reached = qStar > 0 ? Math.min(100, (tot.Q / qStar) * 100) : 0;
+  const pctOf = (a: number, b: number) => (b ? Math.min(100, (a / b) * 100) : 0);
+
   // จัดอันดับ: ระดับเดียว = รายคณะ · เทียบ = รายคณะ×ระดับ
   const units = compare
     ? grid.flatMap((g, gi) =>
@@ -276,7 +340,7 @@ const UniversityDashboard = () => {
   const nLoss = units.filter((f) => profitOf(f, mode) < 0).length;
 
   const cats = rows.map((f) => f.label);
-  const chartH = Math.max(240, rows.length * (compare ? 24 : 15) + 60);
+  const chartH = Math.max(240, rows.length * (compare ? 30 : 24) + 60);
   const empty = rows.length === 0;
   const modeLabel = mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน';
 
@@ -302,10 +366,15 @@ const UniversityDashboard = () => {
       })),
     );
 
-  const donutOptions = (tc: number, centerLabel = 'ต้นทุนรวม (ลบ.)'): ApexOptions => ({
+  const donutOptions = (
+    tc: number,
+    centerLabel = 'ต้นทุนรวม (ลบ.)',
+    labels = ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
+    colors = [C.fixed, C.variable],
+  ): ApexOptions => ({
     chart: { type: 'donut' },
-    labels: ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
-    colors: [C.fixed, C.variable],
+    labels,
+    colors,
     legend: { show: false },
     dataLabels: { enabled: false },
     stroke: { width: 3, colors: ['var(--mui-palette-background-paper)'] },
@@ -333,12 +402,54 @@ const UniversityDashboard = () => {
     tooltip: {
       y: {
         formatter: (v: number) =>
-          `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ. (${
-            tc ? Math.round(((v * 1e6) / tc) * 100) : 0
-          }%)`,
+          `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ. (${pct(v * 1e6, tc)}%)`,
       },
     },
   });
+
+  // กราฟ ① สีแบบ Materio: ตัวเลขขาวบนม่วงเข้ม / ม่วงเข้มบนม่วงอ่อน
+  const chart1Base = barOptions(cats, twoTone([C1.own, C1.st]), {
+    chart: { stacked: true },
+    tooltip: groupTitle(grid, groupNames, (f) => `รายได้รวม ${fmtMillion(f.own + f.st)} ลบ.`),
+  });
+  const chart1Options: ApexOptions = {
+    ...chart1Base,
+    dataLabels: {
+      ...chart1Base.dataLabels,
+      style: { fontSize: '10px', fontWeight: 700, colors: ['#fff', BEPS.revenue.onLight] },
+    },
+  };
+
+  // กราฟ ② โทนชมพู: ตัวเลขขาวบนชมพูเข้ม / ชมพูเข้มบนชมพูอ่อน
+  const chart2Base = barOptions(cats, twoTone([C2.fixed, C2.variable]), {
+    chart: { stacked: true },
+    tooltip: groupTitle(grid, groupNames, (f) => `ต้นทุนรวม ${fmtMillion(f.tc)} ลบ.`),
+  });
+  const chart2Options: ApexOptions = {
+    ...chart2Base,
+    dataLabels: {
+      ...chart2Base.dataLabels,
+      style: { fontSize: '10px', fontWeight: 700, colors: ['#fff', BEPS.cost.onLight] },
+    },
+  };
+
+  // กราฟ ③ โทนฟ้า: ตัวเลขขาวบนฟ้าเข้ม / ฟ้าเข้มบนฟ้าอ่อน
+  const chart3Base = barOptions(cats, twoTone([C3.rev, C3.cost]), {
+    chart: { stacked: true },
+    tooltip: groupTitle(
+      grid,
+      groupNames,
+      (f) =>
+        `${profitOf(f, mode) >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtSigned(profitOf(f, mode))} ลบ.`,
+    ),
+  });
+  const chart3Options: ApexOptions = {
+    ...chart3Base,
+    dataLabels: {
+      ...chart3Base.dataLabels,
+      style: { fontSize: '10px', fontWeight: 700, colors: ['#fff', BEPS.compare.onLight] },
+    },
+  };
 
   return (
     <Box>
@@ -354,32 +465,24 @@ const UniversityDashboard = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ py: '10px !important' }}>
           <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Typography variant="body2" fontWeight={600} color="text.secondary">
-              ระดับ:
-            </Typography>
-            <ToggleButtonGroup
+            <Autocomplete
               size="small"
-              color="primary"
-              exclusive
-              value={level}
-              onChange={(_, v: string | null) => v && setLevel(v)}
-              // ยืดให้สูงเท่ากล่อง "กรองคณะ" ในแถวเดียวกัน
-              sx={{ alignSelf: 'stretch', minHeight: 38 }}
-            >
-              {LEVELS.map((l) => (
-                <ToggleButton key={l.key} value={l.key} sx={{ px: 2.5, py: 0 }}>
-                  {l.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-            {canFilterFac && (
-              <FacultyFilter
-                options={FAC_NAMES}
-                value={pickedFacs}
-                onChange={setPickedFacs}
-                minWidth={260}
-              />
-            )}
+              disableClearable
+              options={LEVELS}
+              getOptionLabel={(l) => l.label}
+              isOptionEqualToValue={(a, b) => a.key === b.key}
+              value={levelOpt}
+              onChange={(_, v) => setLevel(v.key)}
+              sx={{ width: 180 }}
+              renderInput={(params) => <TextField {...params} label="ระดับการศึกษา" />}
+            />
+            {/* ทุกบทบาทกรองคณะได้ — หน้านี้แสดงข้อมูลทั้งมหาวิทยาลัยให้ทุกบทบาทอยู่แล้ว */}
+            <FacultyFilter
+              options={FAC_NAMES}
+              value={pickedFacs}
+              onChange={setPickedFacs}
+              minWidth={260}
+            />
             {/* ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล */}
             <Autocomplete
               size="small"
@@ -416,29 +519,107 @@ const UniversityDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* แถวบน: ① รายได้ ② ต้นทุน ③ รายได้เทียบต้นทุน — ลำดับคณะเหมือนกันทั้ง 3 กราฟ */}
+      {/* การ์ดตัวเลข 6 ใบ (แบบ MSU-KPI) — ตามตัวกรองและฐานรายได้ที่เลือก */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="นิสิตทั้งหมด"
+            value={fmtInt(tot.Q)}
+            suffix="คน"
+            accent="primary"
+            icon="ri-graduation-cap-line"
+            progress={reached}
+            footer={`${rows.length} คณะ · ${withStudents.length} หลักสูตร`}
+            info="จำนวนนิสิตจริงทุกชั้นปี · แถบ = นิสิตจริงคิดเป็นกี่ % ของจุดคุ้มทุน"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="นิสิต ณ จุดคุ้มทุน (Q*)"
+            value={fmtInt(qStar)}
+            suffix="คน"
+            accent="primary"
+            // เขียวอมฟ้า (teal) แบบโดนัท Materio — ไม่ซ้ำการ์ดอื่น · ถึงเป้าหรือยังดูจากบรรทัดล่าง
+            color={BEPS.breakEven}
+            icon="ri-flag-2-line"
+            progress={reached}
+            footer={
+              qStar > tot.Q
+                ? `จริง ${fmtInt(tot.Q)} · ขาดอีก ${fmtInt(qStar - tot.Q)} คน`
+                : `จริง ${fmtInt(tot.Q)} · เกินมา ${fmtInt(tot.Q - qStar)} คน`
+            }
+            info="ผลบวกจุดคุ้มทุนรายหลักสูตรแบบชีต = ROUNDUP(ต้นทุนคงที่ ÷ (รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว))"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="รายได้รวม (TR)"
+            value={fmtMillion(totTr)}
+            suffix="ลบ."
+            accent="info"
+            color={C1.own} // ม่วงเข้มเดียวกับกราฟ ① รายได้รวม
+            icon="ri-hand-coin-line"
+            progress={pctOf(totTr, totTc)}
+            footer={`${modeLabel} · ${pct(totTr, totTc)}% ของต้นทุน`}
+            info="รวมเงินแผ่นดิน = เงินแผ่นดิน + เงินรายได้ · ไม่รวม = เงินรายได้อย่างเดียว"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="ต้นทุนรวม (TC)"
+            value={fmtMillion(totTc)}
+            suffix="ลบ."
+            accent="secondary"
+            color={C2.fixed} // ชมพูเข้มเดียวกับกราฟ ② ต้นทุนรวม
+            icon="ri-bill-line"
+            progress={pctOf(tot.tfc, totTc)}
+            footer={`คงที่ ${pct(tot.tfc, totTc)}% · ผันแปร ${pct(tot.tvc, totTc)}%`}
+            info="ต้นทุนคงที่ + ต้นทุนผันแปร · แถบ = สัดส่วนต้นทุนคงที่"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="ส่วนเกิน/ขาดทุน (π)"
+            value={fmtSigned(profit)}
+            suffix="ลบ."
+            accent={profit >= 0 ? 'success' : 'error'}
+            // น้ำเงินเข้ม (navy) แบบโดนัท Materio — สีคงที่ ส่วนเกินหรือขาดทุนดูจากเครื่องหมาย +/− ของตัวเลข
+            color={BEPS.profit}
+            icon="ri-scales-3-line"
+            progress={pctOf(Math.abs(profit), totTr)}
+            footer={`${totTr ? ((profit / totTr) * 100).toFixed(1) : '0'}% ของรายได้`}
+            info="รายได้รวม − ต้นทุนรวม"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="รายได้ต่อหัว (R)"
+            value={fmtInt(rHead)}
+            suffix="บาท"
+            accent="warning"
+            icon="ri-coins-line"
+            progress={pctOf(rHead, costHead)}
+            footer={`ต้นทุนต่อหัว ${fmtInt(costHead)} บาท`}
+            info="รายได้รวม ÷ นิสิตจริง · แถบ = รายได้ต่อหัวคิดเป็นกี่ % ของต้นทุนต่อหัว"
+          />
+        </Grid>
+      </Grid>
+
+      {/* แถวบน: ① รายได้ ② ต้นทุน ③ รายได้เทียบต้นทุน (ล้านบาท) — ลำดับคณะเหมือนกันทั้ง 3 กราฟ */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <ChartCard
             n={1}
-            color="info.main"
             title="รายได้รวม รายคณะ"
-            sub="ทั้งแท่ง = รวมเงินแผ่นดิน · ส่วนเข้ม = ไม่รวม"
-            legend={legendOf([C.own, C.st], ['เงินรายได้', 'เงินแผ่นดิน'])}
+            sub="ทั้งแท่ง = รวมเงินแผ่นดิน · ส่วนม่วงเข้ม = ไม่รวม"
+            legend={legendOf([C1.own, C1.st], ['เงินรายได้', 'เงินแผ่นดิน'])}
             empty={empty}
           >
             <AppReactApexCharts
               type="bar"
               height={chartH}
               width="100%"
-              options={barOptions(cats, twoTone([C.own, C.st]), {
-                chart: { stacked: true },
-                tooltip: groupTitle(
-                  grid,
-                  groupNames,
-                  (f) => `รายได้รวม ${fmtMillion(f.own + f.st)} ลบ.`,
-                ),
-              })}
+              options={chart1Options}
               series={stackSeries([
                 ['เงินรายได้', (f) => toM(f.own)],
                 ['เงินแผ่นดิน', (f) => toM(f.st)],
@@ -449,20 +630,16 @@ const UniversityDashboard = () => {
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <ChartCard
             n={2}
-            color="secondary.main"
             title="ต้นทุนรวม รายคณะ"
             sub="เท่ากันทั้งสองฐาน — เงินแผ่นดินมีผลเฉพาะรายได้"
-            legend={legendOf([C.fixed, C.variable], ['ต้นทุนคงที่', 'ต้นทุนผันแปร'])}
+            legend={legendOf([C2.fixed, C2.variable], ['ต้นทุนคงที่', 'ต้นทุนผันแปร'])}
             empty={empty}
           >
             <AppReactApexCharts
               type="bar"
               height={chartH}
               width="100%"
-              options={barOptions(cats, twoTone([C.fixed, C.variable]), {
-                chart: { stacked: true },
-                tooltip: groupTitle(grid, groupNames, (f) => `ต้นทุนรวม ${fmtMillion(f.tc)} ลบ.`),
-              })}
+              options={chart2Options}
               series={stackSeries([
                 ['ต้นทุนคงที่', (f) => toM(f.tfc)],
                 ['ต้นทุนผันแปร', (f) => toM(f.tvc)],
@@ -473,43 +650,22 @@ const UniversityDashboard = () => {
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <ChartCard
             n={3}
-            color="success.main"
-            title="รายได้เทียบต้นทุนรวม รายคณะ"
-            sub="รายได้ ÷ ต้นทุนรวม × 100 · เส้นประ 100% = คุ้มทุน"
-            legend={legendOf([C.own, C.st], ['เงินรายได้ (ไม่รวม)', '+ เงินแผ่นดิน (รวม)'])}
+            title="รายได้เทียบต้นทุน รายคณะ"
+            sub={`${modeLabel} · ส่วนฟ้าเข้มยาวกว่าฟ้าอ่อน = มีส่วนเกิน`}
+            legend={legendOf([C3.rev, C3.cost], ['รายได้รวม', 'ต้นทุนรวม'])}
             empty={empty}
           >
             <AppReactApexCharts
+              // key: remount เมื่อเปลี่ยนแบบกราฟ — ApexCharts ค้างค่า options เดิมถ้าใช้ตัวเดิม
+              key="rev-vs-cost-stacked"
               type="bar"
               height={chartH}
               width="100%"
-              options={barOptions(
-                cats,
-                twoTone([C.own, C.st]),
-                {
-                  chart: { stacked: true },
-                  annotations: {
-                    xaxis: [
-                      {
-                        x: 100,
-                        borderColor: 'var(--mui-palette-error-main)',
-                        strokeDashArray: 4,
-                      },
-                    ],
-                  },
-                  // หัว tooltip = ชื่อคณะ + % คุ้มทุน และกำไร/ขาดทุน (ลบ.) ทั้งสองฐาน
-                  tooltip: groupTitle(
-                    grid,
-                    groupNames,
-                    (f) =>
-                      `รวม ${pct(f.st + f.own, f.tc)}% (${fmtSigned(f.profitWith)} ลบ.) / ไม่รวม ${pct(f.own, f.tc)}% (${fmtSigned(f.profitWithout)} ลบ.)`,
-                  ),
-                },
-                '%',
-              )}
+              // แท่งเดียวต่อคณะ: ส่วนฟ้าเข้ม = รายได้รวม · ส่วนฟ้าอ่อน = ต้นทุนรวม · ตัวเลขในแท่งแบบกราฟ ②
+              options={chart3Options}
               series={stackSeries([
-                ['เงินรายได้', (f) => pct(f.own, f.tc)],
-                ['เงินแผ่นดิน', (f) => pct(f.st, f.tc)],
+                ['รายได้รวม', (f) => toM(f.own + (mode === 'with_government' ? f.st : 0))],
+                ['ต้นทุนรวม', (f) => toM(f.tc)],
               ])}
             />
           </ChartCard>
@@ -522,12 +678,94 @@ const UniversityDashboard = () => {
           <Card sx={{ height: '100%' }}>
             <CardHeader
               sx={{ pb: 0 }}
-              title={<DotTitle color="primary.main">④ โครงสร้างต้นทุนรวม</DotTitle>}
-              subheader="ต้นทุนคงที่ เทียบ ต้นทุนผันแปร · ล้านบาท"
+              title={<BarTitle>④ โครงสร้างต้นทุนรวม</BarTitle>}
+              subheader={
+                !compare && costView === 'parts'
+                  ? `แยกองค์ประกอบ ${parts.length} หมวด · ล้านบาท`
+                  : 'ต้นทุนคงที่ เทียบ ต้นทุนผันแปร · ล้านบาท'
+              }
+              subheaderTypographyProps={{ variant: 'caption' }}
+              action={
+                !compare && (
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    color="primary"
+                    value={costView}
+                    onChange={(_, v: 'fv' | 'parts' | null) => v && setCostView(v)}
+                    sx={{ '& .MuiToggleButton-root': { px: 1.5, py: 0.25, fontSize: '0.75rem' } }}
+                  >
+                    <ToggleButton value="fv">คงที่/ผันแปร</ToggleButton>
+                    <ToggleButton value="parts">องค์ประกอบ</ToggleButton>
+                  </ToggleButtonGroup>
+                )
+              }
             />
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 3, pt: 2 }}>
               {empty ? (
                 <EmptyNote />
+              ) : !compare && costView === 'parts' ? (
+                // องค์ประกอบต้นทุน: โดนัท + รายการหมวด (ชี้ที่รายการเพื่อดูที่มาของตัวเลข)
+                <>
+                  <Box sx={{ flex: '0 0 40%' }}>
+                    <AppReactApexCharts
+                      key={`parts|${level}|${pickedFacs.join()}`}
+                      type="donut"
+                      height={170}
+                      width="100%"
+                      options={donutOptions(
+                        composition.total,
+                        'ต้นทุนรวม (ลบ.)',
+                        parts.map((c) => PART_SHORT[c.key] ?? c.label),
+                        parts.map((_, i) => PART_COLORS[i % PART_COLORS.length]!),
+                      )}
+                      series={parts.map((c) => toM(c.amount))}
+                    />
+                  </Box>
+                  <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+                    {parts.map((c) => (
+                      <Box
+                        key={c.key}
+                        title={`${c.label} · ที่มา: ${c.source}`}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}
+                      >
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 9,
+                            height: 9,
+                            borderRadius: '2px',
+                            bgcolor: PART_COLORS[parts.indexOf(c) % PART_COLORS.length],
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {PART_SHORT[c.key] ?? c.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          className="num"
+                          sx={{ whiteSpace: 'nowrap' }}
+                        >
+                          {fmtMillion(c.amount)}{' '}
+                          <Box component="span" sx={{ color: 'text.secondary', fontWeight: 400 }}>
+                            {pct(c.amount, composition.total).toFixed(0)}%
+                          </Box>
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </>
               ) : compare ? (
                 // เทียบระดับ: โดนัทของแต่ละระดับวางคู่กัน
                 totals.map((t, gi) => (
@@ -608,7 +846,6 @@ const UniversityDashboard = () => {
 
 const ChartCard = ({
   n,
-  color,
   title,
   sub,
   legend,
@@ -616,7 +853,6 @@ const ChartCard = ({
   children,
 }: {
   n: number;
-  color: string;
   title: string;
   sub: string;
   legend: [string, string][];
@@ -626,7 +862,7 @@ const ChartCard = ({
   <Card sx={{ height: '100%' }}>
     <CardHeader
       sx={{ pb: 0 }}
-      title={<DotTitle color={color}>{`${'①②③'[n - 1]} ${title}`}</DotTitle>}
+      title={<BarTitle>{`${'①②③④'[n - 1]} ${title}`}</BarTitle>}
       subheader={sub}
       subheaderTypographyProps={{ variant: 'caption' }}
     />
@@ -702,7 +938,7 @@ const RankCard = ({
     <Card sx={{ height: '100%' }}>
       <CardHeader
         sx={{ pb: 1 }}
-        title={<DotTitle color={`${color}.main`}>{title}</DotTitle>}
+        title={<BarTitle>{title}</BarTitle>}
         action={<Chip size="small" color={color} variant="tonal" label={chip} />}
       />
       <CardContent sx={{ pt: 0, pb: '12px !important' }}>

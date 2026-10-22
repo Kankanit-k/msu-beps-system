@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSU-BEPS · เทียบชุดสีกราฟ หน้าภาพรวมมหาวิทยาลัย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --surface-0:#f4f4f2; --surface-1:#fcfcfb; --surface-2:#f1f0ed;
+  --line:#e4e3de; --line-2:#cfcdc6;
+  --ink:#0f0f0e; --ink-2:#55544f; --ink-3:#8b8980;
+
+  /* ── ชุดสี A · สองตระกูลสี (ค่าเริ่มต้น) ─────────────────────── */
+  --rev-1:#86b6ef; --rev-2:#2a78d6;   /* รายได้: เงินแผ่นดิน / เงินรายได้ */
+  --cost-1:#e7a39d; --cost-2:#c4524c; /* ต้นทุน: ผันแปร / คงที่ */
+  --pos:#2a78d6; --neg:#c4524c;
+}
+:root[data-pal="now"]{            /* ชุดปัจจุบัน — ถอดจากหน้าจอจริง */
+  --rev-1:#22c55e; --rev-2:#2563eb;
+  --cost-1:#fb923c; --cost-2:#ef4444;
+  --pos:#16a34a; --neg:#ef4444;
+}
+:root[data-pal="mono"]{           /* ชุด B · สีเดียว + เทา */
+  --rev-1:#9ec5f4; --rev-2:#256abf;
+  --cost-1:#cfccc4; --cost-2:#7c7a72;
+  --pos:#256abf; --neg:#c4524c;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --surface-0:#111110; --surface-1:#1a1a19; --surface-2:#242422;
+    --line:#333330; --line-2:#484844;
+    --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8d8c84;
+    --rev-1:#9ec5f4; --rev-2:#3987e5; --cost-1:#e7a39d; --cost-2:#d03b3b;
+    --pos:#3987e5; --neg:#d03b3b;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--surface-0);color:var(--ink);padding:22px;
+  font-family:'Sarabun','IBM Plex Sans Thai','Noto Sans Thai',sans-serif;font-size:14px;line-height:1.5
+}
+.wrap{max-inline-size:1500px;margin-inline:auto}
+
+h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.lead{color:var(--ink-2);font-size:13.5px;margin-block:4px 16px}
+
+/* แถบเลือกชุดสี */
+.picker{display:flex;gap:10px;flex-wrap:wrap;margin-block-end:18px}
+.opt{
+  flex:1 1 300px;text-align:start;cursor:pointer;font:inherit;
+  background:var(--surface-1);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px
+}
+.opt[aria-pressed="true"]{border-color:var(--rev-2);box-shadow:0 0 0 3px color-mix(in srgb,var(--rev-2) 14%,transparent)}
+.opt .t{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
+.opt .d{font-size:12px;color:var(--ink-2);margin-block-start:3px}
+.dots{display:inline-flex;gap:3px;margin-inline-start:auto}
+.dots i{inline-size:13px;block-size:13px;border-radius:4px;display:block}
+
+/* แถวตัวเลขสรุป */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-block-end:16px}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:var(--surface-1);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.kpi .k{font-size:11.5px;color:var(--ink-2);font-weight:600;display:flex;align-items:center;gap:5px}
+.kpi .v{font-size:24px;font-weight:800;letter-spacing:-.6px;line-height:1.3;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:0}
+.kpi .s{font-size:11.5px;color:var(--ink-3);margin-block-start:2px}
+.kpi.hi .v{color:var(--pos)}
+.kpi.lo .v{color:var(--neg)}
+/* ชุดปัจจุบัน: พื้นการ์ดมีสี + ไอคอนสี (จำลองของเดิม) */
+:root[data-pal="now"] .kpi{border-color:transparent}
+:root[data-pal="now"] .kpi:nth-child(1){background:#eff6ff}
+:root[data-pal="now"] .kpi:nth-child(2){background:#ecfeff}
+:root[data-pal="now"] .kpi:nth-child(3){background:#f3f4f6}
+:root[data-pal="now"] .kpi:nth-child(4){background:#f0fdf4}
+:root[data-pal="now"] .kpi:nth-child(5){background:#fff7ed}
+:root[data-pal="now"] .kpi:nth-child(6){background:#f0fdf4}
+:root[data-pal="now"] .badge{display:grid}
+.badge{display:none;place-items:center;inline-size:30px;block-size:30px;border-radius:9px;
+  font-size:15px;color:#fff;margin-inline-start:auto}
+.kpi .top{display:flex;align-items:flex-start;gap:8px}
+.kpi .top > div{flex:1}
+
+/* การ์ดกราฟ */
+.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:1200px){.charts{grid-template-columns:1fr}}
+.card{background:var(--surface-1);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.card h2{font-size:14.5px;font-weight:700}
+.card .hint{font-size:12px;color:var(--ink-2);margin-block:2px 10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-block-end:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{inline-size:12px;block-size:12px;border-radius:3px;display:block}
+svg{display:block;inline-size:100%;block-size:auto}
+
+.tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .08s;
+  background:var(--surface-1);border:1px solid var(--line-2);border-radius:9px;padding:9px 12px;
+  font-size:12.5px;box-shadow:0 8px 28px rgba(0,0,0,.15);max-inline-size:280px}
+.tip .r{display:flex;justify-content:space-between;gap:18px;color:var(--ink-2);margin-block-start:3px}
+.tip .r b{color:var(--ink)}
+
+.why{margin-block-start:18px;background:var(--surface-1);border:1px solid var(--line);
+  border-radius:12px;padding:15px 18px;font-size:13.5px;line-height:1.75}
+.why h3{font-size:14px;font-weight:700;margin-block-end:7px}
+.why b{font-weight:700}
+.why ul{list-style:none;display:flex;flex-direction:column;gap:5px;margin-block-start:7px}
+.why li{padding-inline-start:18px;position:relative;color:var(--ink-2)}
+.why li::before{content:'—';position:absolute;inset-inline-start:0;color:var(--ink-3)}
+.why li b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>เทียบชุดสีกราฟ — หน้าภาพรวมมหาวิทยาลัย</h1>
+  <p class="lead">ข้อมูลและผังหน้าเหมือนกันทุกชุด เปลี่ยนเฉพาะสี เพื่อให้เห็นว่าความ “ฉูดฉาด” มาจากอะไร</p>
+
+  <div class="picker" id="picker">
+    <button class="opt" data-pal="now" aria-pressed="false">
+      <span class="t">ปัจจุบัน · 6 สี
+        <span class="dots"><i style="background:#2563eb"></i><i style="background:#22c55e"></i><i style="background:#ef4444"></i><i style="background:#fb923c"></i><i style="background:#06b6d4"></i><i style="background:#eab308"></i></span>
+      </span>
+      <span class="d">แต่ละกราฟใช้คู่สีของตัวเอง + พื้นการ์ดมีสี + ไอคอนมีสี</span>
+    </button>
+    <button class="opt" data-pal="duo" aria-pressed="true">
+      <span class="t">ทางเลือก A · 2 ตระกูลสี
+        <span class="dots"><i style="background:#86b6ef"></i><i style="background:#2a78d6"></i><i style="background:#e7a39d"></i><i style="background:#c4524c"></i></span>
+      </span>
+      <span class="d">น้ำเงิน = เงินเข้า · แดงอิฐ = เงินออก · เข้ม/อ่อนแทนชนิดย่อย</span>
+    </button>
+    <button class="opt" data-pal="mono" aria-pressed="false">
+      <span class="t">ทางเลือก B · สีเดียว + เทา
+        <span class="dots"><i style="background:#9ec5f4"></i><i style="background:#256abf"></i><i style="background:#cfccc4"></i><i style="background:#7c7a72"></i></span>
+      </span>
+      <span class="d">เงียบที่สุด · เก็บสีไว้ใช้เฉพาะตอนเตือนขาดทุน</span>
+    </button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="charts">
+    <section class="card">
+      <h2>① รายได้รวม รายคณะ</h2>
+      <p class="hint">เงินรายได้ + เงินแผ่นดิน · ล้านบาท</p>
+      <div class="legend">
+        <span><i style="background:var(--rev-2)"></i> เงินรายได้</span>
+        <span><i style="background:var(--rev-1)"></i> เงินแผ่นดิน</span>
+      </div>
+      <div id="c1"></div>
+    </section>
+
+    <section class="card">
+      <h2>② ต้นทุนรวม รายคณะ</h2>
+      <p class="hint">ต้นทุนคงที่ + ต้นทุนผันแปร · ล้านบาท</p>
+      <div class="legend">
+        <span><i style="background:var(--cost-2)"></i> ต้นทุนคงที่</span>
+        <span><i style="background:var(--cost-1)"></i> ต้นทุนผันแปร</span>
+      </div>
+      <div id="c2"></div>
+    </section>
+
+    <section class="card">
+      <h2>③ รายได้เทียบต้นทุน รายคณะ</h2>
+      <p class="hint">แท่งบน = รายได้ · แท่งล่าง = ต้นทุน · ล้านบาท</p>
+      <div class="legend">
+        <span><i style="background:var(--rev-2)"></i> รายได้รวม</span>
+        <span><i style="background:var(--cost-2)"></i> ต้นทุนรวม</span>
+      </div>
+      <div id="c3"></div>
+    </section>
+  </div>
+
+  <div class="why">
+    <h3>ทำไมของเดิมถึงรู้สึกฉูดฉาด</h3>
+    <ul>
+      <li><b>หกสีในจอเดียว ไม่มีความหมายร่วมกัน</b> — เขียวในกราฟ ① คือเงินแผ่นดิน แต่เขียวในการ์ดสรุปคือ “กำไร” สมองต้องจำว่าสีไหนหมายถึงอะไรในบริบทไหน</li>
+      <li><b>สีเดียวกันคนละความหมายข้ามกราฟ</b> — แดงในกราฟ ② คือต้นทุนคงที่ แต่แดงในกราฟ ③ คือต้นทุนรวม</li>
+      <li><b>พื้นการ์ดมีสีจาง 6 เฉด</b> — ทำให้ทั้งหน้าดูเป็นลายตาราง ทั้งที่พื้นหลังไม่ได้บอกข้อมูลอะไรเลย</li>
+      <li><b>สีอิ่มตัวเต็มที่ทุกตัว</b> — ไม่มีลำดับความสำคัญ ทุกอย่างตะโกนเท่ากัน ตาไม่รู้จะมองตรงไหนก่อน</li>
+    </ul>
+    <h3 style="margin-block-start:13px">หลักที่ใช้ในทางเลือก A</h3>
+    <ul>
+      <li><b>สีผูกกับความหมายเดียวตลอดทั้งหน้า</b> — น้ำเงินคือเงินเข้าเสมอ แดงอิฐคือเงินออกเสมอ ไม่ว่าจะอยู่กราฟไหน</li>
+      <li><b>ชนิดย่อยใช้เข้ม/อ่อนของสีเดียวกัน</b> — เงินรายได้กับเงินแผ่นดินเป็นเงินเข้าเหมือนกัน จึงไม่ควรเป็นคนละสี</li>
+      <li><b>เก็บสีไว้ใช้ตอนจำเป็น</b> — การ์ดสรุปเป็นสีกลางหมด ยกเว้นตัวเลขส่วนเกิน/ขาดทุนที่ต้องบอกบวกลบ</li>
+      <li><b>ผ่านเกณฑ์ตาบอดสี</b> — คู่น้ำเงิน/แดงอิฐ ΔE 21.2 (เกณฑ์ ≥ 8) · คู่เขียว/แดงของเดิมได้ 4.1 ซึ่งไม่ผ่าน</li>
+    </ul>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+/* ── ข้อมูลจากหน้าจอจริง (ล้านบาท) ─────────────────────────────── */
+const FAC = [
+  ['การบัญชีและการจัดการ', 384, 39, 135, 199],
+  ['มนุษยศาสตร์และสังคมศาสตร์', 135, 60, 102, 74],
+  ['วิทยาศาสตร์', 77, 107, 162, 49],
+  ['ศึกษาศาสตร์', 139, 40, 89, 61],
+  ['วิทยาการสารสนเทศ', 126, 51, 91, 65],
+  ['วิศวกรรมศาสตร์', 116, 44, 88, 62],
+  ['วล.การเมืองการปกครอง', 127, 21, 50, 67],
+  ['สาธารณสุขศาสตร์', 97, 30, 66, 59],
+  ['การท่องเที่ยวและการโรงแรม', 107, 19, 43, 55],
+  ['นิติศาสตร์', 111, 13, 21, 43],
+  ['ศิลปกรรมศาสตร์และวัฒนธรรมฯ', 88, 30, 50, 32],
+  ['แพทยศาสตร์', 49, 48, 204, 37],
+  ['เทคโนโลยี', 46, 48, 81, 24],
+  ['สถาปัตยกรรมศาสตร์ ผังเมืองฯ', 52, 37, 59, 25],
+  ['เภสัชศาสตร์', 44, 30, 54, 18],
+  ['พยาบาลศาสตร์', 47, 23, 47, 14],
+  ['วล.ดุริยางคศิลป์', 52, 15, 53, 19],
+  ['สัตวแพทยศาสตร์', 33, 27, 47, 10],
+  ['สิ่งแวดล้อมและทรัพยากรฯ', 21, 20, 29, 10],
+  ['สถ.วลัยรุกขเวช', 14, 0, 21, 22],
+].map(([name, own, st, tfc, tvc]) => ({ name, own, st, tfc, tvc, tr: own + st, tc: tfc + tvc }));
+
+const n0 = v => Math.round(v).toLocaleString('th-TH');
+const tipEl = document.getElementById('tip');
+const show = (html, ev) => {
+  tipEl.innerHTML = html; tipEl.style.opacity = '1';
+  const r = tipEl.getBoundingClientRect();
+  tipEl.style.left = Math.min(ev.clientX + 14, innerWidth - r.width - 8) + 'px';
+  tipEl.style.top = Math.min(ev.clientY + 14, innerHeight - r.height - 8) + 'px';
+};
+const hide = () => tipEl.style.opacity = '0';
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (t, a = {}) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); return n; };
+
+/**
+ * กราฟแท่งแนวนอน — stacked (สองส่วนต่อแถว) หรือ grouped (สองแท่งต่อแถว)
+ * segs: [{get, fill, label}]
+ */
+function chart(host, { segs, mode, max, tip }) {
+  const LBL = 148, PAD = 46, RH = mode === 'grouped' ? 30 : 22, TOP = 8, BOT = 26;
+  const W = 470, plot = W - LBL - PAD;
+  const H = TOP + FAC.length * RH + BOT;
+  const x = v => LBL + (v / max) * plot;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img' });
+
+  // กริด — ถอยหลังฉาก
+  const step = max > 400 ? 200 : 100;
+  for (let v = 0; v <= max; v += step) {
+    svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: TOP, y2: H - BOT + 3, stroke: 'var(--line)' }));
+    const t = el('text', { x: x(v), y: H - BOT + 16, 'text-anchor': 'middle', fill: 'var(--ink-3)', 'font-size': 9 });
+    t.textContent = n0(v); svg.appendChild(t);
+  }
+
+  FAC.forEach((f, i) => {
+    const y = TOP + i * RH;
+    const g = el('g');
+    g.appendChild(el('rect', { x: 0, y, width: W, height: RH, fill: 'transparent' }));
+
+    const nm = el('text', { x: LBL - 7, y: y + RH / 2 + 3.2, 'text-anchor': 'end', fill: 'var(--ink-2)', 'font-size': 9.5 });
+    nm.textContent = f.name.length > 22 ? f.name.slice(0, 21) + '…' : f.name;
+    g.appendChild(nm);
+
+    if (mode === 'grouped') {
+      // สองแท่งซ้อนแถว · ช่องว่างพื้นผิว 2px ระหว่างแท่ง
+      segs.forEach((s, k) => {
+        const v = s.get(f);
+        const by = y + 4 + k * 11;
+        g.appendChild(el('rect', { x: LBL, y: by, width: Math.max(1.5, x(v) - LBL), height: 9, rx: 3, fill: s.fill }));
+      });
+      const lv = el('text', { x: x(Math.max(...segs.map(s => s.get(f)))) + 6, y: y + RH / 2 + 3.2, fill: 'var(--ink-3)', 'font-size': 9 });
+      lv.textContent = n0(segs[0].get(f)) + ' / ' + n0(segs[1].get(f)); g.appendChild(lv);
+    } else {
+      let acc = 0;
+      segs.forEach((s, k) => {
+        const v = s.get(f);
+        const x0 = x(acc), x1 = x(acc + v);
+        const gap = k ? 2 : 0;                       // ช่องว่างพื้นผิว 2px ระหว่างส่วน
+        g.appendChild(el('rect', { x: x0 + gap, y: y + 5, width: Math.max(1, x1 - x0 - gap), height: RH - 10, rx: 3, fill: s.fill }));
+        acc += v;
+      });
+      const lv = el('text', { x: x(acc) + 6, y: y + RH / 2 + 3.2, fill: 'var(--ink-3)', 'font-size': 9 });
+      lv.textContent = n0(acc); g.appendChild(lv);
+    }
+
+    g.addEventListener('mousemove', e => show(tip(f), e));
+    g.addEventListener('mouseleave', hide);
+    svg.appendChild(g);
+  });
+  host.replaceChildren(svg);
+}
+
+function renderKpis() {
+  const d = [
+    ['นิสิตทั้งหมด', '49,744', 'คน', '20 คณะ · 230 หลักสูตร', '', '#2563eb', '🎓'],
+    ['รายได้รวม (TR)', '2,566.4', 'ลบ.', 'รวมเงินแผ่นดิน · 106.2% ของต้นทุน', '', '#06b6d4', '💰'],
+    ['ต้นทุนรวม (TC)', '2,415.8', 'ลบ.', 'คงที่ 61.6% · ผันแปร 38.4%', '', '#6b7280', '🧾'],
+    ['ส่วนเกิน/ขาดทุน (π)', '+150.5', 'ลบ.', '5.9% ของรายได้', 'hi', '#16a34a', '⚖️'],
+    ['รายได้ต่อหัว (R)', '51,591', 'บาท', 'ต้นทุนต่อหัว 48,565 บาท', '', '#f59e0b', '👤'],
+    ['นิสิต ณ จุดคุ้มทุน (Q*)', '41,555', 'คน', 'จริง 49,744 · เกินมา 8,189 คน', '', '#16a34a', '🚩'],
+  ];
+  kpis.innerHTML = d.map(([k, v, u, s, cls, c, ic]) => `
+    <div class="kpi ${cls}">
+      <div class="top">
+        <div>
+          <div class="k">${k}</div>
+          <div class="v">${v} <small>${u}</small></div>
+        </div>
+        <span class="badge" style="background:${c}">${ic}</span>
+      </div>
+      <div class="s">${s}</div>
+    </div>`).join('');
+}
+
+function renderCharts() {
+  const maxRev = 450, maxCost = 350, maxBoth = 450;
+  chart(c1, {
+    mode: 'stacked', max: maxRev,
+    segs: [{ get: f => f.own, fill: 'var(--rev-2)' }, { get: f => f.st, fill: 'var(--rev-1)' }],
+    tip: f => `<b>${f.name}</b>
+      <div class="r"><span>เงินรายได้</span><b>${n0(f.own)} ลบ.</b></div>
+      <div class="r"><span>เงินแผ่นดิน</span><b>${n0(f.st)} ลบ.</b></div>
+      <div class="r"><span>รวม</span><b>${n0(f.tr)} ลบ.</b></div>`,
+  });
+  chart(c2, {
+    mode: 'stacked', max: maxCost,
+    segs: [{ get: f => f.tfc, fill: 'var(--cost-2)' }, { get: f => f.tvc, fill: 'var(--cost-1)' }],
+    tip: f => `<b>${f.name}</b>
+      <div class="r"><span>ต้นทุนคงที่</span><b>${n0(f.tfc)} ลบ.</b></div>
+      <div class="r"><span>ต้นทุนผันแปร</span><b>${n0(f.tvc)} ลบ.</b></div>
+      <div class="r"><span>รวม</span><b>${n0(f.tc)} ลบ.</b></div>`,
+  });
+  chart(c3, {
+    mode: 'grouped', max: maxBoth,
+    segs: [{ get: f => f.tr, fill: 'var(--rev-2)' }, { get: f => f.tc, fill: 'var(--cost-2)' }],
+    tip: f => `<b>${f.name}</b>
+      <div class="r"><span>รายได้รวม</span><b>${n0(f.tr)} ลบ.</b></div>
+      <div class="r"><span>ต้นทุนรวม</span><b>${n0(f.tc)} ลบ.</b></div>
+      <div class="r"><span>${f.tr >= f.tc ? 'ส่วนเกิน' : 'ขาดทุน'}</span><b>${n0(Math.abs(f.tr - f.tc))} ลบ.</b></div>`,
+  });
+}
+
+picker.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+  picker.querySelectorAll('.opt').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  document.documentElement.setAttribute('data-pal', b.dataset.pal);
+  renderCharts();
+});
+
+document.documentElement.setAttribute('data-pal', 'duo');
+renderKpis(); renderCharts();
+</script>
+</body>
+</html>

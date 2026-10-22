@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSU-BEPS · ข้อเสนอหน้าภาพรวมมหาวิทยาลัย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── โทเคนสี · ชุดเดียวใช้ทั้งหน้า (ค่าโหมดสว่าง/มืดสลับที่เดียว) ─────────────── */
+:root{
+  color-scheme: light;
+  --surface-0:#f4f4f2; --surface-1:#fcfcfb; --surface-2:#f0efec;
+  --line:#e3e2dd; --line-strong:#c9c7c0;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#86847d;
+  --pos:#2a78d6;      /* คุ้มทุน — ขั้วเย็นของคู่ diverging */
+  --neg:#d03b3b;      /* ขาดทุน — ขั้วอุ่น */
+  --mark:#52514e;     /* จุดฐาน "ไม่รวมเงินแผ่นดิน" */
+  --you:#111;         /* เส้นขอบเน้นคณะของผู้ใช้ */
+  --warn-bg:#fdf3e2; --warn-ink:#8a5a00; --warn-line:#e9cf9c;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --surface-0:#121211; --surface-1:#1a1a19; --surface-2:#232321;
+    --line:#333330; --line-strong:#4a4a46;
+    --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8f8e86;
+    --pos:#3987e5; --neg:#d03b3b; --mark:#c3c2b7; --you:#fff;
+    --warn-bg:#2e2616; --warn-ink:#e8c87d; --warn-line:#5a4a22;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-0:#121211; --surface-1:#1a1a19; --surface-2:#232321;
+  --line:#333330; --line-strong:#4a4a46;
+  --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8f8e86;
+  --pos:#3987e5; --neg:#d03b3b; --mark:#c3c2b7; --you:#fff;
+  --warn-bg:#2e2616; --warn-ink:#e8c87d; --warn-line:#5a4a22;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--surface-0); color:var(--ink);
+  font-family:'Sarabun','IBM Plex Sans Thai','Noto Sans Thai',sans-serif;
+  font-size:14px; line-height:1.5; padding:20px;
+}
+.wrap{max-inline-size:1360px; margin-inline:auto}
+
+/* ── แถบหัว ─────────────────────────────────────────────────────────────── */
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-block-end:6px}
+.topbar h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.spacer{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.seg button{
+  font:inherit;font-size:12.5px;font-weight:600;padding:5px 13px;cursor:pointer;
+  background:var(--surface-1);color:var(--ink-2);border:0;border-inline-end:1px solid var(--line)
+}
+.seg button:last-child{border-inline-end:0}
+.seg button[aria-pressed="true"]{background:var(--pos);color:#fff}
+.chip{
+  font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px;
+  background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)
+}
+.sub{color:var(--ink-2);font-size:13px;margin-block-end:16px}
+
+/* ── การ์ด ──────────────────────────────────────────────────────────────── */
+.card{
+  background:var(--surface-1);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;margin-block-end:14px
+}
+.card > h2{font-size:15px;font-weight:700;margin-block-end:3px}
+.card > .hint{font-size:12.5px;color:var(--ink-2);margin-block-end:12px}
+
+/* ── บรรทัดสรุป (hero) ──────────────────────────────────────────────────── */
+.hero{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap}
+.hero .lede{flex:1 1 420px;min-inline-size:320px}
+.hero .lede p{font-size:17px;line-height:1.65;font-weight:500}
+.hero .lede b{font-weight:800}
+.hero .lede .you{
+  display:inline-block;margin-block-start:10px;font-size:14px;font-weight:700;
+  padding:5px 12px;border-radius:8px;background:var(--surface-2);
+  border:1px solid var(--line-strong)
+}
+.tiles{display:flex;gap:10px;flex-wrap:wrap}
+.tile{
+  min-inline-size:132px;padding:11px 14px;border-radius:10px;
+  background:var(--surface-2);border:1px solid var(--line)
+}
+.tile .k{font-size:11.5px;color:var(--ink-2);font-weight:600}
+.tile .v{font-size:23px;font-weight:800;letter-spacing:-.5px;line-height:1.25}
+.tile .u{font-size:11px;color:var(--ink-3)}
+
+/* ── ส่วนประกอบกราฟ ─────────────────────────────────────────────────────── */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-block-end:10px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{inline-size:13px;block-size:13px;border-radius:3px;display:inline-block}
+.sw.dot{inline-size:9px;block-size:9px;border-radius:50%;background:var(--mark)}
+.sw.ring{background:transparent;border:2px solid var(--you);border-radius:4px}
+.chart{inline-size:100%;overflow-x:auto}
+svg{display:block}
+.row-hit{cursor:default}
+.row-hit:hover .row-bg{fill:var(--surface-2)}
+.tip{
+  position:fixed;z-index:50;pointer-events:none;opacity:0;transition:opacity .08s;
+  background:var(--surface-1);border:1px solid var(--line-strong);border-radius:9px;
+  padding:9px 12px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.14);max-inline-size:280px
+}
+.tip b{font-size:13px}
+.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--ink-2);margin-block-start:3px}
+.tip .r b{color:var(--ink);font-weight:700;font-size:12.5px}
+
+/* ── การ์ดวิเคราะห์ ─────────────────────────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+table{inline-size:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:start;padding:7px 9px;border-block-end:1px solid var(--line)}
+th{font-size:11.5px;color:var(--ink-2);font-weight:700;text-transform:none}
+td.num,th.num{text-align:end;font-variant-numeric:tabular-nums}
+tr.me td{background:var(--surface-2);font-weight:700}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;white-space:nowrap}
+.pill.p{background:color-mix(in srgb,var(--pos) 16%,transparent);color:var(--pos)}
+.pill.n{background:color-mix(in srgb,var(--neg) 16%,transparent);color:var(--neg)}
+.cmp{display:flex;flex-direction:column;gap:9px}
+.cmp .row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;font-size:13px}
+.cmp .bar{grid-column:1/-1;block-size:7px;border-radius:4px;background:var(--surface-2);position:relative;overflow:hidden}
+.cmp .bar i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:4px;display:block}
+.cmp .lbl{font-weight:600}
+.cmp .v{font-variant-numeric:tabular-nums;font-weight:700}
+.cmp .d{font-size:12px;font-weight:700}
+.note{
+  background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-ink);
+  border-radius:10px;padding:11px 14px;font-size:13px;line-height:1.6
+}
+details.tbl{margin-block-start:12px}
+details.tbl summary{font-size:12.5px;color:var(--ink-2);cursor:pointer;font-weight:600}
+.foot{font-size:12px;color:var(--ink-3);margin-block-start:18px;line-height:1.8}
+.foot b{color:var(--ink-2)}
+</style>
+</head>
+<body data-theme-root>
+<div class="wrap">
+
+  <div class="topbar">
+    <h1>ภาพรวมมหาวิทยาลัย</h1>
+    <span class="chip" id="roleChip">เจ้าหน้าที่ระดับคณะ · คณะเทคโนโลยี</span>
+    <div class="spacer"></div>
+    <div class="seg" role="group" aria-label="ฐานรายได้">
+      <button id="bIn"  aria-pressed="true">รวมเงินแผ่นดิน</button>
+      <button id="bEx" aria-pressed="false">ไม่รวมเงินแผ่นดิน</button>
+    </div>
+    <span class="chip">ปีงบประมาณ 2568</span>
+    <div class="seg" role="group" aria-label="โหมดสี">
+      <button id="tLight" aria-pressed="true">สว่าง</button>
+      <button id="tDark" aria-pressed="false">มืด</button>
+    </div>
+  </div>
+  <p class="sub">แสดงเป็น<b>สัดส่วน</b>เพื่อให้เทียบกันข้ามคณะได้ · ตัวเลขเงินรายคณะดูได้ในหน้าภาพรวมคณะของแต่ละคณะ</p>
+
+  <!-- ① บรรทัดสรุป -->
+  <section class="card hero">
+    <div class="lede">
+      <p id="lede"></p>
+      <span class="you" id="youLine"></span>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <!-- ② กราฟหลัก -->
+  <section class="card">
+    <h2>อัตราความคุ้มทุนรายคณะ</h2>
+    <p class="hint">รายได้ ÷ ต้นทุนรวม × 100 · เส้น 100% คือจุดคุ้มทุน · เรียงจากคุ้มทุนมากไปน้อย</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--pos)"></i> คุ้มทุน (≥ 100%)</span>
+      <span><i class="sw" style="background:var(--neg)"></i> ขาดทุน (&lt; 100%)</span>
+      <span><i class="sw dot"></i> อัตราเมื่อไม่รวมเงินแผ่นดิน</span>
+      <span><i class="sw ring"></i> คณะของคุณ</span>
+    </div>
+    <div class="chart" id="chartA"></div>
+    <details class="tbl"><summary>ดูเป็นตาราง</summary><div id="tableA"></div></details>
+  </section>
+
+  <div class="grid2">
+    <!-- ③ ทำไมถึงต่างกัน -->
+    <section class="card">
+      <h2>ทำไมคณะของคุณถึงต่างจากคณะอื่น</h2>
+      <p class="hint">เทียบตัวขับเคลื่อนหลัก 3 ตัวกับค่ากลางของมหาวิทยาลัย</p>
+      <div class="cmp" id="drivers"></div>
+      <div class="note" style="margin-block-start:14px" id="driverNote"></div>
+    </section>
+
+    <!-- ④ เฝ้าระวัง -->
+    <section class="card">
+      <h2>คณะที่ต้องเฝ้าระวัง</h2>
+      <p class="hint">เรียงจากอัตราคุ้มทุนต่ำสุด · กดแถวเพื่อเจาะลงรายหลักสูตร</p>
+      <table>
+        <thead><tr>
+          <th>คณะ</th><th class="num">อัตราคุ้มทุน</th><th class="num">ต้นทุนคงที่</th><th>สถานะ</th>
+        </tr></thead>
+        <tbody id="watch"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- ⑤ ตัวขับเคลื่อน -->
+  <section class="card">
+    <h2>สัดส่วนต้นทุนคงที่รายคณะ</h2>
+    <p class="hint">ยิ่งสูงยิ่งปรับตัวยาก เพราะลดนิสิตแล้วต้นทุนไม่ลดตาม · ที่ประชุมตั้งข้อสังเกตว่าเกิน 50% มักขาดทุน</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--neg)"></i> เกิน 50% (เสี่ยง)</span>
+      <span><i class="sw" style="background:var(--pos)"></i> ไม่เกิน 50%</span>
+      <span><i class="sw ring"></i> คณะของคุณ</span>
+    </div>
+    <div class="chart" id="chartB"></div>
+  </section>
+
+  <p class="foot">
+    <b>ข้อเสนอนี้ต่างจากของเดิมอย่างไร</b><br>
+    • รวมกราฟ 3 ตัว (รายได้ / ต้นทุน / อัตราคุ้มทุน) เหลือ <b>กราฟหลัก 1 ตัว</b> เพราะกราฟที่สามคือผลหารของสองตัวแรกอยู่แล้ว<br>
+    • เพิ่ม <b>บรรทัดสรุปเป็นประโยค</b> ที่ด้านบน ผู้บริหารอ่านจบใน 5 วินาทีโดยไม่ต้องตีความกราฟ<br>
+    • <b>ไฮไลต์คณะของผู้ใช้</b> ในทุกกราฟ พร้อมบอกอันดับ และอธิบายว่าต่างจากค่ากลางเพราะอะไร<br>
+    • เปลี่ยนตัวเลขรายคณะจาก <b>ล้านบาท เป็นสัดส่วน</b> ตามมติที่ให้เปิดเผยข้ามคณะได้<br>
+    • ชื่อคณะแสดงเต็ม ไม่ตัดคำ · มีตารางสำรองสำหรับผู้ใช้โปรแกรมอ่านหน้าจอ · รองรับโหมดมืด
+  </p>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+/* ── ข้อมูล · ถอดจากหน้าจอจริงของระบบ (หน่วย: ล้านบาท) ───────────────────── */
+const FAC = [
+  ['การบัญชีและการจัดการ',            384, 39,   135, 199],
+  ['นิติศาสตร์',                      111, 13.6,  21,  43],
+  ['ศิลปกรรมศาสตร์และวัฒนธรรมศาสตร์',  88, 29.6,  50,  32],
+  ['วล.การเมืองการปกครอง',            127, 21,    50,  67],
+  ['ศึกษาศาสตร์',                     139, 40,    89,  61],
+  ['มนุษยศาสตร์และสังคมศาสตร์',       135, 60,    95,  70],
+  ['วิทยาการสารสนเทศ',                126, 51,    89,  63],
+  ['วิศวกรรมศาสตร์',                  116, 44,    88,  62],
+  ['การท่องเที่ยวและการโรงแรม',       107,  9,    43,  55],
+  ['สถาปัตยกรรมศาสตร์ ผังเมืองฯ',      52, 37,    54,  23],
+  ['สาธารณสุขศาสตร์',                  97, 30,    66,  59],
+  ['พยาบาลศาสตร์',                     47, 23,    47,  18],
+  ['เภสัชศาสตร์',                      44, 30,    54,  18],
+  ['สัตวแพทยศาสตร์',                   33, 27,    47,  13],
+  ['สิ่งแวดล้อมและทรัพยากรศาสตร์',     21, 20,    29,  12],
+  ['วล.ดุริยางคศิลป์',                 52, 15.6,  53,  19.6],
+  ['เทคโนโลยี',                        46, 48.1,  81,  24],
+  ['สถ.วลัยรุกขเวช',                   21,  9.8,  21,  22.5],
+  ['วิทยาศาสตร์',                      77.3, 106.9, 162, 49.2],
+  ['แพทยศาสตร์',                       49, 47.9, 204,  37.4],
+].map(([name, own, st, tfc, tvc]) => {
+  const tc = tfc + tvc;
+  return {
+    name, own, st, tfc, tvc, tc,
+    trIn: own + st,
+    utilIn: (own + st) / tc * 100,   // อัตราคุ้มทุน รวมเงินแผ่นดิน
+    utilEx: own / tc * 100,          // อัตราคุ้มทุน ไม่รวมเงินแผ่นดิน
+    fixedPct: tfc / tc * 100,        // สัดส่วนต้นทุนคงที่
+    profitIn: own + st - tc,
+    profitEx: own - tc,
+  };
+});
+
+const ME = 'เทคโนโลยี';
+let MODE = 'in';                       // 'in' = รวมเงินแผ่นดิน · 'ex' = ไม่รวม
+const util = f => MODE === 'in' ? f.utilIn : f.utilEx;
+const profit = f => MODE === 'in' ? f.profitIn : f.profitEx;
+
+const sum = (k) => FAC.reduce((a, f) => a + f[k], 0);
+const TOT = { own: sum('own'), st: sum('st'), tfc: sum('tfc'), tc: sum('tc') };
+const median = arr => {
+  const s = [...arr].sort((a, b) => a - b), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+const n1 = v => v.toLocaleString('th-TH', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const n0 = v => Math.round(v).toLocaleString('th-TH');
+
+/* ── ทูลทิป ─────────────────────────────────────────────────────────────── */
+const tipEl = document.getElementById('tip');
+function showTip(html, ev) {
+  tipEl.innerHTML = html; tipEl.style.opacity = '1';
+  const r = tipEl.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+}
+const hideTip = () => tipEl.style.opacity = '0';
+
+/* ── ตัวสร้างกราฟแท่งแนวนอน ─────────────────────────────────────────────── */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const el = (t, a = {}) => {
+  const n = document.createElementNS(SVGNS, t);
+  for (const k in a) n.setAttribute(k, a[k]);
+  return n;
+};
+
+/**
+ * rows: [{name, value, color, marker?, me}]
+ * ref:  [{at, label}]  เส้นอ้างอิงแนวตั้ง
+ */
+function barChart(host, rows, { max, ref = [], unit = '%', tip }) {
+  const LBL = 220, PAD_R = 58, RH = 27, TOP = 34, BOT = 30;
+  const w = Math.max(host.clientWidth || 860, 760);
+  const plotW = w - LBL - PAD_R;
+  const h = TOP + rows.length * RH + BOT;
+  const x = v => LBL + (v / max) * plotW;
+
+  const svg = el('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: 'img' });
+
+  // เส้นกริดแกนนอน (ถอยหลังฉาก)
+  for (let v = 0; v <= max; v += max > 150 ? 50 : 25) {
+    svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: TOP - 6, y2: h - BOT + 4,
+      stroke: 'var(--line)', 'stroke-width': 1 }));
+    const tx = el('text', { x: x(v), y: h - BOT + 18, 'text-anchor': 'middle',
+      fill: 'var(--ink-3)', 'font-size': 11 });
+    tx.textContent = v + unit; svg.appendChild(tx);
+  }
+
+  // เส้นอ้างอิง — ป้ายสลับระดับเมื่อสองเส้นอยู่ใกล้กันจนตัวอักษรจะชนกัน
+  const sortedRef = [...ref].sort((a, b) => a.at - b.at);
+  let lastLabelX = -1e9, hi = true;
+  sortedRef.forEach(r => {
+    const rx = x(r.at);
+    const near = rx - lastLabelX < 90;
+    if (near) hi = !hi; else hi = true;
+    lastLabelX = rx;
+    const ly = hi ? TOP - 19 : TOP - 6;
+
+    svg.appendChild(el('line', { x1: rx, x2: rx, y1: ly + 4, y2: h - BOT + 4,
+      stroke: 'var(--ink-2)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }));
+    const t = el('text', { x: rx, y: ly, 'text-anchor': 'middle',
+      fill: 'var(--ink-2)', 'font-size': 11, 'font-weight': 700,
+      stroke: 'var(--surface-1)', 'stroke-width': 3, 'paint-order': 'stroke' });
+    t.textContent = r.label; svg.appendChild(t);
+  });
+
+  rows.forEach((r, i) => {
+    const y = TOP + i * RH;
+    const g = el('g', { class: 'row-hit' });
+
+    g.appendChild(el('rect', { class: 'row-bg', x: 0, y, width: w, height: RH, fill: 'transparent' }));
+
+    // ชื่อคณะ — เต็ม ไม่ตัดคำ
+    const nm = el('text', { x: LBL - 10, y: y + RH / 2 + 4, 'text-anchor': 'end',
+      fill: r.me ? 'var(--ink)' : 'var(--ink-2)', 'font-size': 12,
+      'font-weight': r.me ? 800 : 500 });
+    nm.textContent = r.name; g.appendChild(nm);
+
+    // แท่ง — ปลายมน 4px ยึดกับเส้นฐาน
+    const bw = Math.max(2, x(Math.min(r.value, max)) - LBL);
+    g.appendChild(el('rect', { x: LBL, y: y + 6, width: bw, height: RH - 12,
+      rx: 4, fill: r.color }));
+
+    // วงแหวนเน้นคณะของผู้ใช้ (ช่องว่างพื้นผิว 2px)
+    if (r.me) {
+      g.appendChild(el('rect', { x: LBL - 2, y: y + 4, width: bw + 4, height: RH - 8,
+        rx: 6, fill: 'none', stroke: 'var(--you)', 'stroke-width': 2 }));
+    }
+
+    // จุดฐานรอง
+    if (r.marker != null) {
+      g.appendChild(el('circle', { cx: x(Math.min(r.marker, max)), cy: y + RH / 2,
+        r: 5, fill: 'var(--mark)', stroke: 'var(--surface-1)', 'stroke-width': 2 }));
+    }
+
+    // ป้ายค่าโดยตรง
+    // ขอบสีพื้นผิวรอบตัวอักษร กันป้ายค่าชนเส้นอ้างอิงที่ลากผ่าน
+    const vl = el('text', { x: Math.min(x(r.value), LBL + plotW) + 8, y: y + RH / 2 + 4,
+      fill: 'var(--ink-2)', 'font-size': 11.5, 'font-weight': 700,
+      stroke: 'var(--surface-1)', 'stroke-width': 3, 'paint-order': 'stroke' });
+    vl.textContent = n0(r.value) + unit; g.appendChild(vl);
+
+    if (tip) {
+      g.addEventListener('mousemove', e => showTip(tip(r), e));
+      g.addEventListener('mouseleave', hideTip);
+    }
+    svg.appendChild(g);
+  });
+
+  host.replaceChildren(svg);
+}
+
+/* ── ประกอบหน้า ─────────────────────────────────────────────────────────── */
+function render() {
+  const sorted = [...FAC].sort((a, b) => util(b) - util(a));
+  const me = FAC.find(f => f.name === ME);
+  const rank = sorted.findIndex(f => f.name === ME) + 1;
+  const nLoss = FAC.filter(f => util(f) < 100).length;
+  const totProfit = FAC.reduce((a, f) => a + profit(f), 0);
+  const uniUtil = MODE === 'in' ? (TOT.own + TOT.st) / TOT.tc * 100 : TOT.own / TOT.tc * 100;
+  const medUtil = median(FAC.map(util));
+  const medFixed = median(FAC.map(f => f.fixedPct));
+  const worst = sorted[sorted.length - 1];
+
+  // ① บรรทัดสรุป
+  document.getElementById('lede').innerHTML =
+    `ปีงบประมาณ 2568 มหาวิทยาลัย${totProfit >= 0 ? 'มีส่วนเกิน' : 'ขาดทุน'} ` +
+    `<b>${n1(Math.abs(totProfit))} ล้านบาท</b> · อัตราคุ้มทุนรวม <b>${n0(uniUtil)}%</b><br>` +
+    `มี <b>${nLoss} จาก 20 คณะ</b> ที่ยังไม่ถึงจุดคุ้มทุน หนักที่สุดคือ<b>${worst.name}</b> (${n0(util(worst))}%)`;
+
+  document.getElementById('youLine').innerHTML =
+    `คณะของคุณ (เทคโนโลยี) อยู่อันดับ <b>${rank} จาก 20</b> · อัตราคุ้มทุน <b>${n0(util(me))}%</b> ` +
+    `${util(me) >= medUtil ? 'สูงกว่า' : 'ต่ำกว่า'}ค่ากลาง ${n0(Math.abs(util(me) - medUtil))} จุด`;
+
+  document.getElementById('tiles').innerHTML = [
+    ['อัตราคุ้มทุนของคุณ', n0(util(me)) + '%', util(me) >= 100 ? 'ถึงจุดคุ้มทุน' : 'ยังไม่ถึงจุดคุ้มทุน'],
+    ['ค่ากลางมหาวิทยาลัย', n0(medUtil) + '%', 'มัธยฐาน 20 คณะ'],
+    ['อันดับของคุณ', rank + ' / 20', 'เรียงตามอัตราคุ้มทุน'],
+  ].map(([k, v, u]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="u">${u}</div></div>`).join('');
+
+  // ② กราฟหลัก
+  const maxA = Math.max(200, Math.ceil(Math.max(...FAC.map(util)) / 25) * 25);
+  barChart(document.getElementById('chartA'), sorted.map(f => ({
+    name: f.name, value: util(f), me: f.name === ME,
+    color: util(f) >= 100 ? 'var(--pos)' : 'var(--neg)',
+    marker: MODE === 'in' ? f.utilEx : null, f,
+  })), {
+    max: maxA, unit: '%',
+    ref: [{ at: 100, label: 'จุดคุ้มทุน 100%' }, { at: medUtil, label: 'ค่ากลาง' }],
+    tip: r => `<b>${r.f.name}</b>
+      <div class="r"><span>อัตราคุ้มทุน (รวมเงินแผ่นดิน)</span><b>${n0(r.f.utilIn)}%</b></div>
+      <div class="r"><span>อัตราคุ้มทุน (ไม่รวม)</span><b>${n0(r.f.utilEx)}%</b></div>
+      <div class="r"><span>สัดส่วนต้นทุนคงที่</span><b>${n0(r.f.fixedPct)}%</b></div>
+      <div class="r"><span>เทียบค่ากลาง</span><b>${util(r.f) >= medUtil ? '+' : '−'}${n0(Math.abs(util(r.f) - medUtil))} จุด</b></div>`,
+  });
+
+  // ตารางสำรอง
+  document.getElementById('tableA').innerHTML =
+    `<table><thead><tr><th>#</th><th>คณะ</th><th class="num">รวมเงินแผ่นดิน</th>
+     <th class="num">ไม่รวม</th><th class="num">ต้นทุนคงที่</th></tr></thead><tbody>` +
+    sorted.map((f, i) => `<tr class="${f.name === ME ? 'me' : ''}"><td>${i + 1}</td><td>${f.name}</td>
+      <td class="num">${n0(f.utilIn)}%</td><td class="num">${n0(f.utilEx)}%</td>
+      <td class="num">${n0(f.fixedPct)}%</td></tr>`).join('') + '</tbody></table>';
+
+  // ③ ตัวขับเคลื่อน
+  const drv = [
+    ['สัดส่วนต้นทุนคงที่', me.fixedPct, medFixed, 'ยิ่งต่ำยิ่งดี', true],
+    ['อัตราคุ้มทุน', util(me), medUtil, 'ยิ่งสูงยิ่งดี', false],
+    ['สัดส่วนเงินรายได้ต่อต้นทุน', me.own / me.tc * 100, median(FAC.map(f => f.own / f.tc * 100)), 'ยิ่งสูงยิ่งพึ่งตัวเองได้', false],
+  ];
+  document.getElementById('drivers').innerHTML = drv.map(([lbl, mine, med, hint, lowerBetter]) => {
+    const diff = mine - med;
+    const bad = lowerBetter ? diff > 0 : diff < 0;
+    const scale = Math.max(mine, med) * 1.15;
+    return `<div class="row">
+        <span class="lbl">${lbl} <span style="color:var(--ink-3);font-weight:400">· ${hint}</span></span>
+        <span class="v">${n0(mine)}%</span>
+        <span class="d" style="color:${bad ? 'var(--neg)' : 'var(--pos)'}">${diff >= 0 ? '+' : '−'}${n0(Math.abs(diff))}</span>
+        <div class="bar">
+          <i style="width:${(mine / scale) * 100}%;background:${bad ? 'var(--neg)' : 'var(--pos)'}"></i>
+          <i style="inset-inline-start:${(med / scale) * 100}%;width:2px;background:var(--ink-2);border-radius:0"></i>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('driverNote').innerHTML =
+    `<b>อ่านอย่างไร:</b> แท่งคือค่าของคณะคุณ ขีดเข้มคือค่ากลางของมหาวิทยาลัย · ` +
+    `คณะเทคโนโลยีมีต้นทุนคงที่ <b>${n0(me.fixedPct)}%</b> ขณะที่ค่ากลางอยู่ที่ <b>${n0(medFixed)}%</b> ` +
+    `นี่คือสาเหตุหลักที่อัตราคุ้มทุนต่ำกว่าคณะอื่น — การเพิ่มนิสิตช่วยได้ช้า เพราะต้นทุนส่วนใหญ่ไม่ลดตามจำนวนนิสิต`;
+
+  // ④ เฝ้าระวัง
+  document.getElementById('watch').innerHTML = sorted.slice(-5).reverse().map(f =>
+    `<tr class="${f.name === ME ? 'me' : ''}"><td>${f.name}</td>
+     <td class="num">${n0(util(f))}%</td><td class="num">${n0(f.fixedPct)}%</td>
+     <td><span class="pill ${util(f) >= 100 ? 'p' : 'n'}">${util(f) >= 100 ? '✓ คุ้มทุน' : '⚠ ขาดทุน'}</span></td></tr>`
+  ).join('');
+
+  // ⑤ ต้นทุนคงที่
+  const byFixed = [...FAC].sort((a, b) => b.fixedPct - a.fixedPct);
+  barChart(document.getElementById('chartB'), byFixed.map(f => ({
+    name: f.name, value: f.fixedPct, me: f.name === ME,
+    color: f.fixedPct > 50 ? 'var(--neg)' : 'var(--pos)', f,
+  })), {
+    max: 100, unit: '%',
+    ref: [{ at: 50, label: 'เกณฑ์ 50%' }, { at: medFixed, label: 'ค่ากลาง' }],
+    tip: r => `<b>${r.f.name}</b>
+      <div class="r"><span>ต้นทุนคงที่</span><b>${n0(r.f.fixedPct)}%</b></div>
+      <div class="r"><span>ต้นทุนผันแปร</span><b>${n0(100 - r.f.fixedPct)}%</b></div>
+      <div class="r"><span>อัตราคุ้มทุน</span><b>${n0(util(r.f))}%</b></div>`,
+  });
+}
+
+/* ── ตัวควบคุม ──────────────────────────────────────────────────────────── */
+const setMode = m => {
+  MODE = m;
+  bIn.setAttribute('aria-pressed', String(m === 'in'));
+  bEx.setAttribute('aria-pressed', String(m === 'ex'));
+  render();
+};
+bIn.onclick = () => setMode('in');
+bEx.onclick = () => setMode('ex');
+
+const setTheme = th => {
+  document.documentElement.setAttribute('data-theme', th);
+  tLight.setAttribute('aria-pressed', String(th === 'light'));
+  tDark.setAttribute('aria-pressed', String(th === 'dark'));
+  render();
+};
+tLight.onclick = () => setTheme('light');
+tDark.onclick = () => setTheme('dark');
+
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
