@@ -42,7 +42,7 @@ import type { RevenueMode } from '@beps/calc-engine';
 import { DotTitle } from '@components/ChartBits';
 import NumberTextField from '@components/NumberTextField';
 import { MOCK_RUN } from '@components/PageHeaderBar';
-import { canExportReport } from '@/configs/accessControl';
+import { canExportReport, lockedFacultyFor } from '@/configs/accessControl';
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import { useRole } from '@/hooks/useRole';
@@ -203,7 +203,7 @@ function leversFor(
 
 const AdmissionSandboxView = () => {
   const { role, scope } = useRole();
-  const scopedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
+  const scopedFac = lockedFacultyFor(role, scope);
   const scopedProg = role === 'lecturer' ? scope.program : null;
 
   const [fac, setFac] = useState<string | null>(null);

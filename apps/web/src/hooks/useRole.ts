@@ -4,14 +4,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
 // Config Imports
-import { roleOrder } from '@/configs/accessControl';
+import { DEFAULT_ROLE, roleOrder } from '@/configs/accessControl';
 import type { AppRole, RoleScope } from '@/configs/accessControl';
 
 /**
  * Client-side role switching for the template.
  *
  *  - `role`      : the currently *viewed* role, persisted in localStorage.
- *  - `scope`     : คณะ/หลักสูตรของบทบาทนั้น (ผู้ดูแลคณะ → คณะ · อาจารย์ → คณะ + หลักสูตร)
+ *  - `scope`     : คณะ/หลักสูตรของบทบาทนั้น (ผู้บริหาร/เจ้าหน้าที่คณะ → คณะ · อาจารย์ → คณะ + หลักสูตร)
  *  - `setRole`   : switch the viewed role (+ its scope).
  *  - `useIsAdmin`: whether the signed-in account may switch roles at all — gates the toggle.
  *
@@ -39,8 +39,8 @@ const readScope = (): RoleScope => {
 };
 
 export const useRole = () => {
-  // Default to 'user' on the server + first client render to avoid hydration mismatch.
-  const [role, setRoleState] = useState<AppRole>('user');
+  // Default role on the server + first client render to avoid hydration mismatch.
+  const [role, setRoleState] = useState<AppRole>(DEFAULT_ROLE);
   const [scope, setScopeState] = useState<RoleScope>(NO_SCOPE);
   /** อ่านบทบาทจาก localStorage แล้ว — ก่อนหน้านั้น role ยังเป็นค่าเริ่มต้น */
   const [ready, setReady] = useState(false);

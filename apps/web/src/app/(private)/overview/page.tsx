@@ -1,8 +1,8 @@
 // Component Imports
-import Overview from '@views/overview/Overview';
+import UniversityDashboard from '@views/overview/UniversityDashboard';
 
 const OverviewPage = () => {
-  return <Overview />;
+  return <UniversityDashboard />;
 };
 
 export default OverviewPage;

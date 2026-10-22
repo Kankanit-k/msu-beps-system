@@ -22,7 +22,7 @@ import DataCaveatNotes from '@components/DataCaveatNotes';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
 
 // Data / calc Imports
-import { canExportReport } from '@/configs/accessControl';
+import { canExportReport, lockedFacultyFor } from '@/configs/accessControl';
 import { RAW } from '@/data/mockup';
 import { computeBreakEven, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
 import { feesForProgram } from '@views/tuition/feeData';
@@ -234,7 +234,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const alloc = lock?.choice ?? DEFAULT_ALLOC_CHOICE;
   /** ผู้ดูแลคณะ/อาจารย์ทำได้เฉพาะคณะ (และหลักสูตร) ของตน */
   const { role, scope } = useRole();
-  const scopedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
+  const scopedFac = lockedFacultyFor(role, scope);
   const scopedProg = role === 'lecturer' ? scope.program : null;
   const canReport = canExportReport(role);
   /**

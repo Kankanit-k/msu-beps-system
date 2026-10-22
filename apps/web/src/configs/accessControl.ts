@@ -1,13 +1,15 @@
 /**
  * Access control — single source of truth for "who can see what".
  *
- * Four tiers (low → high). Each tier includes everything below it:
+ * Five roles (มติประชุม 21 ต.ค. 2569 · เอกสาร "สิทธิ์การเข้าถึง 5 ระดับ"). NOT a ladder —
+ * ผู้บริหารเห็นน้อยกว่าเจ้าหน้าที่ระดับเดียวกัน จึงกำหนดสิทธิ์เป็นรายความสามารถ:
  *
- *   public           ทุกคน (ไม่ต้องล็อกอิน)            — /login, auth API, static assets
- *   user             ผู้ใช้ที่ล็อกอินแล้ว                — the whole (private) dashboard
- *   lecturer         อาจารย์ประจำหลักสูตร (สิทธิ์เท่า user) — ผูกกับหลักสูตรของตน ดูได้แต่แก้วิธีปันส่วนไม่ได้
- *   deptAdmin        ผู้ดูแลระดับหน่วยงาน/คณะ            — /admin/**
- *   universityAdmin  ผู้ดูแลระดับมหาวิทยาลัย             — /admin/university/**
+ *   role             ภาพรวม ม.  ภาพรวมคณะ/เจาะลึก  วิเคราะห์จุดคุ้มทุน  ตั้งค่า     เลือกคณะอื่น
+ *   universityExec   ✓          ทุกคณะ             ✗                  ✗          ✓
+ *   universityAdmin  ✓          ทุกคณะ             ✓                  ✓          ✓
+ *   facultyExec      ✓          คณะตน              ✗                  ✗          ✗
+ *   deptAdmin        ✓          คณะตน              ✓ (คณะตน)          ✓ (คณะตน)  ✗
+ *   lecturer         ✓          คณะตน              หลักสูตรตน          ✗          ✗
  *
  * Routes are matched WITHOUT the basePath (Next.js strips it inside middleware).
  * Paths follow the project convention: keep them shallow (≤ 3 segments) and put all
@@ -16,27 +18,35 @@
  * Used by: src/middleware.ts (enforcement) and the sidebar menu/role toggle (visibility).
  */
 
-export type AccessLevel = 'public' | 'user' | 'lecturer' | 'deptAdmin' | 'universityAdmin';
+export type AppRole = 'universityExec' | 'universityAdmin' | 'facultyExec' | 'deptAdmin' | 'lecturer';
 
-// Roles a signed-in account can hold / view as (everything except 'public').
-export type AppRole = Exclude<AccessLevel, 'public'>;
+/** Order the viewable roles appear in both role switchers (sidebar footer + navbar dropdown). */
+export const roleOrder: AppRole[] = [
+  'universityExec',
+  'universityAdmin',
+  'facultyExec',
+  'deptAdmin',
+  'lecturer',
+];
 
-export const accessLevelRank: Record<AccessLevel, number> = {
-  public: 0,
-  user: 1,
-  lecturer: 1,
-  deptAdmin: 2,
-  universityAdmin: 3,
-};
+/** บทบาทเริ่มต้นเมื่อยังไม่รู้สิทธิ์ (ก่อนอ่าน localStorage / บัญชีที่ไม่มี claim) — สิทธิ์น้อยสุดแบบดูอย่างเดียว */
+export const DEFAULT_ROLE: AppRole = 'facultyExec';
+
+// ── กลุ่มสิทธิ์ ───────────────────────────────────────────────────────────
+const ANALYZE_ROLES: AppRole[] = ['universityAdmin', 'deptAdmin', 'lecturer'];
+const CONFIGURE_ROLES: AppRole[] = ['universityAdmin', 'deptAdmin'];
+const UNIVERSITY_STAFF: AppRole[] = ['universityAdmin'];
+
+/** ระดับมหาวิทยาลัย — เห็นทุกคณะและใช้ตัวกรองเลือกคณะได้ */
+export const isUniversityLevel = (r: AppRole): boolean =>
+  r === 'universityExec' || r === 'universityAdmin';
 
 /**
  * Routes anyone can view WITHOUT logging in (besides the auth API + static assets).
- * Add dashboard/table paths here to expose them publicly. Keep them shallow (≤ 3 segments).
- * (These pages still render the dashboard layout — only the auth check is skipped.)
+ * Keep them shallow (≤ 3 segments). (These pages still render the dashboard layout.)
  */
 export const publicRoutes: string[] = [
   '/login',
-  '/overview', // example: a public-facing dashboard
   '/api/log', // client-side error reporting endpoint (must work on the login page too)
 ];
 
@@ -56,63 +66,59 @@ export const SHOW_SCENARIO_PROGRAM2: boolean = false;
 // the link and the route 404s. Flip to true to bring it back.
 export const SHOW_SCENARIO_SANDBOX: boolean = false;
 
-// Route → minimum level. Ordered MOST-SPECIFIC FIRST; the first matching prefix wins.
-export const routeAccessRules: { prefix: string; level: AccessLevel }[] = [
-  // tsc needs this assertion (the `.map` callback return isn't contextually typed against
-  // routeAccessRules), but eslint's type info disagrees and calls it unnecessary — see the
-  // real `tsc --noEmit` output, which is the source of truth here.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  ...publicRoutes.map((prefix) => ({ prefix, level: 'public' as AccessLevel })),
-  { prefix: '/users', level: 'universityAdmin' }, // W18 ผู้ใช้และสิทธิ์ — admin เท่านั้น
-  { prefix: '/admin/university', level: 'universityAdmin' },
-  { prefix: '/admin', level: 'deptAdmin' },
-  { prefix: '/about', level: 'deptAdmin' }, // เกี่ยวกับเรา — ซ่อนจากผู้ใช้ทั่วไป
-  // ทะเบียนข้อมูลหลัก — มีปุ่มแก้ไข + ต้นทุนดิบทุกคณะ ผู้ใช้ทั่วไปดูผ่านหน้าวิเคราะห์แทน
-  { prefix: '/tuition', level: 'deptAdmin' },
-  { prefix: '/cost-data', level: 'deptAdmin' },
-  { prefix: '/programs', level: 'deptAdmin' },
+// Route → who may open it. Ordered MOST-SPECIFIC FIRST; the first matching prefix wins.
+// Paths not listed are open to every signed-in role (ภาพรวม · เจาะลึก · สูตร).
+// `exact: true` = only that path itself (e.g. a section landing page), not its sub-pages.
+export const routeAccessRules: { prefix: string; roles: 'public' | AppRole[]; exact?: boolean }[] = [
+  ...publicRoutes.map((prefix) => ({ prefix, roles: 'public' as const })),
+  // วิเคราะห์จุดคุ้มทุน — หน้าแรกหมวด + รายหลักสูตรรวมอาจารย์ (จำกัดหลักสูตรตนในหน้า) · ที่เหลือเฉพาะเจ้าหน้าที่
+  { prefix: '/scenario', roles: ANALYZE_ROLES, exact: true },
+  { prefix: '/scenario/program', roles: ANALYZE_ROLES },
+  { prefix: '/scenario', roles: CONFIGURE_ROLES },
+  // ทะเบียน & ระบบ — เจ้าหน้าที่ระดับมหาวิทยาลัยเท่านั้น
+  { prefix: '/users', roles: UNIVERSITY_STAFF },
+  { prefix: '/admin/users', roles: UNIVERSITY_STAFF },
+  { prefix: '/admin/university', roles: UNIVERSITY_STAFF },
+  { prefix: '/tuition', roles: UNIVERSITY_STAFF },
+  { prefix: '/cost-data', roles: UNIVERSITY_STAFF },
+  { prefix: '/programs', roles: UNIVERSITY_STAFF },
+  { prefix: '/about', roles: UNIVERSITY_STAFF },
+  // ตั้งค่าการคำนวณ (วิธีปันส่วน · ปันส่วนต้นทุน) — เจ้าหน้าที่ ม. + เจ้าหน้าที่คณะ
+  { prefix: '/admin', roles: CONFIGURE_ROLES },
 ];
 
-// Everything not listed above (the authenticated dashboard) needs at least login.
-export const defaultAccessLevel: AccessLevel = 'user';
+/** The rule governing a path (without basePath), or undefined = any signed-in role. */
+const ruleFor = (pathname: string) => {
+  // trailingSlash: true → '/scenario/' and '/scenario' are the same page
+  const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
 
-/** Minimum access level required to view a path (without basePath). */
-export const requiredLevelFor = (pathname: string): AccessLevel => {
-  const rule = routeAccessRules.find(
-    (r) => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`),
+  return routeAccessRules.find(
+    (r) => path === r.prefix || (!r.exact && path.startsWith(`${r.prefix}/`)),
   );
-
-  return rule ? rule.level : defaultAccessLevel;
 };
 
 /** True if a path is viewable without logging in. */
-export const isPublicRoute = (pathname: string): boolean => requiredLevelFor(pathname) === 'public';
+export const isPublicRoute = (pathname: string): boolean => ruleFor(pathname)?.roles === 'public';
+
+/** May this role open the path? (public paths → always) */
+export const canAccess = (role: AppRole, pathname: string): boolean => {
+  const roles = ruleFor(pathname)?.roles;
+
+  return !roles || roles === 'public' || roles.includes(role);
+};
 
 /**
- * Resolve a signed-in user's level from their auth token.
+ * Resolve a signed-in user's role from their auth token.
  *
  * ⚠️ Placeholder — wire this to your real ERP permissions. Recommended approach:
  *    add a `role` claim in the NextAuth `jwt` callback (src/libs/ErpAuth.ts), e.g. derived
  *    from `user.SCOPES.groupid` / a server-side allowlist, then read it here.
  */
-export const resolveUserLevel = (token: Record<string, any> | null): AccessLevel => {
-  if (!token) {
-    return 'public';
-  }
-
+export const resolveUserRole = (token: Record<string, any>): AppRole => {
   const role = token.role ?? token.user?.role;
 
-  if (
-    role === 'universityAdmin' ||
-    role === 'deptAdmin' ||
-    role === 'lecturer' ||
-    role === 'user'
-  ) {
-    return role;
-  }
-
-  // Authenticated but no admin claim → regular user.
-  return 'user';
+  // No (or unknown/legacy 'user') claim → least privilege.
+  return roleOrder.includes(role) ? role : DEFAULT_ROLE;
 };
 
 /**
@@ -121,17 +127,15 @@ export const resolveUserLevel = (token: Record<string, any> | null): AccessLevel
  * so both always show the same wording for the currently viewed role.
  */
 export const roleDisplay: Record<AppRole, { label: string; icon: string }> = {
-  user: { label: 'ผู้ใช้งานทั่วไป', icon: 'ri-user-line' },
+  universityExec: { label: 'ผู้บริหารมหาวิทยาลัย', icon: 'ri-vip-crown-line' },
+  universityAdmin: { label: 'เจ้าหน้าที่ระดับมหาวิทยาลัย', icon: 'ri-government-line' },
+  facultyExec: { label: 'ผู้บริหารคณะ', icon: 'ri-user-star-line' },
+  deptAdmin: { label: 'เจ้าหน้าที่ระดับคณะ', icon: 'ri-shield-user-line' },
   lecturer: { label: 'อาจารย์ประจำหลักสูตร', icon: 'ri-graduation-cap-line' },
-  deptAdmin: { label: 'ผู้ดูแลระดับหน่วยงาน', icon: 'ri-shield-user-line' },
-  universityAdmin: { label: 'ผู้ดูแลระดับมหาวิทยาลัย', icon: 'ri-government-line' },
 };
 
-/** Order the viewable roles appear in both role switchers (sidebar footer + navbar dropdown). */
-export const roleOrder: AppRole[] = ['user', 'lecturer', 'deptAdmin', 'universityAdmin'];
-
 /**
- * ขอบเขตของบัญชี — ผู้ดูแลคณะผูกกับคณะ · อาจารย์ประจำหลักสูตรผูกกับคณะ + หลักสูตร
+ * ขอบเขตของบัญชี — ผู้บริหาร/เจ้าหน้าที่คณะผูกกับคณะ · อาจารย์ประจำหลักสูตรผูกกับคณะ + หลักสูตร
  * (คีย์หลักสูตร = `fac|lvl|prog|deg` เหมือน refKey ของหน้าคำนวณ)
  * ⚠️ ตอนนี้เลือกเองจากเมนูโปรไฟล์ (มุมมองสิทธิ์) — ต่อกับ ERP เมื่อมี claim คณะ/หลักสูตร
  */
@@ -142,11 +146,15 @@ export interface RoleScope {
 
 /** บทบาทที่ต้องระบุขอบเขต — เลือกบทบาทนี้แล้วต้องเลือกคณะ (และหลักสูตร) ด้วย */
 export const roleNeedsScope = (r: AppRole): 'faculty' | 'program' | null =>
-  r === 'deptAdmin' ? 'faculty' : r === 'lecturer' ? 'program' : null;
+  r === 'lecturer' ? 'program' : isUniversityLevel(r) ? null : 'faculty';
+
+/** คณะที่บทบาทนี้ถูกล็อกไว้ในหน้าภาพรวมคณะ/เจาะลึก/วิเคราะห์ — null = ระดับมหาวิทยาลัย เลือกได้ทุกคณะ */
+export const lockedFacultyFor = (r: AppRole, scope: RoleScope): string | null =>
+  isUniversityLevel(r) ? null : scope.faculty;
 
 /**
  * ออกรายงาน PDF จุดคุ้มทุน (ใช้แนบขอปรับปรุง/เปิดหลักสูตร) ได้เฉพาะกองแผนและอาจารย์ประจำหลักสูตร —
- * ผู้ใช้ทั่วไป/ผู้ดูแลคณะจำลองและบันทึกผลได้ แต่ออกรายงานไม่ได้ (ตัดสินใจ 2026-10-14)
+ * เจ้าหน้าที่คณะจำลองและบันทึกผลได้ แต่ออกรายงานไม่ได้ (ตัดสินใจ 2026-10-14)
  * ⚠️ ตอนนี้ซ่อนแค่ฝั่ง UI — เมื่อมี API ออกรายงานต้องเช็กซ้ำฝั่งเซิร์ฟเวอร์
  */
 export const canExportReport = (r: AppRole): boolean => r === 'universityAdmin' || r === 'lecturer';

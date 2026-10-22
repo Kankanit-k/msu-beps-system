@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนหน้า Landing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+nav.toc a:hover{border-color:var(--primary);color:var(--primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+td.c,th.c{text-align:center}
+.y{color:var(--ok);font-weight:700}.x{color:var(--no);font-weight:700}.p{color:var(--warn);font-weight:600}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.side{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.side h3{margin:0 0 8px;font-size:1rem}
+.sec{font-size:.75rem;letter-spacing:.04em;color:var(--muted);font-weight:700;margin:12px 0 4px;text-transform:uppercase}
+.item{padding:4px 8px;border-radius:6px;font-size:.92rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.item.new{background:var(--ok-soft)}
+.item.moved{background:var(--info-soft)}
+.item.gone{text-decoration:line-through;color:var(--muted)}
+.who{font-size:.72rem;color:var(--muted);white-space:nowrap}
+ol.steps{margin:0;padding-left:20px}
+ol.steps li{margin-bottom:10px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:.85rem}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>แผนงาน: หน้า Landing ของแต่ละหมวดเมนู</h1>
+  <p class="sub">MSU-BEPS · งานข้อ 1.8 จากการประชุม 21 ต.ค. 2569 (“เมนูวิเคราะห์ และทุกเมนู ควรมีแลนดิ้งเพจ”) · จัดทำ 22 ต.ค. 2569 · ยังไม่ได้แก้โค้ด</p>
+
+  <nav class="toc">
+    <a href="#idea">1. แนวคิด</a>
+    <a href="#map">2. หมวด → หน้า Landing</a>
+    <a href="#layout">3. หน้าตา (ตัวอย่าง)</a>
+    <a href="#how">4. วิธีทำ</a>
+    <a href="#steps">5. ลำดับงาน</a>
+    <a href="#decide">6. ต้องตัดสินใจ</a>
+  </nav>
+
+  <section class="card" id="idea">
+    <h2><span class="n">1</span>แนวคิด</h2>
+    <p>หน้า Landing ของหมวด = <b>“ประตูหน้า”</b> ที่บอกผู้ใช้ว่าหมวดนี้ใช้ทำอะไร มีกี่หน้า แต่ละหน้าตอบคำถามอะไร และควรเริ่มจากตรงไหน — ไม่ใช่หน้าคำนวณใหม่</p>
+    <ul>
+      <li><b>ทำเป็นคอมโพเนนต์เดียวใช้ทุกหมวด</b> (SectionLanding) — แต่ละหมวดแค่ส่งข้อมูลการ์ดเข้าไป ไม่สร้างใหม่ทีละหน้า</li>
+      <li><b>การ์ดดึงจากเมนูซ้ายมือโดยตรง</b> — เพิ่ม/ซ่อนหน้าในเมนูแล้ว Landing อัปเดตตามเอง และ<b>กรองตามสิทธิ์</b>ด้วยกติกาเดียวกับเมนู (ผู้บริหารไม่เห็นการ์ดวิเคราะห์ ฯลฯ)</li>
+      <li><b>ตอบโจทย์ข้อ 1.7 ไปพร้อมกัน</b> — ผู้ใช้เห็นทันทีว่าหมวดนี้มีกี่ฟีเจอร์ และแต่ละอันต่างกันอย่างไร</li>
+    </ul>
+  </section>
+
+  <section class="card" id="map">
+    <h2><span class="n">2</span>หมวด → หน้า Landing</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>หมวดเมนู</th><th>URL หน้า Landing</th><th>ใครเห็น</th><th>การ์ดในหน้า</th><th>ส่วนพิเศษของหมวด</th></tr>
+      <tr><td><b>ภาพรวม</b></td><td><code>/overview</code> (เดิม)</td><td>ทุกบทบาท</td><td>—</td><td><span class="tag t-warn">เสนอไม่ต้องทำ</span> หน้าภาพรวมมหาวิทยาลัยทำหน้าที่เป็นหน้าแรกอยู่แล้ว</td></tr>
+      <tr><td><b>เจาะลึกจุดคุ้มทุน</b></td><td><code>/deep-dive</code> <span class="tag t-ok">ใหม่</span></td><td>ทุกบทบาท</td><td>6 การ์ด: คณะ·ระดับ·หลักสูตร, กราฟจุดคุ้มทุน, รายได้รายคณะ, โครงสร้างต้นทุน, ต่อหัว, เชิงเปรียบเทียบ</td><td>ตัวเลขนำ 3 ตัว (เช่น “หลักสูตรต่ำกว่าจุดคุ้มทุน N หลักสูตร”) กดแล้วลงไปดูรายการได้</td></tr>
+      <tr><td><b>วิเคราะห์จุดคุ้มทุน</b></td><td><code>/scenario</code> <span class="tag t-ok">ใหม่</span></td><td>จนท. ม./คณะ, อาจารย์</td><td>หลักสูตรเดิม, หลักสูตรใหม่, รายคณะ</td><td>แถบขั้นตอน: เลือกหลักสูตร → ตรวจวิธีปันส่วน → ปรับค่าเทอม/จำนวนนิสิต → ดูจุดคุ้มทุน/ออกรายงาน · “ช่วยเลือก”: ปรับหลักสูตรที่มีอยู่ หรือ เปิดใหม่?</td></tr>
+      <tr><td><b>ตั้งค่าการคำนวณ</b></td><td><code>/admin</code> <span class="tag t-ok">ใหม่</span></td><td>จนท. ม./คณะ</td><td>วิธีปันส่วน, (จัดประเภทรายจ่าย — เฟส 5), นโยบาย, กติกาผังบัญชี</td><td>สถานะ: คณะที่ล็อกวิธีปันส่วนแล้ว x / 20 · ปีงบประมาณที่กำลังตั้งค่า · ขั้นตอน 2 ขั้น (จัดประเภท → ปันส่วน)</td></tr>
+      <tr><td><b>ทะเบียน &amp; ระบบ</b></td><td><code>/admin/university</code> <span class="tag t-ok">ใหม่</span></td><td>จนท. ม.</td><td>8 การ์ด: ค่าธรรมเนียม, ข้อมูลต้นทุน, หลักสูตร, ทะเบียนกลาง, ผังบัญชี ERP, หน่วยงาน, ผู้ใช้</td><td>วันที่อัปเดตข้อมูลล่าสุดของแต่ละทะเบียน</td></tr>
+      <tr><td><b>อื่น ๆ</b></td><td>—</td><td>—</td><td>—</td><td><span class="tag t-warn">เสนอไม่ต้องทำ</span> มีหน้าเดียว</td></tr>
+    </table>
+    </div>
+    <div class="callout info">URL ที่เลือกใช้ “พาธหัวหมวด” ที่มีอยู่แล้ว (<code>/scenario</code>, <code>/admin</code>, <code>/admin/university</code>) — จึงได้กติกาสิทธิ์เดิมทันที ไม่ต้องเพิ่มกฎใหม่ ยกเว้น <code>/deep-dive</code> ที่เปิดให้ทุกบทบาทตามค่าเริ่มต้นอยู่แล้ว</div>
+  </section>
+
+  <section class="card" id="layout">
+    <h2><span class="n">3</span>หน้าตา — ตัวอย่างหมวด “วิเคราะห์จุดคุ้มทุน”</h2>
+    <div class="side" style="background:var(--card)">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center">
+        <div><div style="font-size:1.3rem;font-weight:700">🎓 วิเคราะห์จุดคุ้มทุน</div>
+        <div style="color:var(--muted)">ทดลองปรับค่าเทอม จำนวนนิสิต และต้นทุน เพื่อดูว่าหลักสูตรต้องรับนิสิตกี่คนจึงคุ้มทุน</div></div>
+        <span class="tag t-info">คุณดูในฐานะ: เจ้าหน้าที่ระดับคณะ · คณะวิทยาศาสตร์</span>
+      </div>
+      <div class="sec">ขั้นตอนการใช้งาน</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag t-ok">① เลือกหลักสูตร</span>→<span class="tag t-ok">② ตรวจวิธีปันส่วน</span>→<span class="tag t-ok">③ ปรับค่า</span>→<span class="tag t-ok">④ ดูผล / ออกรายงาน</span>
+      </div>
+      <div class="sec">เลือกงานที่ต้องการ</div>
+      <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        <div class="q"><b>🎓 หลักสูตรเดิม</b>ปรับปรุงหลักสูตรที่เปิดอยู่ — เทียบก่อน/หลังปรับ<div class="rec">ใช้เมื่อ: หลักสูตรขาดทุน อยากรู้ว่าต้องปรับอะไร</div><div style="margin-top:8px"><span class="tag t-info">เริ่ม →</span></div></div>
+        <div class="q"><b>✨ หลักสูตรใหม่</b>ประมาณการหลักสูตรที่จะเปิด โดยอ้างอิงหลักสูตรที่ใกล้เคียง<div class="rec">ใช้เมื่อ: เตรียมเสนอเปิดหลักสูตรใหม่</div><div style="margin-top:8px"><span class="tag t-info">เริ่ม →</span></div></div>
+        <div class="q"><b>🧮 รายคณะ</b>ดูจุดคุ้มทุนทั้งคณะ ปรับงบและต้นทุนรวม<div class="rec">ใช้เมื่อ: วางแผนภาพรวมของคณะ</div><div style="margin-top:8px"><span class="tag t-info">เริ่ม →</span></div></div>
+      </div>
+      <div class="sec">ไม่แน่ใจว่าเริ่มตรงไหน?</div>
+      <div style="color:var(--muted)">ℹ️ อธิบายสูตรจุดคุ้มทุน · ดูวิธีปันส่วนที่คณะล็อกไว้</div>
+    </div>
+    <p style="color:var(--muted);font-size:.9rem;margin-top:10px">อาจารย์จะเห็นแค่ 2 การ์ดแรก · ผู้บริหารเปิดหน้านี้ไม่ได้ (เหมือนเมนู) · บนมือถือการ์ดเรียงเป็นแถวเดียว</p>
+  </section>
+
+  <section class="card" id="how">
+    <h2><span class="n">4</span>วิธีทำ (ฝั่งโค้ด)</h2>
+    <ol class="steps">
+      <li><b>เพิ่มคำอธิบายให้รายการเมนู</b> — ทุกเมนูมีช่อง “ตอบคำถามอะไร / ใช้เมื่อ” ในไฟล์เมนูไฟล์เดียว (เมนู + Landing ใช้ข้อมูลชุดเดียวกัน)</li>
+      <li><b>คอมโพเนนต์ <code>SectionLanding</code></b> — หัวหมวด + ป้ายบทบาท + แถบขั้นตอน (ถ้ามี) + การ์ด (กรองด้วย <code>canAccess</code>) + พื้นที่ “ส่วนพิเศษ”</li>
+      <li><b>สร้าง 4 หน้า</b> <code>/deep-dive</code> <code>/scenario</code> <code>/admin</code> <code>/admin/university</code> — แต่ละหน้าไม่กี่บรรทัด แค่เรียก SectionLanding</li>
+      <li><b>เพิ่มลิงก์ในเมนู</b> — รายการแรกของแต่ละหมวด เช่น “🏠 เริ่มต้นหมวดนี้” (หัวหมวดตอนนี้ใช้กดย่อ/ขยาย จึงทำเป็นลิงก์ไม่ได้ง่าย ๆ)</li>
+      <li><b>ทดสอบทั้ง 5 บทบาท</b> ด้วย Playwright + เก็บภาพหน้าจอไว้ทำคู่มือ</li>
+    </ol>
+  </section>
+
+  <section class="card" id="steps">
+    <h2><span class="n">5</span>ลำดับงาน</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>รอบ</th><th>งาน</th><th>ขนาด</th><th>สถานะ</th></tr>
+      <tr><td><b>A</b></td><td>คอมโพเนนต์กลาง + คำอธิบายเมนู + 4 หน้า Landing (การ์ดอย่างเดียว) + ลิงก์ในเมนู</td><td>เล็ก–กลาง</td><td><span class="tag t-ok">ทำได้ทันที</span></td></tr>
+      <tr><td><b>B</b></td><td>แถบขั้นตอนของหมวดวิเคราะห์ และหมวดตั้งค่า</td><td>เล็ก</td><td><span class="tag t-ok">ทำได้ทันที</span></td></tr>
+      <tr><td><b>C</b></td><td>ส่วนพิเศษที่ดึงข้อมูลจริง — ตัวเลขนำของเจาะลึก, สถานะล็อกปันส่วน x/20, วันที่อัปเดตทะเบียน</td><td>กลาง</td><td><span class="tag t-warn">ทำหลัง A</span></td></tr>
+      <tr><td><b>D</b></td><td>เพิ่มการ์ด “จัดประเภทรายจ่าย” เมื่อหน้าเฟส 5 เสร็จ</td><td>เล็ก</td><td><span class="tag t-no">รอเฟส 5</span></td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section class="card" id="decide">
+    <h2><span class="n">6</span>ต้องตัดสินใจก่อนลงมือ</h2>
+    <div class="q"><b>① หมวด “ภาพรวม” ต้องมี Landing ไหม?</b>มี 2 หน้า และหน้าภาพรวมมหาวิทยาลัยเป็นหน้าแรกหลังล็อกอินอยู่แล้ว<div class="rec">เสนอ: ไม่ต้องทำ</div></div>
+    <div class="q"><b>② ลิงก์เข้า Landing อยู่ตรงไหนในเมนู?</b>(ก) รายการแรกของหมวด “🏠 เริ่มต้นหมวดนี้” · (ข) กดที่ชื่อหัวหมวด (ต้องแก้ตัวเมนู และเสียความสามารถย่อ/ขยาย)<div class="rec">เสนอ: (ก)</div></div>
+    <div class="q"><b>③ การ์ดของหน้าที่ไม่มีสิทธิ์ — ซ่อน หรือแสดงแบบล็อก?</b>แสดงแบบล็อกช่วยให้รู้ว่ามีฟีเจอร์นี้อยู่ แต่ขัดหลัก “แสดงเฉพาะที่มีสิทธิ์”<div class="rec">เสนอ: ซ่อน (ให้ตรงกับเมนู)</div></div>
+    <div class="q"><b>④ ข้อความบนการ์ด</b>ผมร่างให้ก่อนจากความเข้าใจระบบ แล้วให้ทีมแก้ถ้อยคำ หรือทีมมีถ้อยคำอยู่แล้ว?<div class="rec">เสนอ: ผมร่างก่อน</div></div>
+  </section>
+</div>
+</body>
+</html>

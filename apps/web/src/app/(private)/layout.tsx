@@ -17,6 +17,7 @@ import Navbar from '@components/layout/vertical/Navbar';
 import VerticalFooter from '@components/layout/vertical/Footer';
 import HorizontalFooter from '@components/layout/horizontal/Footer';
 import ScrollToTop from '@core/components/scroll-to-top';
+import RoleGuard from '@components/RoleGuard';
 
 // Util Imports
 import { getMode, getSystemMode } from '@core/utils/serverHelpers';
@@ -41,12 +42,12 @@ const Layout = async (props: ChildrenType) => {
             navbar={<Navbar />}
             footer={<VerticalFooter />}
           >
-            {children}
+            <RoleGuard>{children}</RoleGuard>
           </VerticalLayout>
         }
         horizontalLayout={
           <HorizontalLayout header={<Header />} footer={<HorizontalFooter />}>
-            {children}
+            <RoleGuard>{children}</RoleGuard>
           </HorizontalLayout>
         }
       />

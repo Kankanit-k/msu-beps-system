@@ -6,16 +6,14 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // Config Imports
-import { accessLevelRank, requiredLevelFor, resolveUserLevel } from '@/configs/accessControl';
+import { canAccess, isPublicRoute, resolveUserRole } from '@/configs/accessControl';
 import { AUTH_DISABLED } from '@/configs/authBypass';
 import themeConfig from '@configs/themeConfig';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const required = requiredLevelFor(pathname);
-
   // Public routes (and the dev bypass) skip all checks.
-  if (required === 'public' || AUTH_DISABLED) {
+  if (isPublicRoute(pathname) || AUTH_DISABLED) {
     return NextResponse.next();
   }
 
@@ -32,7 +30,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Signed in but not allowed here → bounce to the home page.
-  if (accessLevelRank[resolveUserLevel(token)] < accessLevelRank[required]) {
+  if (!canAccess(resolveUserRole(token), pathname)) {
     const homeUrl = req.nextUrl.clone();
 
     homeUrl.pathname = themeConfig.homePageUrl;

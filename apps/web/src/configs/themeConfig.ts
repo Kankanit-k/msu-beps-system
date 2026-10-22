@@ -76,7 +76,7 @@ const themeConfig: Config = {
   layoutPadding: 24, // Common padding for header, content, footer layout components (in px)
   compactContentWidth: 1440, // in px
   navbar: {
-    type: 'fixed', // 'fixed', 'static'
+    type: 'static', // 'fixed', 'static' — static: แถบโปรไฟล์เลื่อนหายไป ให้ PageHeaderBar ติดหัวแทน
     contentWidth: 'compact', // 'compact', 'wide'
     floating: false, //! true, false (This will not work in the Horizontal Layout)
     detached: true, //! true, false (This will not work in the Horizontal Layout or floating navbar is enabled)

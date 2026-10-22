@@ -1,7 +1,7 @@
 'use client';
 
 // React Imports
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // MUI Imports
 import Autocomplete from '@mui/material/Autocomplete';
@@ -33,6 +33,8 @@ import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
+import { lockedFacultyFor } from '@/configs/accessControl';
+import { useRole } from '@/hooks/useRole';
 import { computeBreakEven } from '@views/breakeven/calc';
 
 import CostRowsEditor from './CostRowsEditor';
@@ -106,7 +108,13 @@ const ScenarioFacultyView = () => {
   const [saved, setSaved] = useState<SavedScenario[]>([]);
 
   const uni = computeBreakEven(RAW.UNI, mode);
-  const facultyOptions = useMemo(() => RAW.FACS.map((f) => f.name), []);
+  // เจ้าหน้าที่คณะคำนวณได้เฉพาะคณะของตน — ล็อกตัวเลือกไว้ · ระดับมหาวิทยาลัยเลือกได้ทุกคณะ
+  const { role, scope } = useRole();
+  const lockedFac = lockedFacultyFor(role, scope);
+  const facultyOptions = useMemo(
+    () => (lockedFac ? [lockedFac] : RAW.FACS.map((f) => f.name)),
+    [lockedFac],
+  );
   const picked = useMemo(() => RAW.FACS.find((f) => f.name === facultyName) ?? null, [facultyName]);
 
   const tfc = sumCostRows(tfcRows);
@@ -135,6 +143,10 @@ const ScenarioFacultyView = () => {
     setTfcRows([newCostRow('ต้นทุนคงที่รวม (TFC)', Math.round(f.TFC))]);
     setTvcRows([newCostRow('ต้นทุนผันแปรรวม (TVC)', Math.round(f.TVC))]);
   };
+
+  useEffect(() => {
+    if (lockedFac && facultyName !== lockedFac) onFacultyChange(lockedFac);
+  }, [lockedFac]);
 
   const handleCalc = () => {
     if (!canCalc) return;
@@ -282,6 +294,7 @@ const ScenarioFacultyView = () => {
               <Autocomplete
                 options={facultyOptions}
                 value={facultyName}
+                disabled={!!lockedFac}
                 onChange={(_, v) => onFacultyChange(v)}
                 noOptionsText="ไม่พบคณะที่ค้นหา"
                 renderInput={(params) => (

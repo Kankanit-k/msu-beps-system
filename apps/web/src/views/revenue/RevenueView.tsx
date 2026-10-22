@@ -45,6 +45,7 @@ import FacultyFilter from '@components/FacultyFilter';
 import KpiCard from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
+import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 import { downloadCsv } from '@/utils/csv';
 
@@ -172,7 +173,7 @@ const RevenueView = () => {
 
   // ผู้ดูแลคณะ/อาจารย์ เห็นได้เฉพาะคณะของตน — ล็อกตัวกรองไว้ที่คณะนั้น
   const { role, scope: roleScope } = useRole();
-  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const lockedFac = lockedFacultyFor(role, roleScope);
   const selectedFacs = useMemo(
     () => (lockedFac ? [lockedFac] : pickedFacs),
     [lockedFac, pickedFacs],

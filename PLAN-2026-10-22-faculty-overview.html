@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนหน้าภาพรวมคณะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:14px;line-height:1.45}
+.page{max-width:820px;margin:16px auto;padding:20px 22px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+h1{font-size:1.3rem;margin:0}
+.sub{color:var(--muted);font-size:.8rem;margin:0 0 10px}
+h2{font-size:.95rem;margin:12px 0 6px;color:var(--primary)}
+.goal{border-left:4px solid var(--primary);background:var(--primary-soft);padding:6px 12px;border-radius:6px;margin:0}
+.wf{display:flex;flex-direction:column;gap:6px;font-size:.8rem}
+.blk{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)}
+.blk b{color:var(--primary)}
+.row{display:grid;gap:6px}
+.r6{grid-template-columns:repeat(6,1fr)}
+.r3{grid-template-columns:repeat(3,1fr)}
+.r6 .blk{text-align:center;padding:4px}
+.tabs span{display:inline-block;border:1px solid var(--line);border-radius:5px;padding:0 8px;margin-right:4px;font-size:.75rem}
+.tabs span.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.lbl{display:inline-block;min-width:16px;font-weight:700;color:var(--muted)}
+.tag{display:inline-block;border-radius:5px;padding:0 6px;font-size:.72rem;font-weight:600}
+.t-ok{background:var(--ok-soft);color:var(--ok)}.t-info{background:var(--info-soft);color:var(--info)}.t-warn{background:var(--warn-soft);color:var(--warn)}
+.muted{color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:.8rem}
+th,td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ol{margin:0;padding-left:18px;font-size:.82rem}
+ol li{margin-bottom:2px}
+@media (max-width:700px){.r6{grid-template-columns:repeat(3,1fr)}.r3,.cols{grid-template-columns:1fr}.page{margin:0;border-radius:0;padding:16px}}
+@page{size:A4;margin:10mm}
+@media print{
+  :root{--bg:#f6f7fb;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--primary:#4f46e5;--primary-soft:#eef2ff}
+  body{background:#fff;font-size:12px}
+  .page{border:0;margin:0;padding:0;max-width:none}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>แผนงาน: หน้าภาพรวมคณะ (เฟส 4)</h1>
+  <p class="sub">MSU-BEPS · จากเอกสาร “จุดคุ้มทุน” หน้า 3–7 · 22 ต.ค. 2569 · ยังไม่ได้แก้โค้ด</p>
+
+  <p class="goal"><b>เป้าหมาย:</b> ผู้บริหารเปิดดูแล้วนำไปใช้ต่อได้ทันที — <b>หลักสูตรไหนไปต่อได้</b> · <b>รับนิสิตถึงเป้าหรือยัง</b> · <b>ค่าใช้จ่ายอยู่ตรงไหน</b><br>
+  แสดงตัวเลขจริง (บาท / คน) ไม่ใช่สัดส่วน · แบ่ง ตรี | โท | เอก · ระบุปีทุกครั้ง · ไม่ต้องเลื่อนหน้าไกล</p>
+
+  <h2>โครงหน้า</h2>
+  <div class="wf">
+    <div class="blk"><span class="lbl">A</span><b>หัวหน้า (ติดด้านบน)</b> ภาพรวมคณะ — ชื่อคณะ · <span class="tag t-info">ปีงบ 2568</span> <span class="tag t-ok">รวมเงินแผ่นดิน</span> <span class="tag t-warn">ปันส่วนตามหัว · ปี 2568</span> <span class="muted">· ระดับมหาวิทยาลัยเลือกคณะได้ / ระดับคณะล็อกที่คณะตน</span></div>
+    <div class="row r6">
+      <div class="blk"><b>B</b> นิสิตปัจจุบัน</div><div class="blk">นิสิต ณ จุดคุ้มทุน</div><div class="blk">รายได้/หัว</div>
+      <div class="blk">ต้นทุนผันแปร/หัว</div><div class="blk">ส่วนเกิน/หัว</div><div class="blk">ส่วนเกิน/ขาดทุน</div>
+    </div>
+    <div class="row r3">
+      <div class="blk"><span class="lbl">C</span><b>ปริญญาตรี</b> · รายได้ (แผ่นดิน | รายได้) · ต้นทุน (คงที่ | ผันแปร) · นิสิตจริง / เป้า · จุดคุ้มทุน (รวม | ไม่รวมเงินแผ่นดิน)</div>
+      <div class="blk"><b>ปริญญาโท</b> · ตัวชี้วัดชุดเดียวกัน</div>
+      <div class="blk"><b>ปริญญาเอก</b> · ตัวชี้วัดชุดเดียวกัน</div>
+    </div>
+    <div class="blk"><span class="lbl">D</span><span class="tabs"><span>2.1 รายได้คณะ</span><span>2.2 ต้นทุนคณะ</span><span class="on">2.3 จุดคุ้มทุน</span></span><br>
+      <b>2.1</b> กราฟแท่งซ้อนรายหลักสูตร: เงินแผ่นดิน + เงินรายได้ (ล้านบาท) จัดกลุ่มตามระดับ<br>
+      <b>2.2</b> กราฟแท่งซ้อนรายหลักสูตร: คงที่ + ผันแปร · โดนัทสัดส่วนต้นทุน · เตือนเมื่อต้นทุนคงที่เกิน 50%<br>
+      <b>2.3</b> กราฟจุดคุ้มทุน · ตารางรายหลักสูตร (นิสิตจริง / เป้า / จุดคุ้มทุน รวม | ไม่รวมเงินแผ่นดิน / สถานะ) · ตารางสี · ตารางจัดอันดับ <b>ก่อนปรับ | หลังปรับ</b> · กราฟการกระจาย 2 ตัว
+    </div>
+    <div class="muted">ทุกการ์ด/กราฟมี ⓘ อธิบายสูตร · กดชื่อหลักสูตรแล้วเปิดหน้าต่างรายละเอียด · ใช้ชื่อที่คนทั่วไปเข้าใจ (ไม่ใช้ Q*, TFC บนจอ)</div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <h2>ข้อสรุป (22 ต.ค. 2569)</h2>
+      <table>
+        <tr><th>เรื่อง</th><th>ตัดสินใจ</th></tr>
+        <tr><td>เป้านิสิต</td><td>ใช้จุดคุ้มทุน (รวม / ไม่รวมเงินแผ่นดิน) — จำนวนรับตามแผนในชีตคือนิสิตจริงในแผน ไม่ใช่เป้า</td></tr>
+        <tr><td>ค่า “หลังปรับ”</td><td>ใช้ผลที่บันทึกในเครื่องไปก่อน และระบุบนหน้า</td></tr>
+        <tr><td>กราฟจัดกลุ่ม 4 กลุ่ม</td><td>ยังไม่ใส่</td></tr>
+        <tr><td>กราฟแท่ง/ตารางอันดับเดิม</td><td>เอาออก แทนด้วยแท็บ 2.1–2.3</td></tr>
+      </table>
+    </div>
+    <div>
+      <h2>ลำดับงาน</h2>
+      <ol>
+        <li>แยกกราฟจุดคุ้มทุน ตารางสี ตารางอันดับ กราฟการกระจาย ให้ใช้ร่วมกันได้ (หน้าเดิมไม่เปลี่ยน)</li>
+        <li>สร้างหน้าใหม่ ส่วน A · B · C</li>
+        <li>แท็บ 2.1 รายได้ และ 2.2 ต้นทุน</li>
+        <li>แท็บ 2.3 จุดคุ้มทุน + ตารางก่อน/หลังปรับ</li>
+        <li>ป็อปอัปสูตร · หน้าต่างรายละเอียด · ทดสอบครบ 5 บทบาท</li>
+      </ol>
+    </div>
+  </div>
+  <p class="sub" style="margin:10px 0 0">นอกขอบเขตหน้านี้: สั่งพิมพ์รายงาน (เฟส 6) · ข้อมูลย้อนหลัง 5 ปี (เฟส 7) · ตั้งค่าปันส่วนรายปี (เฟส 5)</p>
+</div>
+</body>
+</html>

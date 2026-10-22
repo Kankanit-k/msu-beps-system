@@ -28,7 +28,7 @@ import { useAuthUser, useAuthMethod } from '@/hooks/AuthHooks';
 import { useRole, useIsAdmin } from '@/hooks/useRole';
 
 // Config Imports
-import { roleDisplay, roleNeedsScope, roleOrder } from '@/configs/accessControl';
+import { DEFAULT_ROLE, roleDisplay, roleNeedsScope, roleOrder } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
 // Component Imports
@@ -79,7 +79,7 @@ const UserDropdown = () => {
   // navbar and the sidebar never disagree about "which permission am I viewing as".
   const roleLabel = isAdmin
     ? `${roleDisplay[role].label}${scopeLabel ? ` · ${scopeLabel}` : ''}`
-    : user?.SCOPES?.groupname || roleDisplay.user.label;
+    : user?.SCOPES?.groupname || roleDisplay[DEFAULT_ROLE].label;
 
   // Signed-in staff get their own HR photo; with no STAFFID (login bypassed for the demo)
   // fall back to the developer photo instead of a broken /undefined.jpg request.
@@ -155,7 +155,7 @@ const UserDropdown = () => {
         disablePortal
         placement="bottom-end"
         anchorEl={anchorRef.current}
-        className="min-is-[240px] !mbs-4 z-[1]"
+        className="min-is-[240px] !mbs-4 z-[1200]"
       >
         {({ TransitionProps, placement }) => (
           <Fade

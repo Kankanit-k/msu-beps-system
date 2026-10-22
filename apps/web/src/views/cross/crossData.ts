@@ -13,6 +13,8 @@ export const shortFacName = (name: string) =>
   name.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
 
 export interface FacultyCrossRow {
+  /** รหัสหลักสูตร (ระดับ|หลักสูตร|ปริญญา) — มีเฉพาะแถวรายหลักสูตร ใช้จับคู่ผลหลังปรับ */
+  key?: string;
   name: string;
   short: string;
   Q: number;
@@ -88,8 +90,11 @@ export function buildCrossData(mode: RevenueMode): FacultyCrossRow[] {
   return RAW.FACS.map((f) => toCrossRow(f, f.name, mode, programOkCount(f.name, mode)));
 }
 
+/** รหัสหลักสูตรที่ไม่ซ้ำในคณะ */
+export const progKey = (p: ProgRow) => `${p.lvl}|${p.prog}|${p.deg}`;
+
 /** ชื่อหลักสูตร — ปริญญาตรีแสดงชื่ออย่างเดียว ระดับอื่นต่อท้ายด้วยระดับ */
-const progName = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);
+export const progName = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);
 
 /** รายหลักสูตรของคณะเดียว (ผู้ดูแลคณะ/อาจารย์) — ไม่นับหลักสูตรที่ไม่มีนิสิต · เรียงตามนิสิตจริงมากไปน้อย */
 export function buildProgramCrossData(
@@ -103,6 +108,6 @@ export function buildProgramCrossData(
       const row = toCrossRow(p, progName(p), mode, { total: 1, ok: 0 });
       const ok = row.isOk ? 1 : 0;
 
-      return { ...row, short: row.name, okProg: ok, progOkRatio: ok * 100 };
+      return { ...row, key: progKey(p), short: row.name, okProg: ok, progOkRatio: ok * 100 };
     });
 }

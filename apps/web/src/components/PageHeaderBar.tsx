@@ -8,6 +8,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
 
 // Type Imports
+import type { ReactNode } from 'react';
 import type { RevenueMode } from '@beps/calc-engine';
 
 // Data / Calc Imports
@@ -46,14 +47,30 @@ type Props = {
   q: number;
   /** ส่วนเกิน/ขาดทุนของขอบเขตเดียวกัน — บวกเป็นส่วนเกิน ลบเป็นขาดทุน */
   profit: number;
+  /** ชิปเพิ่มเติมของหน้านั้น (เช่น ปีงบ/วิธีปันส่วน) — วางก่อนชิปวันที่ของข้อมูล */
+  extra?: ReactNode;
 };
 
 /**
  * แถบหัวหน้าจอ — ชื่อหน้า + สวิตช์ฐานรายได้ + วันที่ของข้อมูล + ชิปสรุป
  * ใช้ร่วมกันทุกหน้าที่อ่านตัวเลขจากรอบคำนวณเดียวกัน เพื่อไม่ให้แต่ละหน้าประกอบหัวเอง
  */
-const PageHeaderBar = ({ title, mode, onModeChange, q, profit }: Props) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+const PageHeaderBar = ({ title, mode, onModeChange, q, profit, extra }: Props) => (
+  // ติดหัวจอเมื่อเลื่อน (แทนแถบโปรไฟล์ที่ตั้งเป็น static ใน themeConfig)
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 3,
+      mb: 4,
+      position: 'sticky',
+      top: 0,
+      zIndex: 'appBar',
+      p: '15px',
+      bgcolor: 'background.paper', // ขาวในโหมดสว่าง · ตามธีมในโหมดมืด
+    }}
+  >
     <Typography variant="h5" fontWeight={700} sx={{ fontSize: '1.375rem' }}>
       {title}
     </Typography>
@@ -85,6 +102,7 @@ const PageHeaderBar = ({ title, mode, onModeChange, q, profit }: Props) => (
         </ToggleButtonGroup>
       </Box>
 
+      {extra}
       <Chip
         size="small"
         color={RAW.__sample ? 'warning' : 'info'}

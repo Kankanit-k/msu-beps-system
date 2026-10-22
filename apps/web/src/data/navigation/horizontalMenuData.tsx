@@ -1,12 +1,10 @@
 // Type Imports
 import type { HorizontalMenuDataType } from '@/types/menuTypes';
-import { SHOW_ABOUT_PAGE, accessLevelRank } from '@/configs/accessControl';
+import { DEFAULT_ROLE, SHOW_ABOUT_PAGE, canAccess } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
 // Mirrors src/data/navigation/verticalMenuData.tsx (horizontal layout uses sub-menus, no sections).
-const horizontalMenuData = (role: AppRole = 'user'): HorizontalMenuDataType[] => {
-  const rank = accessLevelRank[role];
-
+const horizontalMenuData = (role: AppRole = DEFAULT_ROLE): HorizontalMenuDataType[] => {
   const menu: HorizontalMenuDataType[] = [
     {
       label: 'แดชบอร์ด',
@@ -17,32 +15,21 @@ const horizontalMenuData = (role: AppRole = 'user'): HorizontalMenuDataType[] =>
         { label: 'Analytics', href: '/dashboards/analytics', icon: 'ri-bar-chart-box-line' },
       ],
     },
-    {
-      label: 'ตาราง',
-      icon: 'ri-table-line',
-      children: [{ label: 'ผู้ใช้งาน', href: '/users', icon: 'ri-table-line' }],
-    },
   ];
 
-  if (rank >= accessLevelRank.deptAdmin) {
+  if (canAccess(role, '/admin/users')) {
     menu.push({
-      label: 'ผู้ดูแลหน่วยงาน',
-      icon: 'ri-shield-user-line',
-      children: [{ label: 'จัดการผู้ใช้', href: '/admin/users', icon: 'ri-shield-user-line' }],
-    });
-  }
-
-  if (rank >= accessLevelRank.universityAdmin) {
-    menu.push({
-      label: 'ผู้ดูแลมหาวิทยาลัย',
+      label: 'ผู้ดูแลระบบ',
       icon: 'ri-government-line',
       children: [
+        { label: 'ผู้ใช้งาน', href: '/users', icon: 'ri-table-line' },
+        { label: 'จัดการผู้ใช้', href: '/admin/users', icon: 'ri-shield-user-line' },
         { label: 'จัดการหน่วยงาน', href: '/admin/university/units', icon: 'ri-government-line' },
       ],
     });
   }
 
-  if (SHOW_ABOUT_PAGE && rank >= accessLevelRank.deptAdmin) {
+  if (SHOW_ABOUT_PAGE && canAccess(role, '/about')) {
     menu.push({ label: 'เกี่ยวกับเรา', href: '/about', icon: 'ri-information-line' });
   }
 

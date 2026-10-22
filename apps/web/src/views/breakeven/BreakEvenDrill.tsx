@@ -38,6 +38,7 @@ import PageHeaderBar from '@components/PageHeaderBar';
 import { gridTableSx } from '@views/scenario-program/CostBlockTable';
 
 // Hook Imports
+import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 
 // Util Imports
@@ -115,7 +116,7 @@ const BreakEvenDrill = () => {
 
   // ผู้ดูแลคณะ/อาจารย์ เห็นเฉพาะคณะของตัวเอง
   const { role, scope: roleScope } = useRole();
-  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const lockedFac = lockedFacultyFor(role, roleScope);
   const [level, setLevel] = useState<LevelScope>('all');
 
   // ระดับปริญญาตรี vs ที่เหลือ (บัณฑิตศึกษา/ประกาศนียบัตร) — แบ่งแบบเดียวกับ inLevel

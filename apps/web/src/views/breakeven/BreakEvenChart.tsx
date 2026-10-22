@@ -3,9 +3,6 @@
 // React Imports
 import { useMemo, useState } from 'react';
 
-// Next Imports
-import dynamic from 'next/dynamic';
-
 // MUI Imports
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
@@ -26,16 +23,15 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import TextField from '@mui/material/TextField';
 
-import type { ApexOptions } from 'apexcharts';
-
 // Component Imports
-import { DotTitle, LegendItem } from '@components/ChartBits';
+import { DotTitle } from '@components/ChartBits';
 import DataCaveatNotes, { SHOW_BREAKEVEN_CHART_NOTES } from '@components/DataCaveatNotes';
 import KpiCard, { type KpiAccent } from '@components/KpiCard';
 import NoteBar from '@components/NoteBar';
 import PageHeaderBar from '@components/PageHeaderBar';
 
 // Data / calc Imports
+import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
@@ -45,22 +41,16 @@ import {
   computeBreakEven,
   fmtInt,
   fmtMillion,
+  levelRank,
   REVENUE_MODE_NOTE,
   STATUS_COLOR,
   STATUS_LABEL,
   statusOf,
 } from '@views/breakeven/calc';
 
-const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
+import BreakEvenLineChart from './BreakEvenLineChart';
 
 type AnalysisLevel = 'uni' | 'fac' | 'dep' | 'prog';
-
-const LVL_ORDER = ['ปริญญาตรี', 'ประกาศนียบัตร', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
-const levelRank = (lvl: string) => {
-  const i = LVL_ORDER.indexOf(lvl);
-
-  return i < 0 ? 99 : i;
-};
 
 const facLevels = (facName: string): string[] =>
   [...new Set(RAW.PROGS.filter((p) => p.fac === facName).map((p) => p.lvl))].sort(
@@ -282,7 +272,7 @@ const buildRecommendations = (
 const BreakEvenChart = () => {
   // ผู้ดูแลระดับคณะ/อาจารย์ เห็นเฉพาะคณะของตัวเอง — ซ่อนระดับมหาวิทยาลัยและล็อกตัวเลือกคณะ
   const { role, scope: roleScope } = useRole();
-  const lockedFac = role === 'deptAdmin' || role === 'lecturer' ? roleScope.faculty : null;
+  const lockedFac = lockedFacultyFor(role, roleScope);
   const lockedFacIdx = lockedFac ? RAW.FACS.findIndex((f) => f.name === lockedFac) : -1;
 
   const [levelSel, setLevel] = useState<AnalysisLevel>('uni');
@@ -338,68 +328,6 @@ const BreakEvenChart = () => {
   const avc = res.avc ?? 0;
   const tfc = res.tfc;
   const qStar = res.qStar;
-  const xmax = Math.max(q, qStar ?? 0) * 1.35 || 100;
-
-  const chartOptions: ApexOptions = {
-    chart: { type: 'line', toolbar: { show: false }, parentHeightOffset: 0 },
-    colors: [
-      'var(--mui-palette-primary-main)',
-      'var(--mui-palette-error-main)',
-      'var(--mui-palette-warning-main)',
-      'var(--mui-palette-success-main)',
-      'var(--mui-palette-text-primary)',
-    ],
-    stroke: { width: [2.5, 2.5, 1.5, 0, 0], dashArray: [0, 0, 6, 0, 0], curve: 'straight' },
-    markers: { size: [0, 0, 0, 7, 7], strokeWidth: 2 },
-    legend: { show: false },
-    grid: { borderColor: 'var(--mui-palette-divider)' },
-    xaxis: { type: 'numeric', min: 0, max: xmax, title: { text: 'จำนวนนิสิต (คน)' } },
-    yaxis: {
-      title: { text: 'มูลค่า (ล้านบาท)' },
-      labels: {
-        formatter: (v: number) => v.toLocaleString('th-TH', { maximumFractionDigits: 1 }),
-      },
-    },
-    tooltip: {
-      x: { formatter: (v: number) => `นิสิต ${fmtInt(v)} คน` },
-      y: {
-        formatter: (v: number) => `${v.toLocaleString('th-TH', { maximumFractionDigits: 1 })} ลบ.`,
-      },
-    },
-  };
-
-  const chartSeries = [
-    {
-      name: 'รายได้รวม',
-      type: 'line',
-      data: [
-        [0, 0],
-        [xmax, (r * xmax) / 1e6],
-      ],
-    },
-    {
-      name: 'ต้นทุนรวม',
-      type: 'line',
-      data: [
-        [0, tfc / 1e6],
-        [xmax, (tfc + avc * xmax) / 1e6],
-      ],
-    },
-    {
-      name: 'ต้นทุนคงที่',
-      type: 'line',
-      data: [
-        [0, tfc / 1e6],
-        [xmax, tfc / 1e6],
-      ],
-    },
-    {
-      name: 'จุดคุ้มทุน',
-      type: 'scatter',
-      data: qStar !== null ? [[qStar, (r * qStar) / 1e6]] : [],
-    },
-    { name: 'ปัจจุบัน', type: 'scatter', data: [[q, (r * q) / 1e6]] },
-  ];
 
   const status = statusOf(res);
 
@@ -584,20 +512,7 @@ const BreakEvenChart = () => {
               title={<DotTitle color="primary.main">แผนภาพจุดคุ้มทุน (Break-Even Chart)</DotTitle>}
             />
             <CardContent>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
-                <LegendItem color="primary.main" label="รายได้รวม" />
-                <LegendItem color="error.main" label="ต้นทุนรวม" />
-                <LegendItem color="warning.main" label="ต้นทุนคงที่" />
-                <LegendItem color="success.main" label="จุดคุ้มทุน" />
-                <LegendItem color="text.primary" label="จุดปัจจุบัน" />
-              </Box>
-              <AppReactApexCharts
-                type="line"
-                height={380}
-                width="100%"
-                options={chartOptions}
-                series={chartSeries}
-              />
+              <BreakEvenLineChart res={res} q={q} />
             </CardContent>
           </Card>
         </Grid>

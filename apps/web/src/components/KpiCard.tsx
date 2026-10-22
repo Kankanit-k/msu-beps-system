@@ -7,6 +7,8 @@ import Typography from '@mui/material/Typography';
 
 import type { ReactNode } from 'react';
 
+import InfoTip from './InfoTip';
+
 export type KpiAccent = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 
 type Props = {
@@ -18,13 +20,17 @@ type Props = {
   accent?: KpiAccent;
   /** สีตัวเลขเมื่อต้องสื่อความหมาย (กำไร/ขาดทุน) — ปกติปล่อยเป็นสีข้อความปกติ */
   valueColor?: string;
+  /** คำอธิบายสูตร/ที่มา — แสดงเป็นไอคอน ⓘ ท้ายชื่อการ์ด */
+  info?: ReactNode;
+  /** แบบกระชับ — ระยะขอบและตัวเลขเล็กลง สำหรับหน้าที่ข้อมูลแน่น */
+  dense?: boolean;
 };
 
 /**
  * การ์ด KPI — ตรงกับ .kpi ของ mockup: เส้นสี 3px ขอบบน ตัวหนังสือแน่น ไม่มีไอคอน
  * ความสูงเต็มช่องเสมอ เพื่อให้ทั้งแถวเรียงเท่ากันแม้ unit ยาวไม่เท่ากัน
  */
-const KpiCard = ({ label, value, unit, accent, valueColor }: Props) => (
+const KpiCard = ({ label, value, unit, accent, valueColor, info, dense }: Props) => (
   <Card
     sx={{
       blockSize: '100%',
@@ -32,17 +38,23 @@ const KpiCard = ({ label, value, unit, accent, valueColor }: Props) => (
       ...(accent && { borderTop: 3, borderTopColor: `${accent}.main` }),
     }}
   >
-    <CardContent sx={{ px: 4, py: 3.5, '&:last-child': { pb: 3.5 } }}>
+    <CardContent
+      sx={
+        dense
+          ? { px: 3, py: 2, '&:last-child': { pb: 2 } }
+          : { px: 4, py: 3.5, '&:last-child': { pb: 3.5 } }
+      }
+    >
       <Typography
         sx={{ fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.4 }}
         color="text.secondary"
       >
-        {label}
+        {label} {info && <InfoTip text={info} />}
       </Typography>
       <Typography
         className="num"
         sx={{
-          fontSize: '1.75rem',
+          fontSize: dense ? '1.5rem' : '1.75rem',
           fontWeight: 700,
           letterSpacing: '-0.5px',
           lineHeight: 1.3,

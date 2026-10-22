@@ -223,3 +223,12 @@ export const LEVEL_SCOPE_LABEL: Record<LevelScope, string> = {
 
 export const inLevel = (p: ProgRow, level: LevelScope) =>
   level === 'all' || (level === 'ug') === (p.grp === 'ปริญญาตรี');
+
+/** ลำดับระดับการศึกษาสำหรับเรียง/จัดกลุ่ม — ระดับที่ไม่รู้จักไปอยู่ท้ายสุด */
+const LVL_ORDER = ['ปริญญาตรี', 'ประกาศนียบัตร', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
+
+export const levelRank = (lvl: string) => {
+  const i = LVL_ORDER.indexOf(lvl);
+
+  return i < 0 ? 99 : i;
+};

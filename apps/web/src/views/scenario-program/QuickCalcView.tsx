@@ -35,6 +35,7 @@ import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
+import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 
 import BreakEvenChart from './BreakEvenChart';
@@ -477,7 +478,7 @@ const QuickCalcView = () => {
   } = useFacultyAllocation(fac, refProg, lever.q);
   /** ผู้ดูแลคณะ/อาจารย์ทำได้เฉพาะคณะ (และหลักสูตร) ของตน */
   const { role, scope } = useRole();
-  const scopedFac = role === 'deptAdmin' || role === 'lecturer' ? scope.faculty : null;
+  const scopedFac = lockedFacultyFor(role, scope);
   const scopedProg = role === 'lecturer' ? scope.program : null;
 
   // อ่านหลัง mount — อ่านตอน render แรกจะทำให้ SSR กับ client ไม่ตรงกัน

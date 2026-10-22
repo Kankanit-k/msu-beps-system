@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนเมนูและสิทธิ์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+nav.toc a:hover{border-color:var(--primary);color:var(--primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+td.c,th.c{text-align:center}
+.y{color:var(--ok);font-weight:700}.x{color:var(--no);font-weight:700}.p{color:var(--warn);font-weight:600}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.side{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.side h3{margin:0 0 8px;font-size:1rem}
+.sec{font-size:.75rem;letter-spacing:.04em;color:var(--muted);font-weight:700;margin:12px 0 4px;text-transform:uppercase}
+.item{padding:4px 8px;border-radius:6px;font-size:.92rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.item.new{background:var(--ok-soft)}
+.item.moved{background:var(--info-soft)}
+.item.gone{text-decoration:line-through;color:var(--muted)}
+.who{font-size:.72rem;color:var(--muted);white-space:nowrap}
+ol.steps{margin:0;padding-left:20px}
+ol.steps li{margin-bottom:10px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:.85rem}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>แผนงาน: เมนูซ้ายมือ + ระบบสิทธิ์ 5 ระดับ</h1>
+  <p class="sub">MSU-BEPS · สรุปจากเอกสาร “สิทธิ์การเข้าถึง 5 ระดับ” และ “สรุปงานจากการประชุม (21 ต.ค. 2569)” · จัดทำ 22 ต.ค. 2569 · ยังไม่ได้แก้โค้ด</p>
+
+  <nav class="toc">
+    <a href="#why">1. ทำไมต้องแก้สิทธิ์ก่อน</a>
+    <a href="#roles">2. ตารางสิทธิ์</a>
+    <a href="#menu">3. เมนูเดิม vs ใหม่</a>
+    <a href="#steps">4. ลำดับงาน</a>
+    <a href="#decide">5. ต้องตัดสินใจ</a>
+    <a href="#phases">6. ภาพรวม 8 เฟส</a>
+  </nav>
+
+  <section class="card" id="why">
+    <h2><span class="n">1</span>ทำไมต้องแก้ระบบสิทธิ์ก่อนแตะเมนู</h2>
+    <p>ระบบตอนนี้ใช้ <b>ขั้นบันได</b>: <code>ผู้ใช้ทั่วไป = อาจารย์ &lt; ผู้ดูแลคณะ &lt; ผู้ดูแลมหาวิทยาลัย</code> — ใครขั้นสูงกว่าเห็นทุกอย่างของขั้นที่ต่ำกว่า</p>
+    <p>แต่ตารางสิทธิ์ใหม่ <b>ไม่เป็นขั้นบันได</b> — <u>ผู้บริหาร</u>เห็นน้อยกว่า<u>เจ้าหน้าที่</u>ระดับเดียวกัน (ไม่เห็นเมนูวิเคราะห์และตั้งค่า)</p>
+    <div class="callout">ต้องเปลี่ยนเป็น <b>สิทธิ์ตามความสามารถ</b> ของแต่ละบทบาท (เห็นเมนูวิเคราะห์? เห็นเมนูตั้งค่า? เลือกคณะอื่นได้?) ไม่เช่นนั้นจะซ่อน/แสดงเมนูให้ตรงตารางไม่ได้ — ตรงกับงานข้อ 2.1–2.3</div>
+  </section>
+
+  <section class="card" id="roles">
+    <h2><span class="n">2</span>ตารางสิทธิ์ 5 ระดับ (เป้าหมาย)</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>ระดับผู้ใช้</th><th>ตัวอย่าง</th><th class="c">ภาพรวม/Dashboard มหาวิทยาลัย</th><th class="c">ภาพรวมคณะ + เจาะลึก</th><th class="c">วิเคราะห์จุดคุ้มทุน</th><th class="c">ตั้งค่า</th><th class="c">เลือกคณะอื่น</th><th>บทบาทเดิมในระบบ</th></tr>
+      <tr><td><b>1. ผู้บริหารมหาวิทยาลัย</b></td><td>อธิการบดี, รองอธิการ</td><td class="c y">✓</td><td class="c y">ทุกคณะ</td><td class="c x">✗</td><td class="c x">✗</td><td class="c y">✓</td><td><span class="tag t-ok">ใหม่</span></td></tr>
+      <tr><td><b>2. เจ้าหน้าที่มหาวิทยาลัย</b></td><td>กองแผนงาน</td><td class="c y">✓</td><td class="c y">ทุกคณะ</td><td class="c y">✓</td><td class="c y">✓</td><td class="c y">✓</td><td>universityAdmin</td></tr>
+      <tr><td><b>3. ผู้บริหารคณะ</b></td><td>คณบดี, รองคณบดี</td><td class="c y">✓</td><td class="c p">คณะตน</td><td class="c x">✗</td><td class="c x">✗</td><td class="c x">✗</td><td><span class="tag t-ok">ใหม่</span></td></tr>
+      <tr><td><b>4. เจ้าหน้าที่คณะ</b></td><td>งานวิชาการ/ฝ่ายแผนคณะ</td><td class="c y">✓</td><td class="c p">คณะตน</td><td class="c y">✓ (คณะตน)</td><td class="c y">✓ (คณะตน)</td><td class="c x">✗</td><td>deptAdmin</td></tr>
+      <tr><td><b>5. อาจารย์ประจำหลักสูตร</b></td><td>ผู้รับผิดชอบหลักสูตร</td><td class="c y">✓</td><td class="c p">คณะตน</td><td class="c p">เฉพาะหลักสูตรตน</td><td class="c x">✗</td><td class="c x">✗</td><td>lecturer</td></tr>
+      <tr><td style="color:var(--muted)">(ผู้ใช้งานทั่วไป)</td><td style="color:var(--muted)">—</td><td colspan="5" class="c" style="color:var(--muted)">ไม่มีในตารางใหม่ → ต้องตัดสินใจ (ดูข้อ 5)</td><td>user</td></tr>
+    </table>
+    </div>
+    <div class="callout info"><b>ภาพรวม/Dashboard มหาวิทยาลัย — ทุกระดับดูได้</b> (ข้อ 2.2) · ส่วนที่ถูกล็อกเฉพาะคณะตนคือหน้าภาพรวมคณะและหน้าเจาะลึก · ตัวกรองเลือกคณะเปิดเฉพาะระดับมหาวิทยาลัย (ข้อ 2.3)</div>
+  </section>
+
+  <section class="card" id="menu">
+    <h2><span class="n">3</span>เมนูซ้ายมือ: เดิม vs ใหม่ (งานข้อ 1.6, 1.7, 6.1)</h2>
+    <div class="cols">
+      <div class="side">
+        <h3>ปัจจุบัน</h3>
+        <div class="sec">ข้อมูลภาพรวม</div>
+        <div class="item">📊 ภาพรวมมหาวิทยาลัย</div>
+        <div class="item">💰 รายได้รายคณะ</div>
+        <div class="item">🏗️ โครงสร้างต้นทุน</div>
+        <div class="item">🧑‍🎓 รายได้ vs ต้นทุนต่อหัว</div>
+        <div class="sec">เจาะลึกจุดคุ้มทุน</div>
+        <div class="item">🧭 คณะ · ระดับ · หลักสูตร</div>
+        <div class="item">📈 กราฟจุดคุ้มทุน</div>
+        <div class="sec">การวิเคราะห์</div>
+        <div class="item">🔍 วิเคราะห์เชิงเปรียบเทียบ</div>
+        <div class="item">📐 สูตร &amp; หลักวิชาการ</div>
+        <div class="sec">ปรับปรุง/เปิดหลักสูตร</div>
+        <div class="item">🔒 ตั้งค่าวิธีปันส่วน (คณะ)</div>
+        <div class="item">🎓 จุดคุ้มทุนรายหลักสูตร ▸ ปรับปรุงเดิม / เปิดใหม่</div>
+        <div class="sec">คำนวณด้วยตนเอง</div>
+        <div class="item">🧮 จุดคุ้มทุนรายคณะ</div>
+        <div class="sec">ทะเบียนข้อมูลหลัก</div>
+        <div class="item">ค่าธรรมเนียม · ข้อมูลต้นทุน · หลักสูตร · ผู้ใช้ · ทะเบียนกลาง · ผังบัญชี ERP</div>
+        <div class="sec">ตั้งค่าระบบ</div>
+        <div class="item">หน่วยงาน · กติกาผังบัญชี · นโยบายการคำนวณ</div>
+      </div>
+
+      <div class="side">
+        <h3>เสนอใหม่</h3>
+        <div class="sec">ภาพรวม</div>
+        <div class="item">📊 ภาพรวมมหาวิทยาลัย <span class="who">ทุกระดับ</span></div>
+        <div class="item new">🏫 ภาพรวมคณะ <span class="tag t-ok">ใหม่ · เฟส 4</span></div>
+        <div class="sec">เจาะลึกจุดคุ้มทุน · ทุกระดับ</div>
+        <div class="item">🧭 คณะ · ระดับ · หลักสูตร</div>
+        <div class="item">📈 กราฟจุดคุ้มทุน</div>
+        <div class="item moved">💰 รายได้รายคณะ <span class="tag t-info">ย้าย</span></div>
+        <div class="item moved">🏗️ โครงสร้างต้นทุน <span class="tag t-info">ย้าย</span></div>
+        <div class="item moved">🧑‍🎓 รายได้ vs ต้นทุนต่อหัว <span class="tag t-info">ย้าย</span></div>
+        <div class="item moved">🔍 วิเคราะห์เชิงเปรียบเทียบ <span class="tag t-info">ย้าย</span></div>
+        <div class="sec">วิเคราะห์จุดคุ้มทุน · จนท. + อาจารย์</div>
+        <div class="item moved">🎓 หลักสูตรเดิม <span class="tag t-info">เปลี่ยนชื่อ</span></div>
+        <div class="item moved">✨ หลักสูตรใหม่ <span class="tag t-info">เปลี่ยนชื่อ</span></div>
+        <div class="item">🧮 รายคณะ <span class="who">จนท. เท่านั้น</span></div>
+        <div class="sec">ตั้งค่าการคำนวณ · จนท. มหาวิทยาลัย/คณะ</div>
+        <div class="item moved">🔒 วิธีปันส่วน (คณะ) <span class="tag t-info">ย้าย</span></div>
+        <div class="item new">🗂️ จัดประเภทรายจ่าย <span class="tag t-ok">ใหม่ · เฟส 5</span></div>
+        <div class="item">⚙️ นโยบายการคำนวณ · กติกาผังบัญชี <span class="who">จนท. ม.</span></div>
+        <div class="sec">ทะเบียน &amp; ระบบ · จนท. มหาวิทยาลัย</div>
+        <div class="item">ค่าธรรมเนียม · ข้อมูลต้นทุน · หลักสูตร · หน่วยงาน · ผู้ใช้ · ผังบัญชี ERP</div>
+        <div class="item gone">📐 สูตร &amp; หลักวิชาการ → เป็นป็อปอัปในแต่ละหน้า (ข้อ 1.5)</div>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="tag t-ok">ใหม่</span> หน้าที่ต้องสร้าง
+      <span class="tag t-info">ย้าย / เปลี่ยนชื่อ</span> มีอยู่แล้ว แค่ย้ายหมวด
+    </div>
+    <div class="callout info">เมนูเป็นแค่การซ่อน/แสดง — การกันสิทธิ์จริงอยู่ที่ middleware ซึ่งจะแก้ไปพร้อมกันในขั้นที่ 1</div>
+  </section>
+
+  <section class="card" id="steps">
+    <h2><span class="n">4</span>ลำดับการทำงาน</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>ขั้น</th><th>งาน</th><th>อ้างอิงเอกสาร</th><th>สถานะ</th></tr>
+      <tr><td><b>1</b></td><td><b>ระบบสิทธิ์ 5 ระดับ</b> — แก้ accessControl เป็นสิทธิ์ตามความสามารถ, middleware, ตัวสลับมุมมองสิทธิ์, ชื่อบทบาท</td><td>2.1–2.5</td><td><span class="tag t-warn">รอตอบข้อ 5</span></td></tr>
+      <tr><td><b>2</b></td><td><b>จัดเมนูใหม่</b> ตามข้อ 3 — ย้ายหมวด + เปลี่ยนชื่อ (ไม่ต้องรอมติ)</td><td>1.6, 1.7, 6.1</td><td><span class="tag t-ok">ทำได้ทันที</span></td></tr>
+      <tr><td><b>3a</b></td><td><b>หน้าภาพรวมมหาวิทยาลัย</b> — แสดงเป็นสัดส่วน + กำไร/ขาดทุนรายคณะ, แยกเงินแผ่นดิน vs เงินรายได้, สัดส่วนต้นทุนคงที่ (เตือนเมื่อเกิน 50%)</td><td>3.1–3.3</td><td><span class="tag t-ok">ทำได้ทันที</span></td></tr>
+      <tr><td><b>3b</b></td><td>เทียบเคียงคณะ — ไฮไลต์ “คณะของคุณ”, อันดับ, เส้นค่ากลาง, วิเคราะห์ปัจจัย</td><td>3.4–3.7</td><td><span class="tag t-no">รอมติ 0.4</span></td></tr>
+      <tr><td><b>4</b></td><td>หน้าภาพรวมคณะ — ย้ายกราฟจุดคุ้มทุน, การ์ด 6 ใบ, ตารางสี, ตารางอันดับมารวม</td><td>4.1–4.11</td><td><span class="tag t-no">รอข้อสรุป 0.3</span></td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section class="card" id="decide">
+    <h2><span class="n">5</span>ต้องตัดสินใจก่อนลงมือ</h2>
+    <div class="q"><b>① บทบาท “ผู้ใช้งานทั่วไป” ที่ไม่มีในตาราง 5 ระดับ</b>ยุบทิ้ง หรือให้เทียบเท่าผู้บริหารคณะ?<div class="rec">เสนอ: ให้เทียบเท่าผู้บริหารคณะ (ดูอย่างเดียว เฉพาะคณะตน)</div></div>
+    <div class="q"><b>② ตัวสลับมุมมองสิทธิ์</b>ข้อ 1.2 ให้ใช้บัญชีจริง แต่ข้อ 2.6 ให้ “คงไว้ตามเดิม” — ขัดกัน<div class="rec">เสนอ: คงตัวสลับไว้สำหรับสาธิต จนกว่าจะต่อ ERP เสร็จ</div></div>
+    <div class="q"><b>③ หน้า /overview ตอนนี้เปิดสาธารณะ (ไม่ต้องล็อกอิน)</b>ถ้าระดับคณะต้องถูกล็อกที่คณะตน ต้องรู้ว่าใครดูอยู่<div class="rec">เสนอ: ปิดสาธารณะ ให้ต้องล็อกอิน</div></div>
+    <div class="q"><b>④ เทียบเคียงคณะอื่น</b>ทุกระดับดู Dashboard มหาวิทยาลัยได้แล้ว แต่ยังต้องชัดว่าในหน้านั้นระดับคณะเห็นกำไร/ขาดทุนของคณะอื่น<u>แบบระบุชื่อ</u>หรือไม่ (เฟส 3 ต้องการเทียบเคียง)<div class="rec">ต้องขอมติ: เห็นชื่อคณะอื่น หรือเห็นเฉพาะค่าเฉลี่ยแบบไม่ระบุชื่อ</div></div>
+  </section>
+
+  <section class="card" id="phases">
+    <h2><span class="n">6</span>ภาพรวม 8 เฟสจากที่ประชุม</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>เฟส</th><th>หัวข้อ</th><th class="c">งาน</th><th>ลักษณะ</th><th>ความสัมพันธ์กับงานรอบนี้</th></tr>
+      <tr><td>0</td><td>ตัดสินใจและหาข้อมูลก่อนลงมือ</td><td class="c">5</td><td><span class="tag t-no">ติดคนอื่น</span></td><td>คอขวดของเฟส 3b, 4, 6</td></tr>
+      <tr><td>1</td><td>งานรากฐานที่กระทบทุกหน้าจอ</td><td class="c">10</td><td><span class="tag t-warn">แก้ของเดิม</span></td><td><b>รอบนี้: 1.6, 1.7</b></td></tr>
+      <tr><td>2</td><td>ระบบสิทธิ์ 5 ระดับ</td><td class="c">6</td><td><span class="tag t-warn">แก้ของเดิม</span></td><td><b>รอบนี้: ขั้นที่ 1</b></td></tr>
+      <tr><td>3</td><td>หน้าภาพรวมมหาวิทยาลัย + เทียบเคียง</td><td class="c">7</td><td><span class="tag t-info">สร้างใหม่บางส่วน</span></td><td>ถัดไป (3.1–3.3 ก่อน)</td></tr>
+      <tr><td>4</td><td>หน้าภาพรวมคณะ</td><td class="c">11</td><td><span class="tag t-info">ย้าย/ปรับ</span></td><td>หลังได้ข้อสรุป 0.3</td></tr>
+      <tr><td>5</td><td>ตั้งค่าการคำนวณและการปันส่วนต้นทุน</td><td class="c">9</td><td><span class="tag t-warn">แก้ของเดิม</span></td><td>เมนูจองที่ไว้แล้ว</td></tr>
+      <tr><td>6</td><td>หน้าวิเคราะห์จุดคุ้มทุนและการออกรายงาน</td><td class="c">7</td><td><span class="tag t-warn">แก้ของเดิม</span></td><td>6.1 เปลี่ยนชื่อเมนูทำรอบนี้</td></tr>
+      <tr><td>7</td><td>วิเคราะห์ย้อนหลังและเฝ้าระวัง</td><td class="c">5</td><td><span class="tag t-ok">สร้างใหม่ทั้งหมด</span></td><td>รอข้อมูลย้อนหลัง 5 ปี</td></tr>
+      <tr><td>8</td><td>หน้าวิเคราะห์เชิงเปรียบเทียบ</td><td class="c">1</td><td><span class="tag t-warn">แก้ของเดิม</span></td><td>ตัวสลับระดับคณะ/หลักสูตร</td></tr>
+    </table>
+    </div>
+  </section>
+</div>
+</body>
+</html>
