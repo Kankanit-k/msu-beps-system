@@ -22,10 +22,14 @@ import { roleDisplay } from '@/configs/accessControl';
 import verticalMenuData from '@/data/navigation/verticalMenuData';
 import { pageInfo, sectionLandings } from '@/data/navigation/sectionLandings';
 
+// Component Imports
+import { BEPS } from '@components/ChartBits';
+import MenuIcon from '@components/MenuIcon';
+
 // Hook Imports
 import { useRole } from '@/hooks/useRole';
 
-type Link = { label: string; href: string; icon?: string };
+type Link = { label: string; href: string; icon?: string; iconColor?: string };
 
 /** ลิงก์ทุกหน้าในหมวด (คลี่เมนูย่อยออก) */
 const leafLinks = (items: VerticalMenuDataType[]): Link[] =>
@@ -33,9 +37,28 @@ const leafLinks = (items: VerticalMenuDataType[]): Link[] =>
     'children' in item && item.children
       ? leafLinks(item.children)
       : 'href' in item && item.href
-        ? [{ label: String(item.label), href: item.href, icon: item.icon }]
+        ? [
+            {
+              label: String(item.label),
+              href: item.href,
+              icon: item.icon,
+              iconColor: item.iconColor,
+            },
+          ]
         : [],
   );
+
+// เมนูย่อยที่มีลิงก์หน้าแรกนี้เป็นลูกโดยตรง (เช่น เจาะลึกจุดคุ้มทุน → /deep-dive)
+const findGroup = (items: VerticalMenuDataType[], href: string): VerticalMenuDataType | undefined => {
+  for (const item of items) {
+    if (!('children' in item && item.children)) continue;
+    if (item.children.some((c) => 'href' in c && c.href === href)) return item;
+    const inner = findGroup(item.children, href);
+    if (inner) return inner;
+  }
+
+  return undefined;
+};
 
 /**
  * หน้าแรกของหมวดเมนู — การ์ดของทุกหน้าในหมวด ดึงจากเมนูซ้ายมือที่กรองตามบทบาทแล้ว
@@ -43,9 +66,7 @@ const leafLinks = (items: VerticalMenuDataType[]): Link[] =>
  */
 const SectionLanding = ({ href }: { href: string }) => {
   const { role, scope } = useRole();
-  const section = verticalMenuData(role).find(
-    (s) => 'children' in s && s.children && leafLinks(s.children).some((l) => l.href === href),
-  );
+  const section = findGroup(verticalMenuData(role), href);
   const links =
     section && 'children' in section && section.children ? leafLinks(section.children) : [];
   const cards = links.filter((l) => l.href !== href);
@@ -64,8 +85,12 @@ const SectionLanding = ({ href }: { href: string }) => {
           }}
         >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              {info?.icon} {section ? String(section.label) : ''}
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}
+            >
+              {info?.icon && <MenuIcon icon={info.icon} color={BEPS.profit} size={36} />}
+              {section ? String(section.label) : ''}
             </Typography>
             <Typography color="text.secondary">{info?.desc}</Typography>
           </Box>
@@ -104,20 +129,7 @@ const SectionLanding = ({ href }: { href: string }) => {
                       sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            fontSize: '1.5rem',
-                            inlineSize: 48,
-                            blockSize: 48,
-                            borderRadius: 2,
-                            display: 'grid',
-                            placeItems: 'center',
-                            bgcolor: 'var(--mui-palette-primary-lightOpacity)',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {c.icon}
-                        </Box>
+{c.icon && <MenuIcon icon={c.icon} color={c.iconColor} size={48} />}
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
                           {c.label}
                         </Typography>

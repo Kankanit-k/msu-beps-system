@@ -1,0 +1,239 @@
+'use client';
+
+// React Imports
+import { usePathname } from 'next/navigation';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+
+import type { BreakEvenResult, RevenueMode } from '@beps/calc-engine';
+
+// Component Imports
+import { MOCK_RUN } from '@components/PageHeaderBar';
+import { isUniversityLevel, lockedFacultyFor } from '@/configs/accessControl';
+import { useRole } from '@/hooks/useRole';
+
+// Data / calc Imports
+import { RAW } from '@/data/mockup';
+import type { FacRow, ProgRow } from '@/data/mockup';
+import { computeBreakEven, levelRank, sheetQStar, sumRows } from '@views/breakeven/calc';
+import { progKey, progName } from '@views/cross/crossData';
+import type { AfterResult } from '@views/cross/CrossPanels';
+import { useFacultyLock } from '@views/fixed-cost-lock/lockStore';
+import type { FacultyLock } from '@views/fixed-cost-lock/lockStore';
+import { loadHistory } from '@views/scenario-program/historyStore';
+import { progOptionLabel } from '@views/scenario-program/programData';
+
+import ProgramDialog from './ProgramDialog';
+
+export const FAC_NAMES = RAW.FACS.map((f) => f.name);
+
+export type ProgStat = {
+  p: ProgRow;
+  key: string;
+  label: string;
+  /** จุดคุ้มทุนแบบชีต — ติดลบ = รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร (ไม่มีจุดคุ้มทุน) */
+  qStarGov: number;
+  qStarOwn: number;
+};
+
+export type LevelOption = { lvl: string; n: number; Q: number };
+
+type FacultyCtx = {
+  fac: FacRow;
+  canPick: boolean;
+  setFac: (name: string) => void;
+  year: string;
+  setYear: (y: string) => void;
+  mode: RevenueMode;
+  setMode: (m: RevenueMode) => void;
+  /** ระดับการศึกษาที่มีหลักสูตรในคณะนี้ — ห้ามรวมระดับในกราฟ/ตารางเดียวกัน */
+  levels: LevelOption[];
+  level: string;
+  setLevel: (lvl: string) => void;
+  /** หลักสูตรที่มีนิสิตทุกระดับ (ใช้เฉพาะตัวเลขรวมทั้งคณะ) */
+  allProgs: ProgStat[];
+  /** หลักสูตรของระดับที่เลือก — ใช้กับกราฟและตารางทุกตัว */
+  progs: ProgStat[];
+  /** ผลทั้งคณะ (แถวคณะในชีต) */
+  facRes: BreakEvenResult;
+  /** ผลของระดับที่เลือก (ผลรวมหลักสูตรในระดับ · Q* = ผลบวกแบบชีต) */
+  levelRes: BreakEvenResult;
+  lock: FacultyLock | null;
+  lockReady: boolean;
+  /** ผลหลังปรับล่าสุดที่บันทึกในเครื่องนี้ (key = progKey) */
+  after: Map<string, AfterResult>;
+  openDetail: (key?: string) => void;
+};
+
+const Ctx = createContext<FacultyCtx | null>(null);
+
+export const useFaculty = () => {
+  const v = useContext(Ctx);
+
+  if (!v) throw new Error('useFaculty ต้องอยู่ใน FacultyProvider');
+
+  return v;
+};
+
+const toStat = (p: ProgRow): ProgStat => ({
+  p,
+  key: progKey(p),
+  label: progName(p),
+  qStarGov: sheetQStar(p, 'with_government'),
+  qStarOwn: sheetQStar(p, 'without_government'),
+});
+
+/**
+ * สถานะร่วมของภาพรวมคณะและหน้าย่อย — layout ของ /faculty ถือไว้ จึงไม่หายเมื่อสลับหน้า
+ * ค่าที่เลือกเขียนลง URL (?fac=&lvl=&mode=) เพื่อแชร์ลิงก์/รีเฟรชแล้วได้หน้าเดิม
+ */
+export const FacultyProvider = ({ children }: { children: ReactNode }) => {
+  const pathname = usePathname();
+  const { role, scope } = useRole();
+  const canPick = isUniversityLevel(role);
+  const lockedFac = lockedFacultyFor(role, scope);
+
+  const [pickedFac, setPickedFac] = useState<string>(FAC_NAMES[0] ?? '');
+  const [mode, setMode] = useState<RevenueMode>('with_government');
+  const [pickedLevel, setLevel] = useState('');
+  // ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล
+  const [year, setYear] = useState(MOCK_RUN.budgetYear);
+  const [detail, setDetail] = useState<ProgRow | null>(null);
+  const [urlRead, setUrlRead] = useState(false);
+
+  // อ่านค่าเริ่มจาก URL (เช่น ป็อปอัปอันดับคณะส่ง ?fac=ชื่อคณะ มา)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const fac = q.get('fac');
+    const lvl = q.get('lvl');
+
+    if (fac && FAC_NAMES.includes(fac)) setPickedFac(fac);
+    if (lvl) setLevel(lvl);
+    if (q.get('mode') === 'own') setMode('without_government');
+    setUrlRead(true);
+  }, []);
+
+  const facName = lockedFac ?? pickedFac;
+  const fac = RAW.FACS.find((f) => f.name === facName) ?? RAW.FACS[0]!;
+  const { lock, ready: lockReady } = useFacultyLock(year, fac.name);
+
+  const allProgs = useMemo(
+    () =>
+      RAW.PROGS.filter((p) => p.fac === fac.name && p.Q > 0)
+        .sort((a, b) => levelRank(a.lvl) - levelRank(b.lvl) || b.Q - a.Q)
+        .map(toStat),
+    [fac.name],
+  );
+
+  const levels = useMemo<LevelOption[]>(() => {
+    const m = new Map<string, LevelOption>();
+
+    allProgs.forEach(({ p }) => {
+      const l = m.get(p.lvl) ?? { lvl: p.lvl, n: 0, Q: 0 };
+
+      l.n += 1;
+      l.Q += p.Q;
+      m.set(p.lvl, l);
+    });
+
+    return [...m.values()];
+  }, [allProgs]);
+
+  // ระดับที่เลือกไม่มีในคณะนี้ → ใช้ระดับแรกที่มี
+  const level = levels.some((l) => l.lvl === pickedLevel) ? pickedLevel : (levels[0]?.lvl ?? '');
+
+  const progs = useMemo(() => allProgs.filter((x) => x.p.lvl === level), [allProgs, level]);
+
+  const facRes = useMemo(() => computeBreakEven(fac, mode), [fac, mode]);
+
+  const levelRes = useMemo(
+    () => computeBreakEven(sumRows(progs.map((x) => x.p)), mode),
+    [progs, mode],
+  );
+
+  // เขียนค่าที่เลือกกลับลง URL โดยไม่โหลดหน้าใหม่
+  useEffect(() => {
+    if (!urlRead) return;
+    const q = new URLSearchParams(window.location.search);
+
+    if (canPick) q.set('fac', fac.name);
+    else q.delete('fac');
+    if (level) q.set('lvl', level);
+    else q.delete('lvl');
+    if (mode === 'without_government') q.set('mode', 'own');
+    else q.delete('mode');
+    const qs = q.toString();
+
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+  }, [urlRead, pathname, canPick, fac.name, level, mode]);
+
+  // ผลหลังปรับ = รายการล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตรเดิม (เก็บในเบราว์เซอร์เครื่องนี้)
+  const [history, setHistory] = useState<ReturnType<typeof loadHistory>>([]);
+
+  useEffect(() => setHistory(loadHistory()), []);
+
+  const after = useMemo(() => {
+    const out = new Map<string, AfterResult>();
+
+    allProgs.forEach(({ p, key }) => {
+      const hit = history
+        .filter(
+          (h) =>
+            !h.isNew &&
+            h.fac === p.fac &&
+            (h.ref ? h.ref === progOptionLabel(p) : h.name === p.prog && h.level === p.lvl),
+        )
+        .sort((a, b) => b.id - a.id)[0];
+
+      if (!hit) return;
+      const r = mode === 'with_government' ? hit.withGov : hit.withoutGov;
+      const valid = r.qStarStatus === 'normal' && r.qStar !== null && r.qStar > 0;
+
+      out.set(key, {
+        qStar: r.qStar,
+        profit: r.profit,
+        valid,
+        ok: valid && r.q >= (r.qStar ?? 0),
+        savedAt: hit.time,
+      });
+    });
+
+    return out;
+  }, [allProgs, history, mode]);
+
+  const value: FacultyCtx = {
+    fac,
+    canPick,
+    // เปลี่ยนคณะ → เริ่มที่ระดับแรกของคณะใหม่ (URL กับค่าที่เลือกตรงกันเสมอ)
+    setFac: (name) => {
+      setPickedFac(name);
+      setLevel('');
+    },
+    year,
+    setYear,
+    mode,
+    setMode,
+    levels,
+    level,
+    setLevel,
+    allProgs,
+    progs,
+    facRes,
+    levelRes,
+    lock,
+    lockReady,
+    after,
+    openDetail: (key) => setDetail(allProgs.find((x) => x.key === key)?.p ?? null),
+  };
+
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      <ProgramDialog
+        p={detail}
+        after={detail ? after.get(progKey(detail)) : undefined}
+        onClose={() => setDetail(null)}
+      />
+    </Ctx.Provider>
+  );
+};

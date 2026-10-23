@@ -35,6 +35,14 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
         {
           backgroundColor: 'var(--mui-palette-action-selected) !important',
         },
+      // เมนูหลักที่อยู่หน้าแรกของตัวเองพอดี — แถบไล่สีแบบรายการที่เลือก
+      [`&.${menuClasses.subMenuRoot} > .${menuClasses.button}[data-landing-active]`]: {
+        color: '#fff',
+        backgroundColor: 'transparent !important',
+        backgroundImage: `linear-gradient(270deg, ${MENU_NAVY}, ${MENU_NAVY_LIGHT} 94%)`,
+        boxShadow: `0 2px 6px rgb(${MENU_NAVY_CHANNEL} / 0.35)`,
+        fontWeight: 600,
+      },
       [`&.${menuClasses.disabled} > .${menuClasses.button}`]: {
         color: 'var(--mui-palette-text-disabled)',
         '& *': {

@@ -1,0 +1,125 @@
+'use client';
+
+// React Imports
+import { useMemo } from 'react';
+
+// MUI Imports
+import Box from '@mui/material/Box';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+
+import type { BreakEvenResult } from '@beps/calc-engine';
+
+// Data / calc Imports
+import type { ProgRow } from '@/data/mockup';
+import { computeBreakEven, fmtInt, fmtMillion } from '@views/breakeven/calc';
+import type { AfterResult } from '@views/cross/CrossPanels';
+
+/** หน้าต่างรายละเอียดหลักสูตร — ตัวเลขทั้งสองกรณีวางคู่กัน */
+const ProgramDialog = ({
+  p,
+  after,
+  onClose,
+}: {
+  p: ProgRow | null;
+  after?: AfterResult;
+  onClose: () => void;
+}) => {
+  const both = useMemo(
+    () =>
+      p
+        ? ([
+            computeBreakEven(p, 'with_government'),
+            computeBreakEven(p, 'without_government'),
+          ] as const)
+        : null,
+    [p],
+  );
+
+  const rows: { label: string; v: (r: BreakEvenResult) => string }[] = [
+    { label: 'รายได้รวม (ลบ.)', v: (r) => fmtMillion(r.tr) },
+    { label: 'ต้นทุนรวม (ลบ.)', v: (r) => fmtMillion(r.tc) },
+    { label: 'รายได้ต่อหัว (บาท)', v: (r) => fmtInt(r.r) },
+    { label: 'ต้นทุนผันแปรต่อหัว (บาท)', v: (r) => fmtInt(r.avc) },
+    {
+      label: 'เป้า / จุดคุ้มทุน (คน)',
+      v: (r) => (r.qStar !== null && r.qStar > 0 ? fmtInt(r.qStar) : 'ไม่มี'),
+    },
+    {
+      label: 'ส่วนเกิน / ขาดทุน (ลบ.)',
+      v: (r) => `${r.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(r.profit))}`,
+    },
+  ];
+
+  return (
+    <Dialog open={Boolean(p)} onClose={onClose} maxWidth="sm" fullWidth>
+      {p && both && (
+        <>
+          <DialogTitle sx={{ pr: 12 }}>
+            {p.prog}
+            <Typography variant="body2" color="text.secondary">
+              {p.lvl} · {p.deg}
+            </Typography>
+            <IconButton
+              aria-label="ปิด"
+              onClick={onClose}
+              sx={{ position: 'absolute', top: 12, insetInlineEnd: 12 }}
+            >
+              <i className="ri-close-line" />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mb: 3 }}>
+              <Typography variant="body2">
+                นิสิตจริง <b>{fmtInt(p.Q)}</b> คน
+              </Typography>
+              <Typography variant="body2">
+                เงินแผ่นดิน <b>{fmtMillion(p.st)}</b> · เงินรายได้ <b>{fmtMillion(p.own)}</b> ลบ.
+              </Typography>
+              <Typography variant="body2">
+                ต้นทุนคงที่ <b>{fmtMillion(p.TFC)}</b> · ผันแปร <b>{fmtMillion(p.TVC)}</b> ลบ.
+              </Typography>
+            </Box>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell />
+                  <TableCell align="right">รวมเงินแผ่นดิน</TableCell>
+                  <TableCell align="right">ไม่รวมเงินแผ่นดิน</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.label}>
+                    <TableCell>{row.label}</TableCell>
+                    <TableCell align="right" className="num">
+                      {row.v(both[0])}
+                    </TableCell>
+                    <TableCell align="right" className="num">
+                      {row.v(both[1])}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+              {after
+                ? `หลังปรับ (บันทึก ${after.savedAt}): เป้า ${after.valid && after.qStar !== null ? `${fmtInt(after.qStar)} คน` : 'ไม่มีจุดคุ้มทุน'} · ${after.profit >= 0 ? 'ส่วนเกิน +' : 'ขาดทุน −'}${fmtMillion(Math.abs(after.profit))} ลบ.`
+                : 'ยังไม่มีผลการปรับปรุงหลักสูตรนี้ที่บันทึกไว้ในเครื่องนี้'}
+            </Typography>
+          </DialogContent>
+        </>
+      )}
+    </Dialog>
+  );
+};
+
+export default ProgramDialog;

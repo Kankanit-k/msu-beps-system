@@ -1,9 +1,9 @@
 // Component Imports
-import FacultyOverview from '@views/overview/FacultyOverview';
+import FacultyLanding from '@views/faculty/FacultyLanding';
 
 // ภาพรวมคณะ — ระดับมหาวิทยาลัยเลือกได้ทุกคณะ · ระดับคณะ/อาจารย์ล็อกที่คณะตน
 const FacultyOverviewPage = () => {
-  return <FacultyOverview />;
+  return <FacultyLanding />;
 };
 
 export default FacultyOverviewPage;

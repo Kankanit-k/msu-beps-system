@@ -19,9 +19,8 @@ const menuSectionStyles = (
 
   return {
     root: {
-      marginBlockStart: theme.spacing(6),
+      marginBlockStart: theme.spacing(5),
       [`& .${menuClasses.menuSectionContent}`]: {
-        color: 'var(--mui-palette-primary-main)',
         // ป้ายหมวดเยื้องเท่ากับไอคอนของรายการเมนู
         paddingInline: `${theme.spacing(5.5)} 0 !important`,
         paddingBlock: `${theme.spacing(collapsedNotHovered ? 3.875 : 1.5)} !important`,
@@ -37,7 +36,7 @@ const menuSectionStyles = (
             content: '""',
             blockSize: 1,
             inlineSize: '1.3125rem',
-            backgroundColor: 'var(--mui-palette-divider)',
+            backgroundColor: 'rgb(var(--mui-palette-text-primaryChannel) / 0.06)',
           },
         }),
         ...(!collapsedNotHovered && {
@@ -45,20 +44,18 @@ const menuSectionStyles = (
             content: '""',
             blockSize: 1,
             flexGrow: 1,
-            backgroundColor: 'var(--mui-palette-divider)',
+            backgroundColor: 'rgb(var(--mui-palette-text-primaryChannel) / 0.06)',
           },
         }),
       },
 
-      // Uppercase, letter-spaced, primary-coloured section label (MSU-BEPS `.sb-group`)
+      // ชื่อกลุ่มสีเทาเล็ก + เส้นคั่น (แบบ Materio "Apps & Pages")
       [`& .${menuClasses.menuSectionLabel}`]: {
         flexGrow: 0,
-        fontSize: '0.6875rem',
-        fontWeight: 800,
+        fontSize: '0.8125rem',
+        fontWeight: 400,
         lineHeight: 1.4,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        color: 'var(--mui-palette-primary-main)',
+        color: 'var(--mui-palette-text-disabled)',
         ...(collapsedNotHovered && {
           display: 'none',
         }),

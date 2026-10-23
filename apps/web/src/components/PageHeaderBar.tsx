@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import type { RevenueMode } from '@beps/calc-engine';
 
 // Data / Calc Imports
+import { BEPS } from '@components/ChartBits';
 import { RAW } from '@/data/mockup';
 import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
@@ -47,6 +48,8 @@ type Props = {
   q: number;
   /** ส่วนเกิน/ขาดทุนของขอบเขตเดียวกัน — บวกเป็นส่วนเกิน ลบเป็นขาดทุน */
   profit: number;
+  /** ส่ง = ชิปท้ายแสดงรายได้รวมแทนส่วนเกิน/ขาดทุน (หน้าที่เน้นขารายได้) */
+  revenue?: number;
   /** ชิปเพิ่มเติมของหน้านั้น (เช่น ปีงบ/วิธีปันส่วน) — วางก่อนชิปวันที่ของข้อมูล */
   extra?: ReactNode;
 };
@@ -55,7 +58,7 @@ type Props = {
  * แถบหัวหน้าจอ — ชื่อหน้า + สวิตช์ฐานรายได้ + วันที่ของข้อมูล + ชิปสรุป
  * ใช้ร่วมกันทุกหน้าที่อ่านตัวเลขจากรอบคำนวณเดียวกัน เพื่อไม่ให้แต่ละหน้าประกอบหัวเอง
  */
-const PageHeaderBar = ({ title, mode, onModeChange, q, profit, extra }: Props) => (
+const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, extra }: Props) => (
   // ติดหัวจอเมื่อเลื่อน (แทนแถบโปรไฟล์ที่ตั้งเป็น static ใน themeConfig)
   <Box
     sx={{
@@ -110,12 +113,23 @@ const PageHeaderBar = ({ title, mode, onModeChange, q, profit, extra }: Props) =
         label={DATA_LABEL}
       />
       <Chip size="small" color="primary" variant="tonal" label={`${fmtInt(q)} นิสิต`} />
+      {revenue !== undefined ? (
+        <Chip
+          size="small"
+          variant="tonal"
+          sx={{ bgcolor: 'rgb(130 106 249 / 0.14)', color: BEPS.revenue.dark }}
+          label={`รายได้รวม ${fmtMillion(revenue)} ลบ.`}
+        />
+      ) : (
       <Chip
         size="small"
-        color={profit >= 0 ? 'success' : 'error'}
+        color={profit >= 0 ? undefined : 'error'}
         variant="tonal"
+        // ส่วนเกิน = เขียวอมฟ้า (teal) เดียวกับการ์ดจุดคุ้มทุน · ขาดทุน = แดงตามธีม
+        sx={profit >= 0 ? { bgcolor: 'rgb(13 143 135 / 0.16)', color: BEPS.breakEven } : undefined}
         label={`${profit >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtMillion(Math.abs(profit))} ลบ.`}
       />
+      )}
     </Box>
   </Box>
 );

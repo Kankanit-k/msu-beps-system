@@ -137,7 +137,8 @@ const MenuItem: ForwardRefRenderFunction<HTMLLIElement, MenuItemProps> = (props,
       if (
         exactMatch
           ? normalizedPathname === normalizedHref
-          : normalizedActiveUrl && normalizedPathname.includes(normalizedActiveUrl)
+          : normalizedActiveUrl && (normalizedPathname === normalizedActiveUrl ||
+            normalizedPathname.startsWith(`${normalizedActiveUrl}/`))
       ) {
         setActive(true);
       } else {

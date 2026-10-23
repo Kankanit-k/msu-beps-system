@@ -14,6 +14,23 @@ import { LegendItem } from '@components/ChartBits';
 
 import { fmtInt } from './calc';
 
+/** สีของแต่ละเส้น/จุด — ค่าเริ่มต้นเป็นสีธีม MUI */
+export type BreakEvenLinePalette = {
+  revenue: string;
+  cost: string;
+  fixed: string;
+  breakEven: string;
+  current: string;
+};
+
+const DEFAULT_PALETTE: BreakEvenLinePalette = {
+  revenue: 'var(--mui-palette-primary-main)',
+  cost: 'var(--mui-palette-error-main)',
+  fixed: 'var(--mui-palette-warning-main)',
+  breakEven: 'var(--mui-palette-success-main)',
+  current: 'var(--mui-palette-text-primary)',
+};
+
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
 /** แผนภาพจุดคุ้มทุน — เส้นรายได้รวม/ต้นทุนรวม/ต้นทุนคงที่ ตามจำนวนนิสิต + จุดคุ้มทุนและจุดปัจจุบัน */
@@ -21,10 +38,12 @@ const BreakEvenLineChart = ({
   res,
   q,
   height = 380,
+  palette = DEFAULT_PALETTE,
 }: {
   res: BreakEvenResult;
   q: number;
   height?: number;
+  palette?: BreakEvenLinePalette;
 }) => {
   const r = res.r ?? 0;
   const avc = res.avc ?? 0;
@@ -34,13 +53,7 @@ const BreakEvenLineChart = ({
 
   const options: ApexOptions = {
     chart: { type: 'line', toolbar: { show: false }, parentHeightOffset: 0 },
-    colors: [
-      'var(--mui-palette-primary-main)',
-      'var(--mui-palette-error-main)',
-      'var(--mui-palette-warning-main)',
-      'var(--mui-palette-success-main)',
-      'var(--mui-palette-text-primary)',
-    ],
+    colors: [palette.revenue, palette.cost, palette.fixed, palette.breakEven, palette.current],
     stroke: { width: [2.5, 2.5, 1.5, 0, 0], dashArray: [0, 0, 6, 0, 0], curve: 'straight' },
     markers: { size: [0, 0, 0, 7, 7], strokeWidth: 2 },
     legend: { show: false },
@@ -96,11 +109,11 @@ const BreakEvenLineChart = ({
   return (
     <>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 2 }}>
-        <LegendItem color="primary.main" label="รายได้รวม" />
-        <LegendItem color="error.main" label="ต้นทุนรวม" />
-        <LegendItem color="warning.main" label="ต้นทุนคงที่" />
-        <LegendItem color="success.main" label="จุดคุ้มทุน" />
-        <LegendItem color="text.primary" label="จุดปัจจุบัน" />
+        <LegendItem color={palette.revenue} label="รายได้รวม" />
+        <LegendItem color={palette.cost} label="ต้นทุนรวม" />
+        <LegendItem color={palette.fixed} label="ต้นทุนคงที่" />
+        <LegendItem color={palette.breakEven} label="จุดคุ้มทุน" />
+        <LegendItem color={palette.current} label="จุดปัจจุบัน" />
       </Box>
       <AppReactApexCharts
         type="line"

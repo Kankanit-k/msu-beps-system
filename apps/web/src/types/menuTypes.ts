@@ -25,6 +25,8 @@ export type VerticalMenuItemDataType = Omit<
     label: ReactNode;
     excludeLang?: boolean;
     icon?: string;
+    /** สีพื้นกล่องไอคอน (เมนูแนวตั้ง) */
+    iconColor?: string;
     prefix?: ReactNode | ChipProps;
     suffix?: ReactNode | ChipProps;
   };
@@ -34,6 +36,7 @@ export type VerticalSubMenuDataType = Omit<
 > & {
   children: VerticalMenuDataType[];
   icon?: string;
+  iconColor?: string;
   prefix?: ReactNode | ChipProps;
   suffix?: ReactNode | ChipProps;
 };

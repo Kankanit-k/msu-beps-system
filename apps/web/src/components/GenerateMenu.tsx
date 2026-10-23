@@ -1,9 +1,5 @@
 // React Imports
-import { useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-
-// Next Imports
-import { usePathname } from 'next/navigation';
 
 // MUI Imports
 import Chip from '@mui/material/Chip';
@@ -30,74 +26,16 @@ import {
   MenuItem as VerticalMenuItem,
   MenuSection,
 } from '@menu/vertical-menu';
+import MenuIcon from '@components/MenuIcon';
 
-const collectHrefs = (items: VerticalMenuDataType[]): string[] =>
-  items.flatMap((item) =>
-    'children' in item && item.children
-      ? collectHrefs(item.children)
-      : 'href' in item && item.href
-        ? [String(item.href)]
-        : [],
-  );
-
-// Vertical menu icons: a Remix class (`ri-…`) renders as an icon-font glyph; anything else is
-// treated as an emoji and shown inside a small rounded tile.
-const renderVerticalIcon = (icon?: string): ReactElement | null => {
-  if (!icon) return null;
-
-  if (icon.startsWith('ri-')) return <i className={icon} />;
-
-  return (
-    <span
-      aria-hidden
-      style={{
-        inlineSize: 28,
-        blockSize: 28,
-        borderRadius: 8,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1rem',
-        lineHeight: 1,
-        backgroundColor: 'var(--mui-palette-action-hover)',
-      }}
-    >
-      {icon}
-    </span>
-  );
-};
-
-// Sections start expanded (set `defaultOpen: false` to start one collapsed) and collapse/expand
-// on heading click; the one holding the current page always reopens itself.
-const CollapsibleSection = ({
-  section,
-  children,
-}: {
-  section: VerticalSectionDataType;
-  children: ReactNode;
-}) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { children: items, isSection, defaultOpen, ...rest } = section;
-  const pathname = (usePathname() ?? '').replace(/\/+$/, '') || '/';
-  const hasActive = collectHrefs(items).some((href) => pathname === href);
-  const [open, setOpen] = useState(defaultOpen ?? true);
-
-  useEffect(() => {
-    if (hasActive) setOpen(true);
-  }, [hasActive]);
-
-  return (
-    <MenuSection {...rest} open={open} onToggle={() => setOpen((o) => !o)}>
-      {children}
-    </MenuSection>
-  );
-};
+// Vertical menu icons: กล่องสีแบบการ์ด KPI (ไอคอน Remix `ri-…`) — อย่างอื่นถือเป็นอีโมจิ
+const renderVerticalIcon = (icon?: string, color?: string): ReactElement | null =>
+  icon ? <MenuIcon icon={icon} color={color} /> : null;
 
 // Generate a menu from the menu data array
 export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataType[] }) => {
-  // Hooks
-
-  const renderMenuItems = (data: VerticalMenuDataType[]) => {
+  // nested = อยู่ในเมนูย่อย → ไม่วาดกล่องไอคอน ให้ Menu ใส่จุดวงกลมแทน (แบบ Materio)
+  const renderMenuItems = (data: VerticalMenuDataType[], nested = false): ReactNode[] => {
     // Use the map method to iterate through the array of menu data
     return data.map((item: VerticalMenuDataType, index) => {
       const menuSectionItem = item as VerticalSectionDataType;
@@ -106,18 +44,21 @@ export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataT
 
       // Check if the current item is a section
       if (menuSectionItem.isSection) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { children, isSection, defaultOpen, label, ...sectionRest } = menuSectionItem;
+
         return (
-          <CollapsibleSection key={index} section={menuSectionItem}>
+          <MenuSection key={index} {...sectionRest} label={menuSectionItem.label}>
             {menuSectionItem.children && renderMenuItems(menuSectionItem.children)}
-          </CollapsibleSection>
+          </MenuSection>
         );
       }
 
       // Check if the current item is a sub menu
       if (subMenuItem.children) {
-        const { children, icon, prefix, suffix, ...rest } = subMenuItem;
+        const { children, icon, iconColor, prefix, suffix, ...rest } = subMenuItem;
 
-        const Icon = renderVerticalIcon(icon);
+        const Icon = renderVerticalIcon(icon, iconColor);
 
         const subMenuPrefix: ReactNode =
           prefix && (prefix as ChipProps).label ? (
@@ -142,18 +83,19 @@ export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataT
             {...rest}
             {...(Icon && { icon: Icon })}
           >
-            {children && renderMenuItems(children)}
+            {children && renderMenuItems(children, true)}
           </VerticalSubMenu>
         );
       }
 
       // If the current item is neither a section nor a sub menu, return a MenuItem component
-      const { label, icon, prefix, suffix, ...rest } = menuItem;
+       
+      const { label, icon, iconColor, prefix, suffix, ...rest } = menuItem;
 
       // Localize the href
       const href = rest.href;
 
-      const Icon = renderVerticalIcon(icon);
+      const Icon = nested ? null : renderVerticalIcon(icon, iconColor);
 
       const menuItemPrefix: ReactNode =
         prefix && (prefix as ChipProps).label ? (

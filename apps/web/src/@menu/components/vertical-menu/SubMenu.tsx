@@ -159,6 +159,10 @@ const SubMenu: ForwardRefRenderFunction<HTMLLIElement, SubMenuProps> = (props, r
   // Hooks
   const id = useId();
   const pathname = usePathname() ?? '';
+
+  // เมนูหลักที่มีหน้าแรกของตัวเอง (href) — อยู่ที่หน้านั้นพอดีนับว่า active และกางเมนูย่อย
+  const isLandingActive =
+    !!rest.href && pathname.replace(/\/+$/, '') === String(rest.href).replace(/\/+$/, '');
   const { isCollapsed, isPopoutWhenCollapsed, isHovered, isBreakpointReached } = useVerticalNav();
   const tree = useFloatingTree();
 
@@ -252,6 +256,16 @@ const SubMenu: ForwardRefRenderFunction<HTMLLIElement, SubMenuProps> = (props, r
 
   const handleOnClick = (event: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>) => {
     onClick?.(event);
+
+    // มี href: กดลูกศร = หุบ/ขยายอย่างเดียว · กดชื่อ = ไปหน้าแรก (กางให้ถ้ายังหุบ)
+    if (rest.href) {
+      if ((event.target as HTMLElement).closest(`.${menuClasses.subMenuExpandIcon}`)) {
+        event.preventDefault();
+      } else if (isSubMenuOpen) {
+        return;
+      }
+    }
+
     handleSlideToggle();
   };
 
@@ -307,7 +321,7 @@ const SubMenu: ForwardRefRenderFunction<HTMLLIElement, SubMenuProps> = (props, r
   }, [isCollapsed, level, active]);
 
   useEffect(() => {
-    if (confirmUrlInChildren(children, pathname)) {
+    if (isLandingActive || confirmUrlInChildren(children, pathname)) {
       openSubmenusRef?.current.push({ level, label, active: true, id });
     } else {
       if (defaultOpen) {
@@ -319,7 +333,7 @@ const SubMenu: ForwardRefRenderFunction<HTMLLIElement, SubMenuProps> = (props, r
   // Change active state when the url changes
   useEffect(() => {
     // Check if the current url matches any of the children urls
-    if (confirmUrlInChildren(children, pathname)) {
+    if (isLandingActive || confirmUrlInChildren(children, pathname)) {
       setActive(true);
 
       if (openSubmenusRef?.current.findIndex((submenu) => submenu.id === id) === -1) {
@@ -404,6 +418,9 @@ const SubMenu: ForwardRefRenderFunction<HTMLLIElement, SubMenuProps> = (props, r
         onKeyUp={handleOnKeyUp}
         title={title}
         className={classnames(menuClasses.button, { [menuClasses.active]: active })}
+        // ถ้าหน้าแรกเป็นรายการย่อยด้วย (เช่น ภาพรวมคณะ › ภาพรวม) ให้รายการย่อยเป็นตัวไฮไลต์แทน
+        {...(isLandingActive &&
+          !confirmUrlInChildren(children, pathname) && { 'data-landing-active': true })}
         component={component}
         tabIndex={disabled ? -1 : 0}
         {...rest}

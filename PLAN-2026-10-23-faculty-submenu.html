@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนเมนูย่อยคณะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+nav.toc a:hover{border-color:var(--primary);color:var(--primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+td.c,th.c{text-align:center}
+.y{color:var(--ok);font-weight:700}.x{color:var(--no);font-weight:700}.p{color:var(--warn);font-weight:600}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.side{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.side h3{margin:0 0 8px;font-size:1rem}
+.sec{font-size:.75rem;letter-spacing:.04em;color:var(--muted);font-weight:700;margin:12px 0 4px;text-transform:uppercase}
+.item{padding:4px 8px;border-radius:6px;font-size:.92rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.item.new{background:var(--ok-soft)}
+.item.moved{background:var(--info-soft)}
+.item.gone{text-decoration:line-through;color:var(--muted)}
+.who{font-size:.72rem;color:var(--muted);white-space:nowrap}
+ol.steps{margin:0;padding-left:20px}
+ol.steps li{margin-bottom:10px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:.85rem}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>แผนงาน: ภาพรวมคณะ + เมนูย่อย</h1>
+<p class="sub">MSU-BEPS · จากสรุปประชุม “สับเมนูย่อย (Layer 3) ใต้ภาพรวมคณะ” + รายงานการประชุมอย่างเป็นทางการ (สิทธิ์ 5 ระดับ, เมนู 4 หมวด) + คำตอบเพิ่มเติม · ปรับปรุง 23 ต.ค. 2569 · ยังไม่ได้แก้โค้ด · ตรวจทานกับกองแผนงาน 27–28 ต.ค.</p>
+
+<nav class="toc">
+  <a href="#s1">1. ข้อสรุป</a><a href="#s2">2. เมนู</a><a href="#s3">3. หน้าภาพรวมคณะ</a><a href="#s4">4. ตารางรายหลักสูตร</a>
+  <a href="#s5">5. เมนูย่อย</a><a href="#s6">6. สิทธิ์</a><a href="#s7">7. วิธีทำ</a><a href="#s8">8. ลำดับงาน</a><a href="#s9">9. ยังต้องยืนยัน</a>
+</nav>
+
+<section class="card" id="s1">
+<h2><span class="n">1</span>ข้อสรุปที่ใช้วางแผน</h2>
+<div class="scroll"><table>
+<tr><th>เรื่อง</th><th>ข้อสรุป</th><th>ที่มา</th></tr>
+<tr><td>ภาพรวมมหาวิทยาลัย</td><td>หน้าเดียว ไม่มีเมนูย่อย (/overview เป็นอยู่แล้ว)</td><td>ประชุมเมนูย่อย ข้อ 1</td></tr>
+<tr><td>ภาพรวมคณะ</td><td>หน้า Landing กระชับ (เลื่อน 1–2 จังหวะ) + เมนูย่อย 4 หน้าสำหรับดูละเอียด</td><td>ข้อ 2, ข้อ 2.4</td></tr>
+<tr><td>เมนู</td><td>กดชื่อ “ภาพรวมคณะ” = เปิดหน้าภาพรวมคณะ · ปุ่มหุบ/ขยายอยู่ด้านขวา</td><td>คำตอบข้อ 1</td></tr>
+<tr><td>แยกระดับการศึกษา</td><td><b>ห้าม</b>นำ ตรี / โท / เอก มารวมในกราฟหรือตารางชุดเดียวกัน — ตรีเทียบตรี โทเทียบโท เอกเทียบเอก</td><td>คำตอบข้อ 2.4</td></tr>
+<tr><td>แถบสถานะติดด้านบน</td><td>บอกเสมอว่า “รวม / ไม่รวมเงินแผ่นดิน” + คณะ + ปี — ไม่หายเมื่อเลื่อนจอ</td><td>ข้อ 2.4 · รายงานประชุม 2.1</td></tr>
+<tr><td>ศัพท์</td><td>ใช้ภาษาไทยเข้าใจง่าย + ⓘ อธิบาย ไม่แสดง Q*, TFC บนจอ</td><td>รายงานประชุม 2.6</td></tr>
+</table></div>
+<div class="callout info"><b>ต่างจากแผน 22 ต.ค.:</b> การ์ด KPI เปลี่ยนชุด (ข้อ 3) · แถบ ตรี|โท|เอก เดิมเปลี่ยนเป็น <b>ตัวสลับระดับ</b> ที่คุมทั้งกราฟและตาราง · แท็บ 2.1–2.3 เลิกใช้ · ตารางอันดับรายหลักสูตรมีคอลัมน์ตามข้อ 4.1</div>
+</section>
+
+<section class="card" id="s2">
+<h2><span class="n">2</span>โครงเมนู</h2>
+<div class="cols">
+  <div class="side"><h3>ตอนนี้</h3>
+    <div class="sec">ภาพรวม</div>
+    <div class="item">ภาพรวมมหาวิทยาลัย <span class="who">/overview</span></div>
+    <div class="item">ภาพรวมคณะ <span class="who">/faculty (มีแท็บ)</span></div>
+  </div>
+  <div class="side"><h3>หลังแก้</h3>
+    <div class="sec">ภาพรวม</div>
+    <div class="item">ภาพรวมมหาวิทยาลัย <span class="who">/overview</span></div>
+    <div class="item moved">ภาพรวมคณะ <span class="who">/faculty · ▾ ด้านขวา</span></div>
+    <div class="item new">&nbsp;&nbsp;&nbsp;รายได้ <span class="who">/faculty/revenue</span></div>
+    <div class="item new">&nbsp;&nbsp;&nbsp;ต้นทุน / ค่าใช้จ่าย <span class="who">/faculty/cost</span></div>
+    <div class="item new">&nbsp;&nbsp;&nbsp;จุดคุ้มทุน <span class="who">/faculty/breakeven</span></div>
+    <div class="item new">&nbsp;&nbsp;&nbsp;การตั้งค่าคณะ <span class="who">/faculty/config</span></div>
+  </div>
+</div>
+<ul>
+  <li>กดชื่อ → ไปหน้าภาพรวมคณะ · กด ▾ ด้านขวา → หุบ/ขยายเมนูย่อยอย่างเดียว ไม่เปลี่ยนหน้า (ใช้กลไก <code>LandingGroup</code> ที่หมวดอื่นใช้อยู่)</li>
+  <li>อยู่ในหน้าย่อยใดก็ตาม → เมนูย่อยเปิดค้าง ไฮไลต์หน้าย่อยนั้นและ “ภาพรวมคณะ”</li>
+  <li>เมนู 4 หมวดตามมติ 2.6 (Dashboard · วิเคราะห์ · เจาะลึก 5 ปี · ตั้งค่า) เป็นงานแยก — แผนนี้แตะเฉพาะหมวด Dashboard</li>
+</ul>
+</section>
+
+<section class="card" id="s3">
+<h2><span class="n">3</span>หน้าภาพรวมคณะ (/faculty) — เลื่อนจอ 1–2 จังหวะ</h2>
+<div class="side" style="font-size:.9rem">
+<div class="item moved"><b>แถบติดด้านบน (sticky)</b> <span class="who">ภาพรวมคณะ — คณะวิทยาศาสตร์ · ปีงบ 2568 · [รวมเงินแผ่นดิน | ไม่รวม] · ตัวกรองคณะ (เฉพาะระดับ ม.)</span></div>
+<div class="sec">จังหวะที่ 1</div>
+<div class="item"><b>การ์ด KPI 6 ใบ</b> (ทั้งคณะ) <span class="who">รายได้รวม · ต้นทุนรวม · นิสิตปัจจุบัน · ส่วนเกิน/ขาดทุน · รายได้เฉลี่ยต่อหัว · สถานะการตั้งค่า</span></div>
+<div class="item"><b>ตัวสลับระดับ</b> [ปริญญาตรี (n) | ปริญญาโท (n) | ปริญญาเอก (n)] <span class="who">คุมทุกอย่างด้านล่าง · ซ่อนระดับที่ไม่มีหลักสูตร</span></div>
+<div class="item"><b>กราฟ 2×2</b> (ระดับที่เลือก) <span class="who">โครงสร้างต้นทุน · โครงสร้างรายได้ · เป้าหมาย vs นิสิตจริง · จุดตัดคุ้มทุน</span></div>
+<div class="sec">จังหวะที่ 2</div>
+<div class="item"><b>ตารางจัดอันดับหลักสูตร</b> (ระดับที่เลือก) <span class="who">ตามข้อ 4 · แบ่งหน้า 10 แถว · ปุ่ม “ดูละเอียด →” ไปเมนูย่อย</span></div>
+</div>
+
+<h3>การ์ด KPI (ข้อ 2.1)</h3>
+<div class="scroll"><table>
+<tr><th>การ์ด</th><th>ค่า</th><th>บรรทัดล่าง / กดแล้วไปไหน</th></tr>
+<tr><td>รายได้รวม</td><td>ลบ.</td><td>แผ่นดิน x% · รายได้ y% → /faculty/revenue</td></tr>
+<tr><td>ต้นทุนรวม</td><td>ลบ.</td><td>คงที่ x% · ผันแปร y% → /faculty/cost</td></tr>
+<tr><td>นิสิตปัจจุบัน</td><td>คน</td><td>ตรี / โท / เอก แยกจำนวน · n หลักสูตร</td></tr>
+<tr><td>ส่วนเกิน / ขาดทุน</td><td>± ลบ. (เขียว/แดง)</td><td>% ของรายได้ · เปลี่ยนตามโหมดรวม/ไม่รวมเงินแผ่นดิน → /faculty/breakeven</td></tr>
+<tr><td>รายได้เฉลี่ยต่อหัว</td><td>บาท/คน</td><td>เทียบต้นทุนต่อหัว</td></tr>
+<tr><td>สถานะการตั้งค่า</td><td>“หารรายหัว” / “หารเท่ากันทุกหลักสูตร” / “กำหนด %”</td><td>ป้าย ล็อกแล้ว / ยังไม่ล็อก · <b>ปีการศึกษา</b> · → /faculty/config</td></tr>
+</table></div>
+<p class="sub">ตัวเลขการ์ด 1–5 เป็นผลรวมทั้งคณะ (ทุกระดับ) — ไม่ใช่กราฟเปรียบเทียบ จึงไม่ขัดกฎแยกระดับ · ตัวสลับระดับมีผลเฉพาะกราฟและตาราง</p>
+
+<h3>กราฟ 4 ตัว (ข้อ 2.2) — ทุกตัวแสดงเฉพาะระดับที่เลือก</h3>
+<div class="scroll"><table>
+<tr><th>กราฟ</th><th>รูปแบบ</th><th>มีอยู่แล้ว?</th></tr>
+<tr><td>โครงสร้างต้นทุน</td><td>โดนัท คงที่ | ผันแปร ของระดับนั้น + แท่งซ้อนรายหลักสูตร · เตือนเมื่อคงที่ &gt; 50%</td><td>มี (<code>CostDonut</code>, <code>StackedProgramBar</code>) — ต้องตัดการรวมระดับออก</td></tr>
+<tr><td>โครงสร้างรายได้</td><td>แท่งซ้อนรายหลักสูตร เงินแผ่นดิน | เงินรายได้ (100% หรือ ลบ. — สลับได้)</td><td>มี — ปรับเหมือนข้างบน</td></tr>
+<tr><td>เป้าหมาย vs นิสิตจริง</td><td>แถบแนวนอนรายหลักสูตร: แท่ง = นิสิตจริง · เส้นขีด 2 เส้น = จุดคุ้มทุน รวมเงินแผ่นดิน / ไม่รวม · ป้าย “ถึงแล้ว / ขาดอีก N คน / เกิน N คน”</td><td><b>ใหม่</b> (ข้อมูลมีแล้วจาก <code>sheetQStar</code>)</td></tr>
+<tr><td>จุดตัดคุ้มทุน</td><td>เส้นรายได้รวม × ต้นทุนรวม ของระดับนั้น + จุดนิสิตปัจจุบัน</td><td>มี (<code>BreakEvenLineChart</code>)</td></tr>
+</table></div>
+<p class="sub">ขนาดกราฟต้องเตี้ยลง (~240px) ให้ 2×2 อยู่ในหนึ่งจอที่ 1440×900 · หลักสูตรเกิน ~12 ในระดับเดียว → แสดง 12 อันดับแรก + “ดูทั้งหมด” ไปเมนูย่อย · มือถือเรียงเป็นแถวเดียว</p>
+</section>
+
+<section class="card" id="s4">
+<h2><span class="n">4</span>ตารางจัดอันดับหลักสูตร (ข้อ 2.3 + 4.1)</h2>
+<div class="scroll"><table>
+<tr><th>คอลัมน์</th><th>แสดง</th><th>ข้อมูลมีไหม</th></tr>
+<tr><td>อันดับ · รหัส + ชื่อหลักสูตร</td><td>เรียงในระดับเดียวกัน จากส่วนเกินมากสุด (ดีที่สุด) → ขาดทุนมากสุด (จุดตาย) · 3 อันดับแรก/ท้ายมีป้าย</td><td><span class="tag t-warn">รหัสยังไม่มีจริง</span> ตอนนี้ระบบสร้างรหัสชั่วคราว</td></tr>
+<tr><td>จำนวนนิสิต</td><td>ปัจจุบัน / เป้าหมายตามแผน</td><td><span class="tag t-warn">ยังไม่มีเป้าตามแผน</span> ดูข้อ 9-①</td></tr>
+<tr><td>รายได้รวม</td><td>ยอดรวม + บรรทัดเล็ก แผ่นดิน · รายได้</td><td><span class="tag t-ok">มี</span> <code>st / own</code></td></tr>
+<tr><td>ต้นทุนรวม</td><td>ยอดรวม + บรรทัดเล็ก คงที่ · ผันแปร</td><td><span class="tag t-ok">มี</span> <code>TFC / TVC</code></td></tr>
+<tr><td>จุดคุ้มทุน</td><td>2 ช่อง: รวมเงินแผ่นดิน | ไม่รวมเงินแผ่นดิน (คน)</td><td><span class="tag t-ok">มี</span></td></tr>
+<tr><td>สถานะ</td><td>± ส่วนเกิน/ขาดทุน + ป้าย คุ้ม (เขียว) / ไม่คุ้ม (แดง) ตามโหมดที่เลือก</td><td><span class="tag t-ok">มี</span></td></tr>
+</table></div>
+<p class="sub">กดแถว → ป็อปอัปรายละเอียดหลักสูตร (ของเดิม) · มือถือเปลี่ยนเป็นการ์ด · ตาราง “ก่อน | หลังปรับ” (ข้อ 4.3) อยู่ที่หน้าย่อยจุดคุ้มทุน ไม่ใช่หน้านี้</p>
+</section>
+
+<section class="card" id="s5">
+<h2><span class="n">5</span>เมนูย่อย — ดูละเอียดกว่าหน้าภาพรวม</h2>
+<p class="sub">ทุกหน้ามีแถบติดด้านบนและตัวสลับระดับชุดเดียวกับหน้าภาพรวม · ค่าที่เลือกไม่หายเมื่อสลับหน้า</p>
+<div class="scroll"><table>
+<tr><th>หน้า</th><th>เนื้อหา</th></tr>
+<tr><td><b>รายได้</b></td><td>กราฟรายได้รายหลักสูตรแบบเต็ม (ทุกหลักสูตรในระดับ) · ตาราง: นิสิต · เงินแผ่นดิน · เงินรายได้ · รวม · รายได้/หัว · สัดส่วนในคณะ · แถวรวมของระดับ</td></tr>
+<tr><td><b>ต้นทุน / ค่าใช้จ่าย</b></td><td>กราฟคงที่ | ผันแปรแบบเต็ม · ตาราง: คงที่ทางตรง · คงที่ส่วนกลางที่ปันมา · ค่าเสื่อม · ผันแปร · ต้นทุน/หัว (มีข้อมูลแล้วใน <code>tfcProg / tfcOffice / dep</code>)</td></tr>
+<tr><td><b>จุดคุ้มทุน</b></td><td>กราฟเป้าหมาย vs นิสิตจริงแบบเต็ม · สลับมุมมอง: ตารางอันดับ <b>ก่อน | หลังปรับ</b> (4 คอลัมน์ตามข้อ 4.3: นิสิต · รายได้ · ต้นทุน · สถานะ — ค่าที่เปลี่ยนเน้นสี) · ตารางสี · กราฟกระจาย — แสดงทีละมุมมอง</td></tr>
+<tr><td><b>การตั้งค่าคณะ</b></td><td>อ่านอย่างเดียว: วิธีปันส่วนที่คณะล็อกในปีนั้น · ล็อกเมื่อไร · ถ้า “กำหนด %” แสดงตาราง % รายระดับ/หลักสูตร · บอกชัดว่าตัวเลขบนหน้า Dashboard ยังเป็นข้อมูลจริงตามชีต (หารรายหัว) · ปุ่ม “แก้ไข” เฉพาะผู้มีสิทธิ์ตั้งค่า (ข้อ 6)</td></tr>
+</table></div>
+</section>
+
+<section class="card" id="s6">
+<h2><span class="n">6</span>สิทธิ์ (ตารางสิทธิ์ในรายงานการประชุม 2.2)</h2>
+<div class="scroll"><table>
+<tr><th>บทบาท</th><th class="c">ภาพรวมคณะ + 3 หน้าย่อย</th><th class="c">การตั้งค่าคณะ (ดู)</th><th class="c">ปุ่มแก้ไขการตั้งค่า</th><th>หน้าแรกหลังล็อกอิน</th></tr>
+<tr><td>ผู้บริหารมหาวิทยาลัย</td><td class="c y">ทุกคณะ (ตัวกรอง)</td><td class="c y">✓</td><td class="c x">✗</td><td>/overview</td></tr>
+<tr><td>เจ้าหน้าที่มหาวิทยาลัย</td><td class="c y">ทุกคณะ (ตัวกรอง)</td><td class="c y">✓</td><td class="c y">✓ ทุกคณะ</td><td>/overview</td></tr>
+<tr><td>ผู้บริหารคณะ</td><td class="c p">คณะตน</td><td class="c y">✓</td><td class="c x">✗</td><td>/faculty (คณะตน)</td></tr>
+<tr><td>เจ้าหน้าที่ระดับคณะ</td><td class="c p">คณะตน</td><td class="c y">✓</td><td class="c y">✓ คณะตน</td><td>/faculty (คณะตน)</td></tr>
+<tr><td>อาจารย์ผู้รับผิดชอบหลักสูตร</td><td class="c p">คณะตน</td><td class="c y">✓</td><td class="c x">✗ (ตั้งค่าได้เฉพาะหลักสูตรตน — ไม่ใช่วิธีปันส่วนของคณะ)</td><td>/faculty (คณะตน)</td></tr>
+</table></div>
+<ul>
+  <li>ระดับคณะ/อาจารย์: ตัวกรองคณะไม่แสดง (หรือแสดงแบบล็อก) — มติ “ไม่ต้องให้เลือกคณะซ้ำ” · คณะมาจากสังกัดของผู้ใช้</li>
+  <li>หน้าดูการตั้งค่า = ส่วนหนึ่งของ Dashboard จึงเปิดให้ทุกบทบาทดู ส่วน “เมนูตั้งค่า” (/admin) ยังปิดสำหรับผู้บริหารตามตาราง</li>
+  <li>ตอนนี้ระบบยังเป็นตัวสลับบทบาทแบบเดโม — สังกัดจริงต้องมาจากระบบล็อกอิน/ฐานข้อมูล (มติ 2.2 ให้ติดตั้งใน Authorization Service) — <b>นอกขอบเขตแผนนี้</b></li>
+</ul>
+</section>
+
+<section class="card" id="s7">
+<h2><span class="n">7</span>วิธีทำ (ฝั่งโค้ด)</h2>
+<ol class="steps">
+  <li><b>เมนู</b> — <code>verticalMenuData.tsx</code>: “ภาพรวมคณะ” มี <code>href</code> + <code>children</code> · <code>GenerateMenu.tsx</code>: เรนเดอร์ด้วย <code>LandingGroup</code> (ลิงก์ + ▾ ด้านขวา) เปิดค้างเมื่ออยู่ใต้ <code>/faculty/</code></li>
+  <li><b>Layout + Context</b> — <code>app/(private)/faculty/layout.tsx</code> ถือ คณะ · ปี · โหมดเงินแผ่นดิน · ระดับ และคำนวณชุดข้อมูลครั้งเดียว · เก็บใน URL (<code>?fac=&amp;lvl=&amp;year=&amp;mode=</code>) · แถบติดด้านบน <code>FacultyStatusBar</code> ใช้ทุกหน้า</li>
+  <li><b>แตกไฟล์</b> <code>FacultyOverview.tsx</code> (1,114 บรรทัด) → <code>views/faculty/</code>: หน้า 5 หน้า + ชิ้นร่วม (<code>LevelSwitch</code>, <code>ProgramRankTable</code>, <code>TargetVsActualChart</code> ใหม่, ของเดิมที่ย้ายมา) · ไม่แตะสูตร · สีใช้โทเคน <code>BEPS</code></li>
+  <li><b>แยกระดับ</b> — ทุกกราฟ/ตารางรับรายการหลักสูตรที่กรองระดับแล้วเท่านั้น (ไม่มีตัวเลือก “ทุกระดับ” ในกราฟ)</li>
+  <li><b>ทดสอบ</b> — Playwright 5 บทบาท: เมนูหุบ/ขยาย · แถบสถานะติดบนเมื่อเลื่อน · ค่าที่เลือกค้างข้ามหน้า · ระดับคณะเปลี่ยนคณะไม่ได้ · ผู้บริหารไม่เห็นปุ่มแก้ไข · วัดความสูงหน้าภาพรวม ≤ 2 จอที่ 1440×900 · ตัวเลขตรงกับหน้าเดิม · เก็บภาพทำคู่มือ</li>
+</ol>
+</section>
+
+<section class="card" id="s8">
+<h2><span class="n">8</span>ลำดับงาน (ให้ทันตรวจทาน 27–28 ต.ค.)</h2>
+<div class="scroll"><table>
+<tr><th>รอบ</th><th>งาน</th><th>ขนาด</th></tr>
+<tr><td class="c">A</td><td>Layout + Context + แถบติดบน · แตกไฟล์ · เมนู ▾</td><td>กลาง</td></tr>
+<tr><td class="c">B</td><td>หน้าภาพรวมคณะใหม่: KPI 6 ใบ · ตัวสลับระดับ · กราฟ 2×2 (รวมกราฟเป้าหมาย vs นิสิตจริงตัวใหม่) · ตารางจัดอันดับ</td><td>กลาง–ใหญ่</td></tr>
+<tr><td class="c">C</td><td>หน้าย่อย รายได้ · ต้นทุน · จุดคุ้มทุน (ย้ายของเดิม + ตารางละเอียด)</td><td>กลาง</td></tr>
+<tr><td class="c">D</td><td>หน้าการตั้งค่าคณะ + ปุ่มแก้ไขตามสิทธิ์</td><td>เล็ก</td></tr>
+<tr><td class="c">E</td><td>ทดสอบ 5 บทบาท (agent แยกตรวจ) + ภาพหน้าจอ</td><td>เล็ก</td></tr>
+</table></div>
+<p class="sub">ข้อ 4.2 (ตารางแผนรับ ไทย/ต่างชาติ × ปกติ/พิเศษ + เทียบเข้า) และข้อ 4.3 ในหน้าวิเคราะห์หลักสูตร เป็นงานของหมวด “วิเคราะห์จุดคุ้มทุน” — ทำแผนแยก</p>
+</section>
+
+<section class="card" id="s9">
+<h2><span class="n">9</span>ยังต้องยืนยัน</h2>
+<div class="q"><b>① “เป้าหมายตามแผน” ในคอลัมน์จำนวนนิสิต ใช้ตัวเลขไหน?</b>ข้อมูลชีตตอนนี้ไม่มีเป้าแผนรับแยก (จำนวนรับตามแผน + นอกแผน = นิสิตจริงเสมอ) เคยตกลงไว้ 22 ต.ค. ว่าใช้ “จุดคุ้มทุน” เป็นเป้า<div class="rec">เสนอ: ตอนนี้ใส่ “—” พร้อม ⓘ “รอข้อมูลแผนรับจากกองแผน/ทะเบียน” และให้คอลัมน์จุดคุ้มทุนทำหน้าที่เป้าไปก่อน — ถามกองแผนในวันตรวจทานว่าแหล่งแผนรับคือไฟล์ไหน</div></div>
+<div class="q"><b>② รหัสหลักสูตร</b>ข้อมูลยังไม่มีรหัสจริง<div class="rec">เสนอ: แสดงชื่อหลักสูตร + ชื่อปริญญาไปก่อน ซ่อนช่องรหัสจนกว่าจะได้รหัสจากทะเบียน</div></div>
+<div class="q"><b>③ เรียง “ผลการดำเนินงาน” ด้วยอะไร?</b>(ก) ส่วนเกิน/ขาดทุน เป็นบาท · (ข) ส่วนเกินต่อรายได้ (%) — หลักสูตรเล็กไม่เสียเปรียบ<div class="rec">เสนอ: (ก) เป็นค่าเริ่มต้น กดหัวคอลัมน์เรียงอย่างอื่นได้</div></div>
+<div class="q"><b>④ หน้าแรกหลังล็อกอินของผู้บริหารคณะ/เจ้าหน้าที่คณะ/อาจารย์</b>เป็น /faculty (คณะตน) หรือ /overview?<div class="rec">เสนอ: /faculty คณะตน — ตรงกับมติ “แสดงหน้าจอเริ่มต้นตามสิทธิ์และสังกัด” (ทุกบทบาทยังเปิด /overview ได้)</div></div>
+</section>
+
+<p class="sub">นอกขอบเขต: เมนู 4 หมวดทั้งระบบ · เจาะลึกย้อนหลัง 5 ปี · Reg/Accounting API · ระบบสิทธิ์จริงในฐานข้อมูล · พิมพ์รายงานคณะ · อ้างอิง: <a href="PLAN-2026-10-22-faculty-overview.html">แผนภาพรวมคณะ 22 ต.ค.</a> · <a href="PLAN-2026-10-22-menu-roles.html">แผนเมนู/สิทธิ์</a></p>
+</div>
+</body>
+</html>

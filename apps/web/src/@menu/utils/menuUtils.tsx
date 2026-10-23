@@ -70,7 +70,8 @@ export const confirmUrlInChildren = (children: ChildrenType['children'], url: st
 
       return exactMatch === true || exactMatch === undefined
         ? normalizedHref === normalizedUrl
-        : activeUrl !== undefined && normalizedUrl.includes(normalizeUrl(activeUrl));
+        : activeUrl !== undefined && (normalizedUrl === normalizeUrl(activeUrl) ||
+            normalizedUrl.startsWith(`${normalizeUrl(activeUrl)}/`));
     }
 
     if (href) {
@@ -79,7 +80,8 @@ export const confirmUrlInChildren = (children: ChildrenType['children'], url: st
 
       return exactMatch === true || exactMatch === undefined
         ? normalizedHref === normalizedUrl
-        : activeUrl !== undefined && normalizedUrl.includes(normalizeUrl(activeUrl));
+        : activeUrl !== undefined && (normalizedUrl === normalizeUrl(activeUrl) ||
+            normalizedUrl.startsWith(`${normalizeUrl(activeUrl)}/`));
     }
 
     if (subChildren) {

@@ -28,6 +28,8 @@ import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -39,6 +41,8 @@ import StepperCustomDot from '@components/stepper-dot';
 
 import { RAW } from '@/data/mockup';
 
+import TuitionHistoryPanel from './TuitionHistoryPanel';
+import { HISTORY_YEARS, LAST_YEAR } from './historyData';
 import { FEES, FEE_STATUS, STATUS_META, feeVariant, feesForProgram, fmtFee } from './feeData';
 
 const fmtBaht = (v: number) => v.toLocaleString('th-TH');
@@ -50,7 +54,7 @@ type LevelFilter = 'all' | (typeof LEVELS)[number];
 /** หลักสูตรในทะเบียน (แท็บจุดคุ้มทุน) ที่หาอัตราในแท็บค่าธรรมเนียมไม่เจอ — ชื่อสะกดต่างกัน */
 const UNMATCHED = RAW.PROGS.filter((p) => feesForProgram(p.fac, p.deg).length === 0);
 
-const TuitionView = () => {
+const FeeRatesPanel = () => {
   const [level, setLevel] = useState<LevelFilter>('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
@@ -437,6 +441,34 @@ const TuitionView = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
     </Grid>
+  );
+};
+
+type TuitionTab = 'rates' | 'history';
+
+const TuitionView = () => {
+  const [tab, setTab] = useState<TuitionTab>('rates');
+
+  return (
+    <>
+      <Tabs
+        value={tab}
+        onChange={(_, v: TuitionTab) => setTab(v)}
+        variant="scrollable"
+        allowScrollButtonsMobile
+        sx={{ mb: 6 }}
+      >
+        <Tab value="rates" label="อัตราค่าธรรมเนียม ปีงบ 2568" />
+        <Tab value="history" label={`ค่าเทอมย้อนหลัง ${HISTORY_YEARS[0]}–${LAST_YEAR} (ทะเบียน)`} />
+      </Tabs>
+      {/* ซ่อนแทนการถอดออก — ตัวกรอง/หน้าที่เลือกในแต่ละแท็บไม่หายเมื่อสลับแท็บ */}
+      <div hidden={tab !== 'rates'}>
+        <FeeRatesPanel />
+      </div>
+      <div hidden={tab !== 'history'}>
+        <TuitionHistoryPanel />
+      </div>
+    </>
   );
 };
 

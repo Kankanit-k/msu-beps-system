@@ -30,18 +30,14 @@ import type { ApexOptions } from 'apexcharts';
 import type { ReactNode } from 'react';
 
 // Component Imports
-import {
-  BarTitle,
-  BEPS,
-  FIN_COLORS,
-  KPI_BAR_TRACK,
-  KPI_COLORS as KPI,
-  kpiBarLabels,
-  LegendItem,
-} from '@components/ChartBits';
+import { BarTitle, BEPS, KPI_BAR_TRACK, kpiBarLabels, LegendItem } from '@components/ChartBits';
 import FacultyFilter from '@components/FacultyFilter';
 import KpiTile from '@components/KpiTile';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
+import { isUniversityLevel } from '@/configs/accessControl';
+import { useRole } from '@/hooks/useRole';
+import FacultyRankDialog from './FacultyRankDialog';
+import type { RankKind } from './FacultyRankDialog';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
@@ -80,15 +76,19 @@ const PAL = [
 
 /** สีองค์ประกอบต้นทุนในการ์ด ④ (ตามลำดับ composeCost) */
 const PART_COLORS = [
-  KPI.blue,
-  KPI.cyan,
-  KPI.purple,
-  KPI.green,
-  KPI.orange,
-  KPI.amber,
-  KPI.red,
-  KPI.grey,
+  'var(--mui-palette-primary-main)',
+  BEPS.breakEven,
+  BEPS.revenue.dark,
+  BEPS.cost.dark,
+  BEPS.profit,
+  'var(--mui-palette-warning-main)',
+  BEPS.compare.light,
+  BEPS.revenue.light,
 ];
+
+/** สีการ์ด ⑤⑥ — ส่วนเกิน = teal (การ์ดจุดคุ้มทุน) · ขาดทุน = ชมพู (ต้นทุน) */
+const GAIN = BEPS.breakEven;
+const LOSS = BEPS.cost.dark;
 
 /** ชื่อย่อองค์ประกอบต้นทุนสำหรับการ์ด ④ (ชื่อเต็มอยู่ใน costParts — แสดงตอนชี้) */
 const PART_SHORT: Record<string, string> = {
@@ -101,8 +101,6 @@ const PART_SHORT: Record<string, string> = {
   matchMain: 'สมทบรายการหลัก',
   matchUni: 'สมทบมหาวิทยาลัย',
 };
-
-const C = FIN_COLORS;
 
 /** สีกราฟ ① ตามกราฟ "Data Science" ของ Materio — ม่วงเข้ม/ม่วงอ่อน (รางเทาอ่อนเหมือนกราฟอื่น) */
 const C1 = { own: BEPS.revenue.dark, st: BEPS.revenue.light };
@@ -253,6 +251,9 @@ const barOptions = (
 
 const UniversityDashboard = () => {
   const [mode, setMode] = useState<RevenueMode>('with_government');
+  // ป็อปอัป "ดูทั้งหมด" — gain = การ์ด ⑤ · loss = การ์ด ⑥ · null = ปิด
+  const [rankTab, setRankTab] = useState<RankKind | null>(null);
+  const { role } = useRole();
   const [level, setLevel] = useState('all');
   const [pickedFacs, setPickedFacs] = useState<string[]>([]);
   const [year, setYear] = useState(MOCK_RUN.budgetYear);
@@ -370,7 +371,7 @@ const UniversityDashboard = () => {
     tc: number,
     centerLabel = 'ต้นทุนรวม (ลบ.)',
     labels = ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
-    colors = [C.fixed, C.variable],
+    colors = [C2.fixed, C2.variable],
   ): ApexOptions => ({
     chart: { type: 'donut' },
     labels,
@@ -459,12 +460,9 @@ const UniversityDashboard = () => {
         onModeChange={setMode}
         q={tot.Q}
         profit={totTr - totTc}
-      />
-
-      {/* ตัวกรอง — ระดับการศึกษา + คณะ (เฉพาะระดับมหาวิทยาลัย) */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ py: '10px !important' }}>
-          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+        // ตัวกรอง — ระดับการศึกษา + คณะ + ปีงบ อยู่ในแถบหัวที่ติดจอ (แบบภาพรวมคณะ)
+        extra={
+          <>
             <Autocomplete
               size="small"
               disableClearable
@@ -473,7 +471,7 @@ const UniversityDashboard = () => {
               isOptionEqualToValue={(a, b) => a.key === b.key}
               value={levelOpt}
               onChange={(_, v) => setLevel(v.key)}
-              sx={{ width: 180 }}
+              sx={{ width: 150 }}
               renderInput={(params) => <TextField {...params} label="ระดับการศึกษา" />}
             />
             {/* ทุกบทบาทกรองคณะได้ — หน้านี้แสดงข้อมูลทั้งมหาวิทยาลัยให้ทุกบทบาทอยู่แล้ว */}
@@ -481,7 +479,7 @@ const UniversityDashboard = () => {
               options={FAC_NAMES}
               value={pickedFacs}
               onChange={setPickedFacs}
-              minWidth={260}
+              minWidth={200}
             />
             {/* ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล */}
             <Autocomplete
@@ -492,16 +490,9 @@ const UniversityDashboard = () => {
               getOptionLabel={(y) => (y === MOCK_RUN.budgetYear ? y : `${y} (ยังไม่มีข้อมูล)`)}
               value={year}
               onChange={(_, v) => setYear(v)}
-              sx={{ width: 150 }}
+              sx={{ width: 130 }}
               renderInput={(params) => <TextField {...params} label="ปีงบประมาณ" />}
             />
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ marginInlineStart: 'auto', whiteSpace: 'nowrap' }}
-            >
-              {rows.length} คณะ · หน่วยเงิน: ล้านบาท (ลบ.)
-            </Typography>
             {(level !== 'all' || pickedFacs.length > 0) && (
               <Button
                 size="small"
@@ -515,9 +506,12 @@ const UniversityDashboard = () => {
                 ล้างตัวกรอง
               </Button>
             )}
-          </Stack>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
+      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: -2, mb: 2 }}>
+        {rows.length} คณะ · หน่วยเงิน: ล้านบาท (ลบ.)
+      </Typography>
 
       {/* การ์ดตัวเลข 6 ใบ (แบบ MSU-KPI) — ตามตัวกรองและฐานรายได้ที่เลือก */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -535,7 +529,7 @@ const UniversityDashboard = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <KpiTile
-            label="นิสิต ณ จุดคุ้มทุน (Q*)"
+            label="นิสิต ณ จุดคุ้มทุน"
             value={fmtInt(qStar)}
             suffix="คน"
             accent="primary"
@@ -553,7 +547,7 @@ const UniversityDashboard = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <KpiTile
-            label="รายได้รวม (TR)"
+            label="รายได้รวม"
             value={fmtMillion(totTr)}
             suffix="ลบ."
             accent="info"
@@ -566,7 +560,7 @@ const UniversityDashboard = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <KpiTile
-            label="ต้นทุนรวม (TC)"
+            label="ต้นทุนรวม"
             value={fmtMillion(totTc)}
             suffix="ลบ."
             accent="secondary"
@@ -579,7 +573,7 @@ const UniversityDashboard = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <KpiTile
-            label="ส่วนเกิน/ขาดทุน (π)"
+            label="ส่วนเกิน/ขาดทุน"
             value={fmtSigned(profit)}
             suffix="ลบ."
             accent={profit >= 0 ? 'success' : 'error'}
@@ -593,7 +587,7 @@ const UniversityDashboard = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <KpiTile
-            label="รายได้ต่อหัว (R)"
+            label="รายได้ต่อหัว"
             value={fmtInt(rHead)}
             suffix="บาท"
             accent="warning"
@@ -801,10 +795,10 @@ const UniversityDashboard = () => {
                     />
                   </Box>
                   <Stack spacing={2} sx={{ flex: 1 }}>
-                    <CostLine label="ต้นทุนคงที่" color={C.fixed} value={tot.tfc} total={totTc} />
+                    <CostLine label="ต้นทุนคงที่" color={C2.fixed} value={tot.tfc} total={totTc} />
                     <CostLine
                       label="ต้นทุนผันแปร"
-                      color={C.variable}
+                      color={C2.variable}
                       value={tot.tvc}
                       total={totTc}
                     />
@@ -817,24 +811,39 @@ const UniversityDashboard = () => {
         <Grid size={{ xs: 12, md: 4 }}>
           <RankCard
             title="⑤ คณะที่มีส่วนเกินสูงสุด"
-            color="success"
+            color={GAIN}
             chip={`ฐาน${modeLabel}`}
             rows={top}
             mode={mode}
             emptyText="ไม่มีคณะที่มีส่วนเกินในฐานนี้"
+            onViewAll={() => setRankTab('gain')}
+            viewAllLabel={`ดูทุก${compare ? 'รายการ' : 'คณะ'} (${units.length})`}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           <RankCard
             title="⑥ คณะที่ต้องเฝ้าระวัง (ขาดทุน)"
-            color="error"
+            color={LOSS}
             chip={`ขาดทุน ${nLoss} ${compare ? 'รายการ' : 'คณะ'}`}
             rows={loss}
             mode={mode}
             emptyText="ไม่มีคณะที่ขาดทุนในฐานนี้"
+            onViewAll={() => setRankTab('loss')}
+            viewAllLabel={`ดูทุก${compare ? 'รายการ' : 'คณะ'} (${units.length})`}
           />
         </Grid>
       </Grid>
+
+      <FacultyRankDialog
+        open={rankTab !== null}
+        kind={rankTab ?? 'gain'}
+        rows={units}
+        mode={mode}
+        unitWord={compare ? 'รายการ' : 'คณะ'}
+        // เปิดหน้าภาพรวมคณะได้เฉพาะระดับมหาวิทยาลัย (ระดับคณะถูกล็อกที่คณะตนอยู่แล้ว)
+        canOpenFaculty={isUniversityLevel(role) && !compare}
+        onClose={() => setRankTab(null)}
+      />
 
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
         ระดับ: {levelOpt.label} · การ์ด ⑤⑥ จัดอันดับตามฐานรายได้ที่เลือกบนหัวหน้า ({modeLabel}) ·
@@ -924,13 +933,17 @@ const RankCard = ({
   rows,
   mode,
   emptyText,
+  onViewAll,
+  viewAllLabel,
 }: {
   title: string;
-  color: 'success' | 'error';
+  color: string;
   chip: string;
   rows: FacSum[];
   mode: RevenueMode;
   emptyText: string;
+  onViewAll: () => void;
+  viewAllLabel: string;
 }) => {
   const other: RevenueMode = mode === 'with_government' ? 'without_government' : 'with_government';
 
@@ -939,7 +952,13 @@ const RankCard = ({
       <CardHeader
         sx={{ pb: 1 }}
         title={<BarTitle>{title}</BarTitle>}
-        action={<Chip size="small" color={color} variant="tonal" label={chip} />}
+        action={
+          <Chip
+            size="small"
+            label={chip}
+            sx={{ color, bgcolor: `color-mix(in srgb, ${color} 16%, transparent)` }}
+          />
+        }
       />
       <CardContent sx={{ pt: 0, pb: '12px !important' }}>
         <Table
@@ -983,17 +1002,13 @@ const RankCard = ({
                 >
                   {f.label}
                 </TableCell>
-                <TableCell
-                  align="right"
-                  className="num"
-                  sx={{ fontWeight: 700, color: `${color}.main` }}
-                >
+                <TableCell align="right" className="num" sx={{ fontWeight: 700, color }}>
                   {fmtSigned(profitOf(f, mode))}
                 </TableCell>
                 <TableCell
                   align="right"
                   className="num"
-                  sx={{ color: profitOf(f, other) >= 0 ? 'success.main' : 'error.main' }}
+                  sx={{ color: profitOf(f, other) >= 0 ? GAIN : LOSS }}
                 >
                   {fmtSigned(profitOf(f, other))}
                 </TableCell>
@@ -1001,6 +1016,33 @@ const RankCard = ({
             ))}
           </TableBody>
         </Table>
+        {rows.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1.5 }}>
+            {/* ปุ่มทึบสีการ์ด ไอคอนนำหน้า แบบปุ่ม Dashboard-KPI */}
+            <Button
+              size="small"
+              variant="contained"
+              onClick={onViewAll}
+              startIcon={<i className="ri-table-line" />}
+              fullWidth
+              sx={{
+                height: 45,
+                borderRadius: '6px',
+                bgcolor: color,
+                color: '#fff',
+                fontWeight: 600,
+                // เงาสีเดียวกับปุ่ม ~25%
+                boxShadow: `0 4px 12px color-mix(in srgb, ${color} 25%, transparent)`,
+                '&:hover': {
+                  bgcolor: `color-mix(in srgb, ${color} 85%, black)`,
+                  boxShadow: `0 6px 16px color-mix(in srgb, ${color} 25%, transparent)`,
+                },
+              }}
+            >
+              {viewAllLabel}
+            </Button>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
