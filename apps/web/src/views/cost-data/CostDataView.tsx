@@ -21,9 +21,13 @@ import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Snackbar from '@mui/material/Snackbar';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 
 // Data Imports
 import { RAW } from '@/data/mockup';
+
+import DepreciationPanel from './DepreciationPanel';
 
 /** สถานะแหล่งข้อมูลต้นทาง — ตาราง source_dataset (W9) */
 type SourceState = 'OK' | 'PARTIAL' | 'MISSING';
@@ -200,7 +204,7 @@ const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtM = (v: number) =>
   (v / 1_000_000).toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-const CostDataView = () => {
+const SourcesPanel = () => {
   const [toast, setToast] = useState<string | null>(null);
 
   const nOk = SOURCES.filter((s) => s.state === 'OK').length;
@@ -541,6 +545,34 @@ const CostDataView = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
     </Grid>
+  );
+};
+
+type CostDataTab = 'sources' | 'depreciation';
+
+const CostDataView = () => {
+  const [tab, setTab] = useState<CostDataTab>('sources');
+
+  return (
+    <>
+      <Tabs
+        value={tab}
+        onChange={(_, v: CostDataTab) => setTab(v)}
+        variant="scrollable"
+        allowScrollButtonsMobile
+        sx={{ mb: 6 }}
+      >
+        <Tab value="sources" label="แหล่งข้อมูลต้นทาง" />
+        <Tab value="depreciation" label="ค่าเสื่อมราคา 2567–2568 (กองคลัง)" />
+      </Tabs>
+      {/* ซ่อนแทนการถอดออก — ตัวกรอง/หน้าที่เลือกไม่หายเมื่อสลับแท็บ */}
+      <div hidden={tab !== 'sources'}>
+        <SourcesPanel />
+      </div>
+      <div hidden={tab !== 'depreciation'}>
+        <DepreciationPanel />
+      </div>
+    </>
   );
 };
 
