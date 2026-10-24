@@ -65,6 +65,10 @@ interface Props {
   hasRef: boolean;
   /** วิธีที่คณะล็อกไว้ — หน้านี้ดูได้อย่างเดียว แก้ที่หน้าตั้งค่าวิธีปันส่วน (ผู้ดูแลคณะ) */
   lock: FacultyLock;
+  /** ทางเลือกที่ใช้คำนวณจริง — เปิดหลักสูตรใหม่แบบกำหนด % รายหลักสูตร ต่างจากที่ล็อก (ไม่ส่ง = lock.choice) */
+  choice?: AllocChoice;
+  /** คำอธิบายกติกาที่ใช้กับหลักสูตรใหม่ */
+  newRule?: string | null;
   pool: number;
   /** หลักสูตรเดิมของคณะ (ใช้คำนวณ Q* ของหลักสูตรอื่นแบบชีต) */
   rows: { id: string; p: ProgRow }[];
@@ -371,6 +375,8 @@ const FixedCostAllocationCard = ({
   isNew,
   hasRef,
   lock,
+  choice: choiceProp,
+  newRule,
   pool,
   rows,
   outcome,
@@ -385,7 +391,7 @@ const FixedCostAllocationCard = ({
   const [open, setOpen] = useState(!collapsible);
   const [page, setPage] = useState(0);
 
-  const choice: AllocChoice = lock.choice;
+  const choice: AllocChoice = choiceProp ?? lock.choice;
   const target = outcome?.shares.find((s) => s.id === targetId) ?? null;
   const errors = outcome?.issues.filter((i) => i.severity === 'error') ?? [];
   const warnings = outcome?.issues.filter((i) => i.severity === 'warning') ?? [];
@@ -449,7 +455,7 @@ const FixedCostAllocationCard = ({
                 color="primary"
                 variant="tonal"
                 icon={<i className="ri-lock-line" />}
-                label={`${lock.lockedBy ? 'คณะเลือก' : 'หลักสูตรใหม่ใช้'}: ${ALLOC_METHOD_LABEL[choice.method]}`}
+                label={`คณะเลือก: ${ALLOC_METHOD_LABEL[choice.method]}`}
               />
             )}
           </Box>
@@ -484,11 +490,16 @@ const FixedCostAllocationCard = ({
                   label={ALLOC_METHOD_LABEL[choice.method]}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {lock.lockedBy
-                    ? `ล็อกโดย ${lock.lockedBy} · ${fmtLockedAt(lock.lockedAt)}`
-                    : 'หลักสูตรใหม่ใช้หารรายหัวนิสิตเสมอ ไม่ตามวิธีที่คณะล็อกไว้'}
+                  {lock.lockedBy ? `ล็อกโดย ${lock.lockedBy} · ` : 'ล็อกเมื่อ '}
+                  {fmtLockedAt(lock.lockedAt)}
+                  {isNew && ' · หลักสูตรใหม่ใช้วิธีเดียวกับที่คณะล็อก'}
                 </Typography>
               </Box>
+              {newRule && (
+                <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+                  {newRule}
+                </Alert>
+              )}
 
               {compact ? (
                 <AllocFlow
@@ -569,7 +580,7 @@ const FixedCostAllocationCard = ({
                 <Alert severity="warning" sx={{ mb: 2 }}>
                   วิธีที่คณะล็อกไว้ใช้กับกรณีนี้ไม่ได้
                   {isNew && choice.method === 'CUSTOM_PCT' && choice.bucketLevel === 'PROGRAM'
-                    ? ' (คณะกำหนด % รายหลักสูตร จึงยังไม่มี % ของหลักสูตรใหม่)'
+                    ? ' (คณะยังไม่ได้กำหนด % ให้ระดับการศึกษาของหลักสูตรใหม่)'
                     : ''}{' '}
                   — แจ้งผู้ดูแลคณะให้ปลดล็อกและปรับสัดส่วน หรือทำบันทึกขออนุมัติถึงกองแผนงาน
                   {!compact && ' · ยังบันทึกผลไม่ได้'}

@@ -543,6 +543,8 @@ const StatusChip = ({ valid, ok }: { valid: boolean; ok: boolean }) => {
 
 /** ผลหลังปรับปรุงของหลักสูตรหนึ่ง (จากหน้าปรับปรุงหลักสูตร) — ใช้เทียบในตารางจัดอันดับ */
 export interface AfterResult {
+  /** จำนวนนิสิตตามแผนที่บันทึก */
+  q: number;
   qStar: number | null;
   profit: number;
   ok: boolean;
@@ -557,9 +559,15 @@ export const RankingCard = ({
   unitWord,
   after,
   onRowClick,
+  basis,
+  summaryLabel,
 }: {
   rows: FacultyCrossRow[];
   unitWord: string;
+  /** ฐานรายได้ที่ตารางใช้ — แสดงที่หัวตาราง */
+  basis?: string;
+  /** ส่งมา = เพิ่มแถวรวมท้ายตาราง (ชื่อแถว) */
+  summaryLabel?: string;
   /** ผลหลังปรับ (key = FacultyCrossRow.key) — มีแล้วตารางจะตัดคอลัมน์รองออก แล้วเติมคอลัมน์ "หลังปรับ" คู่กัน */
   after?: Map<string, AfterResult>;
   onRowClick?: (row: FacultyCrossRow) => void;
@@ -616,15 +624,42 @@ export const RankingCard = ({
     { label: 'สถานะ', align: 'right' },
   ];
 
-  const afterColumns = ['จุดคุ้มทุน', 'กำไร/ขาดทุน (ล้านบาท)', 'สถานะ'];
+  const afterColumns = ['นิสิต', 'จุดคุ้มทุน', 'กำไร/ขาดทุน (ล้านบาท)', 'สถานะ'];
+
+  // แถวรวม: หลักสูตรที่ยังไม่ได้ปรับใช้ค่าเดิมฝั่งหลังปรับ
+  const total = useMemo(() => {
+    const t = { q: 0, profit: 0, ok: 0, qAfter: 0, profitAfter: 0, okAfter: 0 };
+
+    rows.forEach((d) => {
+      const a = d.key ? after?.get(d.key) : undefined;
+
+      t.q += d.Q;
+      t.profit += d.profitM;
+      t.ok += d.isOk ? 1 : 0;
+      t.qAfter += a ? a.q : d.Q;
+      t.profitAfter += a ? a.profit / 1e6 : d.profitM;
+      t.okAfter += (a ? a.ok : d.isOk) ? 1 : 0;
+    });
+
+    return t;
+  }, [rows, after]);
+
+  const signedM = (v: number) => `${v >= 0 ? '+' : '−'}${fmtM(Math.abs(v))}`;
 
   return (
     <Card>
       <CardHeader
-        title={<BarTitle>ตารางจัดอันดับ — เรียงตาม</BarTitle>}
+        // จอแคบ: ปุ่มเรียงลงไปบรรทัดใหม่ ไม่บีบหัวตาราง
+        sx={{
+          flexWrap: 'wrap',
+          rowGap: 2,
+          '& .MuiCardHeader-content': { minInlineSize: 260 },
+          '& .MuiCardHeader-action': { m: 0 },
+        }}
+        title={<BarTitle>ตารางจัดอันดับ{basis ? ` · ฐาน: ${basis}` : ''} — เรียงตาม</BarTitle>}
         subheader={
           compare
-            ? `ก่อนปรับ = ข้อมูลจริงตามชีต · หลังปรับ = ผลล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตร (เก็บในเบราว์เซอร์เครื่องนี้) · มี ${after?.size ?? 0} หลักสูตรที่บันทึกไว้`
+            ? `ก่อนปรับ = ข้อมูลจริงตามชีต · หลังปรับ = ผลล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตร · มี ${after?.size ?? 0} หลักสูตรที่บันทึกไว้ · ⚠ ยังเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น เครื่องอื่นจะไม่เห็น`
             : undefined
         }
         action={
@@ -790,6 +825,9 @@ export const RankingCard = ({
                     {compare &&
                       (a ? (
                         <>
+                          <TableCell align="right" className="after">
+                            {fmtN(a.q)}
+                          </TableCell>
                           <TableCell
                             align="right"
                             className="after"
@@ -819,6 +857,71 @@ export const RankingCard = ({
                   </TableRow>
                 );
               })}
+              {summaryLabel && rows.length > 0 && (
+                <TableRow
+                  sx={{
+                    position: 'sticky',
+                    insetBlockEnd: 0,
+                    '& .MuiTableCell-root': {
+                      fontWeight: 700,
+                      bgcolor: 'var(--mui-palette-action-hover)',
+                      borderTop: 2,
+                      borderBottom: 0,
+                      borderColor: 'divider',
+                    },
+                  }}
+                >
+                  <TableCell />
+                  <TableCell>{summaryLabel}</TableCell>
+                  <TableCell align="right">{fmtN(total.q)}</TableCell>
+                  <TableCell colSpan={columns.length - 5} />
+                  <TableCell
+                    align="right"
+                    sx={{ color: total.profit >= 0 ? RANK_TONE.good : RANK_TONE.bad }}
+                  >
+                    {signedM(total.profit)}
+                  </TableCell>
+                  <TableCell align="right">
+                    ผ่าน {total.ok}/{rows.length}
+                  </TableCell>
+                  {compare && (
+                    <>
+                      <TableCell align="right" className="after">
+                        {fmtN(total.qAfter)}
+                        {total.qAfter !== total.q && (
+                          <Box
+                            component="span"
+                            sx={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600 }}
+                          >
+                            {total.qAfter > total.q ? '+' : '−'}
+                            {fmtN(Math.abs(total.qAfter - total.q))}
+                          </Box>
+                        )}
+                      </TableCell>
+                      <TableCell className="after" />
+                      <TableCell
+                        align="right"
+                        className="after"
+                        sx={{ color: total.profitAfter >= 0 ? RANK_TONE.good : RANK_TONE.bad }}
+                      >
+                        {signedM(total.profitAfter)}
+                        {Math.abs(total.profitAfter - total.profit) >= 0.05 && (
+                          <Box
+                            component="span"
+                            sx={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600 }}
+                          >
+                            {total.profitAfter > total.profit ? 'ดีขึ้น ' : 'แย่ลง '}
+                            {fmtM(Math.abs(total.profitAfter - total.profit))} ลบ.
+                          </Box>
+                        )}
+                      </TableCell>
+                      <TableCell align="right" className="after">
+                        ผ่าน {total.okAfter}/{rows.length}
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>

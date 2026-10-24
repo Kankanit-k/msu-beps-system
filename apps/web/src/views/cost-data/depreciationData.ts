@@ -296,3 +296,20 @@ export const depTotals = (p: DepParts | null) =>
         total: r2(p[0] + p[1] + p[2] + p[3]),
       }
     : null;
+
+/**
+ * ค่าเสื่อมทั้งคณะ ปี 2567 เทียบ 2568 — ปี 2568 บวกแถวโรงพยาบาลของคณะกลับเข้าไป
+ * เพราะปี 2567 รวมโรงพยาบาลไว้ในยอดคณะ (เทียบแบบเดียวกัน) · null = ไม่มีคณะนี้ในไฟล์
+ */
+export const facultyDepCompare = (facName: string) => {
+  const u = DEP_UNITS.find((x) => x.name === facName);
+
+  if (!u) return null;
+  const hospital = DEP_UNITS.find((x) => x.name === `โรงพยาบาล${facName}`);
+
+  return {
+    y2567: depTotals(u.y2567)?.total ?? 0,
+    y2568: (depTotals(u.y2568)?.total ?? 0) + (depTotals(hospital?.y2568 ?? null)?.total ?? 0),
+    withHospital: Boolean(hospital),
+  };
+};

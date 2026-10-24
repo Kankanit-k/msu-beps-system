@@ -27,7 +27,7 @@ import { RAW } from '@/data/mockup';
 import { computeBreakEven, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
 import { feesForProgram } from '@views/tuition/feeData';
 import { facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
-import { fmtLockedAt, useFacultyLock, type FacultyLock } from '@views/fixed-cost-lock/lockStore';
+import { fmtLockedAt, useFacultyLock } from '@views/fixed-cost-lock/lockStore';
 import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
 import { useRole } from '@/hooks/useRole';
 
@@ -39,6 +39,7 @@ import {
   ALLOC_METHOD_LABEL,
   allocateFaculty,
   allocBuckets,
+  newProgramChoice,
   DEFAULT_ALLOC_CHOICE,
   NEW_PROGRAM_ID,
   policyOf,
@@ -220,18 +221,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   /** คณะล็อกวิธีปันส่วนต้นทุนคงที่ไว้ (หน้าตั้งค่าวิธีปันส่วน) — หน้านี้ใช้ตามนั้น แก้ไม่ได้ */
   const year = MOCK_RUN.budgetYear;
   const { lock: facLock, ready: lockReady } = useFacultyLock(year, fac);
-  /**
-   * เปิดหลักสูตรใหม่: ใช้หารรายหัวนิสิตเสมอ ไม่ตามวิธีที่คณะล็อกไว้ (ผู้ใช้สั่ง 2026-10-19 — รอมติที่ประชุม)
-   * lockedBy ว่าง = ค่าที่ระบบกำหนด ไม่ใช่คณะล็อก
-   */
-  const lock = useMemo<FacultyLock | null>(
-    () =>
-      purpose === 'new' && fac
-        ? { year, faculty: fac, choice: DEFAULT_ALLOC_CHOICE, lockedAt: '', lockedBy: '' }
-        : facLock,
-    [purpose, fac, year, facLock],
-  );
-  const alloc = lock?.choice ?? DEFAULT_ALLOC_CHOICE;
+  /** เปิดหลักสูตรใหม่ก็ใช้วิธีที่คณะล็อกไว้ (ผู้ใช้สั่ง 2026-10-24) — กำหนด % รายหลักสูตรปรับใน newProgramChoice ด้านล่าง */
+  const lock = facLock;
   /** ผู้ดูแลคณะ/อาจารย์ทำได้เฉพาะคณะ (และหลักสูตร) ของตน */
   const { role, scope } = useRole();
   const scopedFac = lockedFacultyFor(role, scope);
@@ -467,7 +458,13 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const targetOf = (b: CostBasis) => (isNew && b === 'manual' ? NEW_PROGRAM_ID : refId);
 
   const activeScenario = scenarioOf('manual', mode);
-  const allocBucketList = activeScenario ? allocBuckets(activeScenario, alloc.bucketLevel) : [];
+  const allocBucketList = activeScenario
+    ? allocBuckets(activeScenario, lock?.choice.bucketLevel ?? DEFAULT_ALLOC_CHOICE.bucketLevel)
+    : [];
+  const { choice: alloc, note: allocNote } =
+    isNew && lock
+      ? newProgramChoice(lock.choice, allocBucketList, refId, level)
+      : { choice: lock?.choice ?? DEFAULT_ALLOC_CHOICE, note: null };
   const allocPolicy = lock ? policyOf(alloc, allocBucketList) : null;
   const outcomeOf = (b: CostBasis, m: RevenueMode, q?: number) => {
     const sc = scenarioOf(b, m, q);
@@ -974,6 +971,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               isNew={isNew}
               hasRef={isNew ? manualEmbedded !== 0 : !!refProg}
               lock={lock}
+              choice={alloc}
+              newRule={allocNote}
               pool={facPool}
               rows={facRows}
               outcome={activeOutcome}

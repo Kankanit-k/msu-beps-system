@@ -1,7 +1,7 @@
 'use client';
 
 // React Imports
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -14,6 +14,8 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 
 import type { BreakEvenResult } from '@beps/calc-engine';
@@ -23,16 +25,26 @@ import type { ProgRow } from '@/data/mockup';
 import { computeBreakEven, fmtInt, fmtMillion } from '@views/breakeven/calc';
 import type { AfterResult } from '@views/cross/CrossPanels';
 
+import CostCategoryPanel from './CostCategoryPanel';
+
+export type DetailTab = 'be' | 'cost';
+
 /** หน้าต่างรายละเอียดหลักสูตร — ตัวเลขทั้งสองกรณีวางคู่กัน */
 const ProgramDialog = ({
   p,
   after,
+  initialTab = 'be',
   onClose,
 }: {
   p: ProgRow | null;
   after?: AfterResult;
+  /** แท็บที่เปิดก่อน — หน้าต้นทุนเปิดแท็บหมวดรายจ่าย */
+  initialTab?: DetailTab;
   onClose: () => void;
 }) => {
+  // key ของ Dialog เปลี่ยนตามหลักสูตร/แท็บ → state เริ่มใหม่ทุกครั้งที่เปิด
+  const [tab, setTab] = useState<DetailTab>(initialTab);
+
   const both = useMemo(
     () =>
       p
@@ -76,45 +88,60 @@ const ProgramDialog = ({
               <i className="ri-close-line" />
             </IconButton>
           </DialogTitle>
-          <DialogContent>
-            <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mb: 3 }}>
-              <Typography variant="body2">
-                นิสิตจริง <b>{fmtInt(p.Q)}</b> คน
-              </Typography>
-              <Typography variant="body2">
-                เงินแผ่นดิน <b>{fmtMillion(p.st)}</b> · เงินรายได้ <b>{fmtMillion(p.own)}</b> ลบ.
-              </Typography>
-              <Typography variant="body2">
-                ต้นทุนคงที่ <b>{fmtMillion(p.TFC)}</b> · ผันแปร <b>{fmtMillion(p.TVC)}</b> ลบ.
-              </Typography>
-            </Box>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell />
-                  <TableCell align="right">รวมเงินแผ่นดิน</TableCell>
-                  <TableCell align="right">ไม่รวมเงินแผ่นดิน</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.label}>
-                    <TableCell>{row.label}</TableCell>
-                    <TableCell align="right" className="num">
-                      {row.v(both[0])}
-                    </TableCell>
-                    <TableCell align="right" className="num">
-                      {row.v(both[1])}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-              {after
-                ? `หลังปรับ (บันทึก ${after.savedAt}): เป้า ${after.valid && after.qStar !== null ? `${fmtInt(after.qStar)} คน` : 'ไม่มีจุดคุ้มทุน'} · ${after.profit >= 0 ? 'ส่วนเกิน +' : 'ขาดทุน −'}${fmtMillion(Math.abs(after.profit))} ลบ.`
-                : 'ยังไม่มีผลการปรับปรุงหลักสูตรนี้ที่บันทึกไว้ในเครื่องนี้'}
-            </Typography>
+          <Tabs
+            value={tab}
+            onChange={(_, v: DetailTab) => setTab(v)}
+            sx={{ px: 5, borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab value="be" label="จุดคุ้มทุน" />
+            <Tab value="cost" label="ต้นทุนตามหมวดรายจ่าย" />
+          </Tabs>
+          <DialogContent sx={{ pt: 4 }}>
+            {tab === 'cost' ? (
+              <CostCategoryPanel p={p} />
+            ) : (
+              <>
+                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mb: 3 }}>
+                  <Typography variant="body2">
+                    นิสิตจริง <b>{fmtInt(p.Q)}</b> คน
+                  </Typography>
+                  <Typography variant="body2">
+                    เงินแผ่นดิน <b>{fmtMillion(p.st)}</b> · เงินรายได้ <b>{fmtMillion(p.own)}</b>{' '}
+                    ลบ.
+                  </Typography>
+                  <Typography variant="body2">
+                    ต้นทุนคงที่ <b>{fmtMillion(p.TFC)}</b> · ผันแปร <b>{fmtMillion(p.TVC)}</b> ลบ.
+                  </Typography>
+                </Box>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell />
+                      <TableCell align="right">รวมเงินแผ่นดิน</TableCell>
+                      <TableCell align="right">ไม่รวมเงินแผ่นดิน</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.label}>
+                        <TableCell>{row.label}</TableCell>
+                        <TableCell align="right" className="num">
+                          {row.v(both[0])}
+                        </TableCell>
+                        <TableCell align="right" className="num">
+                          {row.v(both[1])}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+                  {after
+                    ? `หลังปรับ (บันทึก ${after.savedAt}): เป้า ${after.valid && after.qStar !== null ? `${fmtInt(after.qStar)} คน` : 'ไม่มีจุดคุ้มทุน'} · ${after.profit >= 0 ? 'ส่วนเกิน +' : 'ขาดทุน −'}${fmtMillion(Math.abs(after.profit))} ลบ.`
+                    : 'ยังไม่มีผลการปรับปรุงหลักสูตรนี้ที่บันทึกไว้ในเครื่องนี้'}
+                </Typography>
+              </>
+            )}
           </DialogContent>
         </>
       )}

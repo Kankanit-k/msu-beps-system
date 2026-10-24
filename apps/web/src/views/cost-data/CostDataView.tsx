@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // MUI Imports
 import Grid from '@mui/material/Grid';
@@ -552,6 +552,11 @@ type CostDataTab = 'sources' | 'depreciation';
 
 const CostDataView = () => {
   const [tab, setTab] = useState<CostDataTab>('sources');
+
+  // ลิงก์จากหน้าอื่น (?tab=depreciation) เปิดแท็บค่าเสื่อมตรง ๆ
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'depreciation') setTab('depreciation');
+  }, []);
 
   return (
     <>

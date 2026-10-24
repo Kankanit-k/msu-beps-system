@@ -40,13 +40,29 @@ export const BE_LINE = {
 /** ชุดข้อมูลรายได้ เงินรายได้ | เงินแผ่นดิน */
 export const REVENUE_SERIES = [
   { name: 'เงินรายได้', color: C.own, pick: (p: ProgRow) => p.own },
-  { name: 'เงินแผ่นดิน', color: C.st, labelColor: BEPS.revenue.onLight, pick: (p: ProgRow) => p.st },
+  {
+    name: 'เงินแผ่นดิน',
+    color: C.st,
+    labelColor: BEPS.revenue.onLight,
+    pick: (p: ProgRow) => p.st,
+  },
 ];
 
-/** ชุดข้อมูลต้นทุน คงที่ | ผันแปร */
+/** ต้นทุนคงที่เกินสัดส่วนนี้ของต้นทุนรวม → เตือน (มติ spec เมนูย่อย 3.2) — ใช้ค่าเดียวทั้งระบบ */
+export const FIXED_COST_ALERT = 0.5;
+
+/** สัดส่วนต้นทุนคงที่ต่อต้นทุนรวม */
+export const fixedShare = (tfc: number, tc: number) => (tc ? tfc / tc : 0);
+
+/** ชุดข้อมูลต้นทุน คงที่ | ผันแปร — กราฟต้นทุนรายหลักสูตรใช้โทนฟ้า (เข้ม = คงที่ · อ่อน = ผันแปร) */
 export const COST_SERIES = [
-  { name: 'ต้นทุนคงที่', color: C.fixed, pick: (p: ProgRow) => p.TFC },
-  { name: 'ต้นทุนผันแปร', color: C.variable, labelColor: BEPS.cost.onLight, pick: (p: ProgRow) => p.TVC },
+  { name: 'ต้นทุนคงที่', color: BEPS.compare.dark, pick: (p: ProgRow) => p.TFC },
+  {
+    name: 'ต้นทุนผันแปร',
+    color: BEPS.compare.light,
+    labelColor: BEPS.compare.onLight,
+    pick: (p: ProgRow) => p.TVC,
+  },
 ];
 
 /** หัวกราฟ + ⓘ */
@@ -58,7 +74,7 @@ export const ChartTitle = ({ title, info }: { title: string; info?: string }) =>
   </Typography>
 );
 
-/** กราฟแท่งซ้อนแนวนอนรายหลักสูตร (ล้านบาท) — กดแท่งเพื่อดูรายละเอียด */
+/** กราฟแท่งซ้อนแนวนอนรายหลักสูตร (ล้านบาท หรือ บาท/คน) — กดแท่งเพื่อดูรายละเอียด */
 export const StackedProgramBar = ({
   title,
   info,
@@ -66,6 +82,7 @@ export const StackedProgramBar = ({
   series,
   onPick,
   height,
+  perHead,
 }: {
   title: string;
   info: string;
@@ -74,7 +91,14 @@ export const StackedProgramBar = ({
   onPick: (key: string) => void;
   /** ความสูงคงที่ (หน้าภาพรวม) — ไม่ส่ง = สูงตามจำนวนหลักสูตร */
   height?: number;
+  /** หารด้วยจำนวนนิสิต แสดงเป็นบาท/คน แทนล้านบาท */
+  perHead?: boolean;
 }) => {
+  const unit = perHead ? 'บาท/คน' : 'ลบ.';
+  const fmt = (v: number) => v.toLocaleString('th-TH', { maximumFractionDigits: perHead ? 0 : 1 });
+  const value = (v: number, p: ProgRow) =>
+    perHead ? (p.Q ? Math.round(v / p.Q) : 0) : Number((v / 1e6).toFixed(2));
+
   const options: ApexOptions = {
     chart: {
       type: 'bar',
@@ -97,13 +121,16 @@ export const StackedProgramBar = ({
         borderRadiusApplication: 'end',
         borderRadiusWhenStacked: 'last',
         colors: KPI_BAR_TRACK,
+        // แสดงตัวเลขครบทุกแท่ง แม้แท่งสั้น
+        dataLabels: { hideOverflowingLabels: false },
       },
     },
     colors: series.map((s) => s.color),
     fill: { opacity: 1 },
     // ตัวเลขขาวบนสีเข้ม / สีเข้มบนสีอ่อน แบบภาพรวมมหาวิทยาลัย
     dataLabels: {
-      ...kpiBarLabels(5),
+      ...kpiBarLabels(0),
+      formatter: (v: number) => (v > 0 ? fmt(v) : ''),
       style: {
         fontSize: '10px',
         fontWeight: 700,
@@ -118,10 +145,8 @@ export const StackedProgramBar = ({
     },
     xaxis: {
       categories: progs.map((x) => x.label),
-      title: { text: 'ล้านบาท' },
-      labels: {
-        formatter: (v: string) => Number(v).toLocaleString('th-TH', { maximumFractionDigits: 1 }),
-      },
+      title: { text: perHead ? 'บาท ต่อนิสิต 1 คน' : 'ล้านบาท' },
+      labels: { formatter: (v: string) => fmt(Number(v)) },
     },
     yaxis: { labels: { maxWidth: 260, style: { fontSize: '12px' } } },
     // จอแคบ: ป้ายชื่อหลักสูตรกินที่จนแท่งเหลือนิดเดียว — ตัดป้ายให้สั้นลง
@@ -136,7 +161,7 @@ export const StackedProgramBar = ({
       intersect: false,
       y: {
         formatter: (v: number) =>
-          `${v.toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ลบ.`,
+          `${v.toLocaleString('th-TH', perHead ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${unit}`,
       },
     },
   };
@@ -156,7 +181,7 @@ export const StackedProgramBar = ({
         options={options}
         series={series.map((s) => ({
           name: s.name,
-          data: progs.map((x) => Number((s.pick(x.p) / 1e6).toFixed(2))),
+          data: progs.map((x) => value(s.pick(x.p), x.p)),
         }))}
       />
     </Box>
@@ -254,28 +279,43 @@ export const TargetVsActualChart = ({
   height?: number;
 }) => {
   const targetOf = (x: ProgStat) => (mode === 'with_government' ? x.qStarGov : x.qStarOwn);
-  const xmax = Math.max(1, ...progs.flatMap((x) => [x.p.Q, x.qStarGov, x.qStarOwn])) * 1.08;
+
+  // แกนพอดีกับนิสิตจริงและจุดคุ้มทุนของฐานที่เลือก — เส้นของอีกฐานที่ยาวเกินขอบแสดงเป็นป้าย ▸ แทน
+  // (ถ้าครอบทุกเส้น จุดคุ้มทุนแบบไม่รวมแผ่นดินดันแกนยาวจนแท่งกองอยู่ซ้าย)
+  const xmax = Math.max(1, ...progs.flatMap((x) => [x.p.Q, targetOf(x)])) * 1.1;
+
+  const goal = (name: string, value: number, color: string, dashed: boolean) =>
+    value > 0 && value <= xmax
+      ? [
+          {
+            name,
+            value,
+            strokeColor: color,
+            strokeWidth: 3,
+            strokeHeight: 14,
+            ...(dashed ? { strokeDashArray: 3 } : {}),
+          },
+        ]
+      : [];
+
+  /** ป้ายเส้นที่เกินขอบกราฟ เช่น "┊ 1,573 ▸" */
+  const overflow = (x: ProgStat) =>
+    [
+      x.qStarGov > xmax ? `| ${fmtInt(x.qStarGov)} ▸` : '',
+      x.qStarOwn > xmax ? `┊ ${fmtInt(x.qStarOwn)} ▸` : '',
+    ]
+      .filter(Boolean)
+      .join('  ');
+
+  const hasOverflow = progs.some((x) => overflow(x));
 
   const data = progs.map((x) => ({
     x: x.label,
     y: x.p.Q,
     fillColor: TONE_COLOR[targetStatus(x.p.Q, targetOf(x)).tone],
     goals: [
-      ...(x.qStarGov > 0
-        ? [{ name: 'จุดคุ้มทุน · รวมเงินแผ่นดิน', value: x.qStarGov, strokeColor: GOAL.gov, strokeWidth: 3, strokeHeight: 14 }]
-        : []),
-      ...(x.qStarOwn > 0
-        ? [
-            {
-              name: 'จุดคุ้มทุน · ไม่รวมเงินแผ่นดิน',
-              value: x.qStarOwn,
-              strokeColor: GOAL.own,
-              strokeWidth: 3,
-              strokeHeight: 14,
-              strokeDashArray: 3,
-            },
-          ]
-        : []),
+      ...goal('จุดคุ้มทุน · รวมเงินแผ่นดิน', x.qStarGov, GOAL.gov, false),
+      ...goal('จุดคุ้มทุน · ไม่รวมเงินแผ่นดิน', x.qStarOwn, GOAL.own, true),
     ],
   }));
 
@@ -292,8 +332,28 @@ export const TargetVsActualChart = ({
         },
       },
     },
-    plotOptions: { bar: { horizontal: true, barHeight: '60%', borderRadius: 4, colors: KPI_BAR_TRACK } },
-    dataLabels: { enabled: false },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        barHeight: '60%',
+        borderRadius: 4,
+        colors: KPI_BAR_TRACK,
+        dataLabels: { position: 'top' },
+      },
+    },
+    // ป้ายต่อท้ายแท่ง เฉพาะหลักสูตรที่เส้นจุดคุ้มทุนยาวเกินขอบกราฟ
+    dataLabels: {
+      enabled: hasOverflow,
+      textAnchor: 'start',
+      offsetX: 6,
+      formatter: (_v: number, o: { dataPointIndex: number }) => {
+        const x = progs[o.dataPointIndex];
+
+        return x ? overflow(x) : '';
+      },
+      style: { fontSize: '11px', fontWeight: 600, colors: [GOAL.own] },
+      background: { enabled: false },
+    },
     legend: { show: false },
     grid: {
       borderColor: 'var(--mui-palette-divider)',
@@ -308,7 +368,10 @@ export const TargetVsActualChart = ({
     },
     yaxis: { labels: { maxWidth: 220, style: { fontSize: '12px' } } },
     responsive: [
-      { breakpoint: 600, options: { yaxis: { labels: { maxWidth: 110, style: { fontSize: '10px' } } } } },
+      {
+        breakpoint: 600,
+        options: { yaxis: { labels: { maxWidth: 110, style: { fontSize: '10px' } } } },
+      },
     ],
     tooltip: {
       custom: ({ dataPointIndex }: { dataPointIndex: number }) => {
@@ -333,13 +396,14 @@ export const TargetVsActualChart = ({
     <Box>
       <ChartTitle
         title={`เป้าหมาย vs นิสิตจริง${progs[0] ? ` — ${progs[0].p.lvl}` : ''}`}
-        info="แท่ง = นิสิตจริง · ขีดทึบ = จุดคุ้มทุนแบบรวมเงินแผ่นดิน · ขีดประ = แบบไม่รวมเงินแผ่นดิน · สีแท่งตามฐานรายได้ที่เลือกด้านบน · กดแท่งเพื่อดูรายละเอียดหลักสูตร"
+        info="แท่ง = นิสิตจริง · ขีดทึบ = จุดคุ้มทุนแบบรวมเงินแผ่นดิน · ขีดประ = แบบไม่รวมเงินแผ่นดิน · สีแท่งและความยาวแกนตามฐานรายได้ที่เลือกด้านบน · ▸ = เส้นยาวเกินขอบกราฟ ตัวเลขคือจำนวนคนที่ต้องมี · กดแท่งเพื่อดูรายละเอียดหลักสูตร"
       />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5, mb: 1 }}>
         <LegendItem color={TONE_COLOR.ok} label="ถึงจุดคุ้มทุน" />
         <LegendItem color={TONE_COLOR.short} label="ยังขาด" />
         <LegendItem color={GOAL.gov} label="| รวมเงินแผ่นดิน" />
         <LegendItem color={GOAL.own} label="┊ ไม่รวมเงินแผ่นดิน" />
+        {hasOverflow && <LegendItem color={GOAL.own} label="▸ เกินขอบกราฟ" />}
       </Box>
       <AppReactApexCharts
         type="bar"

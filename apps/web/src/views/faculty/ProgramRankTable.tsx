@@ -40,7 +40,11 @@ const signed = (v: number) => `${v >= 0 ? '+' : '−'}${fmtMillion(Math.abs(v))}
 /** ช่องจุดคุ้มทุน — เขียว = นิสิตถึงแล้ว · แดง = ยังไม่ถึง · — = ไม่มีจุดคุ้มทุน · ตัวหนา = โหมดที่เลือก */
 const TargetCell = ({ q, target, active }: { q: number; target: number; active: boolean }) =>
   target <= 0 ? (
-    <TableCell align="right" title="รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร — ไม่มีจุดคุ้มทุน" sx={{ color: 'text.disabled' }}>
+    <TableCell
+      align="right"
+      title="รายได้ต่อหัวไม่พอจ่ายต้นทุนผันแปร — ไม่มีจุดคุ้มทุน"
+      sx={{ color: 'text.disabled' }}
+    >
       —
     </TableCell>
   ) : (
@@ -81,12 +85,40 @@ const StatusChip = ({ profit }: { profit: number }) => (
 const COLUMNS: { key?: SortKey; label: string; align?: 'right'; hint?: string }[] = [
   { label: '#' },
   { label: 'หลักสูตร' },
-  { key: 'Q', label: 'นิสิต / เป้าตามแผน', align: 'right', hint: 'นิสิตปัจจุบัน · เป้าตามแผนรับรอข้อมูลแผนรับจากกองแผน/ทะเบียน — ระหว่างนี้ดูช่องจุดคุ้มทุนแทนเป้า' },
-  { key: 'tr', label: 'รายได้รวม', align: 'right', hint: 'ล้านบาท · บรรทัดเล็ก = เงินแผ่นดิน · เงินรายได้' },
-  { key: 'tc', label: 'ต้นทุนรวม', align: 'right', hint: 'ล้านบาท · บรรทัดเล็ก = ต้นทุนคงที่ · ผันแปร' },
-  { label: 'จุดคุ้มทุน (รวมแผ่นดิน)', align: 'right', hint: 'จำนวนนิสิตที่ต้องมีเพื่อคุ้มทุน เมื่อนับเงินแผ่นดินเป็นรายได้' },
-  { label: 'จุดคุ้มทุน (ไม่รวม)', align: 'right', hint: 'จำนวนนิสิตที่ต้องมีเพื่อคุ้มทุน เมื่อนับเฉพาะเงินรายได้ (ค่าธรรมเนียม)' },
-  { key: 'profit', label: 'ส่วนเกิน / ขาดทุน', align: 'right', hint: 'ล้านบาท ตามฐานรายได้ที่เลือกด้านบน · กดหัวคอลัมน์เพื่อเรียง' },
+  {
+    key: 'Q',
+    label: 'นิสิต / เป้าตามแผน',
+    align: 'right',
+    hint: 'นิสิตปัจจุบัน · เป้าตามแผนรับรอข้อมูลแผนรับจากกองแผน/ทะเบียน — ระหว่างนี้ดูช่องจุดคุ้มทุนแทนเป้า',
+  },
+  {
+    key: 'tr',
+    label: 'รายได้รวม',
+    align: 'right',
+    hint: 'ล้านบาท · บรรทัดเล็ก = เงินแผ่นดิน · เงินรายได้',
+  },
+  {
+    key: 'tc',
+    label: 'ต้นทุนรวม',
+    align: 'right',
+    hint: 'ล้านบาท · บรรทัดเล็ก = ต้นทุนคงที่ · ผันแปร',
+  },
+  {
+    label: 'จุดคุ้มทุน (รวมแผ่นดิน)',
+    align: 'right',
+    hint: 'จำนวนนิสิตที่ต้องมีเพื่อคุ้มทุน เมื่อนับเงินแผ่นดินเป็นรายได้',
+  },
+  {
+    label: 'จุดคุ้มทุน (ไม่รวม)',
+    align: 'right',
+    hint: 'จำนวนนิสิตที่ต้องมีเพื่อคุ้มทุน เมื่อนับเฉพาะเงินรายได้ (ค่าธรรมเนียม)',
+  },
+  {
+    key: 'profit',
+    label: 'ส่วนเกิน / ขาดทุน',
+    align: 'right',
+    hint: 'ล้านบาท ตามฐานรายได้ที่เลือกด้านบน · กดหัวคอลัมน์เพื่อเรียง',
+  },
 ];
 
 /**
@@ -123,7 +155,12 @@ const ProgramRankTable = ({
   }, [progs, mode]);
 
   const sorted = useMemo(
-    () => [...ranked].sort((a, b) => (asc ? 1 : -1) * ((sortKey === 'Q' ? a.p.Q : a[sortKey]) - (sortKey === 'Q' ? b.p.Q : b[sortKey]))),
+    () =>
+      [...ranked].sort(
+        (a, b) =>
+          (asc ? 1 : -1) *
+          ((sortKey === 'Q' ? a.p.Q : a[sortKey]) - (sortKey === 'Q' ? b.p.Q : b[sortKey])),
+      ),
     [ranked, sortKey, asc],
   );
 
@@ -183,7 +220,11 @@ const ProgramRankTable = ({
               </Typography>
               <Typography variant="body2" color="text.secondary" className="num">
                 รายได้ {fmtMillion(x.tr)} · ต้นทุน {fmtMillion(x.tc)} ·{' '}
-                <b style={{ color: x.profit >= 0 ? BEPS.breakEven : 'var(--mui-palette-error-main)' }}>
+                <b
+                  style={{
+                    color: x.profit >= 0 ? BEPS.breakEven : 'var(--mui-palette-error-main)',
+                  }}
+                >
                   {signed(x.profit)} ลบ.
                 </b>
               </Typography>
@@ -224,11 +265,23 @@ const ProgramRankTable = ({
                 <TableCell>
                   <RankChip rank={x.rank} total={ranked.length} profit={x.profit} />
                 </TableCell>
-                <TableCell sx={{ maxWidth: 240, "& > *": { maxWidth: 240 } }}>
-                  <Typography variant="body2" fontWeight={600} color="primary.main" noWrap title={x.p.prog}>
+                <TableCell sx={{ maxWidth: 240, '& > *': { maxWidth: 240 } }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    color="primary.main"
+                    noWrap
+                    title={x.p.prog}
+                  >
                     {x.p.prog}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap component="div" title={x.p.deg}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    noWrap
+                    component="div"
+                    title={x.p.deg}
+                  >
                     {x.p.deg}
                   </Typography>
                 </TableCell>
@@ -253,7 +306,14 @@ const ProgramRankTable = ({
                 <TargetCell q={x.p.Q} target={x.qStarGov} active={mode === 'with_government'} />
                 <TargetCell q={x.p.Q} target={x.qStarOwn} active={mode === 'without_government'} />
                 <TableCell align="right">
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: 1.5,
+                    }}
+                  >
                     <Typography
                       variant="body2"
                       fontWeight={700}

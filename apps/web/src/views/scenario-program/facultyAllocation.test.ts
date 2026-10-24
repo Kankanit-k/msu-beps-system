@@ -6,6 +6,7 @@ import {
   DEFAULT_ALLOC_CHOICE,
   levelCapIssue,
   NEW_PROGRAM_ID,
+  newProgramChoice,
   policyOf,
   shareOf,
 } from './facultyAllocation';
@@ -240,5 +241,61 @@ describe('levelCapIssue (กำหนด % รายหลักสูตร ค
 
   it('วิธีอื่นไม่คุม', () => {
     expect(levelCapIssue(DEFAULT_ALLOC_CHOICE, buckets)).toBeNull();
+  });
+});
+
+describe('newProgramChoice (เปิดหลักสูตรใหม่ตามวิธีที่คณะล็อก)', () => {
+  // ตรี 2 หลักสูตร (a 60 · d 30 = ระดับ 90) · โท b 6 · เอก c 4
+  const sc: FacultyScenario = {
+    ...base,
+    programs: [
+      ...base.programs,
+      { id: 'd', label: 'ตรี D', educationLevel: 'ปริญญาตรี', q: 200, sheetShare: 0 },
+    ],
+    newProgram: { label: 'ตรี ใหม่', educationLevel: 'ปริญญาตรี', q: 100, sheetShare: 0 },
+  };
+  const locked = {
+    method: 'CUSTOM_PCT' as const,
+    bucketLevel: 'PROGRAM' as const,
+    subMethod: 'PER_HEAD_FTES' as const,
+    pct: { a: '60', d: '30', b: '6', c: '4' },
+    levelPct: { ปริญญาตรี: '90', ปริญญาโท: '6', ปริญญาเอก: '4' },
+  };
+  const buckets = allocBuckets(sc, 'PROGRAM');
+  const num = (c: { pct: Record<string, string> }, k: string) => Number(c.pct[k]);
+
+  it('วิธีอื่นไม่ปรับ', () => {
+    const r = newProgramChoice(DEFAULT_ALLOC_CHOICE, buckets, 'a', 'ปริญญาตรี');
+
+    expect(r.choice).toBe(DEFAULT_ALLOC_CHOICE);
+    expect(r.note).toBeNull();
+  });
+
+  it('รายหลักสูตร: ได้ % เท่าหลักสูตรอ้างอิง แล้วย่อทั้งระดับให้รวมเท่า % ระดับที่ล็อก', () => {
+    const { choice, note } = newProgramChoice(locked, buckets, 'd', 'ปริญญาตรี');
+    const k = 90 / (90 + 30);
+
+    expect(num(choice, 'a')).toBeCloseTo(60 * k, 3);
+    expect(num(choice, 'd')).toBeCloseTo(30 * k, 3);
+    expect(num(choice, NEW_PROGRAM_ID)).toBeCloseTo(30 * k, 3);
+    expect(num(choice, 'a') + num(choice, 'd') + num(choice, NEW_PROGRAM_ID)).toBeCloseTo(90, 9);
+    // ระดับอื่นไม่เปลี่ยน
+    expect(choice.pct.b).toBe('6');
+    expect(levelCapIssue(choice, buckets)).toBeNull();
+    expect(note).toContain('หลักสูตรอ้างอิง');
+    expect(allocateFaculty(sc, policyOf(choice, buckets)).applied).toBe(true);
+  });
+
+  it('ไม่มีหลักสูตรอ้างอิง: ได้ % ตามสัดส่วนนิสิตในระดับ', () => {
+    const { choice } = newProgramChoice(locked, buckets, null, 'ปริญญาตรี');
+
+    // ใหม่ 100 คน จากทั้งระดับ 700 คน → 90 × 100/700
+    expect(num(choice, NEW_PROGRAM_ID)).toBeCloseTo((90 * 100) / 700, 3);
+  });
+
+  it('ระดับใหม่ที่คณะยังไม่มี % → ไม่ปรับ ปล่อยให้ engine แจ้ง', () => {
+    const lone = allocBuckets({ ...sc, newProgram: { ...sc.newProgram!, educationLevel: 'ป.บัณฑิต' } }, 'PROGRAM');
+
+    expect(newProgramChoice(locked, lone, 'a', 'ป.บัณฑิต').note).toBeNull();
   });
 });

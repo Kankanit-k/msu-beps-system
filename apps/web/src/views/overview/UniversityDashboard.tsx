@@ -340,7 +340,6 @@ const UniversityDashboard = () => {
     .slice(0, 5);
   const nLoss = units.filter((f) => profitOf(f, mode) < 0).length;
 
-  const cats = rows.map((f) => f.label);
   const chartH = Math.max(240, rows.length * (compare ? 30 : 24) + 60);
   const empty = rows.length === 0;
   const modeLabel = mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน';
@@ -358,8 +357,21 @@ const UniversityDashboard = () => {
           [single[0], parts[0]],
           [single[1], parts[1]],
         ] as [string, string][]);
-  const stackSeries = (parts: [string, (f: FacSum) => number][]) =>
-    grid.flatMap((g, gi) =>
+  // แต่ละกราฟเรียงคณะตามความยาวแท่งของตัวเอง (มาก → น้อย) — รวมทุกระดับที่แสดง
+  const sortGrid = (len: (f: FacSum) => number) => {
+    const total = (i: number) => grid.reduce((s, g) => s + len(g[i]!), 0);
+    const idx = rows.map((_, i) => i).sort((a, b) => total(b) - total(a));
+
+    return grid.map((g) => idx.map((i) => g[i]!));
+  };
+  const revOf = (f: FacSum) => f.own + (mode === 'with_government' ? f.st : 0);
+  const grid1 = sortGrid((f) => f.own + f.st);
+  const grid2 = sortGrid((f) => f.tc);
+  const grid3 = sortGrid((f) => revOf(f) + f.tc);
+  const catsOf = (g: FacSum[][]) => (g[0] ?? []).map((f) => f.label);
+
+  const stackSeries = (g3: FacSum[][], parts: [string, (f: FacSum) => number][]) =>
+    g3.flatMap((g, gi) =>
       parts.map(([name, val]) => ({
         name: compare ? `${groupNames[gi]} ${name}` : name,
         ...(compare && { group: groupNames[gi] }),
@@ -409,9 +421,9 @@ const UniversityDashboard = () => {
   });
 
   // กราฟ ① สีแบบ Materio: ตัวเลขขาวบนม่วงเข้ม / ม่วงเข้มบนม่วงอ่อน
-  const chart1Base = barOptions(cats, twoTone([C1.own, C1.st]), {
+  const chart1Base = barOptions(catsOf(grid1), twoTone([C1.own, C1.st]), {
     chart: { stacked: true },
-    tooltip: groupTitle(grid, groupNames, (f) => `รายได้รวม ${fmtMillion(f.own + f.st)} ลบ.`),
+    tooltip: groupTitle(grid1, groupNames, (f) => `รายได้รวม ${fmtMillion(f.own + f.st)} ลบ.`),
   });
   const chart1Options: ApexOptions = {
     ...chart1Base,
@@ -422,9 +434,9 @@ const UniversityDashboard = () => {
   };
 
   // กราฟ ② โทนชมพู: ตัวเลขขาวบนชมพูเข้ม / ชมพูเข้มบนชมพูอ่อน
-  const chart2Base = barOptions(cats, twoTone([C2.fixed, C2.variable]), {
+  const chart2Base = barOptions(catsOf(grid2), twoTone([C2.fixed, C2.variable]), {
     chart: { stacked: true },
-    tooltip: groupTitle(grid, groupNames, (f) => `ต้นทุนรวม ${fmtMillion(f.tc)} ลบ.`),
+    tooltip: groupTitle(grid2, groupNames, (f) => `ต้นทุนรวม ${fmtMillion(f.tc)} ลบ.`),
   });
   const chart2Options: ApexOptions = {
     ...chart2Base,
@@ -435,10 +447,10 @@ const UniversityDashboard = () => {
   };
 
   // กราฟ ③ โทนฟ้า: ตัวเลขขาวบนฟ้าเข้ม / ฟ้าเข้มบนฟ้าอ่อน
-  const chart3Base = barOptions(cats, twoTone([C3.rev, C3.cost]), {
+  const chart3Base = barOptions(catsOf(grid3), twoTone([C3.rev, C3.cost]), {
     chart: { stacked: true },
     tooltip: groupTitle(
-      grid,
+      grid3,
       groupNames,
       (f) =>
         `${profitOf(f, mode) >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtSigned(profitOf(f, mode))} ลบ.`,
@@ -599,7 +611,7 @@ const UniversityDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* แถวบน: ① รายได้ ② ต้นทุน ③ รายได้เทียบต้นทุน (ล้านบาท) — ลำดับคณะเหมือนกันทั้ง 3 กราฟ */}
+      {/* แถวบน: ① รายได้ ② ต้นทุน ③ รายได้เทียบต้นทุน (ล้านบาท) — แต่ละกราฟเรียงคณะตามความยาวแท่งของตัวเอง */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <ChartCard
@@ -614,7 +626,7 @@ const UniversityDashboard = () => {
               height={chartH}
               width="100%"
               options={chart1Options}
-              series={stackSeries([
+              series={stackSeries(grid1, [
                 ['เงินรายได้', (f) => toM(f.own)],
                 ['เงินแผ่นดิน', (f) => toM(f.st)],
               ])}
@@ -634,7 +646,7 @@ const UniversityDashboard = () => {
               height={chartH}
               width="100%"
               options={chart2Options}
-              series={stackSeries([
+              series={stackSeries(grid2, [
                 ['ต้นทุนคงที่', (f) => toM(f.tfc)],
                 ['ต้นทุนผันแปร', (f) => toM(f.tvc)],
               ])}
@@ -657,8 +669,8 @@ const UniversityDashboard = () => {
               width="100%"
               // แท่งเดียวต่อคณะ: ส่วนฟ้าเข้ม = รายได้รวม · ส่วนฟ้าอ่อน = ต้นทุนรวม · ตัวเลขในแท่งแบบกราฟ ②
               options={chart3Options}
-              series={stackSeries([
-                ['รายได้รวม', (f) => toM(f.own + (mode === 'with_government' ? f.st : 0))],
+              series={stackSeries(grid3, [
+                ['รายได้รวม', (f) => toM(revOf(f))],
                 ['ต้นทุนรวม', (f) => toM(f.tc)],
               ])}
             />

@@ -371,3 +371,48 @@ export function splitLevelPctByFtes(
 
   return out;
 }
+
+/**
+ * เปิดหลักสูตรใหม่ภายใต้วิธีที่คณะล็อกไว้ (ผู้ใช้สั่ง 2026-10-24 — แทนการบังคับหารรายหัว)
+ * - รายหัว / หารเท่ากัน / กำหนด % รายระดับ: หลักสูตรใหม่เข้ากองกลางตามวิธีเดิม ไม่ต้องปรับ
+ * - กำหนด % รายหลักสูตร: หลักสูตรใหม่ได้ % เท่าหลักสูตรอ้างอิง (ไม่มีอ้างอิง = ตามสัดส่วนนิสิตในระดับ)
+ *   แล้วย่อ % ทุกหลักสูตรในระดับเดียวกันตามสัดส่วน ให้ % ของระดับเท่าที่คณะล็อกไว้ — ระดับอื่นไม่เปลี่ยน
+ *
+ * @returns ทางเลือกที่ใช้คำนวณ + คำอธิบายกติกา (null = ไม่ได้ปรับ หรือปรับไม่ได้ → engine แจ้งเอง)
+ */
+export function newProgramChoice(
+  c: AllocChoice,
+  buckets: readonly AllocBucket[],
+  refId: string | null,
+  level: string,
+): { choice: AllocChoice; note: string | null } {
+  if (c.method !== 'CUSTOM_PCT' || c.bucketLevel !== 'PROGRAM') return { choice: c, note: null };
+
+  const fresh = buckets.find((b) => b.hasNew);
+  const members = buckets.filter((b) => !b.hasNew && (b.group ?? '') === level);
+  const memberSum = members.reduce((a, b) => a + pctNum(c.pct[b.key]), 0);
+  const cap = c.levelPct?.[level] !== undefined ? pctNum(c.levelPct[level]) : memberSum;
+
+  if (!fresh || !members.length || !(cap > 0) || !(memberSum > 0)) return { choice: c, note: null };
+
+  const refPct = refId ? pctNum(c.pct[refId]) : NaN;
+  const fromRef = refPct > 0;
+  const qLevel = members.reduce((a, b) => a + b.q, 0);
+  // ดิบก่อนย่อ: % ของหลักสูตรอ้างอิง หรือ % ที่ทำให้หลังย่อได้สัดส่วนตามหัว (cap × q ใหม่ ÷ q ทั้งระดับ)
+  const raw = fromRef ? refPct : qLevel > 0 ? (memberSum * fresh.q) / qLevel : memberSum / members.length;
+  const k = cap / (memberSum + raw);
+  const scaled = Object.fromEntries(members.map((b) => [b.key, round4(pctNum(c.pct[b.key]) * k)]));
+  const newPct = round4(cap - Object.values(scaled).reduce((a, v) => a + v, 0));
+
+  return {
+    choice: {
+      ...c,
+      pct: {
+        ...c.pct,
+        ...Object.fromEntries(Object.entries(scaled).map(([key, v]) => [key, String(v)])),
+        [NEW_PROGRAM_ID]: String(newPct),
+      },
+    },
+    note: `หลักสูตรใหม่ได้ ${newPct}% ${fromRef ? `(เท่าหลักสูตรอ้างอิง ${refPct}% ก่อนย่อ)` : '(ตามสัดส่วนนิสิตในระดับ — ไม่มีหลักสูตรอ้างอิง)'} · หลักสูตร${level}เดิมย่อ % ลงตามสัดส่วนให้ระดับรวมยัง ${cap}% ตามที่คณะล็อก`,
+  };
+}

@@ -106,8 +106,6 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
         { label: 'ภาพรวมมหาวิทยาลัย', href: '/overview', icon: 'ri-bank-line', iconColor: T.blue },
         {
           label: 'ภาพรวมคณะ',
-          // กดชื่อ = ไปหน้า "ภาพรวม" (รายการแรก) · ลูกศรขวา = หุบ/ขยาย
-          href: '/faculty',
           icon: 'ri-building-2-line',
           iconColor: T.purple,
           // เข้ามาครั้งแรกให้กางไว้ก่อน

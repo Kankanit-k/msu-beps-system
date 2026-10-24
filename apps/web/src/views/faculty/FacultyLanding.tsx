@@ -31,6 +31,7 @@ import {
   CostDonut,
   REVENUE_SERIES,
   StackedProgramBar,
+  FIXED_COST_ALERT,
   TargetVsActualChart,
 } from './FacultyCharts';
 import FacultyStatusBar from './FacultyStatusBar';
@@ -61,7 +62,13 @@ const TileLink = ({ href, children }: { href?: string; children: ReactNode }) =>
     <Box
       component={Link}
       href={href}
-      sx={{ display: 'block', blockSize: '100%', textDecoration: 'none', borderRadius: 1, '&:hover': { boxShadow: 4 } }}
+      sx={{
+        display: 'block',
+        blockSize: '100%',
+        textDecoration: 'none',
+        borderRadius: 1,
+        '&:hover': { boxShadow: 4 },
+      }}
     >
       {children}
     </Box>
@@ -70,13 +77,24 @@ const TileLink = ({ href, children }: { href?: string; children: ReactNode }) =>
   );
 
 /** การ์ดกราฟ + ลิงก์ "ดูทั้งหมด" เมื่อตัดเหลืออันดับต้น */
-const ChartCard = ({ children, more }: { children: ReactNode; more?: { href: string; total: number } }) => (
-  <Card sx={{ blockSize: '100%' }}>
+const ChartCard = ({
+  children,
+  more,
+}: {
+  children: ReactNode;
+  more?: { href: string; total: number };
+}) => (
+  <Card sx={{ blockSize: '100%', overflow: 'visible' }}>
     <CardContent sx={{ pb: '12px !important' }}>
       {children}
       {more && more.total > TOP_N && (
         <Box sx={{ textAlign: 'end' }}>
-          <Button size="small" component={Link} href={more.href} endIcon={<i className="ri-arrow-right-line" />}>
+          <Button
+            size="small"
+            component={Link}
+            href={more.href}
+            endIcon={<i className="ri-arrow-right-line" />}
+          >
             ดูทั้งหมด {more.total} หลักสูตร
           </Button>
         </Box>
@@ -93,8 +111,20 @@ const topBy = (progs: ProgStat[], v: (x: ProgStat) => number) =>
  * ห้ามรวม ตรี/โท/เอก ในกราฟหรือตารางเดียวกัน · รายละเอียดอยู่ในเมนูย่อย
  */
 const FacultyLanding = () => {
-  const { fac, year, mode, levels, level, allProgs, progs, facRes, levelRes, lock, lockReady, openDetail } =
-    useFaculty();
+  const {
+    fac,
+    year,
+    mode,
+    levels,
+    level,
+    allProgs,
+    progs,
+    facRes,
+    levelRes,
+    lock,
+    lockReady,
+    openDetail,
+  } = useFaculty();
 
   const tr = facRes.tr;
   const stShare = fac.st + fac.own ? fac.st / (fac.st + fac.own) : 0;
@@ -110,6 +140,30 @@ const FacultyLanding = () => {
 
       {/* จังหวะที่ 1 · การ์ด 6 ใบ — ผลรวมทั้งคณะ */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="นิสิตปัจจุบัน"
+            value={fmtInt(facRes.q)}
+            suffix="คน"
+            accent="primary"
+            icon="ri-group-line"
+            footer={`${levels.map((l) => `${l.lvl.replace('ปริญญา', '')} ${fmtInt(l.Q)}`).join(' · ')} · ${allProgs.length} หลักสูตร`}
+            info={INFO.q}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+          <KpiTile
+            label="รายได้เฉลี่ยต่อหัว"
+            value={fmtInt(r)}
+            suffix="บาท"
+            accent="success"
+            color={BEPS.breakEven}
+            icon="ri-user-heart-line"
+            progress={costPerHead ? (r / costPerHead) * 100 : 0}
+            footer={`ต้นทุนต่อหัว ${fmtInt(costPerHead)} บาท`}
+            info={INFO.r}
+          />
+        </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <TileLink href="/faculty/revenue">
             <KpiTile
@@ -145,25 +199,13 @@ const FacultyLanding = () => {
           </TileLink>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <KpiTile
-            label="นิสิตปัจจุบัน"
-            value={fmtInt(facRes.q)}
-            suffix="คน"
-            accent="primary"
-            color={BEPS.compare.dark}
-            icon="ri-group-line"
-            footer={`${levels.map((l) => `${l.lvl.replace('ปริญญา', '')} ${fmtInt(l.Q)}`).join(' · ')} · ${allProgs.length} หลักสูตร`}
-            info={INFO.q}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <TileLink href="/faculty/breakeven">
             <KpiTile
               label="ส่วนเกิน / ขาดทุน"
               value={`${facRes.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(facRes.profit))}`}
               suffix="ลบ."
               accent={facRes.profit >= 0 ? 'success' : 'error'}
-              color={facRes.profit >= 0 ? BEPS.breakEven : undefined}
+              color={BEPS.profit}
               icon={facRes.profit >= 0 ? 'ri-arrow-up-circle-line' : 'ri-arrow-down-circle-line'}
               progress={tr ? (Math.abs(facRes.profit) / tr) * 100 : 0}
               footer={`${tr ? ((facRes.profit / tr) * 100).toFixed(1).replace('-', '−') : '0'}% ของรายได้ · ${REVENUE_MODE_LABEL[mode]}`}
@@ -172,24 +214,12 @@ const FacultyLanding = () => {
           </TileLink>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <KpiTile
-            label="รายได้เฉลี่ยต่อหัว"
-            value={fmtInt(r)}
-            suffix="บาท"
-            accent="primary"
-            color={BEPS.profit}
-            icon="ri-user-heart-line"
-            progress={costPerHead ? (r / costPerHead) * 100 : 0}
-            footer={`ต้นทุนต่อหัว ${fmtInt(costPerHead)} บาท`}
-            info={INFO.r}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <TileLink href="/faculty/config">
             <KpiTile
               label="สถานะการตั้งค่า"
               value={!lockReady ? '…' : method ? METHOD_SHORT[method] : 'ยังไม่ล็อก'}
               accent={method ? 'success' : 'warning'}
+              color={method ? BEPS.breakEven : undefined}
               icon={method ? 'ri-lock-line' : 'ri-lock-unlock-line'}
               footer={
                 method
@@ -206,7 +236,7 @@ const FacultyLanding = () => {
         <Card>
           <CardContent>
             <Typography color="text.secondary" align="center" sx={{ py: 8 }}>
-              คณะนี้ยังไม่มีหลักสูตรที่มีนิสิตในปีงบ {year} — เลือกคณะอื่นที่แถบด้านบน
+              คณะนี้ยังไม่มีหลักสูตรที่มีนิสิตในปีการศึกษา {year} — เลือกคณะอื่นที่แถบด้านบน
             </Typography>
           </CardContent>
         </Card>
@@ -222,9 +252,10 @@ const FacultyLanding = () => {
                   title={`โครงสร้างต้นทุน — ${level}`}
                   height={190}
                 />
-                {levelTfcShare > 0.5 && (
+                {levelTfcShare > FIXED_COST_ALERT && (
                   <Alert severity="warning" sx={{ mt: 2, py: 0 }}>
-                    ต้นทุนคงที่ {(levelTfcShare * 100).toFixed(0)}% ของต้นทุนรวม (เกิน 50%) — ต้องมีนิสิตมากพอจึงจะกระจายภาระได้
+                    ต้นทุนคงที่ {(levelTfcShare * 100).toFixed(0)}% ของต้นทุนรวม (เกิน{' '}
+                    {FIXED_COST_ALERT * 100}%) — ต้องมีนิสิตมากพอจึงจะกระจายภาระได้
                   </Alert>
                 )}
               </ChartCard>
@@ -257,7 +288,12 @@ const FacultyLanding = () => {
                   title={`จุดตัดคุ้มทุน — ${level}`}
                   info="จุดตัดของเส้นรายได้รวมกับเส้นต้นทุนรวม = จุดคุ้มทุน · จุดสีเข้ม = จำนวนนิสิตปัจจุบัน"
                 />
-                <BreakEvenLineChart res={levelRes} q={levelRes.q} height={CHART_H} palette={BE_LINE} />
+                <BreakEvenLineChart
+                  res={levelRes}
+                  q={levelRes.q}
+                  height={CHART_H}
+                  palette={BE_LINE}
+                />
               </ChartCard>
             </Grid>
           </Grid>

@@ -24,6 +24,7 @@ import { loadHistory } from '@views/scenario-program/historyStore';
 import { progOptionLabel } from '@views/scenario-program/programData';
 
 import ProgramDialog from './ProgramDialog';
+import type { DetailTab } from './ProgramDialog';
 
 export const FAC_NAMES = RAW.FACS.map((f) => f.name);
 
@@ -60,9 +61,10 @@ type FacultyCtx = {
   levelRes: BreakEvenResult;
   lock: FacultyLock | null;
   lockReady: boolean;
-  /** ผลหลังปรับล่าสุดที่บันทึกในเครื่องนี้ (key = progKey) */
+  /** ผลหลังปรับล่าสุดที่บันทึกในเบราว์เซอร์เครื่องนี้ (key = progKey) — รอย้ายลงฐานข้อมูล */
   after: Map<string, AfterResult>;
-  openDetail: (key?: string) => void;
+  /** เปิดป๊อปอัปหลักสูตร · tab = แท็บที่เปิดก่อน (ค่าเริ่ม จุดคุ้มทุน) */
+  openDetail: (key?: string, tab?: DetailTab) => void;
 };
 
 const Ctx = createContext<FacultyCtx | null>(null);
@@ -99,6 +101,7 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
   // ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล
   const [year, setYear] = useState(MOCK_RUN.budgetYear);
   const [detail, setDetail] = useState<ProgRow | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>('be');
   const [urlRead, setUrlRead] = useState(false);
 
   // อ่านค่าเริ่มจาก URL (เช่น ป็อปอัปอันดับคณะส่ง ?fac=ชื่อคณะ มา)
@@ -164,7 +167,11 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
     else q.delete('mode');
     const qs = q.toString();
 
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${qs ? `?${qs}` : ''}`,
+    );
   }, [urlRead, pathname, canPick, fac.name, level, mode]);
 
   // ผลหลังปรับ = รายการล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตรเดิม (เก็บในเบราว์เซอร์เครื่องนี้)
@@ -190,6 +197,7 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
       const valid = r.qStarStatus === 'normal' && r.qStar !== null && r.qStar > 0;
 
       out.set(key, {
+        q: r.q,
         qStar: r.qStar,
         profit: r.profit,
         valid,
@@ -223,15 +231,20 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
     lock,
     lockReady,
     after,
-    openDetail: (key) => setDetail(allProgs.find((x) => x.key === key)?.p ?? null),
+    openDetail: (key, tab = 'be') => {
+      setDetailTab(tab);
+      setDetail(allProgs.find((x) => x.key === key)?.p ?? null);
+    },
   };
 
   return (
     <Ctx.Provider value={value}>
       {children}
       <ProgramDialog
+        key={detail ? `${progKey(detail)}|${detailTab}` : 'none'}
         p={detail}
         after={detail ? after.get(progKey(detail)) : undefined}
+        initialTab={detailTab}
         onClose={() => setDetail(null)}
       />
     </Ctx.Provider>

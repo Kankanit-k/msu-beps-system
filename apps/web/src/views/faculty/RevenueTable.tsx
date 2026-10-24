@@ -73,7 +73,11 @@ const COLUMNS: { key?: SortKey; label: string; hint?: string }[] = [
   { key: 'Q', label: 'นิสิตปัจจุบัน', hint: 'คน · ตัดยอด ณ วันปิดลงทะเบียน' },
   { key: 'st', label: 'เงินงบประมาณแผ่นดิน (บาท)', hint: 'งบประมาณแผ่นดินที่ปันให้หลักสูตร' },
   { key: 'own', label: 'เงินรายได้ / ค่าเทอม (บาท)', hint: 'ค่าธรรมเนียมการศึกษา' },
-  { key: 'tr', label: 'รายได้รวม (บาท)', hint: 'ตามฐานรายได้ที่เลือกด้านบน — ไม่รวมแผ่นดิน = เงินรายได้อย่างเดียว' },
+  {
+    key: 'tr',
+    label: 'รายได้รวม (บาท)',
+    hint: 'ตามฐานรายได้ที่เลือกด้านบน — ไม่รวมแผ่นดิน = เงินรายได้อย่างเดียว',
+  },
   {
     key: 'dep',
     label: '% พึ่งพาเงินแผ่นดิน',
@@ -119,12 +123,15 @@ const RevenueTable = ({
   );
 
   const total = useMemo(() => {
-    const t = rows.reduce((a, r) => ({ Q: a.Q + r.Q, st: a.st + r.st, own: a.own + r.own, tr: a.tr + r.tr }), {
-      Q: 0,
-      st: 0,
-      own: 0,
-      tr: 0,
-    });
+    const t = rows.reduce(
+      (a, r) => ({ Q: a.Q + r.Q, st: a.st + r.st, own: a.own + r.own, tr: a.tr + r.tr }),
+      {
+        Q: 0,
+        st: 0,
+        own: 0,
+        tr: 0,
+      },
+    );
 
     return { ...t, dep: govDep(t.st, t.own) };
   }, [rows]);
@@ -162,7 +169,12 @@ const RevenueTable = ({
       <Box>
         <Stack spacing={2}>
           {pageRows.map((x) => (
-            <Card key={x.key} variant="outlined" onClick={() => onPick(x.key)} sx={{ p: 2.5, cursor: 'pointer' }}>
+            <Card
+              key={x.key}
+              variant="outlined"
+              onClick={() => onPick(x.key)}
+              sx={{ p: 2.5, cursor: 'pointer' }}
+            >
               <Typography fontWeight={600} sx={{ mb: 1 }}>
                 {x.p.prog}
               </Typography>
@@ -185,8 +197,8 @@ const RevenueTable = ({
           ))}
           <Card variant="outlined" sx={{ p: 2.5, bgcolor: 'action.hover' }}>
             <Typography fontWeight={700} className="num">
-              รวม {rows.length} หลักสูตร · นิสิต {fmtInt(total.Q)} คน · {fmtInt(total.tr)} บาท · พึ่งพาแผ่นดิน{' '}
-              {pct(total.dep)}
+              รวม {rows.length} หลักสูตร · นิสิต {fmtInt(total.Q)} คน · {fmtInt(total.tr)} บาท ·
+              พึ่งพาแผ่นดิน {pct(total.dep)}
             </Typography>
           </Card>
         </Stack>
@@ -201,7 +213,11 @@ const RevenueTable = ({
           <TableHead>
             <TableRow>
               {COLUMNS.map((c) => (
-                <TableCell key={c.label} align={c.key ? 'right' : undefined} sx={{ lineHeight: 1.3 }}>
+                <TableCell
+                  key={c.label}
+                  align={c.key ? 'right' : undefined}
+                  sx={{ lineHeight: 1.3 }}
+                >
                   {c.key ? (
                     <TableSortLabel
                       active={sortKey === c.key}
@@ -222,10 +238,22 @@ const RevenueTable = ({
             {pageRows.map((x) => (
               <TableRow key={x.key} hover onClick={() => onPick(x.key)} sx={{ cursor: 'pointer' }}>
                 <TableCell sx={{ maxWidth: 260, '& > *': { maxWidth: 260 } }}>
-                  <Typography variant="body2" fontWeight={600} color="primary.main" noWrap title={x.p.prog}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    color="primary.main"
+                    noWrap
+                    title={x.p.prog}
+                  >
                     {x.p.prog}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap component="div" title={x.p.deg}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    noWrap
+                    component="div"
+                    title={x.p.deg}
+                  >
                     {x.p.deg}
                   </Typography>
                 </TableCell>

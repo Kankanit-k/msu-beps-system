@@ -39,6 +39,9 @@ const DATA_LABEL = [
   .filter(Boolean)
   .join(' · ');
 
+/** ความสูงกล่องควบคุมบนแถบหัว (เท่ากับช่องกรอกขนาด small) */
+const CONTROL_H = 40;
+
 type Props = {
   /** ชื่อหน้า เช่น "รายได้รายคณะ" */
   title: string;
@@ -50,6 +53,8 @@ type Props = {
   profit: number;
   /** ส่ง = ชิปท้ายแสดงรายได้รวมแทนส่วนเกิน/ขาดทุน (หน้าที่เน้นขารายได้) */
   revenue?: number;
+  /** ส่ง = ชิปท้ายแสดงต้นทุนรวมแทนส่วนเกิน/ขาดทุน (หน้าที่เน้นขาต้นทุน) */
+  cost?: number;
   /** ชิปเพิ่มเติมของหน้านั้น (เช่น ปีงบ/วิธีปันส่วน) — วางก่อนชิปวันที่ของข้อมูล */
   extra?: ReactNode;
 };
@@ -58,7 +63,7 @@ type Props = {
  * แถบหัวหน้าจอ — ชื่อหน้า + สวิตช์ฐานรายได้ + วันที่ของข้อมูล + ชิปสรุป
  * ใช้ร่วมกันทุกหน้าที่อ่านตัวเลขจากรอบคำนวณเดียวกัน เพื่อไม่ให้แต่ละหน้าประกอบหัวเอง
  */
-const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, extra }: Props) => (
+const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, cost, extra }: Props) => (
   // ติดหัวจอเมื่อเลื่อน (แทนแถบโปรไฟล์ที่ตั้งเป็น static ใน themeConfig)
   <Box
     sx={{
@@ -85,6 +90,10 @@ const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, extra }:
         flexWrap: 'wrap',
         gap: 3,
         marginInlineStart: 'auto',
+        // ปุ่มฐานรายได้ + ช่องเลือก (ระดับ/คณะ/ปี) สูงเท่ากันทุกกล่อง
+        '& .MuiToggleButtonGroup-root .MuiToggleButton-root, & .MuiOutlinedInput-root': {
+          blockSize: CONTROL_H,
+        },
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -119,6 +128,13 @@ const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, extra }:
           variant="tonal"
           sx={{ bgcolor: 'rgb(130 106 249 / 0.14)', color: BEPS.revenue.dark }}
           label={`รายได้รวม ${fmtMillion(revenue)} ลบ.`}
+        />
+      ) : cost !== undefined ? (
+        <Chip
+          size="small"
+          variant="tonal"
+          sx={{ bgcolor: 'rgb(240 67 107 / 0.14)', color: BEPS.cost.dark }}
+          label={`ต้นทุนรวม ${fmtMillion(cost)} ลบ.`}
         />
       ) : (
       <Chip
