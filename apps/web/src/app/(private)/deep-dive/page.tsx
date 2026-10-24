@@ -1,9 +1,6 @@
-// Component Imports
-import SectionLanding from '@components/SectionLanding';
+'use client';
 
-// หน้าแรกหมวดเจาะลึกจุดคุ้มทุน (Landing — ข้อ 1.8) · การ์ดดึงจากเมนูซ้ายมือ กรองตามสิทธิ์
-const LandingPage = () => {
-  return <SectionLanding href="/deep-dive" />;
-};
+// หน้ารวมหมวดเจาะลึกจุดคุ้มทุน — หลักสูตรวิกฤต + บทวิเคราะห์ (แผน PLAN-2026-10-25-deep-dive)
+import { DeepDiveLanding } from '@views/deep-dive/DeepDivePages';
 
-export default LandingPage;
+export default DeepDiveLanding;

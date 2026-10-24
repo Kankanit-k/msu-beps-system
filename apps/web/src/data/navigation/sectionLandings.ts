@@ -13,7 +13,7 @@ export const LANDING_LINK_ICON = 'ri-layout-grid-line';
 export const sectionLandings: Record<string, { icon: string; desc: string }> = {
   '/deep-dive': {
     icon: 'ri-compass-3-line',
-    desc: 'ดูรายละเอียดจุดคุ้มทุนจากหลายมุม — รายคณะ ระดับการศึกษา หลักสูตร รายได้ และต้นทุน',
+    desc: 'เปรียบเทียบย้อนหลัง 5 ปีรายหลักสูตร — จุดคุ้มทุน รายได้ ต้นทุนรายหมวด และหลักสูตรที่ขาดทุนต่อเนื่อง',
   },
   '/scenario': {
     icon: 'ri-graduation-cap-line',
@@ -35,7 +35,19 @@ export const sectionLandings: Record<string, { icon: string; desc: string }> = {
 
 /** คำอธิบายของแต่ละหน้าบนการ์ด — desc = หน้านี้ทำอะไร · when = ใช้เมื่อไร */
 export const pageInfo: Record<string, { desc: string; when: string }> = {
-  // เจาะลึกจุดคุ้มทุน
+  // เจาะลึกจุดคุ้มทุน (ย้อนหลัง 5 ปี)
+  '/deep-dive/breakeven': {
+    desc: 'ส่วนเกิน/ขาดทุนรายหลักสูตรย้อนหลัง 5 ปี จัดอันดับขาดทุนต่อเนื่อง',
+    when: 'หาหลักสูตรวิกฤตเพื่อพิจารณายุบ ควบรวม หรือพัฒนา',
+  },
+  '/deep-dive/revenue': {
+    desc: 'ค่าเทอมและจำนวนนิสิตรายหลักสูตรย้อนหลัง 5 ปี',
+    when: 'ดูว่าหลักสูตรไหนรายได้โตหรือหดตัว',
+  },
+  '/deep-dive/cost': {
+    desc: 'ต้นทุนรายหลักสูตรแยกหมวดค่าใช้จ่ายตามผังบัญชี',
+    when: 'อยากรู้ว่าต้นทุนไปกองอยู่หมวดไหน',
+  },
   '/breakeven': {
     desc: 'จุดคุ้มทุนไล่จากคณะ → ระดับการศึกษา → หลักสูตร',
     when: 'อยากรู้ว่าหลักสูตรไหนรับนิสิตถึงจุดคุ้มทุนแล้ว',

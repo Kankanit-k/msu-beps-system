@@ -68,6 +68,11 @@ export const SHOW_SCENARIO_PROGRAM2: boolean = false;
 // Flip to true to bring it back.
 export const SHOW_COST_PAGE: boolean = false;
 
+// Hide the current-year pages that used to sit under "เจาะลึกจุดคุ้มทุน" (/breakeven, /breakeven/chart,
+// /revenue, /perhead, /cross) — the section became the 5-year history (มติ 2026-10-25) and these
+// duplicate ภาพรวมคณะ. The menu drops the links and the routes 404. Flip to true to bring them back.
+export const SHOW_CURRENT_YEAR_PAGES: boolean = false;
+
 // Hide the "ห้องจำลองแผนรับนิสิต" (/scenario/sandbox) page for every role for now — the menu drops
 // the link and the route 404s. Flip to true to bring it back.
 export const SHOW_SCENARIO_SANDBOX: boolean = false;

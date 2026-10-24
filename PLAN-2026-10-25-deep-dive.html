@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนเจาะลึกจุดคุ้มทุน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+nav.toc a:hover{border-color:var(--primary);color:var(--primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+td.c,th.c{text-align:center}
+.y{color:var(--ok);font-weight:700}.x{color:var(--no);font-weight:700}.p{color:var(--warn);font-weight:600}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.side{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.side h3{margin:0 0 8px;font-size:1rem}
+.sec{font-size:.75rem;letter-spacing:.04em;color:var(--muted);font-weight:700;margin:12px 0 4px;text-transform:uppercase}
+.item{padding:4px 8px;border-radius:6px;font-size:.92rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.item.new{background:var(--ok-soft)}
+.item.moved{background:var(--info-soft)}
+.item.gone{text-decoration:line-through;color:var(--muted)}
+.who{font-size:.72rem;color:var(--muted);white-space:nowrap}
+ol.steps{margin:0;padding-left:20px}
+ol.steps li{margin-bottom:10px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:.85rem}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem}
+.wire{border:2px dashed var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;background:var(--bg)}
+.wire .box{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--card);font-size:.9rem}
+.wire .row{display:grid;gap:10px}
+.wire .k4{grid-template-columns:repeat(4,1fr)}
+.wire .c84{grid-template-columns:2fr 1fr}
+@media (max-width:760px){.wire .k4{grid-template-columns:1fr 1fr}.wire .c84{grid-template-columns:1fr}}
+.wire .sticky{background:var(--primary-soft);border-color:var(--primary)}
+.wire small{color:var(--muted);display:block}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.wire .k3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:760px){.wire .k3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>แผนงาน: หมวด “เจาะลึกจุดคุ้มทุน” — เปรียบเทียบย้อนหลัง 5 ปี</h1>
+<p class="sub">MSU-BEPS · <code>/deep-dive/*</code> · จากเอกสาร “ภาพรวมเจาะลึกจุดคุ้มทุน.pdf” (มติที่ประชุม) เทียบกับโค้ดและข้อมูลปัจจุบัน · 25 ต.ค. 2569 · <b>ข้อ 10 ยืนยันแล้ว (ตามข้อเสนอทั้ง 6 ข้อ)</b> · โค้ด DD-1 ถึง DD-3 + DD-5 (ส่วนกฎ) ทำแล้ว 25 ต.ค.</p>
+
+<nav class="toc">
+<a href="#s1">1 ข้อสรุป</a><a href="#s2">2 มติ vs ของเดิม</a><a href="#s3">3 ข้อมูลที่มีจริง</a><a href="#s4">4 เมนูใหม่</a>
+<a href="#s5">5 โครงหน้า</a><a href="#s6">6 รายละเอียดแต่ละหน้า</a><a href="#s7">7 หลักสูตรวิกฤต + บทวิเคราะห์</a>
+<a href="#s8">8 สิทธิ์</a><a href="#s9">9 ลำดับงาน</a><a href="#s10">10 ต้องตัดสินใจ</a>
+</nav>
+
+<div class="card" id="s1">
+<h2><span class="n">1</span>ข้อสรุป</h2>
+<ul>
+<li>หมวด “เจาะลึกจุดคุ้มทุน” เปลี่ยนบทบาท: จาก <i>ดูปีปัจจุบันหลายมุม</i> → <b>เปรียบเทียบย้อนหลัง 5 ปีรายหลักสูตร</b> เพื่อหา <b>หลักสูตรวิกฤต</b> (ขาดทุนต่อเนื่อง 3–5 ปี) สำหรับพิจารณายุบ / ควบรวม / พัฒนา</li>
+<li>มี 3 หน้า (จุดคุ้มทุน · รายได้ · ต้นทุนรายหมวด) + กล่องบทวิเคราะห์ · ทุกหน้าใช้โครงเดียวกัน: <b>กราฟแนวโน้ม 2–3 กราฟด้านบน + ตาราง Matrix (แถว = หลักสูตร/หมวด · คอลัมน์ = 5 ปี) ด้านล่าง</b></li>
+<li><span class="tag t-no">ตัวกั้นหลัก</span> ระบบมีข้อมูล <b>ต้นทุน + จุดคุ้มทุน เพียงปีงบ 2568 ปีเดียว</b> · มีย้อนหลังจริงแค่ <b>ค่าเทอม 2563–2568</b> (ระบบทะเบียน) → หน้ารายได้ทำได้ทันที ส่วนหน้าต้นทุน/จุดคุ้มทุนต้องขอข้อมูลงบประมาณ 2564–2567 จากกองแผน/กองคลังก่อน (ข้อ 3)</li>
+<li>ข้อเสนอ: สร้างโครงทั้งหมวด + หน้ารายได้ด้วยข้อมูลจริงก่อน · หน้าต้นทุน/จุดคุ้มทุนแสดงปี 2568 พร้อมคอลัมน์ปีที่ยังไม่มีข้อมูลเป็น “รอข้อมูล” (ไม่ใช้ตัวเลขสมมติ)</li>
+</ul>
+</div>
+
+<div class="card" id="s2">
+<h2><span class="n">2</span>มติที่ประชุม vs ของเดิม</h2>
+<div class="scroll"><table>
+<tr><th>มติ</th><th>ของเดิมในระบบ</th><th class="c">สถานะ</th></tr>
+<tr><td>แยก “เจาะลึก” ออกจาก “วิเคราะห์จุดคุ้มทุน”</td><td>แยกเมนูกันอยู่แล้ว แต่เนื้อหาเจาะลึก (5 หน้า) เป็นข้อมูลปี 2568 ซ้ำกับภาพรวมคณะ</td><td class="c"><span class="tag t-warn">แก้ของเดิม</span></td></tr>
+<tr><td>1. จุดคุ้มทุนย้อนหลัง 5 ปี + กรองคุ้ม/ไม่คุ้ม + จัดอันดับขาดทุนต่อเนื่อง</td><td><code>/breakeven</code> drill คณะ→ระดับ→หลักสูตร ปีเดียว</td><td class="c"><span class="tag t-no">สร้างใหม่ + รอข้อมูล</span></td></tr>
+<tr><td>2. รายได้ย้อนหลัง 5 ปีรายหลักสูตร</td><td>ค่าเทอม 2563–2568 อยู่ในแท็บ /tuition (อ้างอิงเท่านั้น)</td><td class="c"><span class="tag t-ok">ข้อมูลพร้อม</span></td></tr>
+<tr><td>3. ต้นทุนย้อนหลัง 5 ปี แยกหมวดค่าใช้จ่ายตามผังบัญชี + รายหลักสูตร</td><td><code>programCostCats.ts</code> = หมวดรายจ่าย 100–900 รายหลักสูตร ปีงบ 2568 เท่านั้น</td><td class="c"><span class="tag t-no">สร้างใหม่ + รอข้อมูล</span></td></tr>
+<tr><td>4. กล่องบทวิเคราะห์ (Insight)</td><td>ไม่มี</td><td class="c"><span class="tag t-info">สร้างใหม่</span></td></tr>
+<tr><td>Layout กราฟบน / Matrix ล่าง</td><td>มีคอมโพเนนต์กราฟ + สี BEPS (ChartBits.tsx) ใช้ซ้ำได้ · ยังไม่มีตาราง Matrix หลายปี</td><td class="c"><span class="tag t-info">สร้างใหม่</span></td></tr>
+<tr><td>สิทธิ์: ม. เห็นทุกคณะ + filter · คณะ/อาจารย์ ล็อกคณะตน</td><td><code>lockedFacultyFor()</code> ใน accessControl.ts ทำแบบนี้อยู่แล้ว</td><td class="c"><span class="tag t-ok">ใช้ของเดิม</span></td></tr>
+</table></div>
+</div>
+
+<div class="card" id="s3">
+<h2><span class="n">3</span>ข้อค้นพบ: ข้อมูลย้อนหลังที่มีอยู่จริง</h2>
+<div class="scroll"><table>
+<tr><th>ข้อมูล</th><th class="c">2564</th><th class="c">2565</th><th class="c">2566</th><th class="c">2567</th><th class="c">2568</th><th>ที่มา / หมายเหตุ</th></tr>
+<tr><td>ค่าเทอม (ยอดเรียกเก็บจริง) + จำนวนนิสิต รายหลักสูตร</td><td class="c y">✓</td><td class="c y">✓</td><td class="c y">✓</td><td class="c y">✓</td><td class="c y">✓</td><td>tuitionHistory.ts (Oracle REG) · จับคู่ได้ 227/230 หลักสูตร · ปีเก่าต้องใช้ “ยอดตั้งบิล” เพราะอัตรา (วิธี 1/2) ไม่มีปีมีผล</td></tr>
+<tr><td>เงินงบประมาณแผ่นดิน (ส่วนแบ่งรายหลักสูตร)</td><td class="c x">✗</td><td class="c x">✗</td><td class="c x">✗</td><td class="c x">✗</td><td class="c y">✓</td><td>มีเฉพาะชีตปี 68</td></tr>
+<tr><td>งบรายจ่ายตามผังบัญชี 4 ระดับ (แผนงาน·หมวดงบ·หมวดรายจ่าย·ย่อย)</td><td class="c x">✗</td><td class="c x">✗</td><td class="c x">✗</td><td class="c x">✗</td><td class="c y">✓</td><td>แท็บ งบประมาณ68 (วงเงินอนุมัติ — ไม่ใช่ยอดใช้จ่ายจริง)</td></tr>
+<tr><td>กติกาแยกคงที่/ผันแปร (Masterแยกหมวด)</td><td class="c p">?</td><td class="c p">?</td><td class="c p">?</td><td class="c p">?</td><td class="c y">✓</td><td>ถ้าไม่มีรายปี ใช้กติกา 68 ย้อนหลังได้ (ระบบรองรับช่วงปีของกติกาอยู่แล้ว)</td></tr>
+<tr><td>ค่าเสื่อมราคา</td><td class="c x">✗</td><td class="c x">✗</td><td class="c x">✗</td><td class="c y">✓</td><td class="c y">✓</td><td>2567 ใช้คำนวณ · 2568 อ้างอิง (กองคลัง)</td></tr>
+</table></div>
+<div class="callout"><b>ผลกระทบ:</b> “ขาดทุนต่อเนื่อง 3–5 ปี” คำนวณไม่ได้จนกว่าจะได้ข้อมูลงบประมาณ + เงินแผ่นดิน อย่างน้อย 2566–2567 (3 ปี) · <b>ต้องขอจากกองแผน:</b> ไฟล์งบประมาณปี 64–67 รูปแบบเดียวกับแท็บ งบประมาณ68 (หรือ export ERP ตามคีย์ผังบัญชี 4 ระดับ) + การจัดสรรเงินแผ่นดินรายคณะรายปี + ค่าเสื่อม 64–66</div>
+<div class="callout info"><b>ปีไม่ตรงกัน:</b> รายได้ค่าเทอมนับตาม <b>ปีการศึกษา</b> ส่วนงบนับตาม <b>ปีงบประมาณ</b> (ต.ค.–ก.ย.) · ชีตเดิมจับคู่ ปีงบ 2568 ↔ นิสิต/ค่าเทอมปีการศึกษา 2568 → เสนอใช้การจับคู่แบบเดียวกันทุกปี และเขียนกำกับหัวคอลัมน์ให้ชัด (ข้อ 10-Q3)</div>
+</div>
+
+<div class="card" id="s4">
+<h2><span class="n">4</span>เมนูใหม่</h2>
+<div class="cols">
+<div class="side"><h3>เดิม</h3>
+<div class="sec">เจาะลึกจุดคุ้มทุน</div>
+<div class="item">หน้ารวม <span class="who">/deep-dive</span></div>
+<div class="item moved">คณะ · ระดับ · หลักสูตร <span class="who">/breakeven</span></div>
+<div class="item moved">กราฟจุดคุ้มทุน <span class="who">/breakeven/chart</span></div>
+<div class="item moved">รายได้รายคณะ <span class="who">/revenue</span></div>
+<div class="item moved">รายได้ vs ต้นทุนต่อหัว <span class="who">/perhead</span></div>
+<div class="item moved">วิเคราะห์เชิงเปรียบเทียบ <span class="who">/cross</span></div>
+</div>
+<div class="side"><h3>ใหม่ (ย้อนหลัง 5 ปี)</h3>
+<div class="sec">เจาะลึกจุดคุ้มทุน</div>
+<div class="item new">หน้ารวม — หลักสูตรวิกฤต + บทวิเคราะห์ <span class="who">/deep-dive</span></div>
+<div class="item new">จุดคุ้มทุนย้อนหลัง <span class="who">/deep-dive/breakeven</span></div>
+<div class="item new">รายได้ย้อนหลัง <span class="who">/deep-dive/revenue</span></div>
+<div class="item new">ต้นทุนย้อนหลังรายหมวด <span class="who">/deep-dive/cost</span></div>
+<div class="sec">หน้าปีปัจจุบันเดิม 5 หน้า</div>
+<div class="item moved">ย้ายเป็นกลุ่ม “มุมมองปีปัจจุบัน” ใต้ภาพรวม หรือซ่อนด้วย flag (ข้อ 10-Q1)</div>
+</div>
+</div>
+<div class="legend"><span class="tag t-ok">ใหม่</span><span class="tag t-info">ย้าย/ซ่อน</span></div>
+</div>
+
+<div class="card" id="s5">
+<h2><span class="n">5</span>โครงหน้า (ใช้ร่วมกันทั้ง 3 หน้า)</h2>
+<div class="wire">
+<div class="box sticky"><b>แถบกรองกลาง (HistoryFilterBar — ใช้ซ้ำทุกหน้า)</b><small>คณะ (ม. เลือกได้/ทั้งหมด · คณะล็อก) · ระดับ ตรี/โท/เอก (แท็บ ไม่ผสมระดับ) · สถานะ คุ้มทุน/ไม่คุ้มทุน/วิกฤต · โหมดเงินแผ่นดิน รวม/ไม่รวม · ค้นหาหลักสูตร — ค่ากรองอยู่ใน URL ไม่หายเมื่อเปลี่ยนหน้า</small></div>
+<div class="row k3">
+<div class="box">กราฟ 1<small>แนวโน้มหลัก 5 ปี (เส้น)</small></div>
+<div class="box">กราฟ 2<small>องค์ประกอบ/สัดส่วน (แท่งซ้อน)</small></div>
+<div class="box">กราฟ 3<small>จัดอันดับ Top 10 (แท่งนอน) — คลิกแล้วกรองตาราง</small></div>
+</div>
+<div class="box"><b>ตาราง Matrix</b><small>แถว = หลักสูตร (กางเป็นหมวดค่าใช้จ่ายได้) · คอลัมน์ = 2564 … 2568 · Δ% 5 ปี · sparkline · สถานะ · หัวคอลัมน์จัดเรียงได้ · คอลัมน์ชื่อหลักสูตรตรึงซ้าย · แบ่งหน้า 25 แถว · บนมือถือเป็นการ์ด · คลิกตัวเลข → ป็อปอัปรายละเอียดปีนั้น</small></div>
+</div>
+</div>
+
+<div class="card" id="s6">
+<h2><span class="n">6</span>รายละเอียดแต่ละหน้า</h2>
+<div class="scroll"><table>
+<tr><th>หน้า</th><th>กราฟด้านบน</th><th>Matrix ด้านล่าง</th><th class="c">ข้อมูล</th></tr>
+<tr><td><b>จุดคุ้มทุนย้อนหลัง</b></td><td>① กำไร/ขาดทุนรวมคณะ 5 ปี (เส้น) ② จำนวนหลักสูตรคุ้ม/ไม่คุ้ม/วิกฤต ต่อปี (แท่งซ้อน) ③ Top 10 ขาดทุนสะสม</td><td>หลักสูตร × ปี: กำไร/ขาดทุน (บวกเขียว/ลบแดง) · กางดู Q / Q* ต่อปี · คอลัมน์ “ขาดทุนติดต่อกัน (ปี)” + ขาดทุนสะสม · กรองคุ้ม/ไม่คุ้ม</td><td class="c"><span class="tag t-warn">2568 + รอ</span></td></tr>
+<tr><td><b>รายได้ย้อนหลัง</b></td><td>① รายได้ค่าเทอมรวม 5 ปี (เส้น) ② นิสิต vs รายได้ต่อหัว ③ Top 10 เติบโต/ลดลง (CAGR)</td><td>หลักสูตร × ปี: ค่าเทอมเรียกเก็บ · นิสิต · Δ% · เงินแผ่นดินเพิ่มเมื่อได้ข้อมูล</td><td class="c"><span class="tag t-ok">พร้อม</span></td></tr>
+<tr><td><b>ต้นทุนย้อนหลังรายหมวด</b></td><td>① ต้นทุนรวม 5 ปี แยกคงที่/ผันแปร ② สัดส่วนหมวดรายจ่าย (100 เงินเดือน · 210/220 ค่าจ้าง · 300 ค่าตอบแทน · 400 ใช้สอย · 410 สาธารณูปโภค · 500 วัสดุ · 600 ครุภัณฑ์ · 800/900) ③ หมวดที่โตเร็วสุด</td><td>หลักสูตร ▸ หมวดรายจ่าย × ปี · ไฮไลต์หมวดที่ &gt;50% ของต้นทุนหลักสูตร (cost driver) · ต้นทุนต่อหัว</td><td class="c"><span class="tag t-warn">2568 + รอ</span></td></tr>
+</table></div>
+</div>
+
+<div class="card" id="s7">
+<h2><span class="n">7</span>นิยามหลักสูตรวิกฤต + กล่องบทวิเคราะห์</h2>
+<div class="cols">
+<div>
+<b>สถานะต่อปี</b> = กำไร (รายได้ − ต้นทุนรวม) ตามโหมดเงินแผ่นดินที่เลือก
+<ul>
+<li><span class="tag t-no">วิกฤต</span> ขาดทุนติดต่อกัน ≥ 3 ปี นับถึงปีล่าสุด</li>
+<li><span class="tag t-warn">เฝ้าระวัง</span> ขาดทุน 1–2 ปีล่าสุด หรือรายได้ลดลงต่อเนื่อง 3 ปี</li>
+<li><span class="tag t-ok">คุ้มทุน</span> ปีล่าสุดกำไร</li>
+</ul>
+จัดอันดับ: จำนวนปีขาดทุนติดต่อกัน → ขาดทุนสะสม ฿ · หลักสูตรที่มีข้อมูลไม่ครบ 5 ปี (เปิดใหม่) แสดงป้าย “ข้อมูล n ปี”
+</div>
+<div>
+<b>บทวิเคราะห์ = กฎตายตัว (ไม่ใช้ AI)</b> สร้างประโยคจากข้อมูล เช่น
+<ul>
+<li>“คณะ X มีหลักสูตรวิกฤต 4 หลักสูตร ขาดทุนสะสม 5 ปีรวม 38.2 ล้านบาท”</li>
+<li>“ต้นทุนหลักสูตร Y กองที่ <b>เงินเดือน (100)</b> 62% และเพิ่มขึ้น 18% ใน 5 ปี ขณะที่นิสิตลดลง 30%”</li>
+<li>“ต้นทุนต่อหัวหลักสูตร Z สูงกว่าค่ากลางคณะ 2.1 เท่า” (เกณฑ์ผิดปกติ = 1.5 เท่า)</li>
+</ul>
+แต่ละประโยคคลิกได้ → กรองตารางไปที่หลักสูตรนั้น
+</div>
+</div>
+</div>
+
+<div class="card" id="s8">
+<h2><span class="n">8</span>สิทธิ์</h2>
+<table>
+<tr><th>บทบาท</th><th>เห็นอะไร</th></tr>
+<tr><td>universityExec · universityAdmin</td><td>ทุกคณะ · แถบกรองเลือกคณะหรือ “ทั้งมหาวิทยาลัย”</td></tr>
+<tr><td>facultyExec · deptAdmin · lecturer</td><td>ล็อกคณะตน (<code>lockedFacultyFor</code>) · อาจารย์เห็นทั้งคณะตามมติ (ไม่จำกัดเฉพาะหลักสูตรตน) — ไฮไลต์หลักสูตรตนเอง</td></tr>
+</table>
+<p class="sub" style="margin-top:8px">เส้นทาง /deep-dive/* เปิดให้ทุกบทบาทอยู่แล้ว · การล็อกคณะต้องทำทั้งฝั่ง UI และที่ตัวกรองข้อมูล (ไม่ใช่ซ่อนแค่ dropdown)</p>
+</div>
+
+<div class="card" id="s9">
+<h2><span class="n">9</span>ลำดับงาน</h2>
+<ol class="steps">
+<li><b>DD-0 ขอข้อมูล</b> (กองแผน/กองคลัง) — งบประมาณ 64–67 · เงินแผ่นดินรายคณะ · ค่าเสื่อม 64–66 · <span class="tag t-no">ตัวกั้น DD-4</span></li>
+<li><span class="tag t-ok">ทำแล้ว</span> <b>DD-1 โครงหมวด</b> — เมนูใหม่ + route 3 หน้า + หน้ารวม · HistoryFilterBar · MatrixTable (sticky col, กางแถว, แบ่งหน้า, การ์ดบนมือถือ) · empty state “รอข้อมูลปี …”</li>
+<li><span class="tag t-ok">ทำแล้ว</span> <b>DD-2 หน้ารายได้</b> — ข้อมูลจริง tuitionHistory 2564–2568 (ยอดเรียกเก็บ) · ใช้ได้ทันที</li>
+<li><span class="tag t-ok">ทำแล้ว</span> <b>DD-3 หน้าต้นทุน + จุดคุ้มทุน</b> — แสดงปี 2568 จาก RAW/programCostCats · ปีอื่น “รอข้อมูล”</li>
+<li><b>DD-4 ข้อมูลหลายปี</b> — แปลง import script ให้รับชีตรายปี → <code>RAW[ปี]</code> · ใช้ calc engine เดิมคำนวณทีละปี (ไม่เขียนสูตรใหม่) · เทสต์ว่าปี 2568 ยังเท่าชีต</li>
+<li><span class="tag t-warn">โค้ดพร้อม · รอข้อมูลหลายปี</span> <b>DD-5 วิกฤต + บทวิเคราะห์</b> — streak/ขาดทุนสะสม · กฎ insight · ป้ายสถานะ</li>
+<li><span class="tag t-warn">บางส่วน</span> <b>DD-6 ทดสอบ 5 บทบาท</b> (ทดสอบแล้ว: universityAdmin · facultyExec ล็อกคณะ · universityExec มือถือ) — เปิดหน้าจริงด้วย Playwright ทุกบทบาท ตรวจการล็อกคณะ</li>
+</ol>
+<p class="sub" style="margin-top:8px">ไฟล์: <code>apps/web/src/views/deep-dive/</code> (deepDiveData · DeepDiveContext · HistoryFilterBar · MatrixTable · DeepDiveCharts · DeepDivePages · insights) · เพิ่มปีงบ = เพิ่มใน <code>COST_YEARS</code> + ข้อมูลรายปี · หน้าปีปัจจุบันเดิมซ่อนด้วย <code>SHOW_CURRENT_YEAR_PAGES</code></p>
+</div>
+
+<div class="card" id="s10">
+<h2><span class="n">10</span>ข้อสรุป (ยืนยันแล้ว 25 ต.ค. — ใช้ตามที่เสนอทั้ง 6 ข้อ)</h2>
+<div class="q"><b>Q1 · หน้าปีปัจจุบันเดิม 5 หน้า (/breakeven, /breakeven/chart, /revenue, /perhead, /cross) ไปไหน?</b><span class="rec">เสนอ: ซ่อนด้วย flag (ข้อมูลซ้ำกับภาพรวมคณะ 4 หน้าย่อย) — เก็บโค้ดไว้ เปิดคืนได้</span></div>
+<div class="q"><b>Q2 · ช่วงปีที่แสดง</b><span class="rec">เสนอ: 2564–2568 (5 ปีล่าสุดที่ปิดแล้ว) · ปีที่ไม่มีข้อมูลแสดง “รอข้อมูล” ไม่ใช้ตัวเลขประมาณ</span></div>
+<div class="q"><b>Q3 · จับคู่ปีงบประมาณกับปีการศึกษา</b><span class="rec">เสนอ: ปีงบ N ↔ ปีการศึกษา N เหมือนชีตเดิม · หัวคอลัมน์เขียน “ปีงบ/ปีการศึกษา 2568”</span></div>
+<div class="q"><b>Q4 · “ค่าใช้จ่ายจริง” = วงเงินอนุมัติ หรือ ยอดเบิกจ่ายจริง?</b><span class="rec">เสนอ: ใช้วงเงินอนุมัติแบบเดียวกับปี 2568 เพื่อให้เทียบกันได้ทุกปี · ถ้ากองคลังมียอดเบิกจ่ายจริงค่อยเพิ่มเป็นสวิตช์</span></div>
+<div class="q"><b>Q5 · เกณฑ์วิกฤต</b><span class="rec">เสนอ: ขาดทุนติดต่อกัน ≥ 3 ปี (โหมดรวมเงินแผ่นดิน) · เฝ้าระวัง 1–2 ปี · ปรับเกณฑ์ได้ภายหลัง</span></div>
+<div class="q"><b>Q6 · ระหว่างรอข้อมูล ทำหน้ารายได้ก่อนเลยไหม?</b><span class="rec">เสนอ: ทำ DD-1 → DD-3 ทันที (โครง + รายได้จริง + ต้นทุน/BE ปี 68) แล้วต่อ DD-4 เมื่อได้ไฟล์</span></div>
+</div>
+
+</div>
+</body>
+</html>

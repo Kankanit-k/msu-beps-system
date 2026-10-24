@@ -4,6 +4,7 @@ import {
   DEFAULT_ROLE,
   SHOW_ABOUT_PAGE,
   SHOW_COST_PAGE,
+  SHOW_CURRENT_YEAR_PAGES,
   SHOW_FIXED_COST_POLICY,
   SHOW_SCENARIO_PROGRAM2,
   SHOW_SCENARIO_SANDBOX,
@@ -112,10 +113,30 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           defaultOpen: true,
           children: [
             { label: 'ภาพรวม', href: '/faculty', icon: 'ri-building-2-line', iconColor: T.purple },
-            { label: 'รายได้', href: '/faculty/revenue', icon: 'ri-hand-coin-line', iconColor: T.purple },
-            { label: 'ต้นทุน / ค่าใช้จ่าย', href: '/faculty/cost', icon: 'ri-stack-line', iconColor: T.pink },
-            { label: 'จุดคุ้มทุน', href: '/faculty/breakeven', icon: 'ri-focus-3-line', iconColor: T.teal },
-            { label: 'การตั้งค่าคณะ', href: '/faculty/config', icon: 'ri-settings-3-line', iconColor: T.navy },
+            {
+              label: 'รายได้',
+              href: '/faculty/revenue',
+              icon: 'ri-hand-coin-line',
+              iconColor: T.purple,
+            },
+            {
+              label: 'ต้นทุน / ค่าใช้จ่าย',
+              href: '/faculty/cost',
+              icon: 'ri-stack-line',
+              iconColor: T.pink,
+            },
+            {
+              label: 'จุดคุ้มทุน',
+              href: '/faculty/breakeven',
+              icon: 'ri-focus-3-line',
+              iconColor: T.teal,
+            },
+            {
+              label: 'การตั้งค่าคณะ',
+              href: '/faculty/config',
+              icon: 'ri-settings-3-line',
+              iconColor: T.navy,
+            },
           ],
         },
       ],
@@ -131,13 +152,75 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           icon: 'ri-compass-3-line',
           iconColor: T.teal,
           children: [
-            { label: 'หน้ารวม', href: '/deep-dive', icon: LANDING_LINK_ICON, iconColor: T.navy },
-            { label: 'คณะ · ระดับ · หลักสูตร', href: '/breakeven', icon: 'ri-node-tree', iconColor: T.teal },
-            { label: 'กราฟจุดคุ้มทุน', href: '/breakeven/chart', icon: 'ri-line-chart-line', iconColor: T.purple },
-            { label: 'รายได้รายคณะ', href: '/revenue', icon: 'ri-hand-coin-line', iconColor: T.orange },
-            ...(SHOW_COST_PAGE ? [{ label: 'โครงสร้างต้นทุน', href: '/cost', icon: 'ri-stack-line', iconColor: T.pink }] : []),
-            { label: 'รายได้ vs ต้นทุนต่อหัว', href: '/perhead', icon: 'ri-scales-3-line', iconColor: T.navy },
-            { label: 'วิเคราะห์เชิงเปรียบเทียบ', href: '/cross', icon: 'ri-bar-chart-grouped-line', iconColor: T.blue },
+            {
+              label: 'หน้ารวม · หลักสูตรวิกฤต',
+              href: '/deep-dive',
+              icon: LANDING_LINK_ICON,
+              iconColor: T.navy,
+            },
+            {
+              label: 'จุดคุ้มทุนย้อนหลัง',
+              href: '/deep-dive/breakeven',
+              icon: 'ri-focus-3-line',
+              iconColor: T.teal,
+            },
+            {
+              label: 'รายได้ย้อนหลัง',
+              href: '/deep-dive/revenue',
+              icon: 'ri-hand-coin-line',
+              iconColor: T.orange,
+            },
+            {
+              label: 'ต้นทุนย้อนหลังรายหมวด',
+              href: '/deep-dive/cost',
+              icon: 'ri-stack-line',
+              iconColor: T.pink,
+            },
+            // หน้าปีปัจจุบันเดิม — ซ้ำกับภาพรวมคณะ ซ่อนไว้ (มติ 2026-10-25)
+            ...(SHOW_CURRENT_YEAR_PAGES
+              ? [
+                  {
+                    label: 'คณะ · ระดับ · หลักสูตร',
+                    href: '/breakeven',
+                    icon: 'ri-node-tree',
+                    iconColor: T.teal,
+                  },
+                  {
+                    label: 'กราฟจุดคุ้มทุน',
+                    href: '/breakeven/chart',
+                    icon: 'ri-line-chart-line',
+                    iconColor: T.purple,
+                  },
+                  {
+                    label: 'รายได้รายคณะ',
+                    href: '/revenue',
+                    icon: 'ri-hand-coin-line',
+                    iconColor: T.orange,
+                  },
+                  ...(SHOW_COST_PAGE
+                    ? [
+                        {
+                          label: 'โครงสร้างต้นทุน',
+                          href: '/cost',
+                          icon: 'ri-stack-line',
+                          iconColor: T.pink,
+                        },
+                      ]
+                    : []),
+                  {
+                    label: 'รายได้ vs ต้นทุนต่อหัว',
+                    href: '/perhead',
+                    icon: 'ri-scales-3-line',
+                    iconColor: T.navy,
+                  },
+                  {
+                    label: 'วิเคราะห์เชิงเปรียบเทียบ',
+                    href: '/cross',
+                    icon: 'ri-bar-chart-grouped-line',
+                    iconColor: T.blue,
+                  },
+                ]
+              : []),
           ],
         },
         {
@@ -146,17 +229,53 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           iconColor: T.blue,
           children: [
             { label: 'หน้ารวม', href: '/scenario', icon: LANDING_LINK_ICON, iconColor: T.navy },
-            { label: 'หลักสูตรเดิม', href: '/scenario/program/improve', icon: 'ri-graduation-cap-line', iconColor: T.blue },
-            { label: 'หลักสูตรใหม่', href: '/scenario/program/new', icon: 'ri-sparkling-line', iconColor: T.purple },
+            {
+              label: 'หลักสูตรเดิม',
+              href: '/scenario/program/improve',
+              icon: 'ri-graduation-cap-line',
+              iconColor: T.blue,
+            },
+            {
+              label: 'หลักสูตรใหม่',
+              href: '/scenario/program/new',
+              icon: 'ri-sparkling-line',
+              iconColor: T.purple,
+            },
             ...(SHOW_SCENARIO_PROGRAM2
-              ? [{ label: 'ปรับปรุงหลักสูตร (ปรับ 3 ทาง)', href: '/scenario/program2', icon: 'ri-focus-3-line', iconColor: T.teal }]
+              ? [
+                  {
+                    label: 'ปรับปรุงหลักสูตร (ปรับ 3 ทาง)',
+                    href: '/scenario/program2',
+                    icon: 'ri-focus-3-line',
+                    iconColor: T.teal,
+                  },
+                ]
               : []),
-            { label: 'รายคณะ', href: '/scenario/faculty', icon: 'ri-calculator-line', iconColor: T.teal },
+            {
+              label: 'รายคณะ',
+              href: '/scenario/faculty',
+              icon: 'ri-calculator-line',
+              iconColor: T.teal,
+            },
             ...(SHOW_SCENARIO_SANDBOX
-              ? [{ label: 'ห้องจำลองแผนรับนิสิต', href: '/scenario/sandbox', icon: 'ri-flask-line', iconColor: T.pink }]
+              ? [
+                  {
+                    label: 'ห้องจำลองแผนรับนิสิต',
+                    href: '/scenario/sandbox',
+                    icon: 'ri-flask-line',
+                    iconColor: T.pink,
+                  },
+                ]
               : []),
             ...(SHOW_ADMISSION_PLAN
-              ? [{ label: 'แผนการรับนิสิต', href: '/scenario/admission-plan', icon: 'ri-team-line', iconColor: T.orange }]
+              ? [
+                  {
+                    label: 'แผนการรับนิสิต',
+                    href: '/scenario/admission-plan',
+                    icon: 'ri-team-line',
+                    iconColor: T.orange,
+                  },
+                ]
               : []),
           ],
         },
@@ -174,17 +293,54 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           iconColor: T.navy,
           children: [
             { label: 'หน้ารวม', href: '/admin', icon: LANDING_LINK_ICON, iconColor: T.navy },
-            { label: 'วิธีปันส่วน (คณะ)', href: '/admin/fixed-cost-lock', icon: 'ri-lock-line', iconColor: T.pink },
-            { label: 'นโยบายการคำนวณ', href: '/admin/university/settings', icon: 'ri-settings-3-line', iconColor: T.blue },
-            { label: 'กติกาผังบัญชี', href: '/admin/university/account-rules', icon: 'ri-file-list-3-line', iconColor: T.orange },
+            {
+              label: 'วิธีปันส่วน (คณะ)',
+              href: '/admin/fixed-cost-lock',
+              icon: 'ri-lock-line',
+              iconColor: T.pink,
+            },
+            {
+              label: 'นโยบายการคำนวณ',
+              href: '/admin/university/settings',
+              icon: 'ri-settings-3-line',
+              iconColor: T.blue,
+            },
+            {
+              label: 'กติกาผังบัญชี',
+              href: '/admin/university/account-rules',
+              icon: 'ri-file-list-3-line',
+              iconColor: T.orange,
+            },
             ...(SHOW_ALLOCATION_SECTION
               ? [
                   ...(SHOW_FIXED_COST_POLICY
-                    ? [{ label: 'นโยบายต้นทุนคงที่', href: '/admin/fixed-cost-policy', icon: 'ri-pushpin-line', iconColor: T.purple }]
+                    ? [
+                        {
+                          label: 'นโยบายต้นทุนคงที่',
+                          href: '/admin/fixed-cost-policy',
+                          icon: 'ri-pushpin-line',
+                          iconColor: T.purple,
+                        },
+                      ]
                     : []),
-                  { label: 'คอนโซลรอบคำนวณ', href: '/admin/allocation-run', icon: 'ri-rocket-line', iconColor: T.blue },
-                  { label: 'ผลตรวจยอด', href: '/admin/reconciliation', icon: 'ri-checkbox-circle-line', iconColor: T.teal },
-                  { label: 'รายการค้างตรวจ', href: '/admin/exceptions', icon: 'ri-error-warning-line', iconColor: T.orange },
+                  {
+                    label: 'คอนโซลรอบคำนวณ',
+                    href: '/admin/allocation-run',
+                    icon: 'ri-rocket-line',
+                    iconColor: T.blue,
+                  },
+                  {
+                    label: 'ผลตรวจยอด',
+                    href: '/admin/reconciliation',
+                    icon: 'ri-checkbox-circle-line',
+                    iconColor: T.teal,
+                  },
+                  {
+                    label: 'รายการค้างตรวจ',
+                    href: '/admin/exceptions',
+                    icon: 'ri-error-warning-line',
+                    iconColor: T.orange,
+                  },
                 ]
               : []),
           ],
@@ -194,15 +350,50 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           icon: 'ri-database-2-line',
           iconColor: T.pink,
           children: [
-            { label: 'หน้ารวม', href: '/admin/university', icon: LANDING_LINK_ICON, iconColor: T.navy },
+            {
+              label: 'หน้ารวม',
+              href: '/admin/university',
+              icon: LANDING_LINK_ICON,
+              iconColor: T.navy,
+            },
             { label: 'ค่าธรรมเนียม', href: '/tuition', icon: 'ri-bill-line', iconColor: T.orange },
-            { label: 'ข้อมูลต้นทุน', href: '/cost-data', icon: 'ri-database-2-line', iconColor: T.pink },
-            { label: 'ทะเบียนหลักสูตร', href: '/programs', icon: 'ri-book-2-line', iconColor: T.purple },
-            { label: 'ทะเบียนกลาง', href: '/admin/university/master-data', icon: 'ri-archive-drawer-line', iconColor: T.teal },
-            { label: 'ผังบัญชี ERP', href: '/admin/university/erp-accounts', icon: 'ri-links-line', iconColor: T.blue },
-            { label: 'จัดการหน่วยงาน', href: '/admin/university/units', icon: 'ri-government-line', iconColor: T.navy },
+            {
+              label: 'ข้อมูลต้นทุน',
+              href: '/cost-data',
+              icon: 'ri-database-2-line',
+              iconColor: T.pink,
+            },
+            {
+              label: 'ทะเบียนหลักสูตร',
+              href: '/programs',
+              icon: 'ri-book-2-line',
+              iconColor: T.purple,
+            },
+            {
+              label: 'ทะเบียนกลาง',
+              href: '/admin/university/master-data',
+              icon: 'ri-archive-drawer-line',
+              iconColor: T.teal,
+            },
+            {
+              label: 'ผังบัญชี ERP',
+              href: '/admin/university/erp-accounts',
+              icon: 'ri-links-line',
+              iconColor: T.blue,
+            },
+            {
+              label: 'จัดการหน่วยงาน',
+              href: '/admin/university/units',
+              icon: 'ri-government-line',
+              iconColor: T.navy,
+            },
             { label: 'ผู้ใช้งาน', href: '/users', icon: 'ri-user-line', iconColor: T.blue },
-            { label: 'จัดการผู้ใช้', href: '/admin/users', icon: 'ri-shield-user-line', iconColor: T.pink },
+            {
+              label: 'จัดการผู้ใช้',
+              href: '/admin/users',
+              icon: 'ri-shield-user-line',
+              iconColor: T.pink,
+            },
           ],
         },
         // ── อื่น ๆ — สูตรจะย้ายไปเป็นป็อปอัปในแต่ละหน้า (ข้อ 1.5) ──
@@ -212,8 +403,22 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           iconColor: T.orange,
           children: [
             { label: 'หน้ารวม', href: '/more', icon: LANDING_LINK_ICON, iconColor: T.navy },
-            { label: 'สูตร & หลักวิชาการ', href: '/method', icon: 'ri-functions', iconColor: T.purple },
-            ...(SHOW_ABOUT_PAGE ? [{ label: 'เกี่ยวกับเรา', href: '/about', icon: 'ri-lightbulb-line', iconColor: T.orange }] : []),
+            {
+              label: 'สูตร & หลักวิชาการ',
+              href: '/method',
+              icon: 'ri-functions',
+              iconColor: T.purple,
+            },
+            ...(SHOW_ABOUT_PAGE
+              ? [
+                  {
+                    label: 'เกี่ยวกับเรา',
+                    href: '/about',
+                    icon: 'ri-lightbulb-line',
+                    iconColor: T.orange,
+                  },
+                ]
+              : []),
           ],
         },
       ],

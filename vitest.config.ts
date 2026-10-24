@@ -4,7 +4,12 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   // alias '@/' ของแอป web — ให้เทสต์ import โมดูลที่อ้างข้อมูลใน apps/web/src ได้
-  resolve: { alias: { '@/': fileURLToPath(new URL('./apps/web/src/', import.meta.url)) } },
+  resolve: {
+    alias: {
+      '@/': fileURLToPath(new URL('./apps/web/src/', import.meta.url)),
+      '@views/': fileURLToPath(new URL('./apps/web/src/views/', import.meta.url)),
+    },
+  },
   test: {
     include: ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.ts'],
     coverage: {
