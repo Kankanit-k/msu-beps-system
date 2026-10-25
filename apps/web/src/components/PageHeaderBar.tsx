@@ -57,13 +57,25 @@ type Props = {
   cost?: number;
   /** ชิปเพิ่มเติมของหน้านั้น (เช่น ปีงบ/วิธีปันส่วน) — วางก่อนชิปวันที่ของข้อมูล */
   extra?: ReactNode;
+  /** แถวเต็มความกว้างใต้หัวหน้า ติดหัวจอไปด้วย (เช่น แถบขั้นตอน) */
+  below?: ReactNode;
 };
 
 /**
  * แถบหัวหน้าจอ — ชื่อหน้า + สวิตช์ฐานรายได้ + วันที่ของข้อมูล + ชิปสรุป
  * ใช้ร่วมกันทุกหน้าที่อ่านตัวเลขจากรอบคำนวณเดียวกัน เพื่อไม่ให้แต่ละหน้าประกอบหัวเอง
  */
-const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, cost, extra }: Props) => (
+const PageHeaderBar = ({
+  title,
+  mode,
+  onModeChange,
+  q,
+  profit,
+  revenue,
+  cost,
+  extra,
+  below,
+}: Props) => (
   // ติดหัวจอเมื่อเลื่อน (แทนแถบโปรไฟล์ที่ตั้งเป็น static ใน themeConfig)
   <Box
     sx={{
@@ -147,6 +159,7 @@ const PageHeaderBar = ({ title, mode, onModeChange, q, profit, revenue, cost, ex
       />
       )}
     </Box>
+    {below && <Box sx={{ flexBasis: '100%', minWidth: 0 }}>{below}</Box>}
   </Box>
 );
 

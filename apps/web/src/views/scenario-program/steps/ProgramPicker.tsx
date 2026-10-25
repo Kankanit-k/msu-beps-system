@@ -77,10 +77,13 @@ export interface ProgramPickerProps {
   compact?: boolean;
   /** ยืนยันขั้นที่ 1 แล้ว — ล็อกทุกช่อง */
   disabled?: boolean;
+  /** ล็อกเฉพาะ คณะ/ระดับ/หลักสูตร (อาจารย์ — ระบบเลือกหลักสูตรของตนให้) · เทอม/ปียังแก้ได้ */
+  lockProgram?: boolean;
 }
 
 const ProgramPicker = (props: ProgramPickerProps) => {
   const { fac, level, refOptions, refProg, compact, disabled } = props;
+  const pickLocked = disabled || props.lockProgram;
   // ฟอร์มเต็มความกว้าง: เรียงบรรทัดเดียวตามลำดับที่ต้องเลือก คณะ → ระดับ → หลักสูตร · ช่องแคบ (compact) แบ่ง 2 บรรทัด
   const size = compact
     ? { fac: { xs: 12, sm: 5 }, level: { xs: 8, sm: 4 }, prog: 12, sem: { xs: 4, sm: 3 } }
@@ -94,7 +97,7 @@ const ProgramPicker = (props: ProgramPickerProps) => {
             size="small"
             options={props.facultyOptions}
             value={fac}
-            disabled={disabled}
+            disabled={pickLocked}
             onChange={(_, v) => props.onFacChange(v)}
             renderInput={(params) => <TextField {...params} label="คณะ / วิทยาลัย" required />}
           />
@@ -105,7 +108,7 @@ const ProgramPicker = (props: ProgramPickerProps) => {
             disableClearable
             options={EDUCATION_LEVELS}
             value={level}
-            disabled={disabled}
+            disabled={pickLocked}
             onChange={(_, v) => props.onLevelChange(v)}
             renderInput={(params) => <TextField {...params} label="ระดับ" required />}
           />
@@ -130,7 +133,7 @@ const ProgramPicker = (props: ProgramPickerProps) => {
             getOptionLabel={progOptionLabel}
             isOptionEqualToValue={(a, b) => a === b}
             value={refProg}
-            disabled={disabled || !fac}
+            disabled={pickLocked || !fac}
             onChange={(_, v) => props.onRefChange(v)}
             noOptionsText={`ไม่มีหลักสูตร${level}ในคณะนี้`}
             renderInput={(params) => (

@@ -21,6 +21,7 @@ import type { AfterResult } from '@views/cross/CrossPanels';
 import { useFacultyLock } from '@views/fixed-cost-lock/lockStore';
 import type { FacultyLock } from '@views/fixed-cost-lock/lockStore';
 import { loadHistory } from '@views/scenario-program/historyStore';
+import { isSubmitted } from '@views/scenario-program/types';
 import { progOptionLabel } from '@views/scenario-program/programData';
 
 import ProgramDialog from './ProgramDialog';
@@ -61,7 +62,7 @@ type FacultyCtx = {
   levelRes: BreakEvenResult;
   lock: FacultyLock | null;
   lockReady: boolean;
-  /** ผลหลังปรับล่าสุดที่บันทึกในเบราว์เซอร์เครื่องนี้ (key = progKey) — รอย้ายลงฐานข้อมูล */
+  /** ผลหลังปรับที่บันทึกในเบราว์เซอร์เครื่องนี้ (key = progKey) — ยืนยันแล้วก่อน ไม่มีจึงใช้ร่างล่าสุด · รอย้ายลงฐานข้อมูล */
   after: Map<string, AfterResult>;
   /** เปิดป๊อปอัปหลักสูตร · tab = แท็บที่เปิดก่อน (ค่าเริ่ม จุดคุ้มทุน) */
   openDetail: (key?: string, tab?: DetailTab) => void;
@@ -174,7 +175,7 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [urlRead, pathname, canPick, fac.name, level, mode]);
 
-  // ผลหลังปรับ = รายการล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตรเดิม (เก็บในเบราว์เซอร์เครื่องนี้)
+  // ผลหลังปรับ (D8) = รายการที่ยืนยัน (SUBMITTED) ล่าสุด · ไม่มี → ร่างล่าสุด (ติดป้าย "ร่าง") — เก็บในเบราว์เซอร์เครื่องนี้
   const [history, setHistory] = useState<ReturnType<typeof loadHistory>>([]);
 
   useEffect(() => setHistory(loadHistory()), []);
@@ -183,14 +184,15 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
     const out = new Map<string, AfterResult>();
 
     allProgs.forEach(({ p, key }) => {
-      const hit = history
+      const mine = history
         .filter(
           (h) =>
             !h.isNew &&
             h.fac === p.fac &&
             (h.ref ? h.ref === progOptionLabel(p) : h.name === p.prog && h.level === p.lvl),
         )
-        .sort((a, b) => b.id - a.id)[0];
+        .sort((a, b) => b.id - a.id);
+      const hit = mine.find(isSubmitted) ?? mine[0];
 
       if (!hit) return;
       const r = mode === 'with_government' ? hit.withGov : hit.withoutGov;
@@ -200,6 +202,9 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
         q: r.q,
         qStar: r.qStar,
         profit: r.profit,
+        tr: r.tr,
+        tc: r.tc,
+        draft: !isSubmitted(hit),
         valid,
         ok: valid && r.q >= (r.qStar ?? 0),
         savedAt: hit.time,

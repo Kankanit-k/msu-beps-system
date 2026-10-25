@@ -12,10 +12,10 @@ import Dialog from '@mui/material/Dialog';
 import IconButton from '@mui/material/IconButton';
 
 import ProgramReport from './ProgramReport';
-import type { ProgramHistoryEntry } from './types';
+import { isSubmitted, type ProgramHistoryEntry } from './types';
 
-const fileName = (name: string) =>
-  `รายงานจุดคุ้มทุน_${(name || 'รายงาน').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 60)}.pdf`;
+const fileName = (name: string, draft: boolean) =>
+  `รายงานจุดคุ้มทุน_${(name || 'รายงาน').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 60)}${draft ? '_ฉบับร่าง' : ''}.pdf`;
 
 interface Props {
   entry: ProgramHistoryEntry | null;
@@ -28,6 +28,8 @@ interface Props {
 const ReportPreviewDialog = ({ entry, onClose, onPrint, onToast }: Props) => {
   const reportRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  // ยังไม่ยืนยัน = ฉบับร่าง (ลายน้ำอยู่ใน ProgramReport ทั้งพรีวิว/PDF/งานพิมพ์)
+  const draft = !entry || !isSubmitted(entry);
 
   const download = async () => {
     const pages = reportRef.current?.querySelectorAll<HTMLElement>('[data-report-page]');
@@ -60,10 +62,12 @@ const ReportPreviewDialog = ({ entry, onClose, onPrint, onToast }: Props) => {
         );
       }
 
-      pdf.save(fileName(entry.name));
+      pdf.save(fileName(entry.name, draft));
       onToast('ดาวน์โหลดรายงาน PDF แล้ว');
     } catch {
-      onToast('สร้างไฟล์ PDF ไม่สำเร็จ — ใช้ปุ่ม "พิมพ์ / บันทึก PDF" แล้วเลือกบันทึกเป็น PDF แทน');
+      onToast(
+        `สร้างไฟล์ PDF ไม่สำเร็จ — ใช้ปุ่ม "${draft ? 'พิมพ์ฉบับร่าง' : 'พิมพ์ฉบับจริง'}" แล้วเลือกบันทึกเป็น PDF แทน`,
+      );
     } finally {
       setBusy(false);
     }
@@ -140,8 +144,9 @@ const ReportPreviewDialog = ({ entry, onClose, onPrint, onToast }: Props) => {
           disabled={busy}
           onClick={onPrint}
           startIcon={<i className="ri-printer-line" />}
+          title="พิมพ์ผ่านเบราว์เซอร์ หรือเลือกบันทึกเป็น PDF"
         >
-          พิมพ์ / บันทึก PDF
+          {draft ? 'พิมพ์ฉบับร่าง' : 'พิมพ์ฉบับจริง'}
         </Button>
         <Button variant="contained" color="secondary" size="large" onClick={onClose}>
           ปิด

@@ -14,6 +14,10 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import Chip from '@mui/material/Chip';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
 
 import { calcBreakEvenBothModes, type RevenueMode } from '@beps/calc-engine';
 
@@ -22,21 +26,29 @@ import DataCaveatNotes from '@components/DataCaveatNotes';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
 
 // Data / calc Imports
-import { canExportReport, lockedFacultyFor } from '@/configs/accessControl';
+import { canExportReport, lockedFacultyFor, roleDisplay } from '@/configs/accessControl';
 import { RAW } from '@/data/mockup';
 import { computeBreakEven, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
 import { feesForProgram } from '@views/tuition/feeData';
 import { facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
-import { fmtLockedAt, useFacultyLock } from '@views/fixed-cost-lock/lockStore';
-import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
+import {
+  lockFacultyBySubmit,
+  policySourceLabel,
+  useFacultyLock,
+} from '@views/fixed-cost-lock/lockStore';
+import { useAuthUser } from '@/hooks/AuthHooks';
 import { useRole } from '@/hooks/useRole';
 
 import ProgramReport from './ProgramReport';
 import ReportPreviewDialog from './ReportPreviewDialog';
 import { type CostGroup } from './CostBlockTable';
-import FixedCostAllocationCard, { METHOD_HINT } from './FixedCostAllocationCard';
+import FixedCostAllocationCard, {
+  METHOD_HINT,
+  type MethodCompareRow,
+} from './FixedCostAllocationCard';
 import {
   ALLOC_METHOD_LABEL,
+  ALLOC_METHOD_SHORT,
   allocateFaculty,
   allocBuckets,
   newProgramChoice,
@@ -44,6 +56,7 @@ import {
   NEW_PROGRAM_ID,
   policyOf,
   shareOf,
+  type AllocMethod,
   type FacultyScenario,
 } from './facultyAllocation';
 import { type ModeCosts } from './StudentMixTable';
@@ -55,6 +68,7 @@ import MixStep, { type CostBasis } from './steps/MixStep';
 import ProgramStep, { type Purpose } from './steps/ProgramStep';
 import SummaryStep from './steps/SummaryStep';
 import {
+  SlimStepper,
   STEP_LABEL,
   StepGuide,
   WizardNav,
@@ -65,6 +79,7 @@ import {
 import {
   blockFromProgram,
   blockResult,
+  defaultYears,
   embeddedShareOf,
   emptyBlock,
   isForeignSeg,
@@ -75,7 +90,7 @@ import {
 } from './newProgramCalc';
 import { PG_DATA, EDUCATION_LEVELS, progOptionLabel } from './programData';
 import { loadHistory, saveHistory } from './historyStore';
-import type { ProgramHistoryEntry } from './types';
+import { isSubmitted, type ProgramHistoryEntry } from './types';
 import type { ProgRow } from '@/data/mockup';
 
 const PURPOSE_TEXT: Record<
@@ -105,6 +120,13 @@ const fmtInt = (v: number) => (Math.round(v) || 0).toLocaleString('th-TH');
 const STEP_KEYS: Record<Purpose, StepKey[]> = {
   improve: ['program', 'mix', 'summary'],
   new: ['program', 'mix', 'summary'],
+};
+
+/** ชื่อขั้นตามมติประชุม 25 ต.ค. (ปรับปรุงหลักสูตร) — เปิดใหม่ใช้ชื่อเดิม */
+const IMPROVE_STEP_LABEL: Record<StepKey, string> = {
+  program: 'คำนวณตั้งต้น',
+  mix: 'แจกแจงแผนรับนิสิต',
+  summary: 'พรีวิวรายงาน & ยืนยัน',
 };
 
 /** คำอธิบายสั้นใต้ชื่อขั้นในแถบขั้นตอน — ผู้ใช้ใหม่เห็นทันทีว่าแต่ละขั้นทำอะไร */
@@ -150,6 +172,10 @@ interface Draft {
   manualEmbedded?: number;
   /** ปรับปรุงหลักสูตร: ยืนยันขั้นที่ 1 (หลักสูตร + เทอม/ปี) แล้ว */
   confirmed?: boolean;
+  /** ปรับปรุงหลักสูตร: ฟอร์มนี้ยืนยัน (SUBMITTED) เป็นรายการนี้แล้ว — ล็อกห้ามแก้ */
+  lockedId?: number | null;
+  /** วิธีปันส่วน ณ ตอนเก็บร่าง — เปิดกลับมาแล้ววิธีของคณะเปลี่ยน แจ้งผู้ใช้ (D7) */
+  allocMethod?: string;
 }
 
 /** กล่องคำแนะนำขั้นตอนในหน้าปรับปรุงหลักสูตร — ซ่อนไว้ก่อนตามที่ผู้ใช้ขอ (ดูรก) · true = แสดงคืน */
@@ -192,7 +218,7 @@ const sheetShareOf = poolAmountOf('ALL');
 /** purpose มาจากเมนูย่อย — /scenario/program/improve หรือ /scenario/program/new */
 /** ค่าธรรมเนียม บาท/ภาค/คน จากรายได้ค่าธรรมเนียมของก้อน (2.2 ÷ Q ÷ เทอม) — ยังไม่มีนิสิต = null */
 const feePerSemOf = (b: { q: number; income: number }, semesters: number) =>
-  b.q > 0 && semesters > 0 ? Math.round(b.income / b.q / semesters) : null;
+  b.q > 0 && semesters > 0 ? b.income / b.q / semesters : null;
 
 /** คีย์อัตราของการ์ด ② ไว้เช็กว่าเปลี่ยนหรือยัง — ยังไม่มีนิสิต = null */
 const rateKey = (b: { q: number; income: number; gov: number }, semesters: number) =>
@@ -200,7 +226,7 @@ const rateKey = (b: { q: number; income: number; gov: number }, semesters: numbe
 
 /** เงินแผ่นดิน บาท/ภาค/คน จากก้อนรวมเงินแผ่นดิน (2.1 ÷ Q ÷ เทอม) — ยังไม่มีนิสิต = null */
 const govPerSemOf = (b: { q: number; gov: number }, semesters: number) =>
-  b.q > 0 && semesters > 0 ? Math.round(b.gov / b.q / semesters) : null;
+  b.q > 0 && semesters > 0 ? b.gov / b.q / semesters : null;
 
 const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [newName, setNewName] = useState('');
@@ -228,6 +254,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const scopedFac = lockedFacultyFor(role, scope);
   const scopedProg = role === 'lecturer' ? scope.program : null;
   const canReport = canExportReport(role);
+  const { user } = useAuthUser();
   /**
    * ส่วนแบ่งส่วนกลางที่ฝังอยู่ในคอลัมน์กำหนดเอง — ผูกกับ "หลักสูตรที่คัดลอกตัวเลขมา" ไม่ใช่หลักสูตรอ้างอิงปัจจุบัน
    * ล้างหลักสูตรอ้างอิงแล้วตัวเลขที่คัดลอกยังอยู่ ส่วนแบ่งที่ติดมาก็ยังต้องถูกถอดออก ไม่งั้นนับซ้ำ
@@ -246,6 +273,10 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
 
   /** ผลที่บันทึกไว้ซึ่งเปิดกลับมาแก้ไขอยู่ — บันทึกแล้วทับรายการนี้แทนการเพิ่มรายการใหม่ */
   const [editingId, setEditingId] = useState<number | null>(null);
+  /** รายการที่ฟอร์มนี้ยืนยันไปแล้ว — ล็อกฟอร์มจนกว่าจะเริ่มใหม่ หรือกองแผนปลดล็อก */
+  const [lockedId, setLockedId] = useState<number | null>(null);
+  /** วิธีปันส่วน ณ ตอนบันทึกร่างที่เปิดมาแก้ — ต่างจากปัจจุบันแจ้งผู้ใช้ (D7) */
+  const [openedMethod, setOpenedMethod] = useState<string | null>(null);
   /** ตารางสัดส่วนนิสิตปรับตามจำนวนนิสิตที่เปลี่ยน — ตั้งไว้ก่อนเปิดร่าง/ผลที่บันทึก จะได้ไม่ถูกปรับทับ */
   const prevQ = useRef<number | null>(null);
   /** อัตราจากการ์ด ② ที่เทลงตาราง ③ ล่าสุด (ค่าธรรมเนียม|เงินแผ่นดิน) — แบบเดียวกับ prevQ */
@@ -262,7 +293,9 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     // ร่างรุ่นก่อน: basis 'manual' แปลว่ากรอกเองล้วนก็ต่อเมื่อเปิดใหม่และไม่มีหลักสูตรอ้างอิง
     setManualOnly(purpose === 'new' && (d.manualOnly ?? (d.basis === 'manual' && !d.refKey)));
     // ร่างรุ่นก่อนมีก้อนเดียว — ใช้ตั้งต้นทั้งสองกรณี
-    const manualBlocks = 'q' in d.manual ? bothModes(d.manual) : d.manual;
+    const loaded = 'q' in d.manual ? bothModes(d.manual) : d.manual;
+    // ปรับปรุงหลักสูตร: แผนเดียวใช้ทั้งสองกรณี (D1) — ร่างเก่าที่เคยแยก Q รายกรณี ใช้ก้อนรวมเงินแผ่นดิน
+    const manualBlocks = purpose === 'improve' ? bothModes(loaded.with_government) : loaded;
 
     setManual(manualBlocks);
     prevQ.current = manualBlocks.with_government.q;
@@ -276,7 +309,9 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
 
     setManualEmbedded(d.manualEmbedded ?? (ref ? embeddedShareOf(ref) : 0));
     // ร่างรุ่นก่อนไม่มีขั้นยืนยัน — มีหลักสูตรแล้วถือว่ายืนยัน ตัวเลขที่ทดลองไว้จะได้ไม่ถูกรีเซ็ต
-    setConfirmed(d.confirmed ?? !!ref);
+    setConfirmed(purpose === 'improve' ? !!ref : (d.confirmed ?? !!ref));
+    setLockedId(d.lockedId ?? null);
+    setOpenedMethod(d.allocMethod ?? null);
   };
 
   // อ่านหลัง mount เท่านั้น — อ่านตอน render แรกจะทำให้ SSR กับ client ไม่ตรงกัน
@@ -291,6 +326,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     if (opened) {
       applyDraft(opened.input as Draft);
       setEditingId(opened.id);
+      setOpenedMethod(opened.allocMethod ?? null);
       setPendingStep(true);
       window.history.replaceState(null, '', window.location.pathname);
     } else {
@@ -315,6 +351,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     segs,
     manualEmbedded,
     confirmed,
+    lockedId,
+    ...(lock ? { allocMethod: ALLOC_METHOD_LABEL[alloc.method] } : {}),
   });
 
   useEffect(() => {
@@ -333,6 +371,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     segs,
     manualEmbedded,
     confirmed,
+    lockedId,
   ]);
 
   // ตารางสัดส่วนนิสิตตั้งต้นจากจำนวนนิสิตที่จำลองในคอลัมน์ที่แก้ได้ ของกรณีที่เลือกที่หัวหน้า
@@ -489,6 +528,35 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         ? 'วิธีปันส่วนที่คณะล็อกไว้ใช้กับกรณีนี้ไม่ได้ — ดูรายละเอียดในกล่อง "ปันส่วนต้นทุนคงที่" ด้านบน'
         : null;
 
+  /** ข้อ 2.2: หลักสูตรนี้ถ้าใช้แต่ละวิธี — กำหนด % แสดงเฉพาะเมื่อคณะใช้วิธีนี้ (มีสัดส่วนที่กรอกไว้) */
+  const methodCompare: MethodCompareRow[] | undefined =
+    isNew || !lock || !activeScenario
+      ? undefined
+      : (['PER_HEAD_FTES', 'EQUAL_PROGRAM', 'CUSTOM_PCT'] as AllocMethod[])
+          .filter((m) => m !== 'CUSTOM_PCT' || alloc.method === 'CUSTOM_PCT')
+          .map((method) => {
+            const pol =
+              method === alloc.method ? allocPolicy : policyOf({ ...alloc, method }, allocBucketList);
+            const res = MODES.map((m) => {
+              const sc = scenarioOf('manual', m);
+              const o = sc ? allocateFaculty(sc, pol) : null;
+              const t = targetOf('manual');
+
+              return blockResult(manualBlockOf(m), m, o && t ? (shareOf(o, t)?.adj ?? 0) : 0);
+            });
+            const [w, wo] = res as [ReturnType<typeof blockResult>, ReturnType<typeof blockResult>];
+
+            return {
+              method,
+              current: method === alloc.method,
+              tfc: w.tfc,
+              qStarWith: w.qStar,
+              qStarWithout: wo.qStar,
+              profit: w.tr - w.tc,
+              ok: w.qStar !== null && w.qStar >= 0 && (w.diff ?? -1) >= 0,
+            };
+          });
+
   const result = blockResult(block, mode, adjOf('manual', mode));
 
   // กรณีรวม/ไม่รวมเงินแผ่นดิน วางคู่กัน · แต่ละกรณี: อ้างอิงหลักสูตรเดิม | กำหนดเอง
@@ -507,7 +575,11 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
                 ? [
                     {
                       key: 'ref',
-                      title: text.refCol,
+                      // ปรับปรุง: บอกวิธีปันส่วนที่ใช้ — "ปัจจุบัน" คิดวิธีเดียวกับ "หลังปรับปรุง" จึงอาจไม่ตรงกับตัวเลขตามชีต
+                      title:
+                        !isNew && lock
+                          ? `${text.refCol} (${ALLOC_METHOD_SHORT[alloc.method]})`
+                          : text.refCol,
                       block: refBlock,
                       result: blockResult(refBlock, m, adjOf('ref', m)),
                     },
@@ -542,8 +614,9 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const nameError = purpose === 'new' && !newName.trim();
   /** ขั้นที่ 1 (เลือกหลักสูตร + ปันส่วนต้นทุนคงที่ใช้ได้) ต้องครบก่อนไปขั้นที่ 2 */
   const pickBlocker =
-    fac && lockReady && !lock
-      ? `${fac}ยังไม่ได้ล็อกวิธีปันส่วนต้นทุนคงที่ — รอผู้ดูแลคณะตั้งค่าก่อน`
+    // คณะยังไม่ตั้งวิธีปันส่วนก็คำนวณได้ — ใช้ค่าปีก่อน/ตาม Excel (มติ 25 ต.ค.) · รออ่านค่าให้เสร็จก่อนเท่านั้น
+    fac && !lockReady
+      ? 'กำลังอ่านวิธีปันส่วนของคณะ…'
       : purpose === 'improve' && !refProg
         ? 'เลือกคณะและหลักสูตรที่จะปรับปรุงก่อน'
         : nameError
@@ -564,25 +637,43 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const canSave = !saveBlocker;
 
   /**
-   * จำนวนนิสิตขั้นต่ำที่คุ้มทุนทั้งกรณีรวมและไม่รวมเงินแผ่นดิน ที่ค่าธรรมเนียมต่อหัวเดิม
+   * จำนวนนิสิตขั้นต่ำที่คุ้มทุนทั้งกรณีรวมและไม่รวมเงินแผ่นดิน ที่ค่าธรรมเนียม/ต้นทุนผันแปรต่อหัวของคอลัมน์หลังปรับปรุง
    * วนหาจุดตรึง q = max Q*(q) — ปันส่วนตามรายหัวทำให้ TFC (จึง Q*) ขยับตาม q · null = หาไม่ได้ (R ≤ AVC / ไม่ลู่เข้า)
    * modes = กรณีที่ต้องคุ้มทุน (ค่าเริ่มต้นทั้งสองกรณี)
    */
   const breakEvenQ = (modes: RevenueMode[] = MODES): number | null => {
-    if (!refBlock || refBlock.q <= 0) return null;
+    // ตั้งต้นจากตัวเลขที่ผู้ใช้แก้แล้ว (ค่าธรรมเนียม/ต้นทุนผันแปร) ไม่ใช่ตัวเลขปัจจุบันของหลักสูตร
+    const base = manual.with_government;
 
-    let q = refBlock.q;
+    if (!refBlock || base.q <= 0) return null;
 
-    for (let i = 0; i < 30; i++) {
+    const needAt = (q: number) => {
       const needs = modes.map(
-        (m) => blockResult(withCharges(scaleQ(refBlock, q)), m, adjOf('manual', m, q)).qStar,
+        (m) => blockResult(withCharges(scaleQ(base, q)), m, adjOf('manual', m, q)).qStar,
       );
 
-      if (needs.some((n) => n === null || n <= 0)) return null;
+      return needs.some((n) => n === null || n <= 0) ? null : Math.max(...(needs as number[]));
+    };
 
-      const need = Math.max(...(needs as number[]));
+    let q = base.q;
 
-      if (need === q) return q;
+    for (let i = 0; i < 30; i++) {
+      const need = needAt(q);
+
+      if (need === null) return null;
+
+      if (need === q) {
+        // เริ่มจากค่าที่สูงกว่าจุดคุ้มทุนอาจหยุดที่จุดตรึงที่สูงไป — ไล่ลงจนจำนวนน้อยกว่านี้ไม่คุ้มทุนแล้ว
+        for (let k = 0; k < 1000 && q > 1; k++) {
+          const lower = needAt(q - 1);
+
+          if (lower === null || lower > q - 1) break;
+          q--;
+        }
+
+        return q;
+      }
+
       q = need;
     }
 
@@ -596,19 +687,23 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   useEffect(() => {
     if (!pendingDefault || !refBlock || !lockReady) return;
     setPendingDefault(0);
-    const q = breakEvenQ();
-    // กรณีรวมเงินแผ่นดินใช้ Q* หลังปรับปรุงของกรณีตัวเอง (ผู้ใช้เลือก 2026-10-18)
-    const qWith = breakEvenQ(['with_government']) ?? q;
+    // ปรับปรุงหลักสูตร: จำนวนนิสิตแผนเดียวใช้ทั้งสองกรณี (D1) — ตั้งเป็นขั้นต่ำที่คุ้มทุนกรณีรวมเงินแผ่นดิน
+    const q = breakEvenQ(['with_government']);
 
-    setManual((x) => ({
-      with_government: qWith !== null ? scaleQ(x.with_government, qWith) : x.with_government,
-      without_government: q !== null ? scaleQ(x.without_government, q) : x.without_government,
-    }));
+    if (q === null) {
+      setToast('หาจำนวนนิสิตขั้นต่ำที่คุ้มทุนไม่ได้ — รายได้ต่อคนไม่พอครอบต้นทุนผันแปรต่อคน ลองปรับค่าธรรมเนียมก่อน');
+
+      return;
+    }
+
+    setManual((x) => bothModes(scaleQ(x.with_government, q)));
+    setToast(`ตั้งจำนวนนิสิตเป็น ${fmtInt(q)} คน — ขั้นต่ำที่คุ้มทุนกรณีรวมเงินแผ่นดิน`);
   }, [pendingDefault, refBlock, lockReady, lock]);
 
   const pickRef = (p: ProgRow | null, lvl = level) => {
     setRefProg(p);
-    setConfirmed(false);
+    // ปรับปรุงหลักสูตร: เลือกหลักสูตรแล้วไปต่อได้ทันที ไม่ต้องกดยืนยัน (มติ 25 ต.ค.) · ตั้งต้นที่ตัวเลขปัจจุบัน (D4)
+    setConfirmed(purpose === 'improve' && !!p);
     if (p) copyManualFrom(p);
 
     setSegs(buildSegments(lvl, p, semesters));
@@ -625,6 +720,19 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     if (draftReady && scopedFac && fac !== scopedFac) onFacChange(scopedFac);
   }, [draftReady, scopedFac, fac]);
 
+  // อาจารย์: ระบบเลือกหลักสูตรที่รับผิดชอบให้ทันที (Default view) — ไม่ทับร่างที่เป็นหลักสูตรเดียวกัน
+  useEffect(() => {
+    if (!draftReady || purpose !== 'improve' || !scopedProg) return;
+    if (refProg && refKeyOf(refProg) === scopedProg) return;
+
+    const p = RAW.PROGS.find((x) => refKeyOf(x) === scopedProg);
+
+    if (!p) return;
+    setFac(p.fac);
+    setLevel(p.lvl);
+    pickRef(p, p.lvl);
+  }, [draftReady, purpose, scopedProg, refProg]);
+
   const onLevelChange = (v: string) => {
     setLevel(v);
     pickRef(null, v);
@@ -633,15 +741,6 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const onSemestersChange = (v: number) => {
     setSemesters(v);
     setSegs((xs) => xs.map((s) => ({ ...s, semesters: v })));
-  };
-
-  /** ยืนยันขั้นที่ 1 → ตาราง ② ตั้งต้นจากหลักสูตร ที่จำนวนนิสิตขั้นต่ำที่คุ้มทุนตามเทอม/ปีที่ยืนยัน */
-  const confirmProgram = () => {
-    if (!refProg || pickBlocker) return;
-    copyManualFrom(refProg);
-    setPendingDefault((n) => n + 1);
-    setConfirmed(true);
-    setToast(`ยืนยัน${refProg.prog} ${semesters} เทอม/ปีแล้ว — ทดลองปรับตัวเลขในการ์ด ② ได้`);
   };
 
   const clearForm = () => {
@@ -657,6 +756,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     setManualEmbedded(0);
     setSegs(buildSegments(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี', null, 2));
     setEditingId(null);
+    setLockedId(null);
+    setOpenedMethod(null);
     saveDraft(purpose, null);
   };
 
@@ -665,9 +766,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   /** ผลที่เพิ่งบันทึก — เปิดกล่องแจ้งสำเร็จ */
   const [savedEntry, setSavedEntry] = useState<ProgramHistoryEntry | null>(null);
 
-  const handleSave = () => {
-    if (!canSave) return;
-
+  /** ผลคำนวณปัจจุบันในรูปรายการประวัติ — ใช้ทั้งบันทึก และพรีวิว/พิมพ์ร่างโดยยังไม่บันทึก */
+  const buildEntry = (): ProgramHistoryEntry => {
     const name = isNew ? newName.trim() : (refProg?.prog ?? '');
 
     // ต้นทุนกำหนดเองแยกตามกรณี → คิดแต่ละโหมดจากก้อนของโหมดนั้น
@@ -707,14 +807,13 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         customCol: text.customCol,
         basisCol: text.customCol,
         semesters,
+        years: defaultYears(level),
         fees: refProg ? feesForProgram(refProg.fac, refProg.deg) : [],
         alloc: activeOutcome
           ? {
               method: ALLOC_METHOD_LABEL[alloc.method],
               hint: METHOD_HINT[alloc.method],
-              source: lock?.lockedBy
-                ? `คณะล็อกไว้เมื่อ ${fmtLockedAt(lock.lockedAt)} โดย ${lock.lockedBy}`
-                : null,
+              source: lock ? policySourceLabel(lock) : null,
               pool: facPool,
               programs: activeOutcome.shares.length,
               targetLabel: allocTargetLabel,
@@ -770,13 +869,55 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         mixCosts,
       },
       input: currentDraft(),
+      status: 'DRAFT',
     };
+
+    return entry;
+  };
+
+  const submittedBy = user?.STAFFNAME
+    ? `${user.STAFFNAME} ${user.STAFFSURNAME ?? ''}`.trim()
+    : `${roleDisplay[role].label}${fac ? ` ${fac}` : ''}`;
+
+  /** บันทึก (ร่าง) หรือ ยืนยัน (SUBMITTED = ล็อก) */
+  const handleSave = (submit = false) => {
+    if (!canSave) return;
+
+    const base = buildEntry();
+    const entry: ProgramHistoryEntry = submit
+      ? {
+          ...base,
+          status: 'SUBMITTED',
+          submittedAt: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
+          submittedBy,
+        }
+      : base;
 
     // แก้ไขผลเดิม → ทับรายการเดิมและยกขึ้นบนสุด · ไม่ได้แก้ไข → เพิ่มรายการใหม่
     const next = [entry, ...history.filter((h) => h.id !== entry.id)];
 
     setHistory(next);
     saveHistory(next);
+
+    if (submit) {
+      // มติ 25 ต.ค. ข้อ 2.3: ยืนยันฉบับจริง → ล็อกการตั้งค่าวิธีปันส่วนของคณะปีนั้น (ค่าที่ใช้คำนวณเอกสารนี้)
+      if (fac && lock) {
+        lockFacultyBySubmit(year, fac, lock.choice, {
+          at: new Date().toISOString(),
+          by: submittedBy,
+          program: entry.name,
+        });
+      }
+
+      // ยืนยันแล้วล็อกฟอร์ม — แก้/ยืนยันซ้ำไม่ได้ จนกว่าจะเริ่มคำนวณใหม่ หรือกองแผนปลดล็อก
+      setEditingId(null);
+      setLockedId(entry.id);
+      setToast(`ยืนยัน "${entry.name}" แล้ว — ข้อมูลถูกล็อก กำลังเปิดรายงานฉบับจริง`);
+      printReport(entry.id);
+
+      return;
+    }
+
     setEditingId(entry.id);
     setSavedEntry(entry);
   };
@@ -788,6 +929,12 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const openEntry = (h: ProgramHistoryEntry) => {
     if (!h.input) return;
 
+    if (isSubmitted(h)) {
+      setToast(`"${h.name}" ยืนยันแล้ว — แก้ไขไม่ได้ ต้องทำบันทึกขออนุมัติถึงกองแผน`);
+
+      return;
+    }
+
     if (h.isNew !== isNew) {
       // คนละหน้ากัน (ปรับปรุง ↔ เปิดใหม่) — ไปหน้านั้นแล้วเปิดที่นั่น
       router.push(`/scenario/program/${h.isNew ? 'new' : 'improve'}?open=${h.id}`);
@@ -797,6 +944,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
 
     applyDraft(h.input as Draft);
     setEditingId(h.id);
+    setOpenedMethod(h.allocMethod ?? null);
     setPendingStep(true);
     setToast(`เปิด "${h.name}" แล้ว — แก้ไขได้ กดบันทึกเพื่อทับผลเดิม`);
   };
@@ -805,6 +953,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [deleteTarget, setDeleteTarget] = useState<ProgramHistoryEntry | null>(null);
 
   const deleteEntry = (h: ProgramHistoryEntry) => {
+    if (isSubmitted(h)) return;
+
     const next = history.filter((x) => x.id !== h.id);
 
     setHistory(next);
@@ -813,21 +963,41 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     setToast(`ลบ "${h.name}" แล้ว`);
   };
 
+  /** ผลที่ฟอร์มนี้ยืนยันไว้ — ยังเป็น SUBMITTED อยู่ = ล็อก (กองแผนปลดล็อกแล้วฟอร์มกลับมาแก้ได้) */
+  const lockedEntry = history.find((h) => h.id === lockedId && isSubmitted(h)) ?? null;
+  const formLocked = !isNew && !!lockedEntry;
+
   const uni = computeBreakEven(RAW.UNI, mode);
   const latest = history[0];
   const [printId, setPrintId] = useState<number | null>(null);
-  const printEntry = history.find((h) => h.id === printId) ?? latest;
+  /** พิมพ์ฉบับร่างจากพรีวิวโดยยังไม่บันทึก */
+  const [draftPrint, setDraftPrint] = useState<ProgramHistoryEntry | null>(null);
+  const printEntry = draftPrint ?? history.find((h) => h.id === printId) ?? latest;
   /** เปิดดูตัวอย่างรายงานก่อน — ดาวน์โหลด/พิมพ์จากในกล่องตัวอย่าง */
   const [previewOpen, setPreviewOpen] = useState(false);
   const printReport = (id: number) => {
+    setDraftPrint(null);
     setPrintId(id);
     setPreviewOpen(true);
+  };
+  /** ยืนยันและพิมพ์ฉบับจริง — รอกล่องยืนยันก่อน · ปลดล็อก (กองแผน) */
+  const [submitAsk, setSubmitAsk] = useState(false);
+  const [unlockTarget, setUnlockTarget] = useState<ProgramHistoryEntry | null>(null);
+  const canUnlock = role === 'universityAdmin';
+  const unlockEntry = (h: ProgramHistoryEntry) => {
+    const next = history.map((x) =>
+      x.id === h.id ? { ...x, status: 'DRAFT' as const, submittedAt: undefined, submittedBy: undefined } : x,
+    );
+
+    setHistory(next);
+    saveHistory(next);
+    setToast(`ปลดล็อก "${h.name}" แล้ว — กลับเป็นร่าง แก้ไขได้`);
   };
   /** ขั้นที่ 1 ต้องครบก่อน ครบแล้วไปขั้นไหนก็ได้ — กลับไปแก้จนไม่ครบ ขั้นหลังล็อกคืนเอง */
   const locked = groups.length === 0;
   const stepBlocker = programBlocker ?? allocBlocker;
   const stepKeys = STEP_KEYS[purpose];
-  const stepLabels = stepKeys.map((k) => STEP_LABEL[k]);
+  const stepLabels = stepKeys.map((k) => (isNew ? STEP_LABEL : IMPROVE_STEP_LABEL)[k]);
   const stepHints = stepKeys.map((k) => STEP_HINT[purpose][k]);
   /** สิ่งที่ต้องทำในแต่ละขั้น เรียงตามลำดับการ์ดในหน้า */
   const guide: Record<StepKey, { title: string; items: GuideItem[] }> = {
@@ -916,6 +1086,36 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
           onModeChange={setMode}
           q={uni.q}
           profit={uni.profit}
+          below={
+            isNew ? undefined : (
+              <SlimStepper
+                steps={stepLabels}
+                active={activeStep}
+                maxStep={maxStep}
+                onGo={goTo}
+                lockReason={stepBlocker}
+                status={
+                  refProg && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: { xs: 'none', md: 'block' }, whiteSpace: 'nowrap' }}
+                    >
+                      {refProg.prog}
+                      {editingId !== null ? ' · กำลังแก้ไขร่างที่บันทึกไว้' : ''}{' '}
+                      <Chip
+                        size="small"
+                        variant="tonal"
+                        color={formLocked ? 'success' : 'default'}
+                        label={formLocked ? '🔒 ยืนยันแล้ว' : 'ร่าง'}
+                        sx={{ height: 20, fontSize: 11, ml: 1 }}
+                      />
+                    </Typography>
+                  )
+                }
+              />
+            )
+          }
         />
 
         {/* หน้านี้กรอกตัวเลขเอง ไม่ได้อ่านจากรอบคำนวณ จึงขึ้นเฉพาะแถบข้อมูลตัวอย่าง (ตาม mockup) */}
@@ -926,6 +1126,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {isNew && (
           <WizardStepper
             steps={stepLabels}
             hints={stepHints}
@@ -933,6 +1134,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
             maxStep={maxStep}
             onGo={goTo}
           />
+          )}
 
           {stepKey && (purpose !== 'improve' || SHOW_IMPROVE_STEP_GUIDE) && (
             <StepGuide
@@ -942,6 +1144,30 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               items={guide[stepKey].items}
             />
           )}
+
+          {formLocked && lockedEntry && (
+            <Alert
+              severity="success"
+              icon={<i className="ri-lock-line" />}
+              action={
+                <Button color="inherit" size="small" onClick={() => setConfirm('form')}>
+                  เริ่มคำนวณใหม่
+                </Button>
+              }
+            >
+              ยืนยันแล้วเมื่อ {lockedEntry.submittedAt} โดย {lockedEntry.submittedBy} — ข้อมูลถูกล็อก
+              แก้ไขไม่ได้ หากต้องการแก้ไขให้ทำบันทึกข้อความขออนุมัติถึงกองแผนงาน
+            </Alert>
+          )}
+
+          {openedMethod &&
+            lock &&
+            openedMethod !== ALLOC_METHOD_LABEL[alloc.method] && (
+              <Alert severity="warning" icon={<i className="ri-scales-3-line" />}>
+                วิธีปันส่วนต้นทุนคงที่ของคณะเปลี่ยนจากตอนบันทึกร่างนี้ (เดิม: {openedMethod} · ตอนนี้:{' '}
+                {ALLOC_METHOD_LABEL[alloc.method]}) — ตัวเลขด้านล่างคำนวณใหม่ตามวิธีปัจจุบันแล้ว
+              </Alert>
+            )}
 
           {editingId !== null && history.some((h) => h.id === editingId) && (
             <Alert
@@ -981,6 +1207,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               targetQ={targetQ}
               mode={mode}
               collapsible
+              compare={methodCompare}
             />
           )}
 
@@ -1004,21 +1231,11 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               refProg={refProg}
               onRefChange={(p) => pickRef(p)}
               onManual={isNew && !refProg && !manualOnly ? () => setManualOnly(true) : undefined}
-              onClear={() => setConfirm('form')}
-              {...(purpose === 'improve'
-                ? {
-                    confirmed,
-                    confirmBlocker: pickBlocker,
-                    onConfirm: confirmProgram,
-                    onEdit: () => setConfirm('edit'),
-                  }
-                : {})}
+              onClear={formLocked ? undefined : () => setConfirm('form')}
+              lockProgram={purpose === 'improve' && !!scopedProg}
+              confirmed={formLocked}
             />
           )}
-          {stepKey === 'program' && fac && lockReady && !lock && (
-            <NoLockAlert faculty={fac} role={role} />
-          )}
-
           {/* ยังไม่เลือกหลักสูตร (เข้าหน้าครั้งแรก/ล้างฟอร์ม) — ยังดู/ออก PDF ผลที่บันทึกไว้ได้ */}
           {locked && history.length > 0 && (
             <HistoryTable
@@ -1028,6 +1245,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               onOpen={openEntry}
               onDelete={setDeleteTarget}
               editingId={editingId}
+              onUnlock={canUnlock ? setUnlockTarget : undefined}
             />
           )}
 
@@ -1043,32 +1261,48 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               }
               groups={groups}
               subheader={
-                refBlock
+                formLocked
+                  ? '🔒 ยืนยันแล้ว — แสดงอย่างเดียว แก้ไขไม่ได้'
+                  : refBlock
                   ? `${basicOnly ? `พิมพ์ตัวเลขใหม่ในช่องสีเหลือง (คอลัมน์ "✎ ${text.customCol}") — ผลจุดคุ้มทุนคำนวณให้ทันที` : text.tableHint} · ค่าธรรมเนียมรายการหลักและหักสมทบคิดต่อหัวตามจริงของหลักสูตร × จำนวนนิสิต`
                   : 'กรอกต้นทุนรายหมวดเองแยกกรณีรวม/ไม่รวมเงินแผ่นดิน'
               }
               showAllocAdj
               basicOnly={basicOnly}
+              {...(isNew
+                ? {}
+                : {
+                    editVariable: true,
+                    readOnly: formLocked,
+                    semesters,
+                    years: defaultYears(level),
+                    extraAction: !formLocked && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setPendingDefault((n) => n + 1)}
+                        startIcon={<i className="ri-focus-3-line" />}
+                        title="ตั้งจำนวนนิสิตเป็นขั้นต่ำที่คุ้มทุน กรณีรวมเงินแผ่นดิน ที่ค่าธรรมเนียมปัจจุบัน"
+                      >
+                        ใช้จำนวนขั้นต่ำที่คุ้มทุน
+                      </Button>
+                    ),
+                  })}
               // ตารางส่งก้อนที่แสดงอยู่กลับมา — ค่าธรรมเนียมรายการหลัก/หักสมทบในนั้นอาจเป็นค่าที่คิดจากอัตรา × Q
               // (แก้ไม่ได้ในตาราง) จึงคงค่าดิบของหลักสูตรไว้ ไม่งั้นแก้ Q กลับเท่าเดิมแล้ว TC/Q* ไม่กลับเป็นปัจจุบัน
               onChange={(m, b) =>
-                setManual((x) => ({
-                  ...x,
-                  [m]: { ...b, mainFee: x[m].mainFee, uniShare: x[m].uniShare },
-                }))
+                setManual((x) => {
+                  const next = { ...b, mainFee: x[m].mainFee, uniShare: x[m].uniShare };
+
+                  // ปรับปรุงหลักสูตร: แผนเดียว แก้กรณีไหนก็ได้ผลทั้งสองกรณี (D1)
+                  return isNew ? { ...x, [m]: next } : bothModes(next);
+                })
               }
               onReset={
-                refProg
+                refProg && !formLocked
                   ? () => {
                       copyManualFrom(refProg);
-                      if (purpose === 'improve') {
-                        setPendingDefault((n) => n + 1);
-                        setToast(
-                          `รีเซ็ต${text.customCol}แล้ว — จำนวนนิสิตตั้งเป็นขั้นต่ำที่คุ้มทุนทั้ง 2 กรณี`,
-                        );
-                      } else {
-                        setToast(`รีเซ็ตคอลัมน์${text.customCol}กลับเป็นค่า${text.refCol}แล้ว`);
-                      }
+                      setToast(`รีเซ็ตคอลัมน์${text.customCol}กลับเป็นค่า${text.refCol}แล้ว`);
                     }
                   : undefined
               }
@@ -1081,6 +1315,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               segs={segs}
               onSegsChange={setSegs}
               costs={mixCosts}
+              lockGov={!isNew}
+              readOnly={formLocked}
               note={`ตั้งต้นจากการ์ด ② กรณี${REVENUE_MODE_LABEL.with_government} — นิสิต ${fmtInt(mixBase.q)} คน แบ่งตามสัดส่วนเดิม · ค่าธรรมเนียมและเงินแผ่นดินต่อคนหารตามเทอม/ปี`}
             />
           )}
@@ -1112,13 +1348,134 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
                   : [];
               })}
               saveBlocker={saveBlocker}
-              onSave={handleSave}
+              onSave={() => handleSave()}
               history={history}
               onPrint={canReport ? printReport : undefined}
               onClearHistory={() => setConfirm('history')}
               onOpenHistory={openEntry}
               onDeleteHistory={setDeleteTarget}
               editingId={editingId}
+              onUnlock={canUnlock ? setUnlockTarget : undefined}
+              {...(isNew
+                ? {}
+                : {
+                    preview: (
+                      <Card>
+                        <CardHeader
+                          title="พรีวิวรายงาน — เอกสารปรับปรุงหลักสูตรเดิม"
+                          subheader="ตรวจข้อมูลทั้งหมดก่อนสั่งพิมพ์ · ฉบับร่างมีลายน้ำ ยืนยันแล้วลายน้ำหายและข้อมูลถูกล็อก"
+                        />
+                        <CardContent>
+                          {canSave || lockedEntry ? (
+                            <Box
+                              sx={{
+                                position: 'relative',
+                                overflow: 'auto',
+                                maxHeight: '75vh',
+                                border: 1,
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                bgcolor: 'common.white',
+                                color: 'common.black',
+                              }}
+                            >
+                              <ProgramReport entry={lockedEntry ?? buildEntry()} />
+                            </Box>
+                          ) : (
+                            <Alert severity="warning" variant="outlined">
+                              {saveBlocker}
+                            </Alert>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ),
+                    actions: lockedEntry ? (
+                      <Card>
+                        <CardContent
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: 2,
+                          }}
+                        >
+                          <Typography variant="body2" color="success.main" sx={{ mr: 'auto' }}>
+                            🔒 ยืนยันแล้ว — พิมพ์ฉบับจริงซ้ำได้ แต่แก้ไขหรือยืนยันซ้ำไม่ได้
+                          </Typography>
+                          {canReport && (
+                            <Button
+                              variant="outlined"
+                              onClick={() => printReport(lockedEntry.id)}
+                              startIcon={<i className="ri-printer-line" />}
+                            >
+                              พิมพ์ฉบับจริง
+                            </Button>
+                          )}
+                          <Button
+                            variant="contained"
+                            onClick={() => setConfirm('form')}
+                            startIcon={<i className="ri-add-line" />}
+                          >
+                            เริ่มคำนวณใหม่
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card>
+                        <CardContent
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: 2,
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color={saveBlocker ? 'error.main' : 'text.secondary'}
+                            sx={{ mr: 'auto' }}
+                          >
+                            {saveBlocker ??
+                              (canReport
+                                ? 'บันทึกร่างไว้แก้ต่อได้ · ยืนยันแล้วข้อมูลถูกล็อก แก้ไขต้องทำบันทึกขออนุมัติถึงกองแผน'
+                                : 'บันทึกร่างและพิมพ์ฉบับร่างได้ · การยืนยันฉบับจริงทำได้เฉพาะกองแผนและอาจารย์ประจำหลักสูตร')}
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            disabled={!canSave}
+                            onClick={() => handleSave()}
+                            startIcon={<i className="ri-save-line" />}
+                          >
+                            {editingId ? 'บันทึกร่าง (ทับเดิม)' : 'บันทึกร่าง'}
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            disabled={!canSave}
+                            onClick={() => {
+                              setDraftPrint(buildEntry());
+                              setPreviewOpen(true);
+                            }}
+                            startIcon={<i className="ri-printer-line" />}
+                          >
+                            พิมพ์ฉบับร่าง
+                          </Button>
+                          {canReport && (
+                            <Button
+                              variant="contained"
+                              color="success"
+                              disabled={!canSave}
+                              onClick={() => setSubmitAsk(true)}
+                              startIcon={<i className="ri-lock-line" />}
+                            >
+                              ยืนยันและพิมพ์ฉบับจริง
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ),
+                  })}
             />
           )}
 
@@ -1147,7 +1504,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               ? 'ชื่อหลักสูตร ข้อมูลหลักสูตร หลักสูตรอ้างอิง ต้นทุนที่กรอกเอง และตารางสัดส่วนนิสิตจะถูกล้างกลับเป็นค่าตั้งต้น (ประวัติที่บันทึกไว้ไม่หาย)'
               : confirm === 'edit'
                 ? 'การ์ด ② จะซ่อนระหว่างแก้ไข และเมื่อกดยืนยันใหม่ ตัวเลขที่ทดลองไว้จะถูกรีเซ็ตเป็นจำนวนนิสิตขั้นต่ำที่คุ้มทุนตามเทอม/ปีใหม่'
-                : `ประวัติทั้งหมด (${history.length} รายการ) จะถูกลบออกจากเครื่องนี้ถาวร และหน้า "แผนการรับนิสิต" จะเลือกผลคำนวณเหล่านี้ไม่ได้อีก`}
+                : `ร่างทั้งหมด (${history.filter((h) => !isSubmitted(h)).length} รายการ) จะถูกลบออกจากเครื่องนี้ถาวร และหน้า "แผนการรับนิสิต" จะเลือกผลคำนวณเหล่านี้ไม่ได้อีก · ผลที่ยืนยันแล้วไม่ถูกลบ`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -1163,10 +1520,17 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
                 startNew();
                 setToast('ล้างฟอร์มแล้ว — เริ่มที่ขั้นตอนที่ 1');
               } else {
-                setHistory([]);
-                saveHistory([]);
+                // ผลที่ยืนยันแล้วล็อก — ไม่ถูกล้าง
+                const kept = history.filter(isSubmitted);
+
+                setHistory(kept);
+                saveHistory(kept);
                 setEditingId(null);
-                setToast('ล้างประวัติการคำนวณแล้ว');
+                setToast(
+                  kept.length
+                    ? `ล้างร่างแล้ว — ผลที่ยืนยันแล้ว ${kept.length} รายการยังอยู่`
+                    : 'ล้างประวัติการคำนวณแล้ว',
+                );
               }
 
               setConfirm(null);
@@ -1196,6 +1560,53 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
             }}
           >
             ลบ
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={submitAsk} onClose={() => setSubmitAsk(false)}>
+        <DialogTitle>ยืนยันและล็อกข้อมูล?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            เมื่อยืนยัน &quot;{refProg?.prog}&quot; แล้ว ลายน้ำฉบับร่างจะหายไป และข้อมูลจะถูกล็อก
+            <b> ห้ามแก้ไขในระบบอีก</b> — หากต้องการแก้ไขภายหลัง ต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSubmitAsk(false)}>ยกเลิก</Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => {
+              setSubmitAsk(false);
+              handleSave(true);
+            }}
+          >
+            ยืนยันและพิมพ์
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!unlockTarget} onClose={() => setUnlockTarget(null)}>
+        <DialogTitle>ปลดล็อกผลที่ยืนยันแล้ว?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            &quot;{unlockTarget?.name}&quot; (ยืนยันเมื่อ {unlockTarget?.submittedAt} โดย{' '}
+            {unlockTarget?.submittedBy}) จะกลับเป็นร่าง ผู้รับผิดชอบแก้ไขได้อีกครั้ง —
+            ทำเมื่อได้รับบันทึกขออนุมัติแล้วเท่านั้น
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUnlockTarget(null)}>ยกเลิก</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              if (unlockTarget) unlockEntry(unlockTarget);
+              setUnlockTarget(null);
+            }}
+          >
+            ปลดล็อก
           </Button>
         </DialogActions>
       </Dialog>
@@ -1233,7 +1644,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
       />
 
       {/* รายงานสำหรับพิมพ์เท่านั้น — ซ่อนบนหน้าจอปกติ แสดงเฉพาะตอนสั่งพิมพ์ (window.print) */}
-      {canReport && printEntry && (
+      {printEntry && (canReport || !isSubmitted(printEntry)) && (
         <Box sx={{ display: 'none', '@media print': { display: 'block' } }}>
           <ProgramReport entry={printEntry} />
         </Box>

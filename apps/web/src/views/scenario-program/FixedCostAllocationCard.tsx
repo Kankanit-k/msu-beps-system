@@ -35,7 +35,7 @@ import type { RevenueMode } from '@beps/calc-engine';
 import { DotTitle } from '@components/ChartBits';
 import type { ProgRow } from '@/data/mockup';
 import { fmtMillion, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
-import { fmtLockedAt, type FacultyLock } from '@views/fixed-cost-lock/lockStore';
+import { policySourceLabel, type FacultyLock } from '@views/fixed-cost-lock/lockStore';
 
 import {
   ALLOC_METHOD_LABEL,
@@ -63,9 +63,9 @@ interface Props {
   isNew: boolean;
   /** หลักสูตรใหม่ตั้งต้นจากหลักสูตรอ้างอิง (มีส่วนแบ่งของหลักสูตรนั้นติดมา) */
   hasRef: boolean;
-  /** วิธีที่คณะล็อกไว้ — หน้านี้ดูได้อย่างเดียว แก้ที่หน้าตั้งค่าวิธีปันส่วน (ผู้ดูแลคณะ) */
+  /** วิธีที่ใช้คำนวณ (คณะตั้งค่า / ค่าปีก่อน / ตาม Excel) — หน้านี้ดูได้อย่างเดียว แก้ที่หน้าตั้งค่าวิธีปันส่วน */
   lock: FacultyLock;
-  /** ทางเลือกที่ใช้คำนวณจริง — เปิดหลักสูตรใหม่แบบกำหนด % รายหลักสูตร ต่างจากที่ล็อก (ไม่ส่ง = lock.choice) */
+  /** ทางเลือกที่ใช้คำนวณจริง — เปิดหลักสูตรใหม่แบบกำหนด % รายหลักสูตร ต่างจากของคณะ (ไม่ส่ง = lock.choice) */
   choice?: AllocChoice;
   /** คำอธิบายกติกาที่ใช้กับหลักสูตรใหม่ */
   newRule?: string | null;
@@ -84,9 +84,82 @@ interface Props {
   compact?: boolean;
   /** หุบไว้เป็นค่าตั้งต้น — หัวการ์ดบอกวิธีที่คณะเลือก กดเพื่อดูรายละเอียด */
   collapsible?: boolean;
+  /** ตารางเทียบวิธีปันส่วนของหลักสูตรนี้ (ไม่ส่ง = ไม่มีปุ่มเทียบ) */
+  compare?: MethodCompareRow[];
+}
+
+/** ผลของหลักสูตรนี้ถ้าใช้แต่ละวิธีปันส่วน (มติ 25 ต.ค. ข้อ 2.2 — ดูอย่างเดียว เปลี่ยนวิธีที่หน้าตั้งค่า) */
+export interface MethodCompareRow {
+  method: AllocMethod;
+  /** วิธีที่ใช้คำนวณอยู่ */
+  current: boolean;
+  /** ต้นทุนคงที่ของหลักสูตรนี้ */
+  tfc: number;
+  qStarWith: number | null;
+  qStarWithout: number | null;
+  /** กำไร (ขาดทุน) กรณีรวมเงินแผ่นดิน */
+  profit: number;
+  ok: boolean;
 }
 
 const ROWS_PER_PAGE = 10;
+
+const fmtQ = (v: number | null) => (v === null || v < 0 ? '—' : fmtB(v));
+
+/** ตารางเทียบวิธีปันส่วนของหลักสูตรนี้ — ส่วนต่างเทียบกับวิธีที่ใช้อยู่ */
+const MethodCompareTable = ({ rows }: { rows: MethodCompareRow[] }) => {
+  const cur = rows.find((r) => r.current);
+
+  return (
+    <TableContainer>
+      <Table size="small" sx={{ minWidth: 640 }}>
+        <TableHead>
+          <TableRow>
+            <TableCell>วิธีปันส่วน</TableCell>
+            <TableCell align="right">ต้นทุนคงที่ของหลักสูตรนี้ (บาท)</TableCell>
+            <TableCell align="right">Q* รวมแผ่นดิน</TableCell>
+            <TableCell align="right">Q* ไม่รวมแผ่นดิน</TableCell>
+            <TableCell align="right">กำไร (ขาดทุน) รวมแผ่นดิน</TableCell>
+            <TableCell align="center">ผล</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.method} selected={r.current}>
+              <TableCell sx={{ fontWeight: r.current ? 700 : 400 }}>
+                {ALLOC_METHOD_LABEL[r.method]}
+                {r.current && (
+                  <Chip size="small" color="primary" label="ใช้อยู่" sx={{ ml: 1, height: 18, fontSize: 10 }} />
+                )}
+              </TableCell>
+              <TableCell align="right">
+                {fmtB(r.tfc)}
+                {!r.current && cur && (
+                  <Box component="span" sx={{ display: 'block', fontSize: 11, color: 'text.secondary' }}>
+                    {fmtD(r.tfc - cur.tfc)}
+                  </Box>
+                )}
+              </TableCell>
+              <TableCell align="right">{fmtQ(r.qStarWith)}</TableCell>
+              <TableCell align="right">{fmtQ(r.qStarWithout)}</TableCell>
+              <TableCell align="right" sx={{ color: r.profit >= 0 ? 'success.main' : 'error.main' }}>
+                {fmtB(r.profit)}
+              </TableCell>
+              <TableCell align="center">
+                <Chip
+                  size="small"
+                  variant="tonal"
+                  color={r.ok ? 'success' : 'error'}
+                  label={r.ok ? 'คุ้มทุน' : 'ไม่คุ้มทุน'}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+};
 
 /** อธิบายวิธีแบ่งที่เลือกอยู่เป็นภาษาคน — ให้เห็นว่าทำไมแต่ละหลักสูตรได้ตัวเลขนั้น */
 const howSplit = (c: AllocChoice): string => {
@@ -367,7 +440,7 @@ const AllocFlow = (props: {
 };
 
 /**
- * ขั้น "ปันส่วนต้นทุนคงที่" ก่อนคำนวณจุดคุ้มทุน — ใช้วิธีที่คณะล็อกไว้ (1 ใน 3 วิธีตามมติ) แก้ไม่ได้
+ * ขั้น "ปันส่วนต้นทุนคงที่" ก่อนคำนวณจุดคุ้มทุน — ใช้วิธีของคณะ (ตั้งค่าปีนี้ → ค่าปีก่อน → ตาม Excel) แก้ไม่ได้
  * ปันใหม่ทั้งคณะเสมอ (หลักสูตรใหม่เข้าไปแบ่งก้อนเดิม) แล้วเปิดดูผลกระทบต่อหลักสูตรอื่นได้
  */
 const FixedCostAllocationCard = ({
@@ -386,8 +459,10 @@ const FixedCostAllocationCard = ({
   mode,
   compact = false,
   collapsible = false,
+  compare,
 }: Props) => {
   const [impactOpen, setImpactOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [open, setOpen] = useState(!collapsible);
   const [page, setPage] = useState(0);
 
@@ -454,25 +529,67 @@ const FixedCostAllocationCard = ({
                 size="small"
                 color="primary"
                 variant="tonal"
-                icon={<i className="ri-lock-line" />}
-                label={`คณะเลือก: ${ALLOC_METHOD_LABEL[choice.method]}`}
+                icon={<i className={lock.source === 'config' ? 'ri-lock-line' : 'ri-history-line'} />}
+                label={`${lock.source === 'config' ? 'คณะเลือก' : 'ใช้'}: ${ALLOC_METHOD_LABEL[choice.method]}`}
+                title={policySourceLabel(lock)}
+              />
+            )}
+            {lock.source !== 'config' && (
+              <Chip
+                size="small"
+                color={lock.prevInvalidYear ? 'warning' : 'default'}
+                variant="outlined"
+                label={
+                  lock.source === 'prev-year'
+                    ? `ค่าปี ${lock.fromYear}`
+                    : 'ค่าเริ่มต้นตาม Excel'
+                }
+                title={policySourceLabel(lock)}
               />
             )}
           </Box>
         }
         action={
-          collapsible ? (
-            <Button
-              size="small"
-              onClick={() => setOpen((v) => !v)}
-              aria-expanded={open}
-              endIcon={<i className={open ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />}
-            >
-              {open ? 'ซ่อน' : 'ดูรายละเอียด'}
-            </Button>
+          compare || collapsible ? (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {compare && faculty && (
+                <Button
+                  size="small"
+                  onClick={() => setCompareOpen((v) => !v)}
+                  aria-expanded={compareOpen}
+                  startIcon={<i className="ri-scales-3-line" />}
+                >
+                  {compareOpen ? 'ซ่อนการเทียบ' : 'เทียบวิธีปันส่วน'}
+                </Button>
+              )}
+              {collapsible && (
+                <Button
+                  size="small"
+                  onClick={() => setOpen((v) => !v)}
+                  aria-expanded={open}
+                  endIcon={<i className={open ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />}
+                >
+                  {open ? 'ซ่อน' : 'ดูรายละเอียด'}
+                </Button>
+              )}
+            </Box>
           ) : undefined
         }
+        sx={{ flexWrap: 'wrap', rowGap: 1 }}
       />
+      {compare && faculty && (
+        <Collapse in={compareOpen} unmountOnExit>
+          <CardContent sx={{ pt: 0 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              ตัวเลขของหลักสูตรนี้ถ้าคณะใช้แต่ละวิธี — คิดจากตัวเลขหลังปรับปรุง (จำนวนนิสิต ค่าธรรมเนียม
+              ต้นทุนผันแปร) · ดูเพื่อประกอบการตัดสินใจเท่านั้น วิธีที่ใช้จริงกำหนดที่หน้าตั้งค่าของคณะ
+              {!compare.some((r) => r.method === 'CUSTOM_PCT') &&
+                ' · "กำหนด % เอง" แสดงเมื่อคณะกรอกสัดส่วนไว้แล้ว'}
+            </Typography>
+            <MethodCompareTable rows={compare} />
+          </CardContent>
+        </Collapse>
+      )}
       <Collapse in={open} unmountOnExit>
         <CardContent>
           {!faculty ? (
@@ -486,13 +603,13 @@ const FixedCostAllocationCard = ({
               >
                 <Chip
                   color="primary"
-                  icon={<i className="ri-lock-line" />}
+                  icon={<i className={lock.source === 'config' ? 'ri-lock-line' : 'ri-history-line'} />}
                   label={ALLOC_METHOD_LABEL[choice.method]}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {lock.lockedBy ? `ล็อกโดย ${lock.lockedBy} · ` : 'ล็อกเมื่อ '}
-                  {fmtLockedAt(lock.lockedAt)}
-                  {isNew && ' · หลักสูตรใหม่ใช้วิธีเดียวกับที่คณะล็อก'}
+                  {policySourceLabel(lock)}
+                  {lock.source === 'config' && lock.lockedBy && ` · บันทึกโดย ${lock.lockedBy}`}
+                  {isNew && ' · หลักสูตรใหม่ใช้วิธีเดียวกับคณะ'}
                 </Typography>
               </Box>
               {newRule && (
@@ -578,11 +695,11 @@ const FixedCostAllocationCard = ({
               ))}
               {blocked && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  วิธีที่คณะล็อกไว้ใช้กับกรณีนี้ไม่ได้
+                  วิธีปันส่วนของคณะใช้กับกรณีนี้ไม่ได้
                   {isNew && choice.method === 'CUSTOM_PCT' && choice.bucketLevel === 'PROGRAM'
                     ? ' (คณะยังไม่ได้กำหนด % ให้ระดับการศึกษาของหลักสูตรใหม่)'
                     : ''}{' '}
-                  — แจ้งผู้ดูแลคณะให้ปลดล็อกและปรับสัดส่วน หรือทำบันทึกขออนุมัติถึงกองแผนงาน
+                  — แจ้งผู้ดูแลคณะให้ปรับสัดส่วนในหน้าตั้งค่า (ถ้าล็อกแล้วต้องทำบันทึกขออนุมัติถึงกองแผนงาน)
                   {!compact && ' · ยังบันทึกผลไม่ได้'}
                 </Alert>
               )}

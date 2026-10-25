@@ -103,6 +103,8 @@ interface Line {
   basic?: boolean;
   /** แสดงเฉพาะตอนจำกัดสิทธิ์ (basicOnly) */
   basicOnlyRow?: boolean;
+  /** หมวดต้นทุนผันแปร — แก้ได้เมื่อเปิด editVariable (หน้าปรับปรุงหลักสูตร) */
+  variable?: boolean;
   /** แถวสรุปคุ้มทุน/ไม่คุ้มทุน — แสดงเป็นป้ายแทนตัวเลข */
   status?: boolean;
 }
@@ -131,6 +133,13 @@ interface Props {
   showAllocAdj?: boolean;
   /** ตารางเต็มแบบแท็บ 4 แต่แก้ได้เฉพาะแถว basic (จำนวนนิสิต · ค่าธรรมเนียมต่อคนต่อปี) */
   basicOnly?: boolean;
+  /** basicOnly + แก้ต้นทุนผันแปรรายหมวดได้ด้วย (ปรับปรุงหลักสูตร มติ 25 ต.ค.) */
+  editVariable?: boolean;
+  /** แสดงอย่างเดียว (ผลยืนยันแล้ว) */
+  readOnly?: boolean;
+  /** เทอม/ปี และจำนวนปี — แสดงค่าธรรมเนียมต่อภาค/ต่อปี/ตลอดหลักสูตร (ไม่ส่ง = แสดงเฉพาะต่อปี) */
+  semesters?: number;
+  years?: number;
 }
 
 const ALLOC_ADJ = 'allocAdj';
@@ -140,7 +149,36 @@ const setArr = (k: 'fix' | 'var', i: number) => (b: CostBlock, v: number) => ({
   [k]: b[k].map((x, j) => (j === i ? v : x)),
 });
 
-const LINES: Line[] = [
+/** ค่าธรรมเนียมต่อคน 3 แบบ — รายได้ค่าธรรมเนียม (2.2) = อัตราต่อคนต่อปี × Q · แก้ช่องไหนก็แปลงกลับเป็นต่อปี */
+const feeLines = (semesters?: number, years?: number): Line[] => {
+  const perYear = (b: CostBlock) => (b.q > 0 ? b.income / b.q : null);
+  const setYear = (b: CostBlock, v: number) => (b.q > 0 ? { ...b, income: v * b.q } : b);
+  const line = (label: string, unit: string, k: number): Line => ({
+    label,
+    get: (b) => {
+      const y = perYear(b);
+
+      return y === null ? null : y * k;
+    },
+    unit,
+    depth: 2,
+    basic: true,
+    basicOnlyRow: true,
+    set: (b, v) => setYear(b, v / k),
+  });
+
+  return [
+    ...(semesters && semesters > 0
+      ? [line('- ค่าธรรมเนียมการศึกษาต่อคนต่อภาค', 'บาท/คน/ภาค', 1 / semesters)]
+      : []),
+    line('- ค่าธรรมเนียมการศึกษาต่อคนต่อปี', 'บาท/คน/ปี', 1),
+    ...(years && years > 0
+      ? [line(`- ค่าธรรมเนียมการศึกษาต่อคนตลอดหลักสูตร (${years} ปี)`, 'บาท/คน', years)]
+      : []),
+  ];
+};
+
+const linesOf = (semesters?: number, years?: number): Line[] => [
   {
     no: 1,
     label: 'จำนวนนักศึกษาจริง : คน (Q)',
@@ -177,16 +215,8 @@ const LINES: Line[] = [
     // จำกัดสิทธิ์ (basicOnly) — แสดงเฉยๆ ไม่ให้กรอก
     set: (b, v) => ({ ...b, income: v }),
   },
-  {
-    // จำลองปรับค่าธรรมเนียม — รายได้ค่าธรรมเนียม (2.2) = อัตราต่อคนต่อปี × Q
-    label: '- ค่าธรรมเนียมการศึกษาต่อคนต่อปี',
-    get: (b) => (b.q > 0 ? b.income / b.q : null),
-    unit: 'บาท/คน/ปี',
-    depth: 2,
-    basic: true,
-    basicOnlyRow: true,
-    set: (b, v) => (b.q > 0 ? { ...b, income: v * b.q } : b),
-  },
+  // จำลองปรับค่าธรรมเนียม — ต่อภาค / ต่อปี / ตลอดหลักสูตร
+  ...feeLines(semesters, years),
   { label: 'รายได้ต่อหน่วย : คน (R)', get: (_, r) => r.r, unit: 'บาท/คน', depth: 1 },
   {
     no: 3,
@@ -236,6 +266,7 @@ const LINES: Line[] = [
     unit: 'บาท',
     depth: 2,
     set: setArr('var', i),
+    variable: true,
   })),
   {
     label: '- ศึกษาทั่วไป',
@@ -243,6 +274,7 @@ const LINES: Line[] = [
     unit: 'บาท',
     depth: 2,
     set: (b, v) => ({ ...b, genEd: v }),
+    variable: true,
   },
   {
     label: `- ค่าธรรมเนียมรายการหลัก (${MAIN_FEE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
@@ -282,13 +314,22 @@ const LINES: Line[] = [
   },
 ];
 
+const lineKey = (l: Line) => l.id ?? l.label;
+
 /** หมวดรายจ่ายใต้ข้อ 3 (ต้นทุนรวม) — หุบได้ ให้เห็นส่วนบน (Q/รายได้) กับส่วนล่าง (จุดคุ้มทุน) ในจอเดียว */
-const COST_DETAIL = new Set(
-  LINES.slice(
-    LINES.findIndex((l) => l.no === 3),
-    LINES.findIndex((l) => l.no === 4),
-  ).filter((l) => l.depth === 2),
-);
+const COST_DETAIL = (() => {
+  const all = linesOf();
+
+  return new Set(
+    all
+      .slice(
+        all.findIndex((l) => l.no === 3),
+        all.findIndex((l) => l.no === 4),
+      )
+      .filter((l) => l.depth === 2)
+      .map(lineKey),
+  );
+})();
 
 /** สถานะคุ้มทุนของคอลัมน์ — Q ≥ Q* = คุ้มทุน · Q* ติดลบ/หาไม่ได้ = ไม่มีจุดคุ้มทุน */
 const statusOf = (r: BlockResult) =>
@@ -304,15 +345,24 @@ const statusOf = (r: BlockResult) =>
  * ตารางรายการแบบแท็บ 4 (ลำดับ · รายการ · จำนวน · หน่วย) — แยกกลุ่มกรณีรวม/ไม่รวมเงินแผ่นดิน
  * แต่ละกลุ่ม: อ้างอิงหลักสูตรเดิม | กำหนดเอง | ผลต่าง
  */
-const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = false }: Props) => {
+const CostBlockTable = ({
+  groups,
+  onChange,
+  showAllocAdj = false,
+  basicOnly = false,
+  editVariable = false,
+  readOnly = false,
+  semesters,
+  years,
+}: Props) => {
   const editStart = useRef<CostBlock | null>(null);
   // แก้ได้เฉพาะ Q/ค่าธรรมเนียม → หุบหมวดรายจ่ายไว้ก่อน · กรอกต้นทุนเองต้องเห็นช่องกรอกทุกหมวด
   const [costOpen, setCostOpen] = useState(!basicOnly);
-  const lines = LINES.filter(
+  const lines = linesOf(semesters, years).filter(
     (l) =>
       (basicOnly || !l.basicOnlyRow) &&
       (showAllocAdj || l.id !== ALLOC_ADJ) &&
-      (costOpen || !COST_DETAIL.has(l)),
+      (costOpen || !COST_DETAIL.has(lineKey(l))),
   );
   const nCols = groups.reduce((a, g) => a + g.cols.length, 0);
   // คอลัมน์ตัวเลข (รวมผลต่าง) กว้างเท่ากันและคงที่ — table-layout: fixed กันช่องยืด/หดตามตัวเลขที่พิมพ์
@@ -379,7 +429,7 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
             {groups.map((g) => [
               ...g.cols.map((c) => (
                 <TableCell key={`${g.key}-${c.key}`} align="right">
-                  {c.editable ? `✎ ${c.title}` : c.title}
+                  {c.editable && !readOnly ? `✎ ${c.title}` : c.title}
                 </TableCell>
               )),
               g.cols.length === 2 && (
@@ -429,7 +479,7 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {costOpen ? 'ซ่อนรายหมวด' : 'ดูรายหมวด'}
+                      {costOpen ? 'ซ่อนรายหมวด' : editVariable && !readOnly ? 'ดูรายหมวด / แก้ต้นทุนผันแปร' : 'ดูรายหมวด'}
                     </Box>
                   </Box>
                 ) : (
@@ -506,7 +556,12 @@ const CostBlockTable = ({ groups, onChange, showAllocAdj = false, basicOnly = fa
                       ...g.cols.map((c, ci) => {
                         const v = values[ci]!;
                         const negative = c.result.qStar !== null && c.result.qStar < 0;
-                        const input = c.editable && l.set && !excluded && (!basicOnly || l.basic);
+                        const input =
+                          !readOnly &&
+                          c.editable &&
+                          l.set &&
+                          !excluded &&
+                          (!basicOnly || l.basic || (editVariable && l.variable));
 
                         return (
                           <TableCell

@@ -2,6 +2,8 @@
 
 // แถบขั้นตอน (ด้านบน) + แถบนำทางติดขอบล่างพร้อมจุดคุ้มทุนสด — ขั้นที่ 1 ต้องครบก่อน ครบแล้วกดข้ามขั้นได้อิสระ
 
+import type { ReactNode } from 'react';
+
 // MUI Imports
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -34,6 +36,62 @@ interface StepperProps {
   maxStep: number;
   onGo: (i: number) => void;
 }
+
+/**
+ * แถบขั้นตอนแบบบาง — วางในแถบหัวหน้าที่ติดหัวจอ (PageHeaderBar below) · คลิกข้ามขั้นได้ทันที
+ * ขั้นที่ยังไปไม่ได้ขึ้นเหตุผลเมื่อชี้ (lockReason)
+ */
+export const SlimStepper = ({
+  steps,
+  active,
+  maxStep,
+  onGo,
+  lockReason,
+  status,
+}: Omit<StepperProps, 'hints'> & { lockReason?: string | null; status?: ReactNode }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, borderTop: 1, borderColor: 'divider', pt: 1.5 }}>
+    <Stepper
+      activeStep={active}
+      nonLinear
+      sx={{
+        flex: 1,
+        minWidth: 0,
+        '& .MuiStepButton-root': { py: 0.5, my: 0 },
+        '& .MuiStepIcon-root': { fontSize: 22 },
+        '& .MuiStepConnector-root': { minWidth: 16 },
+      }}
+    >
+      {steps.map((label, i) => {
+        const disabled = i > maxStep;
+
+        return (
+          <Step key={label} completed={i < active} disabled={disabled}>
+            <StepButton
+              onClick={() => !disabled && onGo(i)}
+              title={disabled ? (lockReason ?? undefined) : undefined}
+            >
+              <StepLabel
+                sx={{
+                  '& .MuiStepLabel-labelContainer': {
+                    display: { xs: i === active ? 'block' : 'none', sm: 'block' },
+                  },
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{ fontSize: '0.875rem', fontWeight: i === active ? 700 : 500 }}
+                >
+                  ขั้นที่ {i + 1}: {label}
+                </Box>
+              </StepLabel>
+            </StepButton>
+          </Step>
+        );
+      })}
+    </Stepper>
+    {status}
+  </Box>
+);
 
 export const WizardStepper = ({ steps, hints, active, maxStep, onGo }: StepperProps) => (
   <Card>

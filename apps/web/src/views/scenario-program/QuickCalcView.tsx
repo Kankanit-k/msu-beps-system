@@ -34,7 +34,6 @@ import NumberTextField from '@components/NumberTextField';
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
-import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
 import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 
@@ -469,7 +468,6 @@ const QuickCalcView = () => {
   /** วิธีปันส่วนที่คณะล็อกไว้ — ยังไม่ล็อก = ยังปรับปรุงหลักสูตรไม่ได้ */
   const {
     lock,
-    lockReady,
     facRows,
     facPool,
     refId,
@@ -571,7 +569,6 @@ const QuickCalcView = () => {
     if (draftReady && scopedFac && fac !== scopedFac) changeFac(scopedFac);
   }, [draftReady, scopedFac, fac]);
 
-  const noLock = !!fac && lockReady && !lock;
   const hasNumbers = calcBlock.q > 0 && calcBlock.gov + calcBlock.income > 0;
   const baseLever = baseBlock ? leversOf(baseBlock) : null;
 
@@ -628,9 +625,8 @@ const QuickCalcView = () => {
             </CardContent>
           </Card>
 
-          {noLock && fac ? (
-            <NoLockAlert faculty={fac} role={role} />
-          ) : !baseBlock || !lock ? (
+          {/* คณะยังไม่ตั้งวิธีปันส่วนก็คำนวณได้ — ใช้ค่าปีก่อน/ตาม Excel (มติ 25 ต.ค.) */}
+          {!baseBlock || !lock ? (
             <Alert severity="info">
               เลือกคณะและหลักสูตรที่จะปรับปรุงก่อน แล้วจึงปรับค่าเทอม จำนวนนิสิต และต้นทุนผันแปรได้
             </Alert>

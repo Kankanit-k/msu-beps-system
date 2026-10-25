@@ -7,9 +7,12 @@
  *   role             ภาพรวม ม.  ภาพรวมคณะ/เจาะลึก  วิเคราะห์จุดคุ้มทุน  ตั้งค่า     เลือกคณะอื่น
  *   universityExec   ✓          ทุกคณะ             ✗                  ✗          ✓
  *   universityAdmin  ✓          ทุกคณะ             ✓                  ✓          ✓
- *   facultyExec      ✓          คณะตน              ✗                  ✗          ✗
+ *   facultyExec      ✓          คณะตน              ✗                  ดู*        ✗
  *   deptAdmin        ✓          คณะตน              ✓ (คณะตน)          ✓ (คณะตน)  ✗
  *   lecturer         ✓          คณะตน              หลักสูตรตน          ✗          ✗
+ *
+ *   * ผู้บริหารคณะเปิดหน้า "วิธีปันส่วน (คณะ)" (/admin/fixed-cost-lock) ของคณะตนได้แบบอ่านอย่างเดียว
+ *     (มติ 25 ต.ค. 2569 D5 — เจ้าหน้าที่คณะเป็นคนบันทึก) · หน้าตั้งค่าอื่นยังไม่เห็น
  *
  * Routes are matched WITHOUT the basePath (Next.js strips it inside middleware).
  * Paths follow the project convention: keep them shallow (≤ 3 segments) and put all
@@ -95,6 +98,8 @@ export const routeAccessRules: { prefix: string; roles: 'public' | AppRole[]; ex
     { prefix: '/cost-data', roles: UNIVERSITY_STAFF },
     { prefix: '/programs', roles: UNIVERSITY_STAFF },
     { prefix: '/about', roles: UNIVERSITY_STAFF },
+    // วิธีปันส่วน (คณะ) — ผู้บริหารคณะดูของคณะตนได้ (อ่านอย่างเดียว · D5) · บันทึกได้เฉพาะเจ้าหน้าที่
+    { prefix: '/admin/fixed-cost-lock', roles: [...CONFIGURE_ROLES, 'facultyExec'] },
     // ตั้งค่าการคำนวณ (วิธีปันส่วน · ปันส่วนต้นทุน) — เจ้าหน้าที่ ม. + เจ้าหน้าที่คณะ
     { prefix: '/admin', roles: CONFIGURE_ROLES },
   ];

@@ -38,7 +38,7 @@ interface RowDef {
   section?: RevenueMode;
   mode?: RevenueMode;
   input?: InputKey;
-  out?: (r: SegmentResult) => string;
+  out?: (r: SegmentResult, i: number) => string;
   /** ค่าคอลัมน์ "รวม" */
   total?: string;
   bold?: boolean;
@@ -55,10 +55,12 @@ interface Props {
   onChange?: (segs: Segment[]) => void;
   /** ต้นทุนคงที่/AVC ของแต่ละกรณี — แสดงผลรวม/ไม่รวมเงินแผ่นดินคู่กัน */
   costs: ModeCosts;
+  /** เงินแผ่นดินดึงจากอัตราจัดสรรต่อหัว — แสดงอย่างเดียว ห้ามแก้ (หน้าปรับปรุงหลักสูตร มติ 25 ต.ค.) */
+  lockGov?: boolean;
 }
 
 /** การวิเคราะห์สัดส่วนจำนวนนิสิตเพื่อหาจุดคุ้มทุน (แท็บ 4 คอลัมน์ X:AD) */
-const StudentMixTable = ({ segs, onChange, costs }: Props) => {
+const StudentMixTable = ({ segs, onChange, costs, lockGov = false }: Props) => {
   const narrowScreen = useMediaQuery((t: Theme) => t.breakpoints.down('md'));
   const isNarrow = narrowScreen && !!onChange;
   const mixes = Object.fromEntries(
@@ -72,6 +74,12 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     setOpenModes((o) => (o.includes(m) ? o.filter((x) => x !== m) : [...o, m]));
   const set = (i: number, k: InputKey, v: number) =>
     onChange?.(segs.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
+
+  /** เงินแผ่นดิน/เงินรายได้ต่อปีของกลุ่ม — แผ่นดินเฉพาะนิสิตไทยและเฉพาะกรณีรวมเงินแผ่นดิน */
+  const govYear = (m: RevenueMode, i: number) =>
+    m === 'with_government' && !isForeignSeg(i) ? segs[i]!.gov * segs[i]!.n * segs[i]!.semesters : 0;
+  const feeYear = (i: number) => segs[i]!.fee * segs[i]!.n * segs[i]!.semesters;
+  const sumOver = (f: (i: number) => number) => segs.reduce((a, _, i) => a + f(i), 0);
 
   const outRows = (m: RevenueMode): RowDef[] => {
     const mix = mixes[m];
@@ -102,6 +110,24 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
         out: (r) => fmt(r.perHeadProgram),
         unit: 'บาท',
       },
+      ...(m === 'with_government'
+        ? [
+            {
+              label: 'เงินงบประมาณแผ่นดินต่อปี',
+              mode: m,
+              out: (_: SegmentResult, i: number) => fmt(govYear(m, i)),
+              total: fmt(sumOver((i) => govYear(m, i))),
+              unit: 'บาท',
+            },
+          ]
+        : []),
+      {
+        label: 'เงินรายได้ (ค่าธรรมเนียม) ต่อปี',
+        mode: m,
+        out: (_, i) => fmt(feeYear(i)),
+        total: fmt(sumOver(feeYear)),
+        unit: 'บาท',
+      },
       {
         label: 'รายรับต่อปี',
         mode: m,
@@ -122,6 +148,14 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
         mode: m,
         out: (r) => fmt(r.tvc),
         total: fmt(mix.total.tvc),
+        unit: 'บาท',
+      },
+      {
+        label: 'ต้นทุนรวม (คงที่ + ผันแปร)',
+        mode: m,
+        out: (r) => fmt(r.tfc + r.tvc),
+        total: fmt(mix.total.tfc + mix.total.tvc),
+        bold: true,
         unit: 'บาท',
       },
       profit,
@@ -171,6 +205,19 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     const locked = row.input === 'gov' && isForeignSeg(i);
 
     if (row.input && !onChange) return locked ? '—' : fmt(segs[i]![row.input]);
+    // เงินแผ่นดินล็อกทั้งแถว — ตัวเลขเทา ไม่มีปากกา
+    if (row.input === 'gov' && lockGov) {
+      return (
+        <Box
+          component="span"
+          title="ดึงจากเงินแผ่นดินเฉลี่ยต่อหัว เฉพาะนิสิตไทย — แก้ไขไม่ได้"
+          sx={{ color: 'text.secondary' }}
+        >
+          {locked ? '—' : fmt(segs[i]!.gov)}
+        </Box>
+      );
+    }
+
     if (row.input) {
       return (
         <NumberTextField
@@ -192,7 +239,7 @@ const StudentMixTable = ({ segs, onChange, costs }: Props) => {
     }
 
     const r = mixes[row.mode!].rows[i]!;
-    const text = row.out!(r);
+    const text = row.out!(r, i);
     const isProfit = row.label.startsWith('กำไร');
 
     return (

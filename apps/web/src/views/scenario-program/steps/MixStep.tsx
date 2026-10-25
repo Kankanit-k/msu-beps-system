@@ -21,6 +21,10 @@ interface Props {
   costs: ModeCosts;
   /** บอกว่าจำนวนนิสิตตั้งต้นมาจากไหน */
   note?: string;
+  /** ล็อกแถวเงินแผ่นดิน (หน้าปรับปรุงหลักสูตร) */
+  lockGov?: boolean;
+  /** ยืนยันแล้ว — แสดงอย่างเดียว */
+  readOnly?: boolean;
 }
 
 const MixStep = (props: Props) => (
@@ -38,7 +42,12 @@ const MixStep = (props: Props) => (
       }
     />
     <CardContent>
-      <StudentMixTable segs={props.segs} onChange={props.onSegsChange} costs={props.costs} />
+      <StudentMixTable
+        segs={props.segs}
+        onChange={props.readOnly ? undefined : props.onSegsChange}
+        costs={props.costs}
+        lockGov={props.lockGov}
+      />
     </CardContent>
   </Card>
 );

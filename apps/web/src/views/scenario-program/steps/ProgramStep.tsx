@@ -40,13 +40,16 @@ interface Props {
   onRefChange: (p: ProgRow | null) => void;
   /** เปิดหลักสูตรใหม่โดยไม่มีหลักสูตรอ้างอิง — ไปกรอกต้นทุนเอง (undefined = ไม่แสดงทางเลือกนี้) */
   onManual?: () => void;
-  onClear: () => void;
+  /** ไม่ส่ง = ซ่อนปุ่มล้างฟอร์ม (ยืนยันแล้ว) */
+  onClear?: () => void;
   /** ปรับปรุงหลักสูตร: ยืนยันขั้นที่ 1 (รวมเทอม/ปี) ก่อนขึ้นตาราง ② */
   confirmed?: boolean;
   /** เหตุที่ยังยืนยันไม่ได้ — null = ยืนยันได้ */
   confirmBlocker?: string | null;
   onConfirm?: () => void;
   onEdit?: () => void;
+  /** อาจารย์: ระบบเลือกหลักสูตรของตนให้แล้ว เปลี่ยนไม่ได้ */
+  lockProgram?: boolean;
 }
 
 const ProgramStep = (props: Props) => {
@@ -77,15 +80,17 @@ const ProgramStep = (props: Props) => {
                 แก้ไขข้อมูลหลักสูตร
               </Button>
             )}
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              onClick={props.onClear}
-              startIcon={<i className="ri-eraser-line" />}
-            >
-              ล้างฟอร์ม
-            </Button>
+            {props.onClear && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={props.onClear}
+                startIcon={<i className="ri-eraser-line" />}
+              >
+                ล้างฟอร์ม
+              </Button>
+            )}
           </Box>
         }
       />
@@ -126,6 +131,7 @@ const ProgramStep = (props: Props) => {
           refLabel={props.refLabel}
           refRequired={purpose === 'improve'}
           disabled={props.confirmed}
+          lockProgram={props.lockProgram}
           refHint={
             purpose === 'improve'
               ? 'ดึงต้นทุน งบประมาณ และจำนวนนิสิตปัจจุบันของหลักสูตรนี้'

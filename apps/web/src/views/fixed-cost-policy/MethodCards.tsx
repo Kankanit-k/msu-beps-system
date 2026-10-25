@@ -51,10 +51,14 @@ type Props = {
   onChange: (method: FixedCostMethod) => void;
   /** วิธีที่คณะใช้อยู่ตอนนี้ — แสดงป้าย "ใช้อยู่ปัจจุบัน" · ไม่ส่ง = ยังไม่มีวิธีที่ใช้อยู่ */
   current?: FixedCostMethod;
+  /** เลือกไม่ได้ (ดูอย่างเดียว / ล็อก / บันทึกแล้ว) — การ์ดจางลง การ์ดที่เลือกไว้ยังเน้นสี */
+  disabled?: boolean;
+  /** เหตุผลที่เลือกไม่ได้ — ขึ้นเมื่อชี้ */
+  disabledHint?: string;
 };
 
 /** ขั้นที่ 1 ของ Stepper — การ์ด 3 ใบให้เลือกวิธี */
-const MethodCards = ({ value, onChange, current }: Props) => (
+const MethodCards = ({ value, onChange, current, disabled = false, disabledHint }: Props) => (
   <Grid container spacing={4}>
     {METHOD_META.map((m) => {
       const selected = m.value === value;
@@ -65,24 +69,29 @@ const MethodCards = ({ value, onChange, current }: Props) => (
             role="radio"
             aria-checked={selected}
             aria-label={m.label}
-            tabIndex={0}
-            onClick={() => onChange(m.value)}
+            aria-disabled={disabled}
+            title={disabled ? disabledHint : undefined}
+            tabIndex={disabled ? -1 : 0}
+            onClick={() => !disabled && onChange(m.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
                 onChange(m.value);
               }
             }}
             sx={{
               height: '100%',
-              cursor: 'pointer',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              opacity: disabled && !selected ? 0.5 : 1,
               borderWidth: 2,
               borderStyle: 'solid',
               borderColor: selected ? 'primary.main' : 'divider',
               bgcolor: selected ? 'var(--mui-palette-primary-lightOpacity)' : undefined,
               boxShadow: 'none',
               transition: 'border-color .2s, box-shadow .2s',
-              '&:hover': { borderColor: selected ? 'primary.main' : 'primary.light' },
+              '&:hover': disabled
+                ? undefined
+                : { borderColor: selected ? 'primary.main' : 'primary.light' },
             }}
           >
             <CardContent sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
@@ -109,6 +118,7 @@ const MethodCards = ({ value, onChange, current }: Props) => (
               {/* ตัวการ์ดทั้งใบเป็น radio อยู่แล้ว วงกลมนี้จึงเป็นภาพประกอบ ไม่ใช่ตัวควบคุมซ้อน */}
               <Radio
                 checked={selected}
+                disabled={disabled}
                 size="small"
                 sx={{ mt: -1, mr: -1 }}
                 inputProps={{ tabIndex: -1, 'aria-hidden': true }}

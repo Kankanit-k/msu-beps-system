@@ -1,5 +1,6 @@
 // รายงานสำหรับพิมพ์/บันทึกเป็น PDF ผ่านกล่องโต้ตอบพิมพ์ของเบราว์เซอร์ (window.print())
-// ฉบับย่อ 2 หน้า 7 หัวข้อ — แสดงเฉพาะกรณีรวมเงินแผ่นดิน (ผู้ใช้สั่ง 2026-10-21) จากภาพที่บันทึกไว้ ไม่คำนวณซ้ำจากฟอร์มปัจจุบัน
+// 3 หน้า — แสดงเฉพาะกรณีรวมเงินแผ่นดิน (ผู้ใช้สั่ง 2026-10-21) จากภาพที่บันทึกไว้ ไม่คำนวณซ้ำจากฟอร์มปัจจุบัน
+// หัวเอกสารแยก ปรับปรุงหลักสูตรเดิม / จัดทำหลักสูตรใหม่ · ยังไม่ยืนยัน (DRAFT) = ลายน้ำ "ฉบับร่าง" (มติ 25 ต.ค. 2569)
 import type { ReactNode } from 'react';
 
 import Box from '@mui/material/Box';
@@ -7,9 +8,13 @@ import Typography from '@mui/material/Typography';
 
 import type { BreakEvenResult, RevenueMode } from '@beps/calc-engine';
 
+import { BEPS } from '@components/ChartBits';
+
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
-import type { ProgramHistoryEntry } from './types';
+import type { CostColumn } from './CostBlockTable';
+import { isForeignSeg, mixResult } from './newProgramCalc';
+import { isSubmitted, type ProgramHistoryEntry } from './types';
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 const fmtM = (v: number) =>
@@ -29,10 +34,12 @@ const BORDER = '#e2e8f2';
 const SOFT = '#f8fafd';
 
 /** กระดาษ A4 หนึ่งแผ่น (794×1123 px ที่ 96 dpi) — ดาวน์โหลด PDF จับภาพทีละแผ่นจาก data-report-page */
-const Page = ({ children }: { children: ReactNode }) => (
+const Page = ({ children, draft }: { children: ReactNode; draft?: boolean }) => (
   <Box
     data-report-page
     sx={{
+      position: 'relative',
+      overflow: 'hidden',
       width: 794,
       minHeight: 1123,
       px: 6,
@@ -48,11 +55,49 @@ const Page = ({ children }: { children: ReactNode }) => (
         boxShadow: 'none',
         borderRadius: 0,
         breakAfter: 'page',
+        overflow: 'visible',
         '&:last-of-type': { breakAfter: 'auto' },
       },
     }}
   >
     {children}
+    {draft && <Watermark />}
+  </Box>
+);
+
+/**
+ * ลายน้ำ "ฉบับร่าง" สีเทาเอียงกลางหน้า — ไม่บังการอ่าน (จางมาก · คลิกทะลุ)
+ * บนจอ/ดาวน์โหลด PDF: absolute ในกระดาษแต่ละแผ่น (อยู่ในกรอบพรีวิว ไม่คลุมทั้งจอ)
+ * งานพิมพ์: print = fixed ชิ้นเดียว → เบราว์เซอร์วาดซ้ำทุกหน้าที่พิมพ์ (ของ absolute ซ่อนไว้กันซ้อน)
+ */
+const Watermark = ({ print }: { print?: boolean }) => (
+  <Box
+    aria-hidden
+    sx={{
+      position: print ? 'fixed' : 'absolute',
+      inset: 0,
+      zIndex: 1,
+      display: print ? 'none' : 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+      userSelect: 'none',
+      '@media print': { display: print ? 'flex' : 'none' },
+    }}
+  >
+    <Box
+      sx={{
+        transform: 'rotate(-35deg)',
+        textAlign: 'center',
+        color: 'rgba(100,116,139,.13)',
+        fontWeight: 900,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <Box sx={{ fontSize: 150 }}>ฉบับร่าง</Box>
+      <Box sx={{ fontSize: 40, letterSpacing: 14, mt: 1 }}>DRAFT</Box>
+    </Box>
   </Box>
 );
 
@@ -386,6 +431,185 @@ const CompareTable = ({
   </Box>
 );
 
+interface GridRow {
+  key: string;
+  label: string;
+  cells: (number | null)[];
+  fmt?: (v: number) => string;
+  tone?: boolean;
+  indent?: boolean;
+  bold?: boolean;
+  /** เซลล์สุดท้าย = ผลต่าง (แสดง +/−) */
+  delta?: boolean;
+}
+
+/** ตารางตัวเลขทั่วไป — หัวคอลัมน์กำหนดเอง (ข้อมูลตั้งต้นก่อน/หลัง · แจกแจง 5 กลุ่ม) */
+const GridTable = ({
+  head,
+  rows,
+  fontSize = 11,
+}: {
+  head: string[];
+  rows: GridRow[];
+  fontSize?: number;
+}) => (
+  <Box
+    component="table"
+    sx={{
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize,
+      '& th': {
+        bgcolor: NAVY,
+        color: '#fff',
+        textAlign: 'right',
+        px: 1,
+        py: 0.9,
+        fontWeight: 700,
+        lineHeight: 1.3,
+      },
+      '& th:first-of-type': { textAlign: 'left', pl: 1.5 },
+      '& td': { px: 1, py: 0.8, borderBottom: `1px solid ${BORDER}`, textAlign: 'right' },
+      '& td:first-of-type': { textAlign: 'left', pl: 1.5 },
+      '& tr:nth-of-type(even) td': { bgcolor: SOFT },
+    }}
+  >
+    <thead>
+      <tr>
+        {head.map((h) => (
+          <th key={h}>{h}</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.key}>
+          <Box
+            component="td"
+            sx={{
+              pl: row.indent ? '28px !important' : undefined,
+              fontWeight: row.bold ? 700 : 400,
+            }}
+          >
+            {row.label}
+          </Box>
+          {row.cells.map((v, i) => {
+            const isDelta = row.delta && i === row.cells.length - 1;
+
+            return (
+              <Box
+                component="td"
+                key={i}
+                sx={{
+                  fontWeight: row.bold ? 700 : 400,
+                  color:
+                    row.tone && v !== null
+                      ? v >= 0
+                        ? GREEN
+                        : RED
+                      : isDelta
+                        ? '#64748b'
+                        : undefined,
+                }}
+              >
+                {v === null ? '—' : isDelta ? fmtD(v) : (row.fmt ?? fmtN)(v)}
+              </Box>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </Box>
+);
+
+/** กราฟแท่งซ้อนแนวนอน ต้นทุนคงที่ | ผันแปร ต่อคอลัมน์ (ก่อน/หลัง) แบบ SVG ล้วน — พิมพ์ได้เหมือน PrintChart */
+const CostStructureChart = ({ bars }: { bars: { label: string; tfc: number; tvc: number }[] }) => {
+  const W = 640;
+  const rowH = 38;
+  const pad = { l: 110, r: 90, t: 30, b: 8 };
+  const H = pad.t + bars.length * rowH + pad.b;
+  const max = Math.max(...bars.map((b) => b.tfc + b.tvc)) || 1;
+  const w = (v: number) => (Math.max(0, v) / max) * (W - pad.l - pad.r);
+  const inner = { fontSize: 9, fontWeight: 700, textAnchor: 'middle' as const };
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="กราฟโครงสร้างต้นทุน">
+      <g fontSize={9} fill="#334155">
+        <rect x={pad.l} y={8} width={10} height={10} fill={BEPS.cost.dark} />
+        <text x={pad.l + 14} y={17}>
+          ต้นทุนคงที่
+        </text>
+        <rect x={pad.l + 90} y={8} width={10} height={10} fill={BEPS.cost.light} />
+        <text x={pad.l + 104} y={17}>
+          ต้นทุนผันแปร
+        </text>
+        <text x={W - 4} y={17} textAnchor="end" fill="#64748b">
+          หน่วย: ล้านบาท
+        </text>
+      </g>
+      {bars.map((b, i) => {
+        const y = pad.t + i * rowH;
+        const h = rowH - 12;
+        const wf = w(b.tfc);
+        const wv = w(b.tvc);
+        const total = b.tfc + b.tvc;
+        const pctF = total > 0 ? Math.round((b.tfc / total) * 100) : 0;
+
+        return (
+          <g key={b.label}>
+            <text
+              x={pad.l - 8}
+              y={y + h / 2 + 3}
+              fontSize={10}
+              fontWeight={700}
+              textAnchor="end"
+              fill="#1f2937"
+            >
+              {b.label}
+            </text>
+            <rect x={pad.l} y={y} width={wf} height={h} fill={BEPS.cost.dark} />
+            <rect x={pad.l + wf} y={y} width={wv} height={h} fill={BEPS.cost.light} />
+            {wf > 60 && (
+              <text x={pad.l + wf / 2} y={y + h / 2 + 3} fill="#fff" {...inner}>
+                {fmtM(b.tfc)} ({pctF}%)
+              </text>
+            )}
+            {wv > 60 && (
+              <text x={pad.l + wf + wv / 2} y={y + h / 2 + 3} fill={BEPS.cost.onLight} {...inner}>
+                {fmtM(b.tvc)} ({100 - pctF}%)
+              </text>
+            )}
+            <text
+              x={pad.l + wf + wv + 6}
+              y={y + h / 2 + 3}
+              fontSize={10}
+              fontWeight={800}
+              fill="#1f2937"
+            >
+              {fmtM(total)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+/** วันเวลาไทยจาก ISO — แปลงไม่ได้ = แสดงตามที่บันทึก */
+const fmtDateTime = (s: string) => {
+  const d = new Date(s);
+
+  return Number.isNaN(d.getTime())
+    ? s
+    : d.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+};
+
 interface Props {
   entry: ProgramHistoryEntry;
 }
@@ -408,21 +632,147 @@ const ProgramReport = ({ entry }: Props) => {
   const tone = allOk
     ? { border: '#22a06b', bg: '#d9f7e8', icon: '✅' }
     : { border: '#e0a100', bg: '#fff4d6', icon: '⚠️' };
+  const draft = !isSubmitted(entry);
+  const docTitle = entry.isNew ? 'เอกสารจัดทำหลักสูตรใหม่' : 'เอกสารปรับปรุงหลักสูตรเดิม';
+
+  // ข้อมูลตั้งต้น/โครงสร้างต้นทุน — กรณีรวมเงินแผ่นดิน · ก่อน = คอลัมน์อ้างอิง (มีเฉพาะเมื่อมีหลักสูตรอ้างอิง) · หลัง = คอลัมน์ที่แก้ได้
+  const d = entry.detail;
+  const govCols = d?.groups.find((g) => g.mode === 'with_government')?.cols ?? [];
+  const after = govCols.find((c) => c.editable);
+  const before = govCols.find((c) => !c.editable);
+  const cols: CostColumn[] = after ? (before ? [before, after] : [after]) : [];
+  const feeYr = (c: CostColumn) => (c.block.q > 0 ? c.block.income / c.block.q : null);
+  const startRows = (): GridRow[] => {
+    if (!d) return [];
+    const per = (f: (c: CostColumn) => number | null): (number | null)[] => {
+      const v = cols.map(f);
+
+      // คอลัมน์ผลต่าง (หลัง − ก่อน)
+      return before ? [...v, v[0] !== null && v[1] !== null ? v[1]! - v[0]! : null] : v;
+    };
+    const years = d.years;
+
+    return [
+      { key: 'q', label: 'จำนวนนิสิตเป้าหมาย (คน)', cells: per((c) => c.block.q), bold: true },
+      {
+        key: 'feeSem',
+        label: `ค่าธรรมเนียมต่อภาคการศึกษา (บาท/คน · ${d.semesters} ภาค/ปี)`,
+        cells: per((c) => {
+          const f = feeYr(c);
+
+          return f === null || !d.semesters ? null : f / d.semesters;
+        }),
+        indent: true,
+      },
+      { key: 'feeYr', label: 'ค่าธรรมเนียมต่อปี (บาท/คน)', cells: per(feeYr), indent: true },
+      ...(years
+        ? [
+            {
+              key: 'feeAll',
+              label: `ค่าธรรมเนียมตลอดหลักสูตร (บาท/คน · ${years} ปี)`,
+              cells: per((c) => {
+                const f = feeYr(c);
+
+                return f === null ? null : f * years;
+              }),
+              indent: true,
+            },
+          ]
+        : []),
+      { key: 'gov', label: 'งบประมาณเงินแผ่นดินรวม (บาท/ปี)', cells: per((c) => c.block.gov) },
+      { key: 'inc', label: 'งบประมาณเงินรายได้รวม (บาท/ปี)', cells: per((c) => c.block.income) },
+    ].map((r) => ({ ...r, delta: !!before }));
+  };
+
+  // แจกแจง 5 กลุ่ม — กรณีรวมเงินแผ่นดินเท่านั้น · สูตรเดียวกับ StudentMixTable (mixResult)
+  const mix =
+    d && d.segs.length
+      ? mixResult(
+          d.segs,
+          d.mixCosts.with_government.tfc,
+          d.mixCosts.with_government.avc,
+          'with_government',
+        )
+      : null;
+  const mixRows = (): GridRow[] => {
+    if (!d || !mix) return [];
+    const gov = d.segs.map((s, i) => (isForeignSeg(i) ? 0 : s.gov * s.n * s.semesters));
+    const inc = d.segs.map((s) => s.fee * s.n * s.semesters);
+    const sumOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    const withTotal = (xs: number[], total: number) => [...xs, total];
+
+    return [
+      {
+        key: 'n',
+        label: 'นิสิต (คน)',
+        cells: withTotal(
+          d.segs.map((s) => s.n),
+          mix.total.n,
+        ),
+        bold: true,
+      },
+      { key: 'gov', label: 'เงินแผ่นดิน', cells: withTotal(gov, sumOf(gov)) },
+      { key: 'inc', label: 'เงินรายได้', cells: withTotal(inc, sumOf(inc)) },
+      {
+        key: 'tfc',
+        label: 'ต้นทุนคงที่',
+        cells: withTotal(
+          mix.rows.map((r) => r.tfc),
+          mix.total.tfc,
+        ),
+      },
+      {
+        key: 'tvc',
+        label: 'ต้นทุนผันแปร',
+        cells: withTotal(
+          mix.rows.map((r) => r.tvc),
+          mix.total.tvc,
+        ),
+      },
+      {
+        key: 'tc',
+        label: 'ต้นทุนรวม',
+        cells: withTotal(
+          mix.rows.map((r) => r.tfc + r.tvc),
+          mix.total.tfc + mix.total.tvc,
+        ),
+        bold: true,
+      },
+      {
+        key: 'profit',
+        label: 'กำไร (ขาดทุน)',
+        cells: withTotal(
+          mix.rows.map((r) => r.profit),
+          mix.total.profit,
+        ),
+        fmt: fmtD,
+        tone: true,
+        bold: true,
+      },
+    ];
+  };
+
+  // เลขหัวข้อเรียงต่อกัน — ข้ามหัวข้อที่ไม่มีข้อมูล (บันทึกเก่าไม่มี detail)
+  let no = 0;
+  const next = () => ++no;
 
   return (
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
+        // safe center — จอแคบกว่า A4 ชิดซ้ายแทน ไม่ให้ขอบซ้ายหลุดออกนอกกล่องเลื่อน
+        alignItems: 'safe center',
         gap: 3,
         color: '#1f2937',
         fontFamily: 'inherit',
         '@media print': { display: 'block' },
       }}
     >
+      {draft && <Watermark print />}
+
       {/* ---------------- หน้า 1 ---------------- */}
-      <Page>
+      <Page draft={draft}>
         <Letterhead
           right={
             <Box sx={{ textAlign: 'right' }}>
@@ -444,11 +794,18 @@ const ProgramReport = ({ entry }: Props) => {
           }
         />
 
-        <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: 20 }}>
+        <Typography sx={{ fontWeight: 800, color: NAVY, fontSize: 20 }}>{docTitle}</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: 12, color: BLUE }}>
           รายงานการวิเคราะห์จุดคุ้มทุนหลักสูตร
         </Typography>
-        <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 2 }}>
+        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
           {entry.name} · {entry.fac || '-'} · {entry.level}
+        </Typography>
+        <Typography sx={{ fontSize: 10, fontWeight: 700, mb: 2, color: draft ? '#8a5a00' : GREEN }}>
+          สถานะ:{' '}
+          {draft
+            ? 'ฉบับร่าง (ยังไม่ยืนยัน)'
+            : `ยืนยันแล้วเมื่อ ${entry.submittedAt ? fmtDateTime(entry.submittedAt) : '-'} โดย ${entry.submittedBy || '-'}`}
         </Typography>
 
         <Box
@@ -477,7 +834,7 @@ const ProgramReport = ({ entry }: Props) => {
           </Box>
         </Box>
 
-        <Section no={1} title="ข้อมูลหลักสูตร">
+        <Section no={next()} title="ข้อมูลหลักสูตร">
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
             <Field label="ชื่อหลักสูตร" value={entry.name} />
             <Field label="สังกัดคณะ / วิทยาลัย" value={entry.fac || '-'} />
@@ -486,7 +843,16 @@ const ProgramReport = ({ entry }: Props) => {
           </Box>
         </Section>
 
-        <Section no={2} title="ตัวชี้วัดทางการเงิน">
+        {d && cols.length > 0 && (
+          <Section no={next()} title="ข้อมูลตั้งต้น (กรณีรวมเงินแผ่นดิน)">
+            <GridTable
+              head={['รายการ', ...cols.map((c) => c.title), ...(before ? ['ผลต่าง'] : [])]}
+              rows={startRows()}
+            />
+          </Section>
+        )}
+
+        <Section no={next()} title="ตัวชี้วัดทางการเงิน">
           <CompareTable
             cases={cases}
             rows={[
@@ -508,8 +874,13 @@ const ProgramReport = ({ entry }: Props) => {
             ]}
           />
         </Section>
+      </Page>
 
-        <Section no={3} title="โครงสร้างต้นทุนและรายได้ (บาท)">
+      {/* ---------------- หน้า 2 ---------------- */}
+      <Page draft={draft}>
+        <Letterhead />
+
+        <Section no={next()} title="โครงสร้างต้นทุนและรายได้ (บาท)">
           <CompareTable
             cases={cases}
             rows={[
@@ -548,13 +919,40 @@ const ProgramReport = ({ entry }: Props) => {
             ]}
           />
         </Section>
+
+        {d && mix && (
+          <Section no={next()} title="การแจกแจงแผนรับนิสิต 5 กลุ่ม (กรณีรวมเงินแผ่นดิน · บาท/ปี)">
+            <GridTable
+              fontSize={9.5}
+              head={['รายการ', ...d.segs.map((s) => s.label), 'รวม']}
+              rows={mixRows()}
+            />
+            <Typography sx={{ fontSize: 9, color: 'text.secondary', mt: 0.75 }}>
+              ต้นทุนคงที่ปันตามสัดส่วนจำนวนนิสิต · ต้นทุนผันแปร = ต้นทุนผันแปรต่อหัว × จำนวนนิสิต ·
+              นิสิตต่างชาติไม่ได้รับเงินแผ่นดิน
+              {mix.qStar !== null && ` · จุดคุ้มทุนตามสัดส่วนนี้ ${fmtN(mix.qStar)} คน`}
+            </Typography>
+          </Section>
+        )}
+
+        <Section no={next()} title="กราฟโครงสร้างต้นทุน (ต้นทุนคงที่ | ต้นทุนผันแปร)">
+          <Box sx={{ border: `1px solid ${BORDER}`, borderRadius: 2, p: 1.5, bgcolor: SOFT }}>
+            <CostStructureChart
+              bars={
+                cols.length
+                  ? cols.map((c) => ({ label: c.title, tfc: c.result.tfc, tvc: c.result.tvc }))
+                  : [{ label: typeLabel, tfc: entry.withGov.tfc, tvc: entry.withGov.tvc }]
+              }
+            />
+          </Box>
+        </Section>
       </Page>
 
-      {/* ---------------- หน้า 2 ---------------- */}
-      <Page>
+      {/* ---------------- หน้า 3 ---------------- */}
+      <Page draft={draft}>
         <Letterhead />
 
-        <Section no={4} title="การคำนวณจุดคุ้มทุน">
+        <Section no={next()} title="การคำนวณจุดคุ้มทุน">
           {cases.map(({ mode, r }) => {
             const R = r.r ?? 0;
             const profit = profitOf(r);
@@ -583,7 +981,7 @@ const ProgramReport = ({ entry }: Props) => {
           })}
         </Section>
 
-        <Section no={5} title="กราฟจุดคุ้มทุน">
+        <Section no={next()} title="กราฟจุดคุ้มทุน">
           <Box sx={{ border: `1px solid ${BORDER}`, borderRadius: 2, p: 1.5, bgcolor: SOFT }}>
             <PrintChart cases={cases} />
           </Box>
@@ -592,7 +990,7 @@ const ProgramReport = ({ entry }: Props) => {
           </Typography>
         </Section>
 
-        <Section no={6} title="ข้อเสนอแนะ">
+        <Section no={next()} title="ข้อเสนอแนะ">
           <Box
             sx={{ border: `1px solid ${BORDER}`, borderRadius: 2, px: 2, py: 1.5, bgcolor: SOFT }}
           >
@@ -636,7 +1034,7 @@ const ProgramReport = ({ entry }: Props) => {
           </Box>
         </Section>
 
-        <Section no={7} title="ผู้รับรองรายงาน">
+        <Section no={next()} title="ผู้รับรองรายงาน">
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mt: 4 }}>
             {['ผู้จัดทำ', 'ประธานหลักสูตร', 'คณบดี / ผู้อำนวยการ'].map((role, i) => (
               <Box key={role} sx={{ textAlign: 'center', pt: 5, borderTop: '1px solid #334155' }}>

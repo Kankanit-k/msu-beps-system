@@ -13,6 +13,8 @@ export interface ProgramReportDetail {
   /** ชื่อคอลัมน์ที่ประเมิน (คอลัมน์ที่แก้ได้เสมอ) */
   basisCol: string;
   semesters: number;
+  /** จำนวนปีของหลักสูตร — ใช้แสดงค่าธรรมเนียมตลอดหลักสูตร (ไม่มี = บันทึกก่อนมีฟิลด์นี้) */
+  years?: number;
   fees: FeeRow[];
   alloc: {
     method: string;
@@ -70,4 +72,16 @@ export interface ProgramHistoryEntry {
   detail?: ProgramReportDetail;
   /** ข้อมูลฟอร์ม ณ ตอนบันทึก (Draft ใน ScenarioProgramView) — ใช้เปิดกลับมาแก้ไข · ไม่มี = บันทึกก่อนมีฟิลด์นี้ */
   input?: object;
+  /**
+   * สถานะเอกสาร (มติประชุม 25 ต.ค. 2569) — ไม่มี = DRAFT
+   * SUBMITTED = ยืนยันแล้ว: ล็อก ห้ามแก้/ลบในระบบ · พิมพ์ฉบับจริงไม่มีลายน้ำ · ปลดล็อกได้เฉพาะกองแผน
+   * ชื่อสถานะตรงกับ master_status ใน db/01_schema.sql
+   */
+  status?: ProgramEntryStatus;
+  submittedAt?: string;
+  submittedBy?: string;
 }
+
+export type ProgramEntryStatus = 'DRAFT' | 'SUBMITTED';
+
+export const isSubmitted = (h: Pick<ProgramHistoryEntry, 'status'>) => h.status === 'SUBMITTED';

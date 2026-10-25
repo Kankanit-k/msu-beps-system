@@ -35,7 +35,8 @@ import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 import { buildProgramCrossData } from '@views/cross/crossData';
 import { HeatmapCard, RankingCard, ScatterPair } from '@views/cross/CrossPanels';
 import { facultyDepCompare } from '@views/cost-data/depreciationData';
-import { fmtLockedAt } from '@views/fixed-cost-lock/lockStore';
+import { fmtLockedAt, policySourceLabel } from '@views/fixed-cost-lock/lockStore';
+import { policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
 import { ALLOC_METHOD_LABEL } from '@views/scenario-program/facultyAllocation';
 
 import { useFaculty } from './FacultyContext';
@@ -492,10 +493,8 @@ export const FacultyCostPage = () => {
               </WatchChip>
             )}
             <WatchChip icon="ri-scales-3-line" onClick={() => setWatchOpen(true)}>
-              ปันส่วน:{' '}
-              <b>
-                {!lockReady ? '…' : lock ? ALLOC_METHOD_LABEL[lock.choice.method] : 'ยังไม่ได้ล็อก'}
-              </b>
+              ปันส่วน: <b>{!lockReady || !lock ? '…' : ALLOC_METHOD_LABEL[lock.choice.method]}</b>
+              {lock && ` (${policySourceShort(lock)})`}
             </WatchChip>
           </Box>
         </CardContent>
@@ -603,11 +602,14 @@ export const FacultyCostPage = () => {
             </WatchItem>
           )}
           <WatchItem icon="ri-scales-3-line">
-            วิธีปันส่วนที่คณะเลือก:{' '}
-            <b>
-              {!lockReady ? '…' : lock ? ALLOC_METHOD_LABEL[lock.choice.method] : 'ยังไม่ได้ล็อก'}
-            </b>
-            <InfoTip text="ตัวเลขในหน้านี้ใช้การหารรายหัวตามชีต (ข้อมูลจริง) ทั้งหมด เพื่อให้หน้ารายได้ ต้นทุน และจุดคุ้มทุนตรงกัน — วิธีที่คณะล็อกไว้ใช้กับการวิเคราะห์หลักสูตร" />
+            วิธีปันส่วนที่ใช้วิเคราะห์หลักสูตร:{' '}
+            <b>{!lockReady || !lock ? '…' : ALLOC_METHOD_LABEL[lock.choice.method]}</b>
+            {lock && (
+              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                {policySourceLabel(lock)}
+              </Typography>
+            )}
+            <InfoTip text="ตัวเลขในหน้านี้ใช้การหารรายหัวตามชีต (ข้อมูลจริง) ทั้งหมด เพื่อให้หน้ารายได้ ต้นทุน และจุดคุ้มทุนตรงกัน — วิธีที่คณะตั้งค่าไว้ (หรือค่าปีก่อน/ตาม Excel) ใช้กับการวิเคราะห์หลักสูตร" />
             <Box
               component={Link}
               href="/faculty/config"
@@ -668,7 +670,19 @@ const beSummary = (progs: ProgStat[], withGov: boolean) => {
 };
 
 export const FacultyBreakEvenPage = () => {
-  const { fac, progs, allProgs, level, mode, facRes, levelRes, after, openDetail } = useFaculty();
+  const {
+    fac,
+    progs,
+    allProgs,
+    level,
+    mode,
+    facRes,
+    levelRes,
+    after,
+    openDetail,
+    lock,
+    lockReady,
+  } = useFaculty();
   const withGov = mode === 'with_government';
   const [view, setView] = useState<'rank' | 'heat' | 'scatter'>('rank');
   const [onlyFail, setOnlyFail] = useState(false);
@@ -786,6 +800,12 @@ export const FacultyBreakEvenPage = () => {
           </Box>
         </Grid>
       </Grid>
+      {/* วิธีปันส่วนต้นทุนคงที่ที่ผลหลังปรับใช้ + ที่มา (คณะตั้งค่า / ค่าปีก่อน / ตาม Excel) */}
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1.5, mb: 2 }}>
+        <i className="ri-scales-3-line" style={{ verticalAlign: 'middle' }} /> ปันส่วนต้นทุนคงที่:{' '}
+        <b>{!lockReady || !lock ? '…' : ALLOC_METHOD_LABEL[lock.choice.method]}</b>
+        {lock && ` · ${policySourceLabel(lock)}`}
+      </Typography>
       {/* 2 กราฟวางคู่กัน — ความสูงเท่ากัน ตามจำนวนหลักสูตร */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
@@ -867,20 +887,35 @@ export const FacultyConfigPage = () => {
       <Card>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Typography fontWeight={600}>วิธีปันต้นทุนคงที่ส่วนกลางของคณะ · ปีงบ {year}</Typography>
-          {!lockReady ? (
+          {!lockReady || !lock ? (
             <Typography color="text.secondary">กำลังโหลด…</Typography>
-          ) : lock ? (
-            <Typography>
-              ล็อกวิธี <b>{ALLOC_METHOD_LABEL[lock.choice.method]}</b> เมื่อ{' '}
-              {fmtLockedAt(lock.lockedAt)}
-              {lock.lockedBy ? ` โดย ${lock.lockedBy}` : ''}
-            </Typography>
           ) : (
-            <Typography color="warning.main">คณะยังไม่ได้ล็อกวิธีปันส่วนของปีงบนี้</Typography>
+            <Box>
+              <Typography>
+                ใช้วิธี <b>{ALLOC_METHOD_LABEL[lock.choice.method]}</b>
+                {lock.source !== 'default' && lock.lockedAt && (
+                  <>
+                    {' '}
+                    · ตั้งค่าเมื่อ {fmtLockedAt(lock.lockedAt)}
+                    {lock.lockedBy ? ` โดย ${lock.lockedBy}` : ''}
+                  </>
+                )}
+              </Typography>
+              <Typography
+                variant="body2"
+                color={lock.prevInvalidYear ? 'warning.main' : 'text.secondary'}
+              >
+                {policySourceLabel(lock)}
+                {lock.prevInvalidYear &&
+                  ` — ค่าปี ${lock.prevInvalidYear} ใช้กับหลักสูตรปีนี้ไม่ได้ จึงใช้ค่าตาม Excel แทน`}
+                {lock.submitLock &&
+                  ` — ล็อกเมื่อหลักสูตร ${lock.submitLock.program} ยืนยันเอกสารฉบับจริง ${fmtLockedAt(lock.submitLock.at)}`}
+              </Typography>
+            </Box>
           )}
           <Alert severity="info">
-            ตัวเลขบนหน้าภาพรวมคณะยังเป็นข้อมูลจริงตามชีต (หารรายหัว) —
-            วิธีที่ล็อกใช้กับการวิเคราะห์หลักสูตร
+            ตัวเลขบนหน้าภาพรวมคณะยังเป็นข้อมูลจริงตามชีต (หารรายหัว) — วิธีที่คณะตั้งค่าไว้
+            (หรือค่าปีก่อน/ตาม Excel ถ้ายังไม่ตั้ง) ใช้กับการวิเคราะห์หลักสูตร
           </Alert>
           {canAccess(role, '/admin/fixed-cost-lock') && (
             <Box>
@@ -888,9 +923,11 @@ export const FacultyConfigPage = () => {
                 variant="contained"
                 component={Link}
                 href="/admin/fixed-cost-lock"
-                startIcon={<i className="ri-edit-line" />}
+                startIcon={
+                  <i className={role === 'facultyExec' ? 'ri-eye-line' : 'ri-edit-line'} />
+                }
               >
-                แก้ไขการตั้งค่า
+                {role === 'facultyExec' ? 'ดูรายละเอียดการตั้งค่า' : 'แก้ไขการตั้งค่า'}
               </Button>
             </Box>
           )}

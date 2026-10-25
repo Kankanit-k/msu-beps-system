@@ -17,7 +17,7 @@ import TableRow from '@mui/material/TableRow';
 
 import { DotTitle } from '@components/ChartBits';
 
-import type { ProgramHistoryEntry } from '../types';
+import { isSubmitted, type ProgramHistoryEntry } from '../types';
 
 const fmtN = (v: number) => Math.round(v).toLocaleString('th-TH');
 
@@ -31,9 +31,19 @@ interface Props {
   onDelete: (h: ProgramHistoryEntry) => void;
   /** รายการที่กำลังเปิดแก้ไขอยู่ — ไฮไลต์แถว */
   editingId?: number | null;
+  /** ปลดล็อกผลที่ยืนยันแล้ว — เฉพาะกองแผน (ไม่ส่ง = ไม่มีปุ่ม) */
+  onUnlock?: (h: ProgramHistoryEntry) => void;
 }
 
-const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }: Props) => (
+const HistoryTable = ({
+  history,
+  onPrint,
+  onClear,
+  onOpen,
+  onDelete,
+  editingId,
+  onUnlock,
+}: Props) => (
   <Card>
     <CardHeader
       title={<DotTitle color="warning.main">ประวัติการคำนวณ</DotTitle>}
@@ -45,7 +55,7 @@ const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }
           onClick={onClear}
           sx={{ mr: 2, borderRadius: 5 }}
         >
-          ล้างทั้งหมด
+          ล้างร่างทั้งหมด
         </Button>
       }
     />
@@ -89,11 +99,23 @@ const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }
                     {h.name}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>{h.level || '—'}</TableCell>
-                  <TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
                     <Chip
                       size="small"
                       label={h.isNew ? 'ใหม่' : 'ปรับปรุง'}
                       color={h.isNew ? 'primary' : 'warning'}
+                      sx={{ height: 18, fontSize: 10 }}
+                    />{' '}
+                    <Chip
+                      size="small"
+                      variant="tonal"
+                      label={isSubmitted(h) ? '🔒 ยืนยันแล้ว' : 'ร่าง'}
+                      color={isSubmitted(h) ? 'success' : 'default'}
+                      title={
+                        isSubmitted(h)
+                          ? `ยืนยันเมื่อ ${h.submittedAt ?? '—'} โดย ${h.submittedBy ?? '—'} — แก้ไขไม่ได้ ต้องทำบันทึกขออนุมัติถึงกองแผน`
+                          : 'ยังไม่ยืนยัน — แก้ไขได้'
+                      }
                       sx={{ height: 18, fontSize: 10 }}
                     />
                   </TableCell>
@@ -115,6 +137,13 @@ const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    {isSubmitted(h) ? (
+                      onUnlock && (
+                        <Button size="small" color="warning" onClick={() => onUnlock(h)}>
+                          ปลดล็อก
+                        </Button>
+                      )
+                    ) : (
                     <Button
                       size="small"
                       disabled={!h.input}
@@ -127,6 +156,7 @@ const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }
                     >
                       {h.id === editingId ? 'กำลังแก้ไข' : 'เปิด / แก้ไข'}
                     </Button>
+                    )}
                     {onPrint && (
                       <Button
                         size="small"
@@ -140,9 +170,11 @@ const HistoryTable = ({ history, onPrint, onClear, onOpen, onDelete, editingId }
                         🖨 PDF
                       </Button>
                     )}
-                    <Button size="small" color="error" onClick={() => onDelete(h)}>
-                      ลบ
-                    </Button>
+                    {!isSubmitted(h) && (
+                      <Button size="small" color="error" onClick={() => onDelete(h)}>
+                        ลบ
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );

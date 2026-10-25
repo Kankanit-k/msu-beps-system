@@ -1,10 +1,12 @@
 'use client';
 
 /**
- * ตั้งค่าวิธีปันส่วนต้นทุนคงที่ของคณะ — ขั้นที่ 1 ก่อนอาจารย์ประจำหลักสูตรปรับปรุง/เปิดหลักสูตร
+ * ตั้งค่าวิธีปันส่วนต้นทุนคงที่ของคณะ (ปีงบ × คณะ) — มติ 25 ต.ค. 2569 (PLAN-2026-10-25-fixed-cost-default)
  *
- * ตามมติประชุม: คณะประชุมตกลงแล้วผู้ดูแลคณะเลือก 1 ใน 3 วิธี (หารรายหัว · หารเท่ากันทุกหลักสูตร · กำหนด %)
- * แล้วกดล็อก → มีผลทันที · ปลดล็อกเปลี่ยนวิธีเองได้ · อาจารย์ใช้ตามที่ล็อกและแก้ไม่ได้
+ * - ไม่บังคับ: ยังไม่ตั้งค่าปีนี้ หน้าคำนวณใช้ค่าปีก่อนหน้า → ไม่เคยตั้งใช้ค่าตามแบบจำลอง Excel (หารรายหัว)
+ * - ผู้ดูแลคณะเลือก 1 ใน 3 วิธี (หารรายหัว · หารเท่ากันทุกหลักสูตร · กำหนด %) แล้ว "บันทึกการตั้งค่า" → มีผลทันที
+ *   แก้ได้อิสระจนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง → 🔒 ล็อก · แก้ต้องทำบันทึกขออนุมัติ แล้วกองแผนปลดล็อก
+ * - สถานะ 3 แบบ: ยังไม่ตั้ง / ตั้งค่าแล้ว / ล็อกแล้ว · ผู้บริหารคณะเปิดดูคณะตนได้อย่างเดียว (D5)
  */
 import { useEffect, useMemo, useState } from 'react';
 
@@ -69,14 +71,21 @@ import {
 import { gridTableSx } from '@views/scenario-program/CostBlockTable';
 import { progDegreeLabel } from '@views/scenario-program/programData';
 
-import { fmtLockedAt, lockFaculty, unlockFaculty, useFacultyLock } from './lockStore';
+import {
+  fmtLockedAt,
+  lockFaculty,
+  unlockFaculty,
+  unlockSubmit,
+  useFacultyConfig,
+  useFacultyLock,
+} from './lockStore';
 
 /** ขั้นตอนบนหน้านี้ — hint บอกว่าขั้นนั้นต้องทำอะไร ผู้ใช้อ่านแถบขั้นตอนอย่างเดียวก็รู้ลำดับงาน */
 const STEPS = [
   { id: 'step-faculty', label: 'เลือกคณะ', hint: 'เลือกคณะที่จะตั้งค่า' },
   { id: 'step-method', label: 'เลือกวิธีแบ่งต้นทุน', hint: 'เลือก 1 ใน 3 วิธีตามมติคณะ' },
   { id: 'step-compare', label: 'เทียบผล 3 วิธี', hint: 'ดูภาระของแต่ละหลักสูตร (ไม่บังคับ)' },
-  { id: 'step-lock', label: 'ยืนยันและล็อก', hint: 'กดล็อก — อาจารย์เริ่มคำนวณได้ทันที' },
+  { id: 'step-save', label: 'บันทึกการตั้งค่า', hint: 'กดบันทึก — หน้าคำนวณใช้ค่านี้ทันที' },
 ];
 
 type StepStatus = 'done' | 'current' | 'optional' | 'todo';
@@ -169,7 +178,7 @@ const lvlRank = (lvl: string) => {
   return i < 0 ? LVL_ORDER.length : i;
 };
 
-/* ---------- ร่างที่ยังไม่ล็อก (ต่อคณะ) — กันกรอก % หายเมื่อปิด/รีโหลด ---------- */
+/* ---------- ร่างที่ยังไม่บันทึก (ต่อคณะ) — กันกรอก % หายเมื่อปิด/รีโหลด ---------- */
 const DRAFT_KEY = 'beps:fixed-cost-lock:draft:v1';
 type Drafts = Record<string, AllocChoice & { savedAt: string }>;
 
@@ -198,40 +207,53 @@ const FixedCostLockView = () => {
   const year = MOCK_RUN.budgetYear;
   const { role, scope, ready: roleReady } = useRole();
   const { user } = useAuthUser();
-  // ผู้ดูแลคณะตั้งค่าได้เฉพาะคณะของตน · ผู้ดูแลมหาวิทยาลัยเลือกได้ทุกคณะ
-  const scopedFac = role === 'deptAdmin' ? scope.faculty : null;
-  /** ล็อก/ปลดล็อกได้เฉพาะผู้ดูแลคณะ (ที่ระบุคณะแล้ว) และผู้ดูแลมหาวิทยาลัย */
+  // ผู้บริหารคณะ (D5) ดูได้อย่างเดียว — เจ้าหน้าที่คณะเป็นคนกดบันทึก ("ร่วมกัน" = ตกลงในที่ประชุมคณะ)
+  const readOnly = role === 'facultyExec';
+  // ระดับคณะเห็น/ตั้งได้เฉพาะคณะของตน · ผู้ดูแลมหาวิทยาลัยเลือกได้ทุกคณะ
+  const scopedFac = role === 'deptAdmin' || role === 'facultyExec' ? scope.faculty : null;
   const denied =
     role === 'universityAdmin'
       ? null
-      : role === 'deptAdmin'
+      : role === 'deptAdmin' || role === 'facultyExec'
         ? scopedFac
           ? null
-          : 'ยังไม่ได้ระบุคณะของผู้ดูแล — เลือกคณะจากเมนูโปรไฟล์ (มุมมองสิทธิ์ → เจ้าหน้าที่ระดับคณะ) ก่อน'
+          : `ยังไม่ได้ระบุคณะของ${roleDisplay[role].label} — เลือกคณะจากเมนูโปรไฟล์ (มุมมองสิทธิ์) ก่อน`
         : role === 'lecturer'
-          ? 'หน้านี้สำหรับผู้ดูแลคณะเท่านั้น — อาจารย์ประจำหลักสูตรใช้วิธีปันส่วนที่คณะล็อกไว้ และแก้ไขไม่ได้'
-          : 'หน้านี้สำหรับเจ้าหน้าที่ระดับคณะ/มหาวิทยาลัยเท่านั้น';
+          ? 'หน้านี้สำหรับเจ้าหน้าที่/ผู้บริหารคณะ — อาจารย์ประจำหลักสูตรคำนวณได้เลยด้วยวิธีที่คณะตั้งไว้ (ถ้าคณะยังไม่ตั้ง ใช้ค่าปีก่อนหรือค่าเริ่มต้นตามแบบจำลอง Excel)'
+          : 'หน้านี้สำหรับเจ้าหน้าที่ระดับคณะ/มหาวิทยาลัย และผู้บริหารคณะเท่านั้น';
   const facultyOptions = scopedFac ? [scopedFac] : FACULTIES;
 
   const [fac, setFac] = useState<string | null>(null);
   const [choice, setChoice] = useState<AllocChoice>(DEFAULT_ALLOC_CHOICE);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<'lock' | 'unlock' | 'clear' | 'clearSplit' | null>(null);
+  /** กำลังแก้การตั้งค่าที่บันทึกไว้ — ค่าเดิมยังใช้คำนวณอยู่จนกว่าจะกดบันทึกอีกครั้ง */
+  const [editing, setEditing] = useState(false);
+  const [confirm, setConfirm] = useState<
+    'save' | 'clearConfig' | 'unlockSubmit' | 'clear' | 'clearSplit' | null
+  >(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [page, setPage] = useState(0);
-  const { lock, ready } = useFacultyLock(year, fac);
-  const locked = !!lock;
+  /** การตั้งค่าที่คณะบันทึกไว้ปีนี้ (null = ยังไม่ตั้ง) */
+  const { config, ready } = useFacultyConfig(year, fac);
+  /** ค่าที่หน้าคำนวณใช้จริงตอนนี้ (ปีนี้ → ปีก่อน → ตาม Excel) */
+  const { lock: effective } = useFacultyLock(year, fac);
+  const submitLock = config?.submitLock;
+  /** ตั้งค่าแล้วและไม่ได้อยู่ระหว่างแก้ */
+  const saved = !!config && !editing;
+  /** ฟอร์มแก้ไม่ได้: ดูอย่างเดียว · ล็อกจากการยืนยันเอกสาร · ตั้งค่าแล้ว (ยังไม่กดแก้ไข) */
+  const locked = readOnly || !!submitLock || saved;
 
   useEffect(() => {
     if (scopedFac) setFac(scopedFac);
   }, [scopedFac]);
 
-  // เปลี่ยนคณะ → ล็อกแล้วแสดงค่าที่ล็อก · ยังไม่ล็อกแสดงร่างของคณะนั้น
+  // เปลี่ยนคณะ/ที่เก็บเปลี่ยน → ตั้งค่าแล้วแสดงค่าที่บันทึก · ยังไม่ตั้งแสดงร่าง หรือค่าที่หน้าคำนวณใช้อยู่
   useEffect(() => {
     if (!fac || !ready) return;
-    const d = readDrafts()[fac];
+    const d = config || readOnly ? undefined : readDrafts()[fac];
 
-    if (lock) setChoice(lock.choice);
+    setEditing(false);
+    if (config) setChoice(config.choice);
     else if (d)
       setChoice({
         method: d.method,
@@ -240,19 +262,30 @@ const FixedCostLockView = () => {
         pct: d.pct,
         levelPct: d.levelPct,
       });
-    else setChoice(DEFAULT_ALLOC_CHOICE);
-    setSavedAt(lock ? null : (d?.savedAt ?? null));
+    else setChoice(effective?.choice ?? DEFAULT_ALLOC_CHOICE);
+    setSavedAt(d?.savedAt ?? null);
     setPage(0);
-  }, [fac, ready, lock]);
+  }, [fac, ready, config, effective, readOnly]);
 
   const update = (patch: Partial<AllocChoice>) => {
     if (!fac || locked) return;
     const next = { ...choice, ...patch };
-    const at = new Date().toISOString();
 
     setChoice(next);
+    // ร่างเก็บเฉพาะตอนยังไม่ตั้งค่า — แก้ค่าที่บันทึกแล้ว กด "ยกเลิกแก้ไข" ก็กลับค่าเดิม
+    if (config) return;
+    const at = new Date().toISOString();
+
     writeDrafts({ ...readDrafts(), [fac]: { ...next, savedAt: at } });
     setSavedAt(at);
+  };
+
+  const dropDraft = (f: string) => {
+    const d = readDrafts();
+
+    delete d[f];
+    writeDrafts(d);
+    setSavedAt(null);
   };
 
   /* ---------- ผลปันส่วนของทั้งคณะตามวิธีที่เลือก (ชุดคำนวณเดียวกับหน้าคำนวณรายหลักสูตร) ---------- */
@@ -264,7 +297,8 @@ const FixedCostLockView = () => {
 
     rows.forEach(({ p }) => n.set(key(p), (n.get(key(p)) ?? 0) + 1));
 
-    return (p: ProgRow) => (n.get(key(p))! > 1 ? `${progDegreeLabel(p)} (${p.prog})` : progDegreeLabel(p));
+    return (p: ProgRow) =>
+      n.get(key(p))! > 1 ? `${progDegreeLabel(p)} (${p.prog})` : progDegreeLabel(p);
   }, [rows]);
   /** ตารางขั้นที่ 3 จัดกลุ่มตามระดับ — sort คงลำดับเดิมภายในระดับเดียวกัน */
   const byLevel = useMemo(
@@ -311,15 +345,15 @@ const FixedCostLockView = () => {
       : !outcome?.applied
         ? 'แก้ข้อทักท้วงของวิธีปันส่วนก่อน (เช่น % รวมไม่ครบ 100)'
         : capIssue;
-  const activeStep = !fac ? 0 : locked ? 4 : lockBlocker ? 1 : 3;
+  const activeStep = !fac ? 0 : saved ? 4 : readOnly ? 2 : lockBlocker ? 1 : 3;
   const methodOk = !!fac && rows.length > 0 && !lockBlocker;
   const status: StepStatus[] = [
     fac ? 'done' : 'current',
-    !fac ? 'todo' : locked || methodOk ? 'done' : 'current',
-    !fac ? 'todo' : locked ? 'done' : 'optional',
-    !fac ? 'todo' : locked ? 'done' : methodOk ? 'current' : 'todo',
+    !fac ? 'todo' : saved || readOnly || methodOk ? 'done' : 'current',
+    !fac ? 'todo' : saved ? 'done' : 'optional',
+    !fac ? 'todo' : saved ? 'done' : readOnly ? 'todo' : methodOk ? 'current' : 'todo',
   ];
-  /** เงื่อนไขที่ปุ่มล็อกต้องผ่านทุกข้อ — แสดงเป็นรายการให้รู้ว่าปุ่มจะกดได้เมื่อไร */
+  /** เงื่อนไขที่ปุ่มบันทึกต้องผ่านทุกข้อ — แสดงเป็นรายการให้รู้ว่าปุ่มจะกดได้เมื่อไร */
   const lockChecks = [
     { ok: !!fac, label: 'เลือกคณะแล้ว (ขั้นที่ 1)' },
     { ok: rows.length > 0, label: 'คณะมีหลักสูตรในชุดข้อมูล' },
@@ -342,34 +376,62 @@ const FixedCostLockView = () => {
     ? `${user.STAFFNAME} ${user.STAFFSURNAME ?? ''}`.trim()
     : `${roleDisplay[role].label}${fac ? ` ${fac}` : ''}`;
 
-  const doLock = () => {
+  const doSave = () => {
     setConfirm(null);
-    if (!fac || lockBlocker) return;
+    if (!fac || lockBlocker || readOnly) return;
     if (!lockFaculty({ year, faculty: fac, choice, lockedBy })) {
-      setToast({ msg: 'ล็อกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้บันทึกข้อมูล', ok: false });
+      setToast({
+        msg: submitLock
+          ? 'บันทึกไม่สำเร็จ — การตั้งค่าปีนี้ถูกล็อกแล้วจากการยืนยันเอกสาร ต้องทำบันทึกขออนุมัติถึงกองแผนงาน'
+          : 'บันทึกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้บันทึกข้อมูล',
+        ok: false,
+      });
 
       return;
     }
 
-    const d = readDrafts();
-
-    delete d[fac];
-    writeDrafts(d);
+    dropDraft(fac);
+    setEditing(false);
     setToast({
-      msg: `ล็อกวิธี "${ALLOC_METHOD_LABEL[choice.method]}" ของ${fac}แล้ว — มีผลทันที`,
+      msg: `บันทึกการตั้งค่า "${ALLOC_METHOD_LABEL[choice.method]}" ของ${fac}แล้ว — หน้าคำนวณใช้ค่านี้ทันที`,
       ok: true,
     });
   };
 
-  const doUnlock = () => {
+  /** ยกเลิกแก้ไข → กลับเป็นค่าที่บันทึกไว้ */
+  const cancelEdit = () => {
+    if (config) setChoice(config.choice);
+    setEditing(false);
+  };
+
+  /** ล้างการตั้งค่าปีนี้ → หน้าคำนวณกลับไปใช้ค่าปีก่อน/ตาม Excel */
+  const doClearConfig = () => {
     setConfirm(null);
-    if (!fac) return;
-    // เก็บค่าที่เคยล็อกเป็นร่าง — ปลดล็อกเพื่อแก้นิดเดียวไม่ต้องกรอกใหม่หมด
-    writeDrafts({ ...readDrafts(), [fac]: { ...choice, savedAt: new Date().toISOString() } });
+    if (!fac || readOnly) return;
+    dropDraft(fac);
     setToast(
       unlockFaculty(year, fac)
         ? {
-            msg: `ปลดล็อก${fac}แล้ว — แก้ไขวิธีปันส่วนได้ อาจารย์จะคำนวณไม่ได้จนกว่าจะล็อกอีกครั้ง`,
+            msg: `ล้างการตั้งค่าปี ${year} ของ${fac}แล้ว — หน้าคำนวณกลับไปใช้ค่าปีก่อนหน้า หรือค่าตามแบบจำลอง Excel`,
+            ok: true,
+          }
+        : {
+            msg: submitLock
+              ? 'ล้างไม่ได้ — การตั้งค่าปีนี้ถูกล็อกแล้วจากการยืนยันเอกสาร'
+              : 'ล้างไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้บันทึกข้อมูล',
+            ok: false,
+          },
+    );
+  };
+
+  /** กองแผนปลดล็อก (หลังได้รับบันทึกขออนุมัติ) — การตั้งค่ายังอยู่ คณะแก้ต่อได้ */
+  const doUnlockSubmit = () => {
+    setConfirm(null);
+    if (!fac || role !== 'universityAdmin') return;
+    setToast(
+      unlockSubmit(year, fac)
+        ? {
+            msg: `ปลดล็อก${fac}แล้ว — คณะแก้การตั้งค่าได้ · เอกสารที่ยืนยันแล้วคงตัวเลขเดิม`,
             ok: true,
           }
         : { msg: 'ปลดล็อกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้บันทึกข้อมูล', ok: false },
@@ -455,8 +517,10 @@ const FixedCostLockView = () => {
           ตั้งค่าวิธีปันส่วนต้นทุนคงที่ของคณะ
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          ปีงบประมาณ {year} · งานของผู้ดูแลคณะ ต้องทำก่อนอาจารย์ประจำหลักสูตรปรับปรุง/เปิดหลักสูตร —
-          ทำตาม 4 ขั้นด้านล่าง เมื่อล็อกแล้วมีผลทันที อาจารย์ใช้วิธีนี้และแก้ไม่ได้
+          ปีงบประมาณ {year} · ไม่บังคับ — ถ้าคณะยังไม่ตั้งค่า หน้าคำนวณใช้ค่าปีก่อนหน้า
+          หรือค่าเริ่มต้นตามแบบจำลอง Excel (หารรายหัว) · บันทึกแล้วมีผลทันที
+          แก้ได้จนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง (ล็อก)
+          {readOnly && ' · ผู้บริหารคณะดูได้อย่างเดียว เจ้าหน้าที่ระดับคณะเป็นผู้บันทึก'}
         </Typography>
       </Box>
 
@@ -501,7 +565,7 @@ const FixedCostLockView = () => {
           no={1}
           status={status[0]!}
           title="เลือกคณะ / หน่วยงาน"
-          hint="เลือกคณะที่ประชุมตกลงวิธีปันส่วนแล้ว · ระบบจะแสดงสถานะล็อกปัจจุบันของคณะนั้น"
+          hint="เลือกคณะที่ประชุมตกลงวิธีปันส่วนแล้ว · ระบบจะแสดงสถานะการตั้งค่าปัจจุบันของคณะนั้น"
         />
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Autocomplete
@@ -514,36 +578,82 @@ const FixedCostLockView = () => {
               <TextField
                 {...params}
                 label="คณะ"
-                helperText={scopedFac ? 'ผู้ดูแลคณะตั้งค่าได้เฉพาะคณะของตน' : undefined}
+                helperText={
+                  scopedFac
+                    ? readOnly
+                      ? 'ผู้บริหารคณะดูได้เฉพาะคณะของตน'
+                      : 'ผู้ดูแลคณะตั้งค่าได้เฉพาะคณะของตน'
+                    : undefined
+                }
               />
             )}
           />
-          {fac && ready && lock && (
+          {fac && ready && config && submitLock && (
             <Alert
-              severity="success"
+              severity="info"
               icon={<i className="ri-lock-line" />}
               action={
-                <Button
-                  variant="outlined"
-                  color="warning"
-                  size="small"
-                  startIcon={<i className="ri-lock-unlock-line" />}
-                  sx={{ bgcolor: 'background.paper', whiteSpace: 'nowrap' }}
-                  onClick={() => setConfirm('unlock')}
-                >
-                  ปลดล็อก
-                </Button>
+                role === 'universityAdmin' ? (
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    size="small"
+                    startIcon={<i className="ri-lock-unlock-line" />}
+                    sx={{ bgcolor: 'background.paper', whiteSpace: 'nowrap' }}
+                    onClick={() => setConfirm('unlockSubmit')}
+                  >
+                    ปลดล็อก (กองแผน)
+                  </Button>
+                ) : undefined
               }
             >
-              <AlertTitle>ล็อกแล้ว — {ALLOC_METHOD_LABEL[lock.choice.method]}</AlertTitle>
-              เมื่อ {fmtLockedAt(lock.lockedAt)} โดย {lock.lockedBy} · อาจารย์ประจำหลักสูตรใน{fac}
-              ปรับปรุง/เปิดหลักสูตรได้แล้ว
+              <AlertTitle>🔒 ล็อกแล้ว — {ALLOC_METHOD_LABEL[config.choice.method]}</AlertTitle>
+              ล็อกเมื่อหลักสูตร <b>{submitLock.program}</b> ยืนยันเอกสารฉบับจริง{' '}
+              {fmtLockedAt(submitLock.at)} โดย {submitLock.by} · ตั้งค่าเมื่อ{' '}
+              {fmtLockedAt(config.lockedAt)} โดย {config.lockedBy}
+              <br />
+              แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน แล้วกองแผนจะปลดล็อกให้
             </Alert>
           )}
-          {fac && ready && !lock && (
-            <Alert severity="warning" icon={<i className="ri-lock-unlock-line" />}>
-              ยังไม่ล็อก — อาจารย์ประจำหลักสูตรใน{fac}ยังเริ่มคำนวณไม่ได้ · ทำขั้นที่ 2–4
-              ต่อด้านล่าง
+          {fac && ready && config && !submitLock && (
+            <Alert
+              severity="success"
+              icon={<i className="ri-checkbox-circle-line" />}
+              action={
+                !readOnly && !editing ? (
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    size="small"
+                    startIcon={<i className="ri-edit-line" />}
+                    sx={{ bgcolor: 'background.paper', whiteSpace: 'nowrap' }}
+                    onClick={() => setEditing(true)}
+                  >
+                    แก้ไขการตั้งค่า
+                  </Button>
+                ) : undefined
+              }
+            >
+              <AlertTitle>ตั้งค่าแล้ว — {ALLOC_METHOD_LABEL[config.choice.method]}</AlertTitle>
+              บันทึกเมื่อ {fmtLockedAt(config.lockedAt)} โดย {config.lockedBy} · หน้าคำนวณของ{fac}
+              ใช้ค่านี้ · แก้ได้จนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง
+              {editing && ' — กำลังแก้ไข: ค่าเดิมยังใช้คำนวณอยู่จนกว่าจะกดบันทึก'}
+            </Alert>
+          )}
+          {fac && ready && !config && effective && (
+            <Alert
+              severity={effective.prevInvalidYear ? 'warning' : 'info'}
+              icon={<i className="ri-information-line" />}
+            >
+              <AlertTitle>ยังไม่ได้ตั้งค่าปี {year}</AlertTitle>
+              ตอนนี้หน้าคำนวณใช้
+              {effective.source === 'prev-year'
+                ? `ค่าปี ${effective.fromYear}`
+                : 'ค่าเริ่มต้นตามแบบจำลอง Excel'}{' '}
+              — <b>{ALLOC_METHOD_LABEL[effective.choice.method]}</b>
+              {effective.prevInvalidYear &&
+                ` · ค่าปี ${effective.prevInvalidYear} ใช้กับหลักสูตรปีนี้ไม่ได้ — ใช้ค่าตาม Excel แทน กรุณาตั้งค่า`}
+              {!readOnly && ' · ตั้งค่าในขั้นที่ 2–4 ด้านล่าง (ฟอร์มเริ่มจากค่าที่ใช้อยู่)'}
             </Alert>
           )}
         </CardContent>
@@ -558,9 +668,13 @@ const FixedCostLockView = () => {
               status={status[1]!}
               title="เลือกวิธีแบ่งต้นทุน"
               hint={
-                locked
-                  ? 'ล็อกแล้ว — ปลดล็อกในขั้นที่ 4 ถ้าต้องการเปลี่ยนวิธี'
-                  : `แบ่งต้นทุนคงที่คณะ ${fmtMillion(scenario.pool)} ลบ. ลง ${rows.length} หลักสูตร — เลือก 1 วิธี`
+                submitLock
+                  ? 'ล็อกแล้ว — แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน'
+                  : readOnly
+                    ? 'ดูอย่างเดียว — เจ้าหน้าที่ระดับคณะเป็นผู้บันทึกการตั้งค่า'
+                    : saved
+                      ? 'ตั้งค่าแล้ว — กด “แก้ไขการตั้งค่า” ถ้าต้องการเปลี่ยนวิธี'
+                      : `แบ่งต้นทุนคงที่คณะ ${fmtMillion(scenario.pool)} ลบ. ลง ${rows.length} หลักสูตร — เลือก 1 วิธี`
               }
             />
             <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -571,7 +685,15 @@ const FixedCostLockView = () => {
                 <MethodCards
                   value={choice.method}
                   onChange={(method) => update({ method })}
-                  current={lock?.choice.method}
+                  current={effective?.choice.method}
+                  disabled={locked}
+                  disabledHint={
+                    readOnly
+                      ? 'ดูอย่างเดียว — เจ้าหน้าที่ระดับคณะเป็นผู้บันทึกการตั้งค่า'
+                      : submitLock
+                        ? 'ล็อกแล้ว — แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน'
+                        : 'กด "แก้ไขการตั้งค่า" ก่อน จึงจะเปลี่ยนวิธีได้'
+                  }
                 />
               </Box>
               {choice.method === 'CUSTOM_PCT' && (
@@ -670,7 +792,7 @@ const FixedCostLockView = () => {
               {choice.method === 'CUSTOM_PCT' && choice.bucketLevel === 'PROGRAM' && !locked && (
                 <Alert severity="info" variant="outlined">
                   กำหนด % รายหลักสูตร: หลักสูตรที่จะเปิดใหม่ยังไม่มี % —
-                  อาจารย์จะเปิดหลักสูตรใหม่ไม่ได้จนกว่าคณะจะปลดล็อกและเพิ่มสัดส่วนให้
+                  อาจารย์จะเปิดหลักสูตรใหม่ไม่ได้จนกว่าคณะจะแก้การตั้งค่าเพิ่มสัดส่วนให้
                   ถ้าต้องการรองรับหลักสูตรใหม่ ให้กำหนดรายระดับการศึกษา
                 </Alert>
               )}
@@ -850,41 +972,92 @@ const FixedCostLockView = () => {
               )}
             </CardContent>
           </Card>
-          {/* ---------- 4. ล็อก ---------- */}
+          {/* ---------- 4. บันทึกการตั้งค่า ---------- */}
           <Card
             id={STEPS[3]!.id}
             sx={{
               scrollMarginTop: 80,
               border: 2,
-              borderColor: locked ? 'success.main' : methodOk ? 'primary.main' : 'divider',
+              borderColor: saved
+                ? 'success.main'
+                : methodOk && !readOnly
+                  ? 'primary.main'
+                  : 'divider',
             }}
           >
             <StepHeader
               no={4}
               status={status[3]!}
-              title="ยืนยันและล็อก"
+              title="บันทึกการตั้งค่า"
               hint={
-                locked
-                  ? 'ล็อกแล้ว — อาจารย์ประจำหลักสูตรคำนวณด้วยวิธีนี้ · ปลดล็อกได้ถ้าคณะเปลี่ยนมติ'
-                  : 'กดล็อกเมื่อผ่านทุกเงื่อนไข — มีผลทันที อาจารย์ใช้วิธีนี้และแก้ไม่ได้'
+                submitLock
+                  ? 'ล็อกแล้วจากการยืนยันเอกสาร — แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน'
+                  : readOnly
+                    ? 'ผู้บริหารคณะดูได้อย่างเดียว — เจ้าหน้าที่ระดับคณะเป็นผู้บันทึกตามที่ประชุมคณะตกลง'
+                    : saved
+                      ? 'ตั้งค่าแล้ว — หน้าคำนวณใช้ค่านี้ · แก้ได้จนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง'
+                      : 'กดบันทึกเมื่อผ่านทุกเงื่อนไข — หน้าคำนวณใช้ค่านี้ทันที'
               }
             />
             <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {locked ? (
+              {submitLock ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                  <Chip
+                    color="info"
+                    icon={<i className="ri-lock-line" />}
+                    label={`ล็อกแล้ว — ${ALLOC_METHOD_LABEL[config.choice.method]}`}
+                  />
+                  {role === 'universityAdmin' ? (
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      startIcon={<i className="ri-lock-unlock-line" />}
+                      onClick={() => setConfirm('unlockSubmit')}
+                    >
+                      ปลดล็อก (กองแผน)
+                    </Button>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน
+                    </Typography>
+                  )}
+                </Box>
+              ) : readOnly ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                  <Chip
+                    color={config ? 'success' : 'default'}
+                    icon={<i className={config ? 'ri-checkbox-circle-line' : 'ri-time-line'} />}
+                    label={
+                      config
+                        ? `ตั้งค่าแล้ว — ${ALLOC_METHOD_LABEL[config.choice.method]}`
+                        : `ยังไม่ได้ตั้งค่าปี ${year}`
+                    }
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    ผู้บริหารคณะดูได้อย่างเดียว — เจ้าหน้าที่ระดับคณะเป็นผู้บันทึกการตั้งค่า
+                  </Typography>
+                </Box>
+              ) : saved ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
                   <Chip
                     color="success"
-                    icon={<i className="ri-lock-line" />}
-                    label={`ล็อกแล้ว — ${ALLOC_METHOD_LABEL[choice.method]}`}
+                    icon={<i className="ri-checkbox-circle-line" />}
+                    label={`ตั้งค่าแล้ว — ${ALLOC_METHOD_LABEL[config.choice.method]}`}
                   />
                   <Button
                     variant="contained"
-                    color="warning"
-                    size="large"
-                    startIcon={<i className="ri-lock-unlock-line" />}
-                    onClick={() => setConfirm('unlock')}
+                    startIcon={<i className="ri-edit-line" />}
+                    onClick={() => setEditing(true)}
                   >
-                    ปลดล็อกเพื่อเปลี่ยนวิธี
+                    แก้ไขการตั้งค่า
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<i className="ri-delete-bin-line" />}
+                    onClick={() => setConfirm('clearConfig')}
+                  >
+                    ล้างการตั้งค่าปีนี้
                   </Button>
                 </Box>
               ) : (
@@ -918,21 +1091,32 @@ const FixedCostLockView = () => {
                           variant="contained"
                           color="success"
                           size="large"
-                          startIcon={<i className="ri-lock-line" />}
+                          startIcon={<i className="ri-save-line" />}
                           disabled={!!lockBlocker}
-                          onClick={() => setConfirm('lock')}
+                          onClick={() => setConfirm('save')}
                         >
-                          ล็อกวิธีปันส่วน
+                          บันทึกการตั้งค่า
                         </Button>
                       </span>
                     </Tooltip>
+                    {editing && (
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        size="large"
+                        startIcon={<i className="ri-arrow-go-back-line" />}
+                        onClick={cancelEdit}
+                      >
+                        ยกเลิกแก้ไข
+                      </Button>
+                    )}
                     <Typography
                       variant="body2"
                       color={lockBlocker ? 'error.main' : 'text.secondary'}
                     >
                       {lockBlocker
                         ? `ยังกดไม่ได้ — ${lockBlocker}`
-                        : `พร้อมล็อก "${ALLOC_METHOD_LABEL[choice.method]}" ของ${fac} ปีงบ ${year}`}
+                        : `พร้อมบันทึก "${ALLOC_METHOD_LABEL[choice.method]}" ของ${fac} ปีงบ ${year}`}
                     </Typography>
                   </Box>
                 </>
@@ -942,13 +1126,13 @@ const FixedCostLockView = () => {
         </>
       )}
 
-      <Dialog open={confirm === 'lock'} onClose={() => setConfirm(null)}>
-        <DialogTitle>ล็อกวิธีปันส่วนของ{fac}?</DialogTitle>
+      <Dialog open={confirm === 'save'} onClose={() => setConfirm(null)}>
+        <DialogTitle>บันทึกการตั้งค่าวิธีปันส่วนของ{fac}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
             ใช้วิธี &ldquo;{ALLOC_METHOD_LABEL[choice.method]}&rdquo; กับทุกหลักสูตรใน{fac} ปีงบ{' '}
-            {year} มีผลทันที — อาจารย์ประจำหลักสูตรจะคำนวณด้วยวิธีนี้และแก้ไขไม่ได้
-            (ปลดล็อกภายหลังได้)
+            {year} — หน้าคำนวณใช้ค่านี้ทันที แก้ไขได้จนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง
+            (หลังจากนั้นล็อก ต้องทำบันทึกขออนุมัติถึงกองแผนงาน)
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -958,20 +1142,46 @@ const FixedCostLockView = () => {
           <Button
             variant="contained"
             color="success"
-            startIcon={<i className="ri-lock-line" />}
-            onClick={doLock}
+            startIcon={<i className="ri-save-line" />}
+            onClick={doSave}
           >
-            ยืนยันล็อก
+            ยืนยันบันทึก
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={confirm === 'unlock'} onClose={() => setConfirm(null)}>
-        <DialogTitle>ปลดล็อกวิธีปันส่วนของ{fac}?</DialogTitle>
+      <Dialog open={confirm === 'clearConfig'} onClose={() => setConfirm(null)}>
+        <DialogTitle>
+          ล้างการตั้งค่าปี {year} ของ{fac}?
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            ระหว่างที่ยังไม่ล็อกใหม่ อาจารย์ประจำหลักสูตรใน{fac}จะเริ่มปรับปรุง/เปิดหลักสูตรไม่ได้
-            ค่าที่ล็อกไว้จะเก็บเป็นร่างให้แก้ต่อ
+            การตั้งค่าที่บันทึกไว้ของปีนี้จะถูกลบ — หน้าคำนวณกลับไปใช้ค่าปีก่อนหน้า
+            หรือค่าเริ่มต้นตามแบบจำลอง Excel (หารรายหัว) ตั้งค่าใหม่ได้ภายหลัง
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" color="secondary" onClick={() => setConfirm(null)}>
+            ยกเลิก
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<i className="ri-delete-bin-line" />}
+            onClick={doClearConfig}
+          >
+            ล้างการตั้งค่า
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={confirm === 'unlockSubmit'} onClose={() => setConfirm(null)}>
+        <DialogTitle>ปลดล็อกการตั้งค่าของ{fac} (กองแผน)?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ทำเมื่อได้รับบันทึกข้อความขออนุมัติจากคณะแล้วเท่านั้น — คณะจะแก้การตั้งค่าปี {year}{' '}
+            ได้อีกครั้ง การตั้งค่าเดิมยังใช้คำนวณอยู่ · เอกสารที่ยืนยันไปแล้วคงตัวเลขเดิม
+            {submitLock && ` (ล็อกจากหลักสูตร ${submitLock.program})`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -982,7 +1192,7 @@ const FixedCostLockView = () => {
             variant="contained"
             color="warning"
             startIcon={<i className="ri-lock-unlock-line" />}
-            onClick={doUnlock}
+            onClick={doUnlockSubmit}
           >
             ยืนยันปลดล็อก
           </Button>
@@ -1011,7 +1221,7 @@ const FixedCostLockView = () => {
         <DialogTitle>ล้างร่างของ{fac}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            วิธีและสัดส่วนที่เลือกไว้แต่ยังไม่ล็อกจะกลับเป็นค่าเริ่มต้น ย้อนกลับไม่ได้
+            วิธีและสัดส่วนที่เลือกไว้แต่ยังไม่บันทึกจะกลับเป็นค่าที่หน้าคำนวณใช้อยู่ ย้อนกลับไม่ได้
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -1024,12 +1234,8 @@ const FixedCostLockView = () => {
             onClick={() => {
               setConfirm(null);
               if (!fac) return;
-              const d = readDrafts();
-
-              delete d[fac];
-              writeDrafts(d);
-              setChoice(DEFAULT_ALLOC_CHOICE);
-              setSavedAt(null);
+              dropDraft(fac);
+              setChoice(effective?.choice ?? DEFAULT_ALLOC_CHOICE);
               setToast({ msg: 'ล้างร่างแล้ว', ok: true });
             }}
           >

@@ -137,7 +137,7 @@ const ProgramDialog = ({
                 </Table>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
                   {after
-                    ? `หลังปรับ (บันทึก ${after.savedAt}): เป้า ${after.valid && after.qStar !== null ? `${fmtInt(after.qStar)} คน` : 'ไม่มีจุดคุ้มทุน'} · ${after.profit >= 0 ? 'ส่วนเกิน +' : 'ขาดทุน −'}${fmtMillion(Math.abs(after.profit))} ลบ.`
+                    ? `หลังปรับ (${after.draft ? 'ร่าง — ยังไม่ยืนยัน' : 'ยืนยันแล้ว'} · บันทึก ${after.savedAt}): เป้า ${after.valid && after.qStar !== null ? `${fmtInt(after.qStar)} คน` : 'ไม่มีจุดคุ้มทุน'} · ${after.profit >= 0 ? 'ส่วนเกิน +' : 'ขาดทุน −'}${fmtMillion(Math.abs(after.profit))} ลบ.`
                     : 'ยังไม่มีผลการปรับปรุงหลักสูตรนี้ที่บันทึกไว้ในเครื่องนี้'}
                 </Typography>
               </>

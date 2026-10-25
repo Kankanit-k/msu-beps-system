@@ -1,24 +1,41 @@
 'use client';
 
-// คณะยังไม่ล็อกวิธีปันส่วน — อาจารย์ต้องรอ · ผู้ดูแลคณะมีปุ่มไปตั้งค่า
-
+/**
+ * แถบแจ้งที่มาของวิธีปันส่วนที่ใช้คำนวณ — ไม่บล็อกการคำนวณ (มติ 25 ต.ค. 2569: ไม่บังคับคณะเลือก)
+ * ค่าปีนี้ / ยกจากปีก่อน / ค่าตาม Excel · เจ้าหน้าที่คณะและกองแผนมีปุ่มไปตั้งค่า
+ * ชื่อไฟล์คงเดิม (NoLockAlert) เพื่อไม่ต้องแก้ import ของหน้าที่เรียกใช้
+ */
 import Link from 'next/link';
 
 import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
 import Button from '@mui/material/Button';
 
 import type { AppRole } from '@/configs/accessControl';
+import { ALLOC_METHOD_LABEL } from '@views/scenario-program/facultyAllocation';
+
+import { type FacultyLock, policySourceLabel } from './lockStore';
 
 export const LOCK_SETTINGS_HREF = '/admin/fixed-cost-lock';
 
-const NoLockAlert = ({ faculty, role }: { faculty: string; role: AppRole }) => {
+/** ป้ายสั้นของที่มา — ใช้ในชิป/การ์ด KPI ที่ที่น้อย */
+export const policySourceShort = (l: FacultyLock): string =>
+  l.source === 'prev-year'
+    ? `ใช้ค่าปี ${l.fromYear}`
+    : l.source === 'default'
+      ? 'ค่าตาม Excel'
+      : l.submitLock
+        ? 'ล็อกแล้ว'
+        : 'คณะตั้งค่าแล้ว';
+
+const PolicySourceAlert = ({ lock, role }: { lock: FacultyLock; role: AppRole }) => {
   const canSet = role === 'deptAdmin' || role === 'universityAdmin';
+  const invalidPrev = !!lock.prevInvalidYear;
 
   return (
     <Alert
-      severity="warning"
-      icon={<i className="ri-lock-unlock-line" />}
+      severity={invalidPrev ? 'warning' : 'info'}
+      variant="outlined"
+      icon={<i className={lock.submitLock ? 'ri-lock-line' : 'ri-scales-3-line'} />}
       action={
         canSet ? (
           <Button component={Link} href={LOCK_SETTINGS_HREF} color="inherit" size="small">
@@ -27,12 +44,14 @@ const NoLockAlert = ({ faculty, role }: { faculty: string; role: AppRole }) => {
         ) : undefined
       }
     >
-      <AlertTitle>{faculty}ยังไม่ได้ล็อกวิธีปันส่วนต้นทุนคงที่</AlertTitle>
-      {canSet
-        ? 'เลือกวิธีปันส่วน (หารรายหัว · หารเท่ากันทุกหลักสูตร · กำหนด %) ตามมติคณะแล้วกดล็อกก่อน จึงจะคำนวณรายหลักสูตรได้'
-        : 'ต้องรอผู้ดูแลคณะเลือกวิธีปันส่วนตามมติคณะและกดล็อกก่อน จึงจะเริ่มปรับปรุงหรือเปิดหลักสูตรได้'}
+      วิธีปันส่วนต้นทุนคงที่: <b>{ALLOC_METHOD_LABEL[lock.choice.method]}</b> ·{' '}
+      {policySourceLabel(lock)}
+      {invalidPrev &&
+        ` — ค่าปี ${lock.prevInvalidYear} ใช้กับหลักสูตรปีนี้ไม่ได้ จึงใช้ค่าตาม Excel แทน${
+          canSet ? ' กรุณาตั้งค่าปีนี้' : ' (แจ้งผู้ดูแลคณะให้ตั้งค่า)'
+        }`}
     </Alert>
   );
 };
 
-export default NoLockAlert;
+export default PolicySourceAlert;

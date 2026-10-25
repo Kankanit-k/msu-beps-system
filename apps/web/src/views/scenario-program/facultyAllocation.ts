@@ -25,6 +25,13 @@ import type {
 /** 3 วิธีตามมติ — คณะเลือกและล็อกที่หน้าตั้งค่าวิธีปันส่วน (ไม่มีแบบ "ตามชีต" แล้ว) */
 export type AllocMethod = FixedCostMethod;
 
+/** ชื่อย่อ — หัวคอลัมน์/การ์ดที่ที่แคบ */
+export const ALLOC_METHOD_SHORT: Record<AllocMethod, string> = {
+  PER_HEAD_FTES: 'หารรายหัว',
+  EQUAL_PROGRAM: 'หารเท่ากัน',
+  CUSTOM_PCT: 'กำหนด %',
+};
+
 export const ALLOC_METHOD_LABEL: Record<AllocMethod, string> = {
   PER_HEAD_FTES: 'หารตามรายหัวนิสิต',
   EQUAL_PROGRAM: 'หารเท่ากันทุกหลักสูตร',

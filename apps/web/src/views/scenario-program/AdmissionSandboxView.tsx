@@ -47,7 +47,6 @@ import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import { useRole } from '@/hooks/useRole';
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
-import NoLockAlert from '@views/fixed-cost-lock/NoLockAlert';
 import { feesForProgram } from '@views/tuition/feeData';
 
 import {
@@ -272,7 +271,7 @@ const AdmissionSandboxView = () => {
   // ผลคำนวณใช้ค่าที่หน่วงไว้ — ช่องกรอกอัปเดตทันที ผลตามมาเมื่อว่าง ไม่ให้พิมพ์แล้วหน่วง
   const calcSegs = useDeferredValue(segs);
   const q = sumN(calcSegs);
-  const { lock, lockReady, adjOf, adjAt } = useFacultyAllocation(fac, refProg, q);
+  const { lock, adjOf, adjAt } = useFacultyAllocation(fac, refProg, q);
   const base = useMemo(() => (refProg ? blockFromProgram(refProg) : null), [refProg]);
   /** TFC ตามวิธีปันส่วนของคณะ ณ จำนวนรับนี้ · AVC ต่อหัวตามชีต (ต้นทุนเหมือนกันทั้งสองกรณี) */
   const baseResult = base && base.q > 0 ? blockResult(base, 'with_government', adjOf(true)) : null;
@@ -316,7 +315,6 @@ const AdmissionSandboxView = () => {
     ? (Object.fromEntries(MODES.map((m) => [m, targetOf(m)])) as Record<RevenueMode, number | null>)
     : null;
 
-  const noLock = !!fac && lockReady && !lock;
   const ready = !!refProg && !!lock && !!costs && !!mixes;
 
   const setSeg = (i: number, patch: Partial<Segment>) =>
@@ -517,9 +515,8 @@ const AdmissionSandboxView = () => {
             </CardContent>
           </Card>
 
-          {noLock && fac ? (
-            <NoLockAlert faculty={fac} role={role} />
-          ) : !ready ? (
+          {/* คณะยังไม่ตั้งวิธีปันส่วนก็คำนวณได้ — ใช้ค่าปีก่อน/ตาม Excel (มติ 25 ต.ค.) */}
+          {!ready ? (
             <Alert severity="info">
               {refProg && base && base.q <= 0
                 ? 'หลักสูตรนี้ไม่มีนิสิตในปีฐาน คำนวณต้นทุนผันแปรต่อหัวไม่ได้ — เลือกหลักสูตรอื่น'

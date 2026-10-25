@@ -2,6 +2,8 @@
 
 // ขั้นที่ 4 — สรุปจุดคุ้มทุน กราฟ บันทึกผล ออกรายงาน PDF และประวัติ
 
+import type { ReactNode } from 'react';
+
 // MUI Imports
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -36,6 +38,11 @@ interface Props {
   onDeleteHistory: (h: ProgramHistoryEntry) => void;
   /** กำลังแก้ไขผลที่บันทึกไว้ — บันทึกแล้วทับรายการเดิม */
   editingId: number | null;
+  onUnlock?: (h: ProgramHistoryEntry) => void;
+  /** แทนแถบบันทึก/ออกรายงานเดิม (ปรับปรุงหลักสูตร: บันทึกร่าง · พิมพ์ร่าง · ยืนยัน) */
+  actions?: ReactNode;
+  /** พรีวิวรายงานในหน้า — ต่อท้ายกราฟ */
+  preview?: ReactNode;
 }
 
 const SummaryStep = (props: Props) => {
@@ -70,7 +77,10 @@ const SummaryStep = (props: Props) => {
         </CardContent>
       </Card>
 
+      {props.preview}
+
       {/* บันทึกเป็นขั้นสุดท้าย — เก็บทั้งตารางคำนวณและสัดส่วนนิสิต */}
+      {props.actions ?? (
       <Card>
         <CardContent
           sx={{
@@ -111,10 +121,11 @@ const SummaryStep = (props: Props) => {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       {latest ? (
         <>
-          <LatestResultCard latest={latest} />
+          {!props.actions && <LatestResultCard latest={latest} />}
           <HistoryTable
             history={history}
             onPrint={props.onPrint}
@@ -122,6 +133,7 @@ const SummaryStep = (props: Props) => {
             onOpen={props.onOpenHistory}
             onDelete={props.onDeleteHistory}
             editingId={props.editingId}
+            onUnlock={props.onUnlock}
           />
         </>
       ) : (

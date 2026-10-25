@@ -20,8 +20,11 @@ import { BEPS } from '@components/ChartBits';
 import KpiTile from '@components/KpiTile';
 import BreakEvenLineChart from '@views/breakeven/BreakEvenLineChart';
 import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
-import { ALLOC_METHOD_LABEL } from '@views/scenario-program/facultyAllocation';
-import type { AllocMethod } from '@views/scenario-program/facultyAllocation';
+import { policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
+import {
+  ALLOC_METHOD_LABEL,
+  ALLOC_METHOD_SHORT as METHOD_SHORT,
+} from '@views/scenario-program/facultyAllocation';
 
 import { useFaculty } from './FacultyContext';
 import type { ProgStat } from './FacultyContext';
@@ -41,11 +44,6 @@ import ProgramRankTable from './ProgramRankTable';
 const TOP_N = 12;
 const CHART_H = 250;
 
-const METHOD_SHORT: Record<AllocMethod, string> = {
-  PER_HEAD_FTES: 'หารรายหัว',
-  EQUAL_PROGRAM: 'หารเท่ากัน',
-  CUSTOM_PCT: 'กำหนด %',
-};
 
 const INFO = {
   tr: 'รวมเงินแผ่นดิน = เงินแผ่นดิน + เงินรายได้ · ไม่รวม = เงินรายได้ (ค่าธรรมเนียม) อย่างเดียว — ทั้งคณะทุกระดับ',
@@ -53,7 +51,7 @@ const INFO = {
   q: 'จำนวนนิสิตจริงทุกชั้นปีของคณะ (ตามข้อมูลชีต)',
   profit: 'รายได้รวม − ต้นทุนรวม ตามฐานรายได้ที่เลือกด้านบน',
   r: 'รายได้รวม ÷ นิสิตจริง เทียบกับต้นทุนรวม ÷ นิสิตจริง',
-  cfg: 'วิธีปันต้นทุนคงที่ส่วนกลางของคณะที่ล็อกไว้สำหรับการวิเคราะห์หลักสูตร — ตัวเลขบนหน้านี้ยังเป็นข้อมูลจริงตามชีต (หารรายหัว)',
+  cfg: 'วิธีปันต้นทุนคงที่ส่วนกลางของคณะที่ใช้วิเคราะห์หลักสูตร (คณะตั้งค่าปีนี้ / ค่าปีก่อน / ค่าเริ่มต้นตาม Excel) — ตัวเลขบนหน้านี้ยังเป็นข้อมูลจริงตามชีต (หารรายหัว)',
 };
 
 /** การ์ด KPI ที่กดแล้วไปหน้าย่อย */
@@ -217,14 +215,16 @@ const FacultyLanding = () => {
           <TileLink href="/faculty/config">
             <KpiTile
               label="สถานะการตั้งค่า"
-              value={!lockReady ? '…' : method ? METHOD_SHORT[method] : 'ยังไม่ล็อก'}
-              accent={method ? 'success' : 'warning'}
-              color={method ? BEPS.breakEven : undefined}
-              icon={method ? 'ri-lock-line' : 'ri-lock-unlock-line'}
+              value={!lockReady || !lock || !method ? '…' : METHOD_SHORT[method]}
+              accent={
+                lock?.source === 'config' ? 'success' : lock?.prevInvalidYear ? 'warning' : 'info'
+              }
+              color={lock?.source === 'config' ? BEPS.breakEven : undefined}
+              icon={lock?.submitLock ? 'ri-lock-line' : 'ri-scales-3-line'}
               footer={
-                method
-                  ? `ล็อกแล้ว · ${ALLOC_METHOD_LABEL[method]} · ปีงบ ${year}`
-                  : `ยังไม่ล็อกวิธีปันส่วน · ปีงบ ${year}`
+                lock && method
+                  ? `${policySourceShort(lock)} · ${ALLOC_METHOD_LABEL[method]} · ปีงบ ${year}`
+                  : `ปีงบ ${year}`
               }
               info={INFO.cfg}
             />

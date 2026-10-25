@@ -29,7 +29,7 @@ import Grid from '@mui/material/Grid';
 import type { ApexOptions } from 'apexcharts';
 
 // Component Imports
-import { BarTitle, KPI_COLORS } from '@components/ChartBits';
+import { BEPS, BarTitle, KPI_COLORS } from '@components/ChartBits';
 
 import type { FacultyCrossRow } from './crossData';
 import { HEATMAP_METRICS, HEAT_SCALE_GRADIENT, heatCellColor } from './heatmapMetrics';
@@ -477,6 +477,8 @@ const RANK_TONE = {
   bad: '#be123c',
   mid: '#b45309',
   muted: 'var(--mui-palette-text-disabled)',
+  /** หลักสูตรที่มีผลหลังปรับ (D7) — น้ำเงิน ไม่ใช้แดงเพราะแดง = ขาดทุน/ไม่ผ่าน */
+  changed: BEPS.compare.onLight,
 };
 
 /** ป้ายสถานะ: ผ่าน = เขียวอ่อน · ไม่ผ่าน / ไม่มีจุดคุ้มทุน = ชมพู */
@@ -547,10 +549,27 @@ export interface AfterResult {
   q: number;
   qStar: number | null;
   profit: number;
+  /** รายได้รวม / ต้นทุนรวม (บาท) — ฐานรายได้เดียวกับตาราง (รวม/ไม่รวมเงินแผ่นดิน) */
+  tr: number;
+  tc: number;
   ok: boolean;
   valid: boolean;
   savedAt: string;
+  /** true = ยังไม่ยืนยัน (ใช้ร่างล่าสุดเพราะไม่มีรายการ SUBMITTED) — D8 */
+  draft: boolean;
 }
+
+/** ป้ายสถานะผลหลังปรับข้างชื่อหลักสูตร: ร่าง (ยังแก้ได้) / ยืนยันแล้ว */
+const AfterStateChip = ({ draft }: { draft: boolean }) => (
+  <Chip
+    size="small"
+    variant="outlined"
+    color={draft ? 'warning' : 'success'}
+    label={draft ? 'ร่าง' : '🔒 ยืนยันแล้ว'}
+    title={draft ? 'ผลยังไม่ยืนยัน — ยังแก้ไขได้' : 'ผลยืนยันแล้ว (Submit) — ล็อกการแก้ไข'}
+    sx={{ ml: 1, height: 18, fontSize: '0.625rem', fontWeight: 700, verticalAlign: 'middle' }}
+  />
+);
 
 type RankColumn = { label: string; hint?: string; align?: 'right'; sort?: SortKey };
 
@@ -589,7 +608,10 @@ export const RankingCard = ({
     { label: 'นิสิตจริง', hint: 'นิสิตจริง (Q) คน', align: 'right' },
     { label: 'จุดคุ้มทุน', hint: 'จุดคุ้มทุน (Q*) คน', align: 'right' },
     ...(compare
-      ? []
+      ? ([
+          { label: 'รายได้รวม (ล้านบาท)', align: 'right' },
+          { label: 'ต้นทุนรวม (ล้านบาท)', align: 'right' },
+        ] as RankColumn[])
       : ([
           {
             label: 'นิสิตจริงเทียบจุดคุ้มทุน',
@@ -624,19 +646,44 @@ export const RankingCard = ({
     { label: 'สถานะ', align: 'right' },
   ];
 
-  const afterColumns = ['นิสิต', 'จุดคุ้มทุน', 'กำไร/ขาดทุน (ล้านบาท)', 'สถานะ'];
+  const afterColumns = [
+    'นิสิต',
+    'จุดคุ้มทุน',
+    'รายได้รวม (ล้านบาท)',
+    'ต้นทุนรวม (ล้านบาท)',
+    'กำไร/ขาดทุน (ล้านบาท)',
+    'สถานะ',
+  ];
 
   // แถวรวม: หลักสูตรที่ยังไม่ได้ปรับใช้ค่าเดิมฝั่งหลังปรับ
   const total = useMemo(() => {
-    const t = { q: 0, profit: 0, ok: 0, qAfter: 0, profitAfter: 0, okAfter: 0 };
+    const t = {
+      q: 0,
+      tr: 0,
+      tc: 0,
+      profit: 0,
+      ok: 0,
+      qAfter: 0,
+      trAfter: 0,
+      tcAfter: 0,
+      profitAfter: 0,
+      okAfter: 0,
+    };
 
     rows.forEach((d) => {
       const a = d.key ? after?.get(d.key) : undefined;
 
+      // ต้นทุนรวม = รายได้รวม − กำไร (profit = tr − tc)
+      const tcM = d.trM - d.profitM;
+
       t.q += d.Q;
+      t.tr += d.trM;
+      t.tc += tcM;
       t.profit += d.profitM;
       t.ok += d.isOk ? 1 : 0;
       t.qAfter += a ? a.q : d.Q;
+      t.trAfter += a ? a.tr / 1e6 : d.trM;
+      t.tcAfter += a ? a.tc / 1e6 : tcM;
       t.profitAfter += a ? a.profit / 1e6 : d.profitM;
       t.okAfter += (a ? a.ok : d.isOk) ? 1 : 0;
     });
@@ -644,7 +691,19 @@ export const RankingCard = ({
     return t;
   }, [rows, after]);
 
+  // ค่าหลังปรับของแถวที่ปรับ = น้ำเงินตัวหนา (กำไร/ขาดทุนคงสีเขียว/แดงตามเครื่องหมาย)
+  const changedSx = { color: RANK_TONE.changed, fontWeight: 700 };
+
   const signedM = (v: number) => `${v >= 0 ? '+' : '−'}${fmtM(Math.abs(v))}`;
+
+  // ส่วนต่างใต้ยอดรวมฝั่งหลังปรับ (ไม่แสดงถ้าเท่าเดิม)
+  const deltaM = (next: number, prev: number) =>
+    Math.abs(next - prev) >= 0.05 && (
+      <Box component="span" sx={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600 }}>
+        {next > prev ? '+' : '−'}
+        {fmtM(Math.abs(next - prev))}
+      </Box>
+    );
 
   return (
     <Card>
@@ -659,7 +718,7 @@ export const RankingCard = ({
         title={<BarTitle>ตารางจัดอันดับ{basis ? ` · ฐาน: ${basis}` : ''} — เรียงตาม</BarTitle>}
         subheader={
           compare
-            ? `ก่อนปรับ = ข้อมูลจริงตามชีต · หลังปรับ = ผลล่าสุดที่บันทึกจากหน้าปรับปรุงหลักสูตร · มี ${after?.size ?? 0} หลักสูตรที่บันทึกไว้ · ⚠ ยังเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น เครื่องอื่นจะไม่เห็น`
+            ? `ก่อนปรับ = ข้อมูลจริงตามชีต · หลังปรับ = ผลที่ยืนยันแล้วจากหน้าปรับปรุงหลักสูตร (ยังไม่ยืนยัน = ร่างล่าสุด ติดป้าย "ร่าง") · ✎ สีน้ำเงิน = หลักสูตรที่ปรับ ${after?.size ?? 0} หลักสูตร · ⚠ ยังเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น เครื่องอื่นจะไม่เห็น`
             : undefined
         }
         action={
@@ -759,6 +818,8 @@ export const RankingCard = ({
                         maxWidth: 280,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
+                        // โหมดเทียบ: แถวที่ปรับ = น้ำเงิน · แถวที่ไม่ได้ปรับ = ตัวอักษรปกติ (D7)
+                        ...(compare && { color: a ? RANK_TONE.changed : 'text.primary' }),
                       }}
                       title={d.name}
                     >
@@ -770,7 +831,7 @@ export const RankingCard = ({
                           sx={{
                             all: 'unset',
                             cursor: 'pointer',
-                            color: 'primary.main',
+                            color: compare ? 'inherit' : 'primary.main',
                             '&:hover': { textDecoration: 'underline' },
                           }}
                         >
@@ -779,11 +840,23 @@ export const RankingCard = ({
                       ) : (
                         d.name
                       )}
+                      {a && (
+                        <>
+                          {' ✎'}
+                          <AfterStateChip draft={a.draft} />
+                        </>
+                      )}
                     </TableCell>
                     <TableCell align="right">{fmtN(d.Q)}</TableCell>
                     <TableCell align="right" sx={{ color: RANK_TONE.bad }}>
                       {bad ? '—' : fmtN(d.qStar)}
                     </TableCell>
+                    {compare && (
+                      <>
+                        <TableCell align="right">{fmtM(d.trM)}</TableCell>
+                        <TableCell align="right">{fmtM(d.trM - d.profitM)}</TableCell>
+                      </>
+                    )}
                     {!compare && (
                       <>
                         <TableCell
@@ -825,7 +898,7 @@ export const RankingCard = ({
                     {compare &&
                       (a ? (
                         <>
-                          <TableCell align="right" className="after">
+                          <TableCell align="right" className="after" sx={changedSx}>
                             {fmtN(a.q)}
                           </TableCell>
                           <TableCell
@@ -835,6 +908,12 @@ export const RankingCard = ({
                             title={`บันทึกเมื่อ ${a.savedAt}`}
                           >
                             {a.valid && a.qStar !== null ? fmtN(a.qStar) : '—'}
+                          </TableCell>
+                          <TableCell align="right" className="after" sx={changedSx}>
+                            {fmtM(a.tr / 1e6)}
+                          </TableCell>
+                          <TableCell align="right" className="after" sx={changedSx}>
+                            {fmtM(a.tc / 1e6)}
                           </TableCell>
                           <TableCell align="right" className="after" sx={tone(a.profit >= 0)}>
                             {a.profit >= 0 ? '+' : '−'}
@@ -874,7 +953,15 @@ export const RankingCard = ({
                   <TableCell />
                   <TableCell>{summaryLabel}</TableCell>
                   <TableCell align="right">{fmtN(total.q)}</TableCell>
-                  <TableCell colSpan={columns.length - 5} />
+                  {compare ? (
+                    <>
+                      <TableCell />
+                      <TableCell align="right">{fmtM(total.tr)}</TableCell>
+                      <TableCell align="right">{fmtM(total.tc)}</TableCell>
+                    </>
+                  ) : (
+                    <TableCell colSpan={columns.length - 5} />
+                  )}
                   <TableCell
                     align="right"
                     sx={{ color: total.profit >= 0 ? RANK_TONE.good : RANK_TONE.bad }}
@@ -899,6 +986,14 @@ export const RankingCard = ({
                         )}
                       </TableCell>
                       <TableCell className="after" />
+                      <TableCell align="right" className="after">
+                        {fmtM(total.trAfter)}
+                        {deltaM(total.trAfter, total.tr)}
+                      </TableCell>
+                      <TableCell align="right" className="after">
+                        {fmtM(total.tcAfter)}
+                        {deltaM(total.tcAfter, total.tc)}
+                      </TableCell>
                       <TableCell
                         align="right"
                         className="after"
