@@ -64,7 +64,13 @@ const tagPublic = (items: VerticalMenuDataType[]): VerticalMenuDataType[] =>
 const filterByRole = (items: VerticalMenuDataType[], role: AppRole): VerticalMenuDataType[] =>
   items.reduce<VerticalMenuDataType[]>((acc, item) => {
     if ('children' in item && item.children) {
-      const children = filterByRole(item.children, role);
+      let children = filterByRole(item.children, role);
+      const isLanding = (c: VerticalMenuDataType) => 'icon' in c && c.icon === LANDING_LINK_ICON;
+
+      // เหลือเมนูจริงแค่ 1 รายการ — ไม่ต้องมี "หน้ารวม"
+      if (children.length === 2 && children.some(isLanding)) {
+        children = children.filter((c) => !isLanding(c));
+      }
 
       if (children.length > 0) {
         acc.push({ ...item, children });
@@ -153,7 +159,7 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           iconColor: T.teal,
           children: [
             {
-              label: 'หน้ารวม · หลักสูตรวิกฤต',
+              label: 'หลักสูตรวิกฤต',
               href: '/deep-dive',
               icon: LANDING_LINK_ICON,
               iconColor: T.navy,
@@ -228,7 +234,6 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           icon: 'ri-graduation-cap-line',
           iconColor: T.blue,
           children: [
-            { label: 'หน้ารวม', href: '/scenario', icon: LANDING_LINK_ICON, iconColor: T.navy },
             {
               label: 'หลักสูตรเดิม',
               href: '/scenario/program/improve',
@@ -402,7 +407,6 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           icon: 'ri-more-2-line',
           iconColor: T.orange,
           children: [
-            { label: 'หน้ารวม', href: '/more', icon: LANDING_LINK_ICON, iconColor: T.navy },
             {
               label: 'สูตร & หลักวิชาการ',
               href: '/method',

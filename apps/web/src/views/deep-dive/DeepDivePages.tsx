@@ -48,7 +48,7 @@ import {
 } from './deepDiveData';
 import type { Series } from './deepDiveData';
 import HistoryFilterBar from './HistoryFilterBar';
-import { buildInsights, costPerHead, PER_HEAD_MIN_Q, perHeadRatio } from './insights';
+import { buildInsights, costPerHead, PER_HEAD_MIN_Q, perHeadMedian, perHeadRatio } from './insights';
 import type { Insight } from './insights';
 import MatrixTable from './MatrixTable';
 import type { ExtraCol, MatrixRow } from './MatrixTable';
@@ -67,7 +67,12 @@ const fmtN = (v: number | null) => (v === null ? '—' : fmtInt(v));
 const fmtPct = (v: number | null) => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(0)}%`);
 const toneSigned = (v: number | null) =>
   v === null ? undefined : v < 0 ? 'error.main' : 'success.main';
-const axisM = (v: number) => v.toLocaleString('th-TH', { maximumFractionDigits: 1 });
+// ทศนิยมตามขนาดค่า (< 1 ลบ. ใช้ 2 ตำแหน่ง) · ไม่ให้เห็น "-0" ซ้ำ ๆ บนแกน
+const axisM = (v: number) => {
+  const s = v.toLocaleString('th-TH', { maximumFractionDigits: Math.abs(v) < 1 ? 2 : 1 });
+
+  return /^-0(\.0*)?$/.test(s) ? '0' : s;
+};
 
 const CAT_COLORS = [
   BEPS.cost.dark,
@@ -259,6 +264,7 @@ export const DeepDiveBreakEvenPage = () => {
           <YearTrend
             type="bar"
             signedColors
+            labels
             fmt={axisM}
             series={[{ name: 'ส่วนเกิน/ขาดทุน', color: BEPS.profit, data: toM(profitSum) }]}
           />
@@ -267,7 +273,7 @@ export const DeepDiveBreakEvenPage = () => {
           key="2"
           title="จำนวนหลักสูตร คุ้มทุน / ไม่คุ้มทุน"
           legend={[
-            { color: KPI_COLORS.green, label: 'คุ้มทุน' },
+            { color: BEPS.breakEven, label: 'คุ้มทุน' },
             { color: KPI_COLORS.red, label: 'ไม่คุ้มทุน' },
           ]}
         >
@@ -276,7 +282,7 @@ export const DeepDiveBreakEvenPage = () => {
             stacked
             fmt={(v) => fmtInt(v)}
             series={[
-              { name: 'คุ้มทุน', color: KPI_COLORS.green, data: counts[0]! },
+              { name: 'คุ้มทุน', color: BEPS.breakEven, data: counts[0]! },
               { name: 'ไม่คุ้มทุน', color: KPI_COLORS.red, data: counts[1]! },
             ]}
           />
@@ -284,12 +290,19 @@ export const DeepDiveBreakEvenPage = () => {
         <ChartCard
           key="3"
           title="ขาดทุนสะสมสูงสุด 10 อันดับ (ลบ.)"
-          info="กดแท่งเพื่อกรองตารางไปที่หลักสูตรนั้น"
+          info="ขาดทุนสะสม = ผลรวมขาดทุนของทุกปีที่มีข้อมูล หน่วยล้านบาท · กดแท่งเพื่อกรองตารางไปที่หลักสูตรนั้น"
+          note={`ตอนนี้มีข้อมูลต้นทุนเฉพาะปีงบ ${COST_YEARS.join(', ')} — ขาดทุนสะสมจึงเท่ากับขาดทุนปีนั้น`}
         >
           <TopBars
             items={topLoss}
-            fmt={axisM}
+            fmt={(v) =>
+              // ต่ำกว่า 0.01 ลบ. แสดงเป็นบาท (ไม่ให้เห็นเป็น 0.00)
+              v < 0.01
+                ? `${fmtInt(v * 1e6)} บาท`
+                : v.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            }
             color={KPI_COLORS.red}
+            onBack={dd.focused ? dd.unfocus : undefined}
             onPick={(k) => {
               const x = byKey.get(k);
 
@@ -382,6 +395,7 @@ export const DeepDiveRevenuePage = () => {
         <ChartCard key="1" title="ค่าเทอมเรียกเก็บรวม (ลบ.)">
           <YearTrend
             type="bar"
+            labels
             fmt={axisM}
             series={[{ name: 'ค่าเทอม', color: BEPS.revenue.dark, data: toM(tuition) }]}
           />
@@ -417,6 +431,7 @@ export const DeepDiveRevenuePage = () => {
             items={movers}
             fmt={(v) => `−${v.toFixed(0)}%`}
             color={KPI_COLORS.red}
+            onBack={dd.focused ? dd.unfocus : undefined}
             onPick={(k) => {
               const x = byKey.get(k);
 
@@ -446,6 +461,7 @@ export const DeepDiveCostPage = () => {
   const { rows } = dd;
   // ค่ากลางจากทั้งคณะ/ระดับ ไม่ใช่แถวที่กรองแล้ว (เจาะหลักสูตรเดียวแล้วอัตราจะกลายเป็น 1.0)
   const ratioOf = useMemo(() => perHeadRatio(dd.scope), [dd.scope]);
+  const headMed = useMemo(() => perHeadMedian(dd.scope), [dd.scope]);
 
   const tfc = useMemo(() => sumSeries(rows.map((x) => x.cost.map((c) => c?.tfc ?? null))), [rows]);
   const tvc = useMemo(() => sumSeries(rows.map((x) => x.cost.map((c) => c?.tvc ?? null))), [rows]);
@@ -459,7 +475,9 @@ export const DeepDiveCostPage = () => {
       label: catLabel(c),
       value: rows.reduce((a, x) => a + (x.cost[idx]?.cats[i] ?? 0), 0),
       color: CAT_COLORS[i % CAT_COLORS.length]!,
-    })).filter((c) => c.value > 0);
+    }))
+      .filter((c) => c.value > 0)
+      .sort((a, b) => b.value - a.value);
   }, [rows]);
 
   const topHead = useMemo(
@@ -471,10 +489,10 @@ export const DeepDiveCostPage = () => {
         .slice(0, 10)
         .map((i) => ({
           ...i,
-          value: Number(i.r.toFixed(2)),
+          value: i.r * headMed,
           color: i.r >= PER_HEAD_ALERT ? KPI_COLORS.red : BEPS.compare.dark,
         })),
-    [rows, ratioOf],
+    [rows, ratioOf, headMed],
   );
 
   const byKey = new Map(rows.map((x) => [x.key, x]));
@@ -566,13 +584,15 @@ export const DeepDiveCostPage = () => {
         </ChartCard>,
         <ChartCard
           key="3"
-          title="ต้นทุนต่อหัวเทียบค่ากลาง (เท่า)"
-          info={`แดง = สูงกว่าค่ากลาง ≥ ${PER_HEAD_ALERT} เท่า · กดแท่งเพื่อกรองตาราง`}
+          title="ต้นทุนต่อนิสิต 1 คน (บาท/ปี) · 10 อันดับสูงสุด"
+          info={`ต้นทุนรวมของหลักสูตร ÷ จำนวนนิสิต · เส้นประ = ค่ากลางของ${dd.level}ที่เลือก · แดง = แพงกว่าค่ากลาง ≥ ${PER_HEAD_ALERT} เท่า · ไม่นับหลักสูตรที่นิสิตน้อยกว่า ${PER_HEAD_MIN_Q} คน · กดแท่งเพื่อกรองตาราง`}
         >
           <TopBars
             items={topHead}
-            fmt={(v) => `${v.toFixed(1)}×`}
+            fmt={fmtInt}
             color={BEPS.compare.dark}
+            refLine={headMed > 0 ? { value: headMed, label: `ค่ากลาง ${fmtInt(headMed)}` } : undefined}
+            onBack={dd.focused ? dd.unfocus : undefined}
             onPick={(k) => {
               const x = byKey.get(k);
 

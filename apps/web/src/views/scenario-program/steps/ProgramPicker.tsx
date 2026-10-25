@@ -63,6 +63,8 @@ export interface ProgramPickerProps {
   fac: string | null;
   onFacChange: (v: string | null) => void;
   level: string;
+  /** ระดับให้เลือก — ไม่ส่ง = ทุกระดับ */
+  levelOptions?: string[];
   onLevelChange: (v: string) => void;
   semesters: number;
   onSemestersChange: (v: number) => void;
@@ -106,7 +108,7 @@ const ProgramPicker = (props: ProgramPickerProps) => {
           <Autocomplete
             size="small"
             disableClearable
-            options={EDUCATION_LEVELS}
+            options={props.levelOptions ?? EDUCATION_LEVELS}
             value={level}
             disabled={pickLocked}
             onChange={(_, v) => props.onLevelChange(v)}

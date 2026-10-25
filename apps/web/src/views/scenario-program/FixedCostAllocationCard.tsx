@@ -440,6 +440,34 @@ const AllocFlow = (props: {
 };
 
 /**
+ * สถานะวิธีปันส่วนของคณะ — ชิปเดียวบอกทั้ง "เลือกแล้วหรือยัง" และ "ใช้วิธีไหน"
+ * เขียว = คณะเลือกปีนี้แล้ว (🔒 เมื่อล็อกจาก Submit) · ส้ม = คณะยังไม่เลือก ระบบใช้ค่าปีก่อน/ค่าตาม Excel แทน
+ */
+const PolicyStatusChip = ({ lock, method }: { lock: FacultyLock; method: AllocChoice['method'] }) => {
+  const m = ALLOC_METHOD_LABEL[method];
+  const [icon, color, label] =
+    lock.source === 'config'
+      ? lock.submitLock
+        ? ['ri-lock-line', 'success', `คณะเลือกแล้ว (ล็อก): ${m}`]
+        : ['ri-checkbox-circle-line', 'success', `คณะเลือกแล้ว: ${m}`]
+      : lock.source === 'prev-year'
+        ? ['ri-error-warning-line', 'warning', `คณะยังไม่เลือก · ใช้ค่าปี ${lock.fromYear}: ${m}`]
+        : ['ri-error-warning-line', 'warning', `คณะยังไม่เลือก · ใช้ค่าเริ่มต้น (Excel): ${m}`];
+
+  return (
+    <Tooltip title={policySourceLabel(lock)}>
+      <Chip
+        size="small"
+        variant="tonal"
+        color={color as 'success' | 'warning'}
+        icon={<i className={icon} />}
+        label={label}
+      />
+    </Tooltip>
+  );
+};
+
+/**
  * ขั้น "ปันส่วนต้นทุนคงที่" ก่อนคำนวณจุดคุ้มทุน — ใช้วิธีของคณะ (ตั้งค่าปีนี้ → ค่าปีก่อน → ตาม Excel) แก้ไม่ได้
  * ปันใหม่ทั้งคณะเสมอ (หลักสูตรใหม่เข้าไปแบ่งก้อนเดิม) แล้วเปิดดูผลกระทบต่อหลักสูตรอื่นได้
  */
@@ -524,29 +552,7 @@ const FixedCostAllocationCard = ({
         title={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <DotTitle color="info.main">ปันส่วนต้นทุนคงที่ส่วนกลางคณะ</DotTitle>
-            {collapsible && !open && faculty && (
-              <Chip
-                size="small"
-                color="primary"
-                variant="tonal"
-                icon={<i className={lock.source === 'config' ? 'ri-lock-line' : 'ri-history-line'} />}
-                label={`${lock.source === 'config' ? 'คณะเลือก' : 'ใช้'}: ${ALLOC_METHOD_LABEL[choice.method]}`}
-                title={policySourceLabel(lock)}
-              />
-            )}
-            {lock.source !== 'config' && (
-              <Chip
-                size="small"
-                color={lock.prevInvalidYear ? 'warning' : 'default'}
-                variant="outlined"
-                label={
-                  lock.source === 'prev-year'
-                    ? `ค่าปี ${lock.fromYear}`
-                    : 'ค่าเริ่มต้นตาม Excel'
-                }
-                title={policySourceLabel(lock)}
-              />
-            )}
+            {faculty && <PolicyStatusChip lock={lock} method={choice.method} />}
           </Box>
         }
         action={
@@ -601,11 +607,7 @@ const FixedCostAllocationCard = ({
               <Box
                 sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 1.5 }}
               >
-                <Chip
-                  color="primary"
-                  icon={<i className={lock.source === 'config' ? 'ri-lock-line' : 'ri-history-line'} />}
-                  label={ALLOC_METHOD_LABEL[choice.method]}
-                />
+                <Chip color="primary" variant="tonal" label={ALLOC_METHOD_LABEL[choice.method]} />
                 <Typography variant="caption" color="text.secondary">
                   {policySourceLabel(lock)}
                   {lock.source === 'config' && lock.lockedBy && ` · บันทึกโดย ${lock.lockedBy}`}

@@ -843,6 +843,9 @@ const FixedCostLockView = () => {
                 <Table size="small" sx={gridTableSx}>
                   <TableHead>
                     <TableRow>
+                      <TableCell align="center" sx={{ width: 56 }}>
+                        ลำดับ
+                      </TableCell>
                       <TableCell>หลักสูตร</TableCell>
                       <TableCell align="right">นิสิต (คน)</TableCell>
                       {compare.map(({ m }) => (
@@ -894,7 +897,7 @@ const FixedCostLockView = () => {
                             key={`lvl-${p.lvl}`}
                             sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}
                           >
-                            <TableCell colSpan={2 + compare.length} sx={{ fontWeight: 700 }}>
+                            <TableCell colSpan={3 + compare.length} sx={{ fontWeight: 700 }}>
                               {p.lvl}
                               <Typography
                                 component="span"
@@ -908,6 +911,8 @@ const FixedCostLockView = () => {
                           </TableRow>
                         ),
                         <TableRow key={id} hover>
+                          {/* ลำดับต่อเนื่องข้ามหน้า */}
+                          <TableCell align="center">{page * ROWS_PER_PAGE + i + 1}</TableCell>
                           <TableCell sx={{ pl: 4 }}>{progName(p)}</TableCell>
                           <TableCell align="right">{fmtB(p.Q)}</TableCell>
                           {compare.map(({ m, applied, after }) => {

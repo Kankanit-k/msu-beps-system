@@ -88,7 +88,7 @@ import {
   type CostBlock,
   type Segment,
 } from './newProgramCalc';
-import { PG_DATA, EDUCATION_LEVELS, progOptionLabel } from './programData';
+import { PG_DATA, EDUCATION_LEVELS, DEFAULT_LEVEL, levelsOfFaculty, progOptionLabel } from './programData';
 import { loadHistory, saveHistory } from './historyStore';
 import { isSubmitted, type ProgramHistoryEntry } from './types';
 import type { ProgRow } from '@/data/mockup';
@@ -232,7 +232,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [newName, setNewName] = useState('');
   const [nameTouched, setNameTouched] = useState(false);
   const [fac, setFac] = useState<string | null>(null);
-  const [level, setLevel] = useState<string>(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
+  const [level, setLevel] = useState<string>(DEFAULT_LEVEL);
   const [semesters, setSemesters] = useState(2);
   const [refProg, setRefProg] = useState<ProgRow | null>(null);
   /** เปิดหลักสูตรใหม่โดยไม่มีหลักสูตรอ้างอิง — กดกรอกต้นทุนเองแล้ว */
@@ -710,9 +710,17 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     prevFee.current = null;
   };
 
+  // ปรับปรุงหลักสูตร: ระดับเฉพาะที่คณะมีหลักสูตรจริง · เปิดใหม่: ทุกระดับ (คณะอาจเปิดระดับใหม่)
+  const levelOptions = purpose === 'improve' ? levelsOfFaculty(fac) : EDUCATION_LEVELS;
+
   const onFacChange = (v: string | null) => {
     setFac(v);
-    pickRef(null);
+    const lvls = purpose === 'improve' ? levelsOfFaculty(v) : EDUCATION_LEVELS;
+    // ระดับเดิมไม่มีในคณะนี้ → ปริญญาตรีถ้ามี ไม่งั้นระดับแรกของคณะ (คณะมีระดับเดียว = เลือกให้เลย)
+    const lvl = lvls.includes(level) ? level : lvls.includes(DEFAULT_LEVEL) ? DEFAULT_LEVEL : (lvls[0] ?? DEFAULT_LEVEL);
+
+    setLevel(lvl);
+    pickRef(null, lvl);
   };
 
   // ผู้ดูแลคณะ/อาจารย์: คณะถูกกำหนดตามบัญชี — ตั้งให้เอง (รวมหลังล้างฟอร์ม) และไม่ค้างคณะอื่นจากร่างเดิม
@@ -747,14 +755,14 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     setNewName('');
     setNameTouched(false);
     setFac(null);
-    setLevel(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
+    setLevel(DEFAULT_LEVEL);
     setSemesters(2);
     setRefProg(null);
     setManualOnly(false);
     setConfirmed(false);
     setManual(bothModes(emptyBlock()));
     setManualEmbedded(0);
-    setSegs(buildSegments(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี', null, 2));
+    setSegs(buildSegments(DEFAULT_LEVEL, null, 2));
     setEditingId(null);
     setLockedId(null);
     setOpenedMethod(null);
@@ -1224,6 +1232,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
               fac={fac}
               onFacChange={onFacChange}
               level={level}
+              levelOptions={levelOptions}
               onLevelChange={onLevelChange}
               semesters={semesters}
               onSemestersChange={onSemestersChange}

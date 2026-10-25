@@ -20,7 +20,16 @@ export const PG_DATA: FacultyProgramGroup[] = (() => {
   return [...map.entries()].map(([faculty, programs]) => ({ faculty, programs }));
 })();
 
-export const EDUCATION_LEVELS = ['ปริญญาตรี', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก', 'ประกาศนียบัตร'];
+// เรียงตามขั้น — ประกาศนียบัตร (ต่ำกว่าปริญญาตรี) ขึ้นก่อน
+export const EDUCATION_LEVELS = ['ประกาศนียบัตร', 'ปริญญาตรี', 'ป.บัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
+export const DEFAULT_LEVEL = 'ปริญญาตรี';
+
+/** ระดับที่คณะมีหลักสูตรจริง (ตามลำดับ EDUCATION_LEVELS) — ยังไม่เลือกคณะ = ทุกระดับ */
+export const levelsOfFaculty = (fac: string | null) => {
+  const progs = PG_DATA.find((g) => g.faculty === fac)?.programs;
+
+  return progs ? EDUCATION_LEVELS.filter((l) => progs.some((p) => p.lvl === l)) : EDUCATION_LEVELS;
+};
 
 /** ชื่อหลักสูตรซ้ำกันได้ในคณะเดียวกัน (คนละปริญญา) — ต่อท้ายชื่อปริญญาให้แยกแยะได้ในดรอปดาวน์ */
 export const progOptionLabel = (p: ProgRow) => `${p.prog} — ${p.deg}`;

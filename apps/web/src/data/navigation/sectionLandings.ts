@@ -15,10 +15,6 @@ export const sectionLandings: Record<string, { icon: string; desc: string }> = {
     icon: 'ri-compass-3-line',
     desc: 'เปรียบเทียบย้อนหลัง 5 ปีรายหลักสูตร — จุดคุ้มทุน รายได้ ต้นทุนรายหมวด และหลักสูตรที่ขาดทุนต่อเนื่อง',
   },
-  '/scenario': {
-    icon: 'ri-graduation-cap-line',
-    desc: 'ทดลองปรับค่าเทอม จำนวนนิสิต และต้นทุน เพื่อดูว่าต้องรับนิสิตกี่คนจึงคุ้มทุน',
-  },
   '/admin': {
     icon: 'ri-settings-3-line',
     desc: 'กำหนดวิธีปันส่วนต้นทุนและค่ากลางที่ใช้ในการคำนวณจุดคุ้มทุน',
@@ -26,10 +22,6 @@ export const sectionLandings: Record<string, { icon: string; desc: string }> = {
   '/admin/university': {
     icon: 'ri-database-2-line',
     desc: 'ข้อมูลหลักที่ระบบใช้คำนวณ โครงสร้างหน่วยงาน และการจัดการผู้ใช้',
-  },
-  '/more': {
-    icon: 'ri-more-2-line',
-    desc: 'สูตรการคำนวณและหลักวิชาการที่ระบบใช้ และข้อมูลอื่น ๆ ของระบบ',
   },
 };
 

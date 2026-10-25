@@ -55,7 +55,7 @@ import {
   type CostBlock,
   type Levers,
 } from './newProgramCalc';
-import { EDUCATION_LEVELS, PG_DATA, progOptionLabel } from './programData';
+import { DEFAULT_LEVEL, PG_DATA, progOptionLabel } from './programData';
 import ProgramPicker from './steps/ProgramPicker';
 import { useFacultyAllocation } from './useFacultyAllocation';
 
@@ -458,7 +458,7 @@ const LeverSuggestions = (props: {
 
 const QuickCalcView = () => {
   const [fac, setFac] = useState<string | null>(null);
-  const [level, setLevel] = useState<string>(EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
+  const [level, setLevel] = useState<string>(DEFAULT_LEVEL);
   const [refProg, setRefProg] = useState<ProgRow | null>(null);
   const [semesters, setSemesters] = useState(2);
   const [lever, setLever] = useState<Levers>({ q: 0, fee: 0, cut: 0 });
@@ -488,7 +488,7 @@ const QuickCalcView = () => {
 
       setFac(d.fac);
       // ร่างรุ่นก่อนไม่มีระดับ — ใช้ระดับของหลักสูตรที่เลือกไว้
-      setLevel(ref?.lvl ?? d.level ?? EDUCATION_LEVELS[0] ?? 'ปริญญาตรี');
+      setLevel(ref?.lvl ?? d.level ?? DEFAULT_LEVEL);
       setRefProg(ref);
       setSemesters(d.semesters);
       if (d.lever) setLever(d.lever);

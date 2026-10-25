@@ -32,6 +32,7 @@ interface Props {
   fac: string | null;
   onFacChange: (v: string | null) => void;
   level: string;
+  levelOptions?: string[];
   onLevelChange: (v: string) => void;
   semesters: number;
   onSemestersChange: (v: number) => void;
@@ -122,6 +123,7 @@ const ProgramStep = (props: Props) => {
           fac={props.fac}
           onFacChange={props.onFacChange}
           level={props.level}
+          levelOptions={props.levelOptions}
           onLevelChange={props.onLevelChange}
           semesters={props.semesters}
           onSemestersChange={props.onSemestersChange}

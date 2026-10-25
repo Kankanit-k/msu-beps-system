@@ -42,10 +42,18 @@ export const costPerHead = (x: DDRow) => {
 /** หลักสูตรเล็กกว่านี้ไม่เทียบต้นทุนต่อหัว (2–3 คน หารแล้วสูงเสมอ) */
 export const PER_HEAD_MIN_Q = 10;
 
+/** ค่ากลางต้นทุนต่อหัวของหลักสูตรในขอบเขตเดียวกัน (ไม่นับหลักสูตรเล็ก) */
+export const perHeadMedian = (rows: DDRow[]) =>
+  median(
+    rows
+      .filter((x) => x.p.Q >= PER_HEAD_MIN_Q)
+      .map(costPerHead)
+      .filter((v): v is number => v !== null && v > 0),
+  );
+
 /** ต้นทุนต่อหัวเทียบค่ากลางของหลักสูตรในขอบเขตเดียวกัน (คณะ/ระดับที่เลือก) · หลักสูตรเล็ก = null */
 export const perHeadRatio = (rows: DDRow[]) => {
-  const big = rows.filter((x) => x.p.Q >= PER_HEAD_MIN_Q);
-  const med = median(big.map(costPerHead).filter((v): v is number => v !== null && v > 0));
+  const med = perHeadMedian(rows);
 
   return (x: DDRow) => {
     const v = x.p.Q >= PER_HEAD_MIN_Q ? costPerHead(x) : null;

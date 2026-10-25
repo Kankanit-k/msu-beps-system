@@ -52,6 +52,10 @@ type Ctx = {
   rows: DDRow[];
   /** ไปหน้าอื่นในหมวดพร้อมค้นหาหลักสูตรนั้น */
   focus: (x: DDProgram) => void;
+  /** หลักสูตรที่เจาะอยู่ (null = ไม่ได้เจาะ) */
+  focused: DDRow | null;
+  /** เลิกเจาะ — คืนคณะ/ระดับ/สถานะ/คำค้นหาก่อนกด */
+  unfocus: () => void;
   /** เปิดหน้าอื่นในหมวด (path เช่น /deep-dive/cost) พร้อมกรองหลักสูตร/สถานะ */
   go: (path: string, x?: DDProgram, status?: StatusFilter) => void;
 };
@@ -94,6 +98,9 @@ export const DeepDiveProvider = ({ children }: { children: ReactNode }) => {
   const [search, setSearchText] = useState('');
   /** เจาะจากกราฟ/บทวิเคราะห์ = หลักสูตรเดียวตรงตัว (ชื่อหลักสูตรอาจเป็นส่วนหนึ่งของชื่ออื่น) */
   const [focusKey, setFocusKey] = useState<string | null>(null);
+
+  /** ตัวกรองก่อนเจาะ — ไว้คืนค่าเมื่อกด "แสดงทั้งหมด" */
+  const beforeFocus = useRef<{ fac: string; level: string; status: StatusFilter; search: string } | null>(null);
 
   const setSearch = (v: string) => {
     setFocusKey(null);
@@ -177,6 +184,7 @@ export const DeepDiveProvider = ({ children }: { children: ReactNode }) => {
   }, [urlRead, pathname, canPick, pickedFac, level, status, mode, search]);
 
   const focus = (x: DDProgram) => {
+    if (!focusKey) beforeFocus.current = { fac: pickedFac, level: pickedLevel, status, search };
     if (canPick) setPickedFac(x.p.fac);
     setLevel(x.p.lvl);
     setStatus('all');
@@ -206,6 +214,19 @@ export const DeepDiveProvider = ({ children }: { children: ReactNode }) => {
     scope,
     rows,
     focus,
+    focused: focusKey ? (rows.find((x) => x.key === focusKey) ?? null) : null,
+    unfocus: () => {
+      const b = beforeFocus.current;
+
+      setFocusKey(null);
+      setSearchText(b?.search ?? '');
+      if (b) {
+        if (canPick) setPickedFac(b.fac);
+        setLevel(b.level);
+        setStatus(b.status);
+      }
+      beforeFocus.current = null;
+    },
     go: (path, x, st) => {
       if (x) focus(x);
       // ไปจากการ์ด (ไม่ระบุหลักสูตร) → ล้างคำค้นหาค้างจากการเจาะครั้งก่อน

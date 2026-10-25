@@ -467,6 +467,9 @@ const PercentTable = ({
             <Table size="small">
               <TableHead>
                 <TableRow>
+                  <TableCell align="center" sx={{ width: 56 }}>
+                    ลำดับ
+                  </TableCell>
                   <TableCell>
                     {bucketLevel === 'EDUCATION_LEVEL' ? 'ระดับการศึกษา' : 'หลักสูตร'}
                   </TableCell>
@@ -495,7 +498,7 @@ const PercentTable = ({
                     <Fragment key={b.key}>
                       {showHeader && c && (
                         <TableRow sx={{ bgcolor: `var(--mui-palette-${c}-lightOpacity)` }}>
-                          <TableCell sx={bar}>
+                          <TableCell colSpan={2} sx={bar}>
                             <Typography variant="body2" fontWeight={700} color={`${c}.main`}>
                               {g || 'ไม่ระบุระดับ'}
                             </Typography>
@@ -521,7 +524,11 @@ const PercentTable = ({
                         </TableRow>
                       )}
                       <TableRow hover>
-                        <TableCell sx={c ? { ...bar, pl: 5 } : undefined}>{b.label}</TableCell>
+                        {/* ลำดับต่อเนื่องข้ามหน้า */}
+                        <TableCell align="center" sx={bar}>
+                          {page * perPage + i + 1}
+                        </TableCell>
+                        <TableCell sx={c ? { pl: 5 } : undefined}>{b.label}</TableCell>
                         <TableCell align="right">{fmtInt(b.programCount)}</TableCell>
                         <TableCell align="right">{fmtInt(b.q)}</TableCell>
                         <TableCell align="right">

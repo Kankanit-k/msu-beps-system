@@ -1,9 +1,8 @@
-// Component Imports
-import SectionLanding from '@components/SectionLanding';
+// หน้ารวมหมวดวิเคราะห์จุดคุ้มทุนถูกเอาออก (2026-10-25) — ลิงก์เดิมพาไปหลักสูตรเดิม
+import { redirect } from 'next/navigation';
 
-// หน้าแรกหมวดวิเคราะห์จุดคุ้มทุน (Landing — ข้อ 1.8) · การ์ดดึงจากเมนูซ้ายมือ กรองตามสิทธิ์
-const LandingPage = () => {
-  return <SectionLanding href="/scenario" />;
+const ScenarioPage = () => {
+  redirect('/scenario/program/improve');
 };
 
-export default LandingPage;
+export default ScenarioPage;

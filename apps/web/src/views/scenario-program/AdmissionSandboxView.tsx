@@ -56,7 +56,7 @@ import {
   type MixResult,
   type Segment,
 } from './newProgramCalc';
-import { EDUCATION_LEVELS, PG_DATA, progOptionLabel } from './programData';
+import { DEFAULT_LEVEL, PG_DATA, progOptionLabel } from './programData';
 import SandboxPlansCard from './SandboxPlansCard';
 import {
   loadDraft,
@@ -70,7 +70,6 @@ import ProgramPicker from './steps/ProgramPicker';
 import { useFacultyAllocation } from './useFacultyAllocation';
 
 const MODES: RevenueMode[] = ['with_government', 'without_government'];
-const DEFAULT_LEVEL = EDUCATION_LEVELS[0] ?? 'ปริญญาตรี';
 const refKeyOf = (p: ProgRow) => `${p.fac}|${p.lvl}|${p.prog}|${p.deg}`;
 const fmt = (v: number) => (Math.round(v) || 0).toLocaleString('th-TH');
 const mb = (v: number) =>
