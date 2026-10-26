@@ -151,7 +151,7 @@ const StepHeader = ({
       avatar={<StepNo no={no} status={status} />}
       title={`ขั้นที่ ${no} · ${title}`}
       subheader={hint}
-      titleTypographyProps={{ variant: 'h6', fontWeight: 700 }}
+      titleTypographyProps={{ variant: 'h5', fontWeight: 700, color: 'primary.main' }}
       action={
         <Chip
           size="small"
