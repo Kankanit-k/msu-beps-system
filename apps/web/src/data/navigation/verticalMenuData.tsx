@@ -6,6 +6,7 @@ import {
   SHOW_COST_PAGE,
   SHOW_CURRENT_YEAR_PAGES,
   SHOW_FIXED_COST_POLICY,
+  SHOW_SCENARIO_FACULTY,
   SHOW_SCENARIO_PROGRAM2,
   SHOW_SCENARIO_SANDBOX,
   canAccess,
@@ -137,12 +138,6 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
               icon: 'ri-focus-3-line',
               iconColor: T.teal,
             },
-            {
-              label: 'การตั้งค่าคณะ',
-              href: '/faculty/config',
-              icon: 'ri-settings-3-line',
-              iconColor: T.navy,
-            },
           ],
         },
       ],
@@ -256,12 +251,16 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
                   },
                 ]
               : []),
-            {
-              label: 'รายคณะ',
-              href: '/scenario/faculty',
-              icon: 'ri-calculator-line',
-              iconColor: T.teal,
-            },
+            ...(SHOW_SCENARIO_FACULTY
+              ? [
+                  {
+                    label: 'รายคณะ',
+                    href: '/scenario/faculty',
+                    icon: 'ri-calculator-line',
+                    iconColor: T.teal,
+                  },
+                ]
+              : []),
             ...(SHOW_SCENARIO_SANDBOX
               ? [
                   {

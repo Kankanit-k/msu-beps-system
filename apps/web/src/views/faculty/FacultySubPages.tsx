@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 // MUI Imports
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -35,8 +34,8 @@ import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 import { buildProgramCrossData } from '@views/cross/crossData';
 import { HeatmapCard, RankingCard, ScatterPair } from '@views/cross/CrossPanels';
 import { facultyDepCompare } from '@views/cost-data/depreciationData';
-import { fmtLockedAt, policySourceLabel } from '@views/fixed-cost-lock/lockStore';
-import { policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
+import { policySourceLabel } from '@views/fixed-cost-lock/lockStore';
+import { LOCK_SETTINGS_HREF, policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
 import { ALLOC_METHOD_LABEL } from '@views/scenario-program/facultyAllocation';
 
 import { useFaculty } from './FacultyContext';
@@ -610,13 +609,15 @@ export const FacultyCostPage = () => {
               </Typography>
             )}
             <InfoTip text="ตัวเลขในหน้านี้ใช้การหารรายหัวตามชีต (ข้อมูลจริง) ทั้งหมด เพื่อให้หน้ารายได้ ต้นทุน และจุดคุ้มทุนตรงกัน — วิธีที่คณะตั้งค่าไว้ (หรือค่าปีก่อน/ตาม Excel) ใช้กับการวิเคราะห์หลักสูตร" />
-            <Box
-              component={Link}
-              href="/faculty/config"
-              sx={{ display: 'block', fontSize: '0.8125rem', mt: 0.5 }}
-            >
-              ดูการตั้งค่าคณะ →
-            </Box>
+            {canAccess(role, LOCK_SETTINGS_HREF) && (
+              <Box
+                component={Link}
+                href={LOCK_SETTINGS_HREF}
+                sx={{ display: 'block', fontSize: '0.8125rem', mt: 0.5 }}
+              >
+                ดูวิธีปันส่วนคณะ →
+              </Box>
+            )}
           </WatchItem>
         </DialogContent>
       </Dialog>
@@ -801,7 +802,11 @@ export const FacultyBreakEvenPage = () => {
         </Grid>
       </Grid>
       {/* วิธีปันส่วนต้นทุนคงที่ที่ผลหลังปรับใช้ + ที่มา (คณะตั้งค่า / ค่าปีก่อน / ตาม Excel) */}
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1.5, mb: 2 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mt: -1.5, mb: 2 }}
+      >
         <i className="ri-scales-3-line" style={{ verticalAlign: 'middle' }} /> ปันส่วนต้นทุนคงที่:{' '}
         <b>{!lockReady || !lock ? '…' : ALLOC_METHOD_LABEL[lock.choice.method]}</b>
         {lock && ` · ${policySourceLabel(lock)}`}
@@ -874,65 +879,5 @@ export const FacultyBreakEvenPage = () => {
         <ScatterPair rows={shownRows} unitWord="หลักสูตร" />
       )}
     </SubPage>
-  );
-};
-
-export const FacultyConfigPage = () => {
-  const { year, lock, lockReady } = useFaculty();
-  const { role } = useRole();
-
-  return (
-    <Box>
-      <FacultyStatusBar section="การตั้งค่าคณะ" />
-      <Card>
-        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography fontWeight={600}>วิธีปันต้นทุนคงที่ส่วนกลางของคณะ · ปีงบ {year}</Typography>
-          {!lockReady || !lock ? (
-            <Typography color="text.secondary">กำลังโหลด…</Typography>
-          ) : (
-            <Box>
-              <Typography>
-                ใช้วิธี <b>{ALLOC_METHOD_LABEL[lock.choice.method]}</b>
-                {lock.source !== 'default' && lock.lockedAt && (
-                  <>
-                    {' '}
-                    · ตั้งค่าเมื่อ {fmtLockedAt(lock.lockedAt)}
-                    {lock.lockedBy ? ` โดย ${lock.lockedBy}` : ''}
-                  </>
-                )}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={lock.prevInvalidYear ? 'warning.main' : 'text.secondary'}
-              >
-                {policySourceLabel(lock)}
-                {lock.prevInvalidYear &&
-                  ` — ค่าปี ${lock.prevInvalidYear} ใช้กับหลักสูตรปีนี้ไม่ได้ จึงใช้ค่าตาม Excel แทน`}
-                {lock.submitLock &&
-                  ` — ล็อกเมื่อหลักสูตร ${lock.submitLock.program} ยืนยันเอกสารฉบับจริง ${fmtLockedAt(lock.submitLock.at)}`}
-              </Typography>
-            </Box>
-          )}
-          <Alert severity="info">
-            ตัวเลขบนหน้าภาพรวมคณะยังเป็นข้อมูลจริงตามชีต (หารรายหัว) — วิธีที่คณะตั้งค่าไว้
-            (หรือค่าปีก่อน/ตาม Excel ถ้ายังไม่ตั้ง) ใช้กับการวิเคราะห์หลักสูตร
-          </Alert>
-          {canAccess(role, '/admin/fixed-cost-lock') && (
-            <Box>
-              <Button
-                variant="contained"
-                component={Link}
-                href="/admin/fixed-cost-lock"
-                startIcon={
-                  <i className={role === 'facultyExec' ? 'ri-eye-line' : 'ri-edit-line'} />
-                }
-              >
-                {role === 'facultyExec' ? 'ดูรายละเอียดการตั้งค่า' : 'แก้ไขการตั้งค่า'}
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    </Box>
   );
 };

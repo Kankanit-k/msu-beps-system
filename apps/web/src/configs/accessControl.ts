@@ -80,6 +80,10 @@ export const SHOW_CURRENT_YEAR_PAGES: boolean = false;
 // the link and the route 404s. Flip to true to bring it back.
 export const SHOW_SCENARIO_SANDBOX: boolean = false;
 
+// Hide "วิเคราะห์จุดคุ้มทุน → รายคณะ" (/scenario/faculty) for every role — the meeting has not yet
+// approved this page (2026-10-26). The menu drops the link and the route 404s. Flip to true to bring it back.
+export const SHOW_SCENARIO_FACULTY: boolean = false;
+
 // Route → who may open it. Ordered MOST-SPECIFIC FIRST; the first matching prefix wins.
 // Paths not listed are open to every signed-in role (ภาพรวม · เจาะลึก · สูตร).
 // `exact: true` = only that path itself (e.g. a section landing page), not its sub-pages.
@@ -164,6 +168,9 @@ export interface RoleScope {
 /** บทบาทที่ต้องระบุขอบเขต — เลือกบทบาทนี้แล้วต้องเลือกคณะ (และหลักสูตร) ด้วย */
 export const roleNeedsScope = (r: AppRole): 'faculty' | 'program' | null =>
   r === 'lecturer' ? 'program' : isUniversityLevel(r) ? null : 'faculty';
+
+/** หน้าแรกหลังล็อกอิน — ระดับคณะ/อาจารย์เข้าภาพรวมคณะของตนทันที (มติประชุม: ไม่ต้องเลือกคณะเอง) */
+export const homeFor = (r: AppRole): string => (isUniversityLevel(r) ? '/overview' : '/faculty');
 
 /** คณะที่บทบาทนี้ถูกล็อกไว้ในหน้าภาพรวมคณะ/เจาะลึก/วิเคราะห์ — null = ระดับมหาวิทยาลัย เลือกได้ทุกคณะ */
 export const lockedFacultyFor = (r: AppRole, scope: RoleScope): string | null =>

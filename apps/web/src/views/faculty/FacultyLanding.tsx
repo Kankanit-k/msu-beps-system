@@ -15,12 +15,16 @@ import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
+// Config / Hook Imports
+import { canAccess } from '@/configs/accessControl';
+import { useRole } from '@/hooks/useRole';
+
 // Component Imports
 import { BEPS } from '@components/ChartBits';
 import KpiTile from '@components/KpiTile';
 import BreakEvenLineChart from '@views/breakeven/BreakEvenLineChart';
 import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
-import { policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
+import { LOCK_SETTINGS_HREF, policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
 import {
   ALLOC_METHOD_LABEL,
   ALLOC_METHOD_SHORT as METHOD_SHORT,
@@ -43,7 +47,6 @@ import ProgramRankTable from './ProgramRankTable';
 /** หลักสูตรในระดับเดียวกันเกินนี้ → กราฟหน้าภาพรวมแสดงเฉพาะอันดับต้น + ลิงก์ "ดูทั้งหมด" */
 const TOP_N = 12;
 const CHART_H = 250;
-
 
 const INFO = {
   tr: 'รวมเงินแผ่นดิน = เงินแผ่นดิน + เงินรายได้ · ไม่รวม = เงินรายได้ (ค่าธรรมเนียม) อย่างเดียว — ทั้งคณะทุกระดับ',
@@ -123,6 +126,7 @@ const FacultyLanding = () => {
     lockReady,
     openDetail,
   } = useFaculty();
+  const { role } = useRole();
 
   const tr = facRes.tr;
   const stShare = fac.st + fac.own ? fac.st / (fac.st + fac.own) : 0;
@@ -212,7 +216,8 @@ const FacultyLanding = () => {
           </TileLink>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <TileLink href="/faculty/config">
+          {/* กดไปหน้าวิธีปันส่วนคณะ — เฉพาะบทบาทที่เปิดหน้านั้นได้ */}
+          <TileLink href={canAccess(role, LOCK_SETTINGS_HREF) ? LOCK_SETTINGS_HREF : undefined}>
             <KpiTile
               label="สถานะการตั้งค่า"
               value={!lockReady || !lock || !method ? '…' : METHOD_SHORT[method]}

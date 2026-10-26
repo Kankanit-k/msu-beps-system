@@ -25,10 +25,10 @@ import Button from '@mui/material/Button';
 // Hook Imports
 import { useSettings } from '@core/hooks/useSettings';
 import { useAuthUser, useAuthMethod } from '@/hooks/AuthHooks';
-import { useRole, useIsAdmin } from '@/hooks/useRole';
+import { clearViewRole, useRole, useIsAdmin } from '@/hooks/useRole';
 
 // Config Imports
-import { DEFAULT_ROLE, roleDisplay, roleNeedsScope, roleOrder } from '@/configs/accessControl';
+import { roleDisplay, roleNeedsScope, roleOrder } from '@/configs/accessControl';
 import type { AppRole } from '@/configs/accessControl';
 
 // Component Imports
@@ -71,21 +71,17 @@ const UserDropdown = () => {
   const [pendingRole, setPendingRole] = useState<AppRole | null>(null);
 
   // ขอบเขตต่อท้ายชื่อบทบาท — อาจารย์แสดงชื่อหลักสูตร (ช่องที่ 3 ของคีย์) ถ้ามี ไม่งั้นแสดงคณะ
-  const scopeLabel = roleNeedsScope(role)
-    ? (scope.program?.split('|')[2] ?? scope.faculty)
-    : null;
+  const scopeLabel = roleNeedsScope(role) ? (scope.program?.split('|')[2] ?? scope.faculty) : null;
 
-  // Accounts that may switch views show the role picked in the sidebar footer, so the
-  // navbar and the sidebar never disagree about "which permission am I viewing as".
-  const roleLabel = isAdmin
-    ? `${roleDisplay[role].label}${scopeLabel ? ` · ${scopeLabel}` : ''}`
-    : user?.SCOPES?.groupname || roleDisplay[DEFAULT_ROLE].label;
+  const roleLabel = `${roleDisplay[role].label}${scopeLabel ? ` · ${scopeLabel}` : ''}`;
 
-  // Signed-in staff get their own HR photo; with no STAFFID (login bypassed for the demo)
-  // fall back to the developer photo instead of a broken /undefined.jpg request.
+  // ERP staff → HR photo · บัญชีจำลอง → รูปในบัญชี (ถ้ามี) ไม่งั้นใช้ตัวอักษรแรกของชื่อ
+  // ปิด auth (demo) ไม่มีผู้ใช้ → รูปผู้พัฒนาเหมือนเดิม
   const avatarSrc = user?.STAFFID
     ? `https://pd.msu.ac.th/staff/picture/${user.STAFFID}.jpg`
-    : `${process.env.NEXT_PUBLIC_BASEPATH ?? ''}/images/developers/kankanit.jpg`;
+    : user
+      ? user.avatar && `${process.env.NEXT_PUBLIC_BASEPATH ?? ''}${user.avatar}`
+      : `${process.env.NEXT_PUBLIC_BASEPATH ?? ''}/images/developers/kankanit.jpg`;
 
   const { settings } = useSettings();
 
@@ -109,8 +105,10 @@ const UserDropdown = () => {
   };
 
   const handleUserLogout = async () => {
-    await logout();
-    router.push('/login');
+    clearViewRole();
+    await logout({ redirect: false });
+    router.replace('/login');
+    router.refresh();
   };
 
   return (
@@ -234,7 +232,7 @@ const UserDropdown = () => {
                       onClick={() => void handleUserLogout()}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
-                      Logout
+                      ออกจากระบบ
                     </Button>
                   </div>
                 </MenuList>

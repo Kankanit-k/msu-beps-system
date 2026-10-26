@@ -1,7 +1,33 @@
 import type { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+
+import { findMockUser } from '@/configs/mockUsers';
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    // ล็อกอินจำลองช่วงพัฒนา (อีเมล + รหัสผ่านร่วม) — Backend แทน authorize ด้วยการตรวจจริง
+    CredentialsProvider({
+      id: 'mock',
+      name: 'บัญชีจำลอง',
+      credentials: { email: {}, password: {} },
+      authorize(credentials) {
+        const u = findMockUser(credentials?.email ?? '', credentials?.password ?? '');
+
+        if (!u) return null;
+        const [first, ...rest] = u.name.split(' ');
+
+        return {
+          id: u.email,
+          name: u.name,
+          email: u.email,
+          STAFFNAME: first,
+          STAFFSURNAME: rest.join(' '),
+          role: u.role,
+          scope: u.scope,
+          avatar: u.avatar,
+        };
+      },
+    }),
     {
       id: 'erpauth',
       name: 'erpauth',

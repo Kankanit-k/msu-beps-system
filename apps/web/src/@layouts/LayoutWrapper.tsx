@@ -3,9 +3,7 @@
 // React Imports
 import { useEffect, type ReactElement } from 'react';
 
-import { usePathname } from 'next/navigation';
-
-import { signIn } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
 
 // Type Imports
 import type { SystemMode } from '@core/types';
@@ -35,10 +33,11 @@ const LayoutWrapper = (props: LayoutWrapperProps) => {
   const { settings } = useSettings();
   const { user, isLoading } = useAuthUser();
   const pathname = usePathname() ?? '';
+  const router = useRouter();
 
   useLayoutInit(systemMode);
 
-  // Send anonymous visitors to ERP — but ONLY on routes that actually require a login.
+  // Send anonymous visitors to the login page — but ONLY on routes that actually require a login.
   // Routes listed in `publicRoutes` must stay readable without signing in; middleware
   // already lets them through, so bouncing here would silently override that.
   // `pathname` has no basePath (Next strips it), which is what isPublicRoute expects.
@@ -47,8 +46,8 @@ const LayoutWrapper = (props: LayoutWrapperProps) => {
       return;
     }
 
-    void signIn('erpauth');
-  }, [user, isLoading, pathname]);
+    router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+  }, [user, isLoading, pathname, router]);
 
   // Return the layout based on the layout context
   return (

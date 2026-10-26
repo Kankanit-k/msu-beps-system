@@ -2,6 +2,7 @@
 
 // React Imports
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 
 // Next Imports
 import { useRouter } from 'next/navigation';
@@ -11,9 +12,9 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import Checkbox from '@mui/material/Checkbox';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Divider from '@mui/material/Divider';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -27,6 +28,7 @@ import Chip from '@mui/material/Chip';
 
 // Third-party Imports
 import classnames from 'classnames';
+import { getSession, signIn } from 'next-auth/react';
 
 // Type Imports
 import type { Mode } from '@core/types';
@@ -39,6 +41,9 @@ import Illustrations from '@components/Illustrations';
 
 // Config Imports
 import themeConfig from '@configs/themeConfig';
+import { homeFor, roleDisplay } from '@configs/accessControl';
+import { MOCK_PASSWORD, MOCK_USERS } from '@configs/mockUsers';
+import { clearViewRole } from '@/hooks/useRole';
 
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant';
@@ -84,6 +89,10 @@ const ROLE_INFO: { role: AppRole; label: string; scope: string; sees: string }[]
 const LoginV2 = ({ mode }: { mode: Mode }) => {
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Vars
   const darkImg = '/images/pages/auth-v2-mask-dark.png';
@@ -95,6 +104,34 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
   const authBackground = useImageVariant(mode, lightImg, darkImg);
 
   const handleClickShowPassword = () => setIsPasswordShown((show) => !show);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!email.trim() || !password) {
+      setError('กรอกอีเมลและรหัสผ่าน');
+
+      return;
+    }
+
+    setLoading(true);
+    const res = await signIn('mock', { email, password, redirect: false });
+
+    if (!res?.ok) {
+      setLoading(false);
+      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชีนี้ยังไม่มีสิทธิ์ใช้ระบบ');
+
+      return;
+    }
+
+    clearViewRole();
+    // เข้าหน้าของตัวเองทันที (ระดับคณะ → ภาพรวมคณะของตน) · ถ้าถูกส่งมาจากหน้าอื่นให้กลับไปหน้านั้น
+    const role = (await getSession())?.user?.role;
+    const cb = new URLSearchParams(window.location.search).get('callbackUrl');
+
+    router.replace(cb && cb.startsWith('/') && cb !== '/' ? cb : homeFor(role ?? 'facultyExec'));
+    router.refresh();
+  };
 
   return (
     <div className="flex bs-full justify-center">
@@ -174,40 +211,48 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
           <div>
             <Typography variant="h4">เข้าสู่ระบบ</Typography>
             <Typography className="mbs-1" color="text.secondary">
-              ใช้บัญชี MSU Account ของท่าน — {themeConfig.templateName}
+              ช่วงพัฒนาใช้บัญชีจำลอง — {themeConfig.templateName}
             </Typography>
           </div>
 
           <Button
             fullWidth
-            variant="contained"
+            variant="outlined"
+            disabled
             startIcon={<i className="ri-graduation-cap-line" />}
           >
-            เข้าสู่ระบบด้วย MSU Account (SSO)
+            เข้าสู่ระบบด้วย MSU Account (SSO) — รอเชื่อม ERP
           </Button>
 
-          <Divider className="gap-3">หรือเข้าด้วยบัญชีภายในระบบ</Divider>
+          <Divider className="gap-3">ช่วงพัฒนา · ใช้บัญชีจำลอง</Divider>
 
           <form
             noValidate
             autoComplete="off"
-            onSubmit={(e) => {
-              e.preventDefault();
-              router.push('/');
-            }}
+            onSubmit={(e) => void handleSubmit(e)}
             className="flex flex-col gap-5"
           >
             <TextField
               autoFocus
               fullWidth
-              label="ชื่อผู้ใช้ / อีเมล"
+              label="อีเมล"
               placeholder="name@msu.ac.th"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(null);
+              }}
             />
             <TextField
               fullWidth
               label="รหัสผ่าน"
               type={isPasswordShown ? 'text' : 'password'}
-              helperText="ลืมรหัสผ่าน ติดต่อสำนักคอมพิวเตอร์ · ระบบไม่รับสมัครสมาชิกเอง"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(null);
+              }}
+              helperText={`บัญชีจำลองทุกบัญชีใช้รหัสผ่าน ${MOCK_PASSWORD}`}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -225,25 +270,80 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
                 },
               }}
             />
-            <div className="flex justify-between items-center flex-wrap gap-x-3 gap-y-1">
-              <FormControlLabel control={<Checkbox />} label="จดจำการเข้าสู่ระบบ" />
-              <Typography className="text-end" color="primary.main" component={Link}>
-                ลืมรหัสผ่าน?
-              </Typography>
-            </div>
-            <Button fullWidth variant="contained" type="submit">
+            {error && <Alert severity="error">{error}</Alert>}
+            <Button
+              fullWidth
+              variant="contained"
+              type="submit"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
               เข้าสู่ระบบ
             </Button>
           </form>
 
-          {/* ตารางสิทธิ์: บทบาท → สิ่งที่เห็น (3 บทบาทตาม AppRole) */}
+          {/* บัญชีจำลอง — กดเพื่อกรอกอีเมล/รหัสผ่านให้ */}
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                บัญชีจำลองสำหรับทดสอบสิทธิ์
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                กดแถวเพื่อกรอกให้ แล้วกด “เข้าสู่ระบบ” · ออกจากระบบได้ที่เมนูโปรไฟล์มุมขวาบน
+              </Typography>
+              <TableContainer sx={{ mt: 3 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>บทบาท</TableCell>
+                      <TableCell>อีเมล · ขอบเขต</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {MOCK_USERS.map((u) => (
+                      <TableRow
+                        key={u.email}
+                        hover
+                        selected={u.email === email}
+                        sx={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          setEmail(u.email);
+                          setPassword(MOCK_PASSWORD);
+                          setError(null);
+                        }}
+                      >
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            label={roleDisplay[u.role].label}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{u.email}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {u.scope.program?.split('|')[2]
+                              ? `${u.scope.faculty} · ${u.scope.program.split('|')[2]}`
+                              : (u.scope.faculty ?? 'ทุกคณะ')}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+
+          {/* ตารางสิทธิ์: บทบาท → สิ่งที่เห็น (5 บทบาทตาม AppRole) */}
           <Card variant="outlined">
             <CardContent>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 สิทธิ์แต่ละบทบาทเห็นอะไรบ้าง
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                3 บทบาทตรงกับ <code>AppRole</code> ของระบบ —
+                5 บทบาทตรงกับ <code>AppRole</code> ของระบบ —
                 ขอบเขตข้อมูลกำหนดจากหน่วยงานที่ผูกไว้กับบัญชี
               </Typography>
               <TableContainer sx={{ mt: 3 }}>

@@ -3,12 +3,16 @@
 // React Imports
 import { useCallback, useEffect, useState } from 'react';
 
+// Third-party Imports
+import { useSession } from 'next-auth/react';
+
 // Config Imports
 import { DEFAULT_ROLE, roleOrder } from '@/configs/accessControl';
 import type { AppRole, RoleScope } from '@/configs/accessControl';
 
 /**
- * Client-side role switching for the template.
+ * บทบาท + ขอบเขตของผู้ใช้ — มาจาก session ที่ล็อกอิน (บัญชีจำลอง configs/mockUsers.ts)
+ * ล็อกอินแล้วสลับบทบาทไม่ได้ (มติประชุม) · ตัวสลับด้านล่างใช้ได้เฉพาะตอนปิด auth (AUTH_DISABLED) เท่านั้น
  *
  *  - `role`      : the currently *viewed* role, persisted in localStorage.
  *  - `scope`     : คณะ/หลักสูตรของบทบาทนั้น (ผู้บริหาร/เจ้าหน้าที่คณะ → คณะ · อาจารย์ → คณะ + หลักสูตร)
@@ -27,6 +31,19 @@ const STORAGE_KEY = 'app-view-role';
 const SCOPE_KEY = 'app-view-scope';
 const ROLE_EVENT = 'app-view-role-change';
 const NO_SCOPE: RoleScope = { faculty: null, program: null };
+// ฝั่ง client ของ AUTH_DISABLED (configs/authBypass)
+const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === 'true';
+const noop = () => {};
+
+/** ล้างบทบาทที่เลือกไว้ตอนปิด auth — เรียกตอนล็อกอิน/ออก ไม่ให้ค่าเก่าค้าง */
+export const clearViewRole = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SCOPE_KEY);
+  } catch {
+    // โหมดส่วนตัว
+  }
+};
 
 const readScope = (): RoleScope => {
   try {
@@ -39,6 +56,8 @@ const readScope = (): RoleScope => {
 };
 
 export const useRole = () => {
+  const { data: session, status } = useSession();
+  const account = session?.user;
   // Default role on the server + first client render to avoid hydration mismatch.
   const [role, setRoleState] = useState<AppRole>(DEFAULT_ROLE);
   const [scope, setScopeState] = useState<RoleScope>(NO_SCOPE);
@@ -80,8 +99,13 @@ export const useRole = () => {
     window.dispatchEvent(new Event(ROLE_EVENT));
   }, []);
 
-  return { role, scope, ready, setRole };
+  if (account?.role && roleOrder.includes(account.role)) {
+    return { role: account.role, scope: account.scope ?? NO_SCOPE, ready: true, setRole: noop };
+  }
+
+  // ยังไม่ปิด auth แต่ session ยังโหลดไม่เสร็จ/ไม่มีบทบาท → ยังไม่พร้อม (RoleGuard ไม่เรนเดอร์หน้า)
+  return { role, scope, ready: ready && AUTH_DISABLED && status !== 'loading', setRole };
 };
 
-// TODO: replace with a real check against the authenticated user's permissions.
-export const useIsAdmin = (): boolean => true;
+/** แสดงตัวสลับ "มุมมองสิทธิ์" ได้ไหม — เฉพาะตอนปิด auth (demo) · ล็อกอินจริงใช้บัญชีทดสอบแทน */
+export const useIsAdmin = (): boolean => AUTH_DISABLED;

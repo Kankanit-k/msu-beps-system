@@ -1,3 +1,5 @@
+import type { AppRole, RoleScope } from '@/configs/accessControl';
+
 export type StaffData = {
   id?: number;
   name?: string | null | undefined;
@@ -26,4 +28,8 @@ export type StaffData = {
   PREFIXFULLNAME?: string;
   POSITIONNAME?: string;
   access_token?: string;
+  /** บทบาท + ขอบเขตในระบบ BEPS (ตอนนี้มาจากบัญชีจำลอง configs/mockUsers.ts) */
+  role?: AppRole;
+  scope?: RoleScope;
+  avatar?: string;
 };
