@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนหน้าเปิดหลักสูตรใหม่</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+  --primary:#818cf8; --primary-soft:#23264a;
+  --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+  --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+h3{font-size:1.05rem;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+nav.toc a:hover{border-color:var(--primary);color:var(--primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+td.c,th.c{text-align:center}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+ol.steps{margin:0;padding-left:20px}
+ol.steps li{margin-bottom:10px}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem;margin-top:4px}
+.wire{border:2px dashed var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;background:var(--bg)}
+.wire .box{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--card);font-size:.9rem}
+.wire .row{display:grid;gap:10px}
+.wire .c2{grid-template-columns:1fr 1fr}
+.wire .c3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:760px){.wire .c2,.wire .c3{grid-template-columns:1fr}}
+.wire .sticky{background:var(--primary-soft);border-color:var(--primary)}
+.wire .lockd{background:var(--line)}
+.wire .edit{background:var(--warn-soft);border-color:var(--warn)}
+.wire small{color:var(--muted);display:block}
+code{font-size:.88em}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>แผนงาน: หน้า “เปิดหลักสูตรใหม่”</h1>
+<p class="sub">MSU-BEPS · <code>/scenario/program/new</code> · จากเอกสาร “หลักสูตรใหม่.pdf” (มติที่ประชุม) เทียบกับโค้ดปัจจุบัน · 26 ต.ค. 2569 · ข้อ 6 ยืนยันแล้ว (ตามข้อเสนอทั้ง 5 ข้อ) · โค้ด NP-1 ถึง NP-6 ทำแล้ว 26 ต.ค. · DB ยังเป็นงานแยก</p>
+
+<nav class="toc">
+  <a href="#s1">1. สรุป</a><a href="#s2">2. มติ vs ของเดิม</a><a href="#s3">3. ขั้นที่ 1</a><a href="#s4">4. ขั้นที่ 3</a>
+  <a href="#s5">5. โครงหน้า</a><a href="#s6">6. ต้องตัดสินใจ</a><a href="#s7">7. ลำดับงาน</a>
+</nav>
+
+<section class="card" id="s1">
+<h2><span class="n">1</span>สรุป</h2>
+<p>หน้าเปิดหลักสูตรใหม่กับหน้าปรับปรุงหลักสูตรใช้คอมโพเนนต์เดียวกัน (<code>ScenarioProgramView purpose="new"</code>) ของที่ทำให้หน้าปรับปรุงไปแล้ว (แถบขั้นตอนแบบตรึง, ชิปสถานะปันส่วน, หัวรายงาน PDF) จึงมีอยู่แล้วบางส่วน มติรอบนี้ทำให้หน้าเปิดใหม่<b>ต่างจากหน้าปรับปรุง 2 จุดใหญ่</b>:</p>
+<ol class="steps">
+  <li><b>Freestyle ทุกช่อง</b> — ตอนนี้ถ้ามีหลักสูตรอ้างอิง แก้ได้แค่จำนวนนิสิตกับค่าธรรมเนียม (<code>basicOnly</code>) ต้องเปิดให้แก้ต้นทุนคงที่ ต้นทุนผันแปร และเงินแผ่นดินได้ทุกแถว</li>
+  <li><b>กรอกขาเดียว</b> — ตอนนี้กรอกแยก 2 คอลัมน์ (รวม/ไม่รวมเงินแผ่นดิน) อิสระจากกัน ต้องเหลือให้กรอกแค่กรณีรวมเงินแผ่นดิน ส่วนกรณีไม่รวมเงินแผ่นดินระบบคำนวณให้เอง (ใช้ต้นทุนเดียวกัน แล้วตัดเงินแผ่นดินออกจากรายรับ)</li>
+</ol>
+<p>อีกส่วนที่ขาดอยู่คือขั้นที่ 3 ของหน้าเปิดใหม่ ซึ่งยังไม่มีพรีวิวรายงานและขั้นตอนบันทึกร่าง → ยืนยัน เหมือนหน้าปรับปรุง</p>
+</section>
+
+<section class="card" id="s2">
+<h2><span class="n">2</span>มติที่ประชุม vs ของเดิม</h2>
+<div class="scroll"><table>
+<tr><th>ข้อ</th><th>มติ</th><th>ตอนนี้</th><th class="c">สถานะ</th><th>ต้องทำ</th></tr>
+<tr><td>1.1</td><td>ชื่อหลักสูตร · คณะ · ระดับ</td><td>มีครบ (เปิดใหม่เลือกได้ทุกระดับ)</td><td class="c"><span class="tag t-ok">มีแล้ว</span></td><td>—</td></tr>
+<tr><td>1.1</td><td>ต้องเลือกหลักสูตรอ้างอิงในคณะ · ไม่มีให้กด [กรอกต้นทุนเอง]</td><td>ป้ายเขียนว่า “หลักสูตรอ้างอิง (ไม่บังคับ)” มีปุ่มกรอกต้นทุนเอง</td><td class="c"><span class="tag t-warn">ปรับคำ</span></td><td>เปลี่ยนป้ายเป็น “หลักสูตรอ้างอิง” + คำอธิบายสั้นว่าถ้าไม่มีให้กด “กรอกต้นทุนเอง”</td></tr>
+<tr><td>1.2</td><td>Freestyle ทุกช่อง: นิสิต ค่าเทอม ต้นทุนคงที่ ต้นทุนผันแปร (รวมเงินแผ่นดิน)</td><td>มีอ้างอิง → แก้ได้แค่นิสิต/ค่าธรรมเนียม · ไม่มีอ้างอิง → แก้ได้ทั้งตาราง</td><td class="c"><span class="tag t-no">ต้องแก้</span></td><td>เปิดใหม่: <code>basicOnly=false</code> เสมอ — ทุกแถวแก้ได้ ตั้งต้นจากหลักสูตรอ้างอิง (ดู D2 เรื่องต้นทุนคงที่กับส่วนแบ่งคณะ)</td></tr>
+<tr><td>1.3</td><td>กรอกแค่ “หลักสูตรใหม่ (กรณีรวมเงินแผ่นดิน)” · ไม่รวมเงินแผ่นดิน = ระบบคำนวณให้</td><td>2 คอลัมน์อิสระจากกัน (<code>ManualBlocks</code> แยกตามกรณี)</td><td class="c"><span class="tag t-no">ต้องแก้</span></td><td>ใช้ <code>bothModes</code> แบบหน้าปรับปรุง · คอลัมน์ไม่รวมเงินแผ่นดินเป็นแบบอ่านอย่างเดียว · ร่างเก่าที่กรอกแยกไว้ให้ยึดขารวมเงินแผ่นดิน</td></tr>
+<tr><td>1.3</td><td>แก้ข้อความกล่องคำแนะนำข้อ 3</td><td>“…ทั้งกรณีรวมและไม่รวมเงินแผ่นดิน”</td><td class="c"><span class="tag t-no">ต้องแก้</span></td><td>เปลี่ยนเป็น “กรอกตัวเลขในคอลัมน์ ‘หลักสูตรใหม่’ เฉพาะกรณีรวมเงินแผ่นดิน ระบบจะคำนวณผลกรณีไม่รวมเงินแผ่นดินให้อัตโนมัติ” (รวมถึง subheader การ์ด ② และขั้นที่ 3)</td></tr>
+<tr><td>2.1</td><td>แถบขั้นตอนตรึงด้านบน 3 ขั้น: ข้อมูลหลักสูตรและการคำนวณตั้งต้น · แจกแจงสัดส่วนแผนรับนิสิต · สรุปและพรีวิวรายงาน</td><td>ตรึงแล้ว 3 ขั้น แต่ใช้ชื่อขั้นชุดเก่า (<code>STEP_LABEL</code>)</td><td class="c"><span class="tag t-warn">ปรับคำ</span></td><td>ชื่อขั้นของหน้าเปิดใหม่ตามมติ</td></tr>
+<tr><td>2.2</td><td>หัวคอลัมน์ “หลักสูตรอ้างอิง” + Tooltip “อ้างอิงจาก: …”</td><td>หัวคอลัมน์เป็น “หลักสูตรอ้างอิง” แล้ว แต่ไม่บอกว่าเป็นหลักสูตรไหน</td><td class="c"><span class="tag t-warn">เพิ่ม</span></td><td>Tooltip + บรรทัดเล็กใต้หัวคอลัมน์ “อ้างอิงจาก: ชื่อหลักสูตร — ปริญญา” (ให้เห็นได้ตอนพิมพ์ด้วย ไม่ใช่แค่ตอนชี้เมาส์)</td></tr>
+<tr><td>2.2</td><td>คอลัมน์หลักสูตรใหม่มีไอคอนแก้ไขทุกช่อง</td><td>ช่องที่แก้ได้เป็นสีเหลือง + หัวคอลัมน์มี ✎</td><td class="c"><span class="tag t-ok">มีแล้ว</span></td><td>ได้ผลอัตโนมัติจาก Freestyle (ทุกช่องเป็นสีเหลือง)</td></tr>
+<tr><td>2.2</td><td>ค่าธรรมเนียมต่อภาค / ต่อปี / ตลอดหลักสูตร</td><td>หน้าเปิดใหม่ไม่ส่ง <code>semesters</code>/<code>years</code> จึงแสดงเฉพาะต่อปี</td><td class="c"><span class="tag t-no">ต้องแก้</span></td><td>ส่ง <code>semesters</code> และ <code>years=defaultYears(level)</code> ให้ตารางเหมือนหน้าปรับปรุง</td></tr>
+<tr><td>2.2</td><td>กำไร/ขาดทุนสุทธิ + Q* คำนวณสดทั้ง 2 กรณี</td><td>มีแถวผลลัพธ์ในตารางแล้ว คำนวณสด</td><td class="c"><span class="tag t-ok">มีแล้ว</span></td><td>ตรวจซ้ำหลังเปลี่ยนเป็นกรอกขาเดียว</td></tr>
+<tr><td>2.3</td><td>การ์ดปันส่วน = สถานะแจ้งเพื่อทราบ อ่านอย่างเดียว ค่ามาจาก Config</td><td>ชิปสถานะเดียว (เขียว = คณะเลือกแล้ว / ส้ม = ใช้ค่าปีก่อนหรือ Excel) ทำเมื่อ 26 ต.ค.</td><td class="c"><span class="tag t-ok">มีแล้ว</span></td><td>เช็กบนหน้าเปิดใหม่จริง (ยังไม่ได้เปิดดู)</td></tr>
+<tr><td>2.4</td><td>หัวรายงาน “เอกสารจัดทำหลักสูตรใหม่”</td><td><code>ProgramReport</code> ใช้คำนี้แล้วเมื่อ <code>isNew</code> · แต่ขั้นที่ 3 ของหน้าเปิดใหม่ยังไม่มีพรีวิว/ปุ่มพิมพ์ร่าง/ยืนยัน</td><td class="c"><span class="tag t-no">ต้องแก้</span></td><td>เอาการ์ดพรีวิว + แถบปุ่ม (บันทึกร่าง · พิมพ์ร่างลายน้ำ · ยืนยัน) ของหน้าปรับปรุงมาใช้ หัวการ์ด “พรีวิวรายงาน — เอกสารจัดทำหลักสูตรใหม่”</td></tr>
+<tr><td>3</td><td>Q = เป้าหมายจำนวนนิสิตเมื่อครบทุกชั้นปี (ปีแรก ๆ ขาดทุนเป็นเรื่องปกติ)</td><td>ไม่มีคำอธิบาย</td><td class="c"><span class="tag t-warn">เพิ่ม</span></td><td>คำอธิบายใต้แถวจำนวนนิสิต: “จำนวนนิสิตรวมทุกชั้นปีเมื่อเปิดครบ (เช่น 4 ชั้นปี)” + หมายเหตุเดียวกันในรายงาน PDF</td></tr>
+</table></div>
+</section>
+
+<section class="card" id="s3">
+<h2><span class="n">3</span>ขั้นที่ 1 · ตารางคำนวณ (การ์ด ②)</h2>
+<div class="wire">
+  <div class="box sticky">แถบขั้นตอน (ตรึง): ① ข้อมูลหลักสูตรและการคำนวณตั้งต้น → ② แจกแจงสัดส่วนแผนรับนิสิต → ③ สรุปและพรีวิวรายงาน</div>
+  <div class="box">การ์ดปันส่วนต้นทุนคงที่ส่วนกลางคณะ <small>ชิปสถานะ อ่านอย่างเดียว · หุบไว้</small></div>
+  <div class="box">① ชื่อหลักสูตรใหม่ · คณะ · ระดับ · เทอม/ปี · หลักสูตรอ้างอิง <small>ไม่มี → [กรอกต้นทุนเอง]</small></div>
+  <div class="row c2">
+    <div class="box"><b>กรณีรวมเงินแผ่นดิน</b>
+      <div class="row c2" style="margin-top:8px">
+        <div class="box lockd">หลักสูตรอ้างอิง<small>อ้างอิงจาก: วท.บ.ฟิสิกส์ประยุกต์</small></div>
+        <div class="box edit">✎ หลักสูตรใหม่<small>แก้ได้ทุกช่อง</small></div>
+      </div>
+    </div>
+    <div class="box"><b>กรณีไม่รวมเงินแผ่นดิน</b>
+      <div class="row c2" style="margin-top:8px">
+        <div class="box lockd">หลักสูตรอ้างอิง</div>
+        <div class="box lockd">หลักสูตรใหม่<small>ระบบคำนวณจากฝั่งซ้าย</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="box">แถวผล: TR · TC · กำไร/ขาดทุนสุทธิ · Q* ทั้ง 2 กรณี (คำนวณสด) · ค่าธรรมเนียม ต่อภาค / ต่อปี / ตลอดหลักสูตร</div>
+</div>
+<div class="callout info"><b>หมายเหตุ:</b> การคิดกรณีไม่รวมเงินแผ่นดินมีอยู่แล้ว เพราะต้นทุนเหมือนกันทั้ง 2 กรณี (<code>newProgramCalc.ts</code>) ต่างกันแค่ว่ารายรับมีเงินแผ่นดินหรือไม่ ไม่ต้องเพิ่มสูตรใหม่ แค่ป้อนก้อนต้นทุนก้อนเดียวให้ทั้ง 2 กรณี</div>
+</section>
+
+<section class="card" id="s4">
+<h2><span class="n">4</span>ขั้นที่ 3 · พรีวิวรายงาน &amp; ยืนยัน</h2>
+<ol class="steps">
+  <li>การ์ดพรีวิว <code>ProgramReport</code> หัวเอกสาร “เอกสารจัดทำหลักสูตรใหม่” · ร่างมีลายน้ำ “ฉบับร่าง”</li>
+  <li>แถบปุ่ม: บันทึกร่าง · พิมพ์ร่าง (ลายน้ำ) · ยืนยัน → ล็อกฟอร์ม + เปิด PDF ฉบับจริง (ตามสิทธิ์ออกรายงานเดิม: universityAdmin + lecturer)</li>
+  <li>ยืนยันแล้วฟอร์มล็อก (<code>formLocked</code> ตอนนี้ใช้กับหน้าปรับปรุงอย่างเดียว) — กองแผนปลดล็อกได้</li>
+</ol>
+</section>
+
+<section class="card" id="s5">
+<h2><span class="n">5</span>ไฟล์ที่แตะ</h2>
+<ul>
+  <li><code>ScenarioProgramView.tsx</code> — <code>basicOnly</code>, กรอกขาเดียว, ข้อความคำแนะนำ, ชื่อขั้น, ส่ง semesters/years, ขั้นที่ 3 พรีวิว/ยืนยัน, <code>formLocked</code></li>
+  <li><code>CostBlockTable.tsx</code> — คอลัมน์ “หลักสูตรใหม่” ในกรณีไม่รวมเงินแผ่นดินอ่านอย่างเดียว · Tooltip/บรรทัด “อ้างอิงจาก”</li>
+  <li><code>steps/ProgramStep.tsx</code> — ป้ายหลักสูตรอ้างอิง</li>
+  <li><code>ProgramReport.tsx</code> — หมายเหตุ Q = ครบทุกชั้นปี · ชื่อหลักสูตรอ้างอิง</li>
+</ul>
+</section>
+
+<section class="card" id="s6">
+<h2><span class="n">6</span>ต้องตัดสินใจ</h2>
+<div class="q"><b>D1 · คอลัมน์ “หลักสูตรใหม่” กรณีไม่รวมเงินแผ่นดิน — ล็อกหรือแก้ได้?</b>
+หน้าปรับปรุงให้แก้กรณีไหนก็ได้แล้วอีกกรณีตามไปด้วย · มติหน้าเปิดใหม่บอกว่าให้กรอก “ที่เดียว”
+<div class="rec">แนะนำ: ล็อก (อ่านอย่างเดียว สีเทา) ให้ตรงกับมติ ไม่สับสนว่าต้องกรอกตรงไหน</div></div>
+<div class="q"><b>D2 · Freestyle ต้นทุนคงที่ vs ส่วนแบ่งส่วนกลางคณะ</b>
+ตัวเลขต้นทุนคงที่ของหลักสูตรอ้างอิงมีส่วนแบ่งส่วนกลางคณะปนอยู่ (ระบบหักออกแล้วบวกส่วนแบ่งตามวิธีของคณะใหม่) ถ้าผู้ใช้ลดต้นทุนคงที่ลงมาก ๆ ผลรวมหลังหักอาจติดลบ
+<div class="rec">แนะนำ: คงวิธีเดิม (ช่องต้นทุนคงที่ = ตัวเลขแบบชีต) แล้วเตือนเมื่อต้นทุนคงที่รวมน้อยกว่าส่วนที่ต้องหักออก · ไม่แยกต้นทุนตรงออกเป็นรายหมวด เพราะไม่มีข้อมูลรายหมวดของส่วนแบ่ง</div></div>
+<div class="q"><b>D3 · ร่าง/ผลที่บันทึกไว้ก่อนหน้าแบบกรอก 2 ขา</b>
+<div class="rec">แนะนำ: เปิดแล้วยึดขารวมเงินแผ่นดิน (แบบเดียวกับที่หน้าปรับปรุงทำกับร่างเก่า) · ผลที่ยืนยันแล้วไม่แตะ</div></div>
+<div class="q"><b>D4 · ยืนยันเอกสารหลักสูตรใหม่ ล็อกวิธีปันส่วนของคณะด้วยไหม?</b>
+หน้าปรับปรุงยืนยันแล้วล็อกการตั้งค่าคณะปีนั้น (<code>lockFacultyBySubmit</code>)
+<div class="rec">แนะนำ: ล็อกเหมือนกัน — ตัวเลขเอกสารคำนวณจากวิธีนั้น ถ้าเปลี่ยนวิธีภายหลังเอกสารจะไม่ตรง</div></div>
+<div class="q"><b>D5 · บังคับเลือกหลักสูตรอ้างอิงแค่ไหน?</b>
+<div class="rec">แนะนำ: ไม่บล็อก — แสดงเป็นทางหลัก มีปุ่ม “กรอกต้นทุนเอง” เป็นทางสำรองตามมติ 1.1 · แค่เอาคำว่า “ไม่บังคับ” ออก</div></div>
+</section>
+
+<section class="card" id="s7">
+<h2><span class="n">7</span>ลำดับงาน</h2>
+<table>
+<tr><th>#</th><th>งาน</th><th>ขนาด</th></tr>
+<tr><td>NP-1</td><td>ข้อความ: ป้ายหลักสูตรอ้างอิง · ชื่อขั้นตามมติ · คำแนะนำข้อ 3 · subheader</td><td>เล็ก</td></tr>
+<tr><td>NP-2</td><td>กรอกขาเดียว: <code>bothModes</code> + คอลัมน์ไม่รวมเงินแผ่นดินอ่านอย่างเดียว + ร่างเก่า (D1, D3)</td><td>กลาง</td></tr>
+<tr><td>NP-3</td><td>Freestyle: <code>basicOnly=false</code> สำหรับเปิดใหม่ + คำเตือนต้นทุนคงที่ (D2)</td><td>กลาง</td></tr>
+<tr><td>NP-4</td><td>ค่าธรรมเนียมต่อภาค/ปี/ตลอดหลักสูตร + Tooltip “อ้างอิงจาก” + หมายเหตุ Q ครบทุกชั้นปี</td><td>เล็ก</td></tr>
+<tr><td>NP-5</td><td>ขั้นที่ 3: พรีวิว + บันทึกร่าง/พิมพ์ร่าง/ยืนยัน + ล็อกฟอร์ม (D4)</td><td>กลาง</td></tr>
+<tr><td>NP-6</td><td>ทดสอบในเบราว์เซอร์: มี/ไม่มีหลักสูตรอ้างอิง · ร่างเก่า · ยืนยัน → PDF หัว “เอกสารจัดทำหลักสูตรใหม่”</td><td>กลาง</td></tr>
+</table>
+</section>
+</div>
+</body>
+</html>

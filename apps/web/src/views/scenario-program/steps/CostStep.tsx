@@ -28,6 +28,10 @@ interface Props {
   basicOnly?: boolean;
   /** basicOnly + แก้ต้นทุนผันแปรรายหมวดได้ */
   editVariable?: boolean;
+  /** basicOnly + แก้ได้ทุกแถว (เปิดหลักสูตรใหม่) */
+  editAll?: boolean;
+  /** แจ้งเตือนเหนือตาราง */
+  notice?: ReactNode;
   /** ยืนยันแล้ว — แสดงอย่างเดียว */
   readOnly?: boolean;
   /** แสดงค่าธรรมเนียมต่อภาค/ตลอดหลักสูตร */
@@ -48,6 +52,8 @@ const CostStep = ({
   showAllocAdj,
   basicOnly,
   editVariable,
+  editAll,
+  notice,
   readOnly,
   semesters,
   years,
@@ -79,14 +85,21 @@ const CostStep = ({
         )
       }
       // จอแคบ: ปุ่มขึ้นบรรทัดใหม่ใต้หัวการ์ด ไม่ล้นขอบจอ
-      sx={{ pb: 1, flexWrap: 'wrap', rowGap: 2, '& .MuiCardHeader-action': { alignSelf: 'center' } }}
+      sx={{
+        pb: 1,
+        flexWrap: 'wrap',
+        rowGap: 2,
+        '& .MuiCardHeader-action': { alignSelf: 'center' },
+      }}
     />
     <CardContent sx={{ pt: 0 }}>
+      {notice}
       <CostBlockTable
         groups={groups}
         showAllocAdj={showAllocAdj}
         basicOnly={basicOnly}
         editVariable={editVariable}
+        editAll={editAll}
         readOnly={readOnly}
         semesters={semesters}
         years={years}

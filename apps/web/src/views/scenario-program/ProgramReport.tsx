@@ -840,7 +840,16 @@ const ProgramReport = ({ entry }: Props) => {
             <Field label="สังกัดคณะ / วิทยาลัย" value={entry.fac || '-'} />
             <Field label="ระดับการศึกษา" value={entry.level} />
             <Field label="ประเภทหลักสูตร" value={typeLabel} />
+            {entry.isNew && (
+              <Field label="หลักสูตรอ้างอิง" value={entry.ref ?? 'ไม่มี (กรอกต้นทุนเอง)'} />
+            )}
           </Box>
+          {entry.isNew && (
+            <Typography sx={{ fontSize: 10, color: 'text.secondary', mt: 1 }}>
+              จำนวนนิสิตเป้าหมาย = จำนวนรวมทุกชั้นปีเมื่อเปิดครบหลักสูตร —
+              ประเมินความยั่งยืนทางการเงินระยะยาว ช่วงปีแรกที่ยังมีนิสิตไม่ครบทุกชั้นปีอาจขาดทุนได้
+            </Typography>
+          )}
         </Section>
 
         {d && cols.length > 0 && (

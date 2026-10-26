@@ -58,14 +58,18 @@ export const editInputSx = {
       fontWeight: 400,
     },
     '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
-    '&:hover:not(.Mui-focused):not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'primary.main',
-    },
+    '&:hover:not(.Mui-focused):not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline':
+      {
+        borderColor: 'primary.main',
+      },
     '&.Mui-focused': {
       bgcolor: 'background.paper',
       boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.25)}`,
     },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main', borderWidth: 2 },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'primary.main',
+      borderWidth: 2,
+    },
     '&.Mui-disabled': { bgcolor: 'action.hover', '&::before': { content: 'none' } },
   },
   '& .MuiOutlinedInput-notchedOutline': {
@@ -115,6 +119,8 @@ export interface CostColumn {
   block: CostBlock;
   result: BlockResult;
   editable?: boolean;
+  /** บรรทัดเล็กใต้หัวคอลัมน์ (เช่น "อ้างอิงจาก: …") — แสดงเป็น tooltip ด้วย */
+  subtitle?: string;
 }
 
 /** กลุ่มคอลัมน์ต่อกรณี (รวม/ไม่รวมเงินแผ่นดิน) — มีคอลัมน์ผลต่างเมื่อมี 2 คอลัมน์ */
@@ -135,6 +141,8 @@ interface Props {
   basicOnly?: boolean;
   /** basicOnly + แก้ต้นทุนผันแปรรายหมวดได้ด้วย (ปรับปรุงหลักสูตร มติ 25 ต.ค.) */
   editVariable?: boolean;
+  /** basicOnly + แก้ได้ทุกแถว (เปิดหลักสูตรใหม่แบบ Freestyle มติ 26 ต.ค.) */
+  editAll?: boolean;
   /** แสดงอย่างเดียว (ผลยืนยันแล้ว) */
   readOnly?: boolean;
   /** เทอม/ปี และจำนวนปี — แสดงค่าธรรมเนียมต่อภาค/ต่อปี/ตลอดหลักสูตร (ไม่ส่ง = แสดงเฉพาะต่อปี) */
@@ -351,13 +359,14 @@ const CostBlockTable = ({
   showAllocAdj = false,
   basicOnly = false,
   editVariable = false,
+  editAll = false,
   readOnly = false,
   semesters,
   years,
 }: Props) => {
   const editStart = useRef<CostBlock | null>(null);
   // แก้ได้เฉพาะ Q/ค่าธรรมเนียม → หุบหมวดรายจ่ายไว้ก่อน · กรอกต้นทุนเองต้องเห็นช่องกรอกทุกหมวด
-  const [costOpen, setCostOpen] = useState(!basicOnly);
+  const [costOpen, setCostOpen] = useState(!basicOnly || editAll);
   const lines = linesOf(semesters, years).filter(
     (l) =>
       (basicOnly || !l.basicOnlyRow) &&
@@ -428,8 +437,24 @@ const CostBlockTable = ({
           <TableRow>
             {groups.map((g) => [
               ...g.cols.map((c) => (
-                <TableCell key={`${g.key}-${c.key}`} align="right">
+                <TableCell key={`${g.key}-${c.key}`} align="right" title={c.subtitle}>
                   {c.editable && !readOnly ? `✎ ${c.title}` : c.title}
+                  {c.subtitle && (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 400,
+                        color: 'text.secondary',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.subtitle}
+                    </Box>
+                  )}
                 </TableCell>
               )),
               g.cols.length === 2 && (
@@ -479,7 +504,13 @@ const CostBlockTable = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {costOpen ? 'ซ่อนรายหมวด' : editVariable && !readOnly ? 'ดูรายหมวด / แก้ต้นทุนผันแปร' : 'ดูรายหมวด'}
+                      {costOpen
+                        ? 'ซ่อนรายหมวด'
+                        : !readOnly && editAll
+                          ? 'ดูรายหมวด / แก้ต้นทุน'
+                          : !readOnly && editVariable
+                            ? 'ดูรายหมวด / แก้ต้นทุนผันแปร'
+                            : 'ดูรายหมวด'}
                     </Box>
                   </Box>
                 ) : (
@@ -561,7 +592,7 @@ const CostBlockTable = ({
                           c.editable &&
                           l.set &&
                           !excluded &&
-                          (!basicOnly || l.basic || (editVariable && l.variable));
+                          (!basicOnly || editAll || l.basic || (editVariable && l.variable));
 
                         return (
                           <TableCell
