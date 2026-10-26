@@ -37,6 +37,7 @@ import {
   useFacultyLock,
 } from '@views/fixed-cost-lock/lockStore';
 import { useAuthUser } from '@/hooks/AuthHooks';
+import { useRates } from '@views/per-head-rates/rateStore';
 import { useRole } from '@/hooks/useRole';
 
 import ProgramReport from './ProgramReport';
@@ -83,6 +84,7 @@ import {
   emptyBlock,
   scaleQ,
   withPerHeadCharges,
+  withUniShare,
   type CostBlock,
   type Segment,
 } from './newProgramCalc';
@@ -245,6 +247,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [fac, setFac] = useState<string | null>(null);
   const [level, setLevel] = useState<string>(DEFAULT_LEVEL);
   const [semesters, setSemesters] = useState(2);
+  const rates = useRates();
   const [refProg, setRefProg] = useState<ProgRow | null>(null);
   /** เปิดหลักสูตรใหม่โดยไม่มีหลักสูตรอ้างอิง — กดกรอกต้นทุนเองแล้ว */
   const [manualOnly, setManualOnly] = useState(false);
@@ -468,12 +471,13 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   // มีหลักสูตรอ้างอิง → ค่าธรรมเนียมรายการหลัก/หักสมทบคิด "ต่อหัวตามจริงของหลักสูตร" × Q (ตัวเลขชีตคิดที่ 2 ภาค)
   // ต้นทุนต่อหัวจึงคงเดิมเมื่อแก้แค่จำนวนนิสิต — Q* เปลี่ยนเฉพาะเมื่อแก้ค่าธรรมเนียม (ผู้ใช้เลือก 2026-10-14)
   // ไม่มีหลักสูตรอ้างอิง (กรอกเองล้วน) → คิดตามอัตรา × Q × ภาค แบบ T38/T39
+  // หักสมทบใช้อัตราที่อนุมัติในหน้าตั้งค่าระบบเสมอ (อัตราตามชีต × Q × 2 = ตัวเลขชีตพอดี)
   const withCharges = (b: CostBlock) => {
-    if (!refBlock || refBlock.q <= 0) return withPerHeadCharges(b, semesters);
+    if (!refBlock || refBlock.q <= 0) return withPerHeadCharges(b, semesters, rates);
 
     const k = (b.q / refBlock.q) * (semesters / 2);
 
-    return { ...b, mainFee: refBlock.mainFee * k, uniShare: refBlock.uniShare * k };
+    return withUniShare({ ...b, mainFee: refBlock.mainFee * k }, semesters, rates.uniShare);
   };
   const manualBlockOf = (m: RevenueMode) => withCharges(manual[m]);
   /** ต้นทุนคงที่รวมที่กรอก (ก่อนปรับส่วนแบ่งคณะ) — เปิดใหม่ลดจนต่ำกว่าส่วนแบ่งที่ต้องหักออก = TFC ติดลบ (D2) */

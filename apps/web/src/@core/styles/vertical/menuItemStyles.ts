@@ -45,6 +45,8 @@ const menuItemStyles = (verticalNavOptions: VerticalNavState, theme: Theme): Men
       },
       [`&.${menuClasses.disabled} > .${menuClasses.button}`]: {
         color: 'var(--mui-palette-text-disabled)',
+        // ไอคอนเป็นอีโมจิ สีไม่จางตาม color — ใช้ความโปร่งใสช่วยให้ทั้งแถวดูจาง
+        opacity: 0.55,
         '& *': {
           color: 'inherit',
         },

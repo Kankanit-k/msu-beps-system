@@ -24,6 +24,10 @@ const SHOW_PUBLIC_CHIP: boolean = false;
 // (/scenario/admission-plan) still works by URL — flip to true to bring the link back.
 const SHOW_ADMISSION_PLAN: boolean = false;
 
+// Grey out "ค่าธรรมเนียมรายการหลัก" (/admin/university/main-fee) in the sidebar — shown faded and
+// not clickable until it's needed. The page itself still works by URL — flip to true to enable.
+const ENABLE_MAIN_FEE_PAGE: boolean = false;
+
 // Hide the ปันส่วนต้นทุน links (under ตั้งค่าการคำนวณ) for now. The pages themselves
 // (/admin/allocation-run, /admin/reconciliation, /admin/exceptions) still work by URL —
 // flip to true to bring the links back.
@@ -308,6 +312,19 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
               href: '/admin/university/settings',
               icon: 'ri-settings-3-line',
               iconColor: T.blue,
+            },
+            {
+              label: 'ค่าธรรมเนียมหักสมทบ',
+              href: '/admin/university/uni-share',
+              icon: 'ri-bank-line',
+              iconColor: T.teal,
+            },
+            {
+              label: 'ค่าธรรมเนียมรายการหลัก',
+              href: '/admin/university/main-fee',
+              icon: 'ri-receipt-line',
+              iconColor: T.purple,
+              disabled: !ENABLE_MAIN_FEE_PAGE,
             },
             {
               label: 'กติกาผังบัญชี',

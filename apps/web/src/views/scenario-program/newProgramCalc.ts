@@ -93,11 +93,29 @@ export const scaleQ = (b: CostBlock, q: number, s: CostBlock = b): CostBlock => 
   };
 };
 
+/** อัตรารายหัว บาท/คน/ภาค — ค่าที่อนุมัติในหน้าตั้งค่าระบบ (ไม่ส่งมา = อัตราตามชีต) */
+export interface PerHeadRates {
+  mainFee: number;
+  uniShare: number;
+}
+
+const SHEET_PER_HEAD: PerHeadRates = { mainFee: MAIN_FEE_RATE, uniShare: UNI_SHARE_RATE };
+
 /** โหมดกรอกเอง: ค่าธรรมเนียมรายการหลัก/หักสมทบ คิดจากอัตรา × Q × ภาค (T38, T39) */
-export const withPerHeadCharges = (b: CostBlock, semesters: number): CostBlock => ({
+export const withPerHeadCharges = (
+  b: CostBlock,
+  semesters: number,
+  rates: PerHeadRates = SHEET_PER_HEAD,
+): CostBlock => ({
   ...b,
-  mainFee: MAIN_FEE_RATE * b.q * semesters,
-  uniShare: UNI_SHARE_RATE * b.q * semesters,
+  mainFee: rates.mainFee * b.q * semesters,
+  uniShare: rates.uniShare * b.q * semesters,
+});
+
+/** หักสมทบ = อัตรา × Q × ภาค — ตรงกับชีตทุกหลักสูตร (matchUni = 2,235 × Q × 2) จึงใช้ได้ทั้งมี/ไม่มีหลักสูตรอ้างอิง */
+export const withUniShare = (b: CostBlock, semesters: number, rate: number): CostBlock => ({
+  ...b,
+  uniShare: rate * b.q * semesters,
 });
 
 /** ROUNDUP ของ Excel — ปัดออกจากศูนย์ */

@@ -35,6 +35,7 @@ import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
 import { REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 import { lockedFacultyFor } from '@/configs/accessControl';
+import { useRates } from '@views/per-head-rates/rateStore';
 import { useRole } from '@/hooks/useRole';
 
 import BreakEvenChart from './BreakEvenChart';
@@ -47,10 +48,9 @@ import {
   FIXED_CATS,
   leversOf,
   leverTargets,
-  MAIN_FEE_RATE,
-  UNI_SHARE_RATE,
   VARIABLE_CATS,
   withPerHeadCharges,
+  withUniShare,
   type BlockResult,
   type CostBlock,
   type Levers,
@@ -461,6 +461,7 @@ const QuickCalcView = () => {
   const [level, setLevel] = useState<string>(DEFAULT_LEVEL);
   const [refProg, setRefProg] = useState<ProgRow | null>(null);
   const [semesters, setSemesters] = useState(2);
+  const rates = useRates();
   const [lever, setLever] = useState<Levers>({ q: 0, fee: 0, cut: 0 });
   const [confirmClear, setConfirmClear] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -526,7 +527,11 @@ const QuickCalcView = () => {
   // ต้นทุนมาจากชีตเสมอ — ปรับได้แค่ 3 ทางตามที่ประชุมกำหนด (ค่าเทอม · จำนวนนิสิต · ลด % ต้นทุนผันแปร)
   // ค่าตั้งต้นได้ตัวเลขชีตเดิม · เปลี่ยนจำนวนภาคการศึกษา → ค่าธรรมเนียมรายการหลัก/หักสมทบ = อัตรา × Q × เทอม
   const leverBlock = baseBlock ? applyLevers(baseBlock, lever) : emptyBlock();
-  const calcBlock = semesters === 2 ? leverBlock : withPerHeadCharges(leverBlock, semesters);
+  // หักสมทบใช้อัตราที่อนุมัติในหน้าตั้งค่าระบบเสมอ (อัตราตามชีต × Q × 2 = ตัวเลขชีตพอดี)
+  const calcBlock =
+    semesters === 2
+      ? withUniShare(leverBlock, semesters, rates.uniShare)
+      : withPerHeadCharges(leverBlock, semesters, rates);
 
   const afterAdj = adjOf(true);
 
@@ -730,13 +735,16 @@ const QuickCalcView = () => {
                     label: 'ค่าธรรมเนียมรายการหลัก',
                     value: calcBlock.mainFee,
                     base: baseBlock.mainFee,
-                    note: `${MAIN_FEE_RATE.toLocaleString('th-TH')} บ./คน/เทอม`,
+                    note:
+                      semesters === 2
+                        ? 'ตามจริงของหลักสูตร'
+                        : `${rates.mainFee.toLocaleString('th-TH')} บ./คน/เทอม`,
                   },
                   {
                     label: 'หักสมทบมหาวิทยาลัย',
                     value: calcBlock.uniShare,
                     base: baseBlock.uniShare,
-                    note: `${UNI_SHARE_RATE.toLocaleString('th-TH')} บ./คน/เทอม`,
+                    note: `${rates.uniShare.toLocaleString('th-TH')} บ./คน/เทอม`,
                   },
                 ]}
               />

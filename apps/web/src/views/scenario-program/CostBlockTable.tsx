@@ -16,12 +16,11 @@ import { alpha, type SxProps, type Theme } from '@mui/material/styles';
 import type { RevenueMode } from '@beps/calc-engine';
 
 import NumberTextField from '@components/NumberTextField';
+import { useRates, type RateKey } from '@views/per-head-rates/rateStore';
 
 import {
   FIXED_CATS,
-  MAIN_FEE_RATE,
   scaleQ,
-  UNI_SHARE_RATE,
   VARIABLE_CATS,
   type BlockResult,
   type CostBlock,
@@ -105,6 +104,8 @@ interface Line {
   highlight?: boolean;
   /** แก้ได้แม้จำกัดสิทธิ์ (ผู้ปรับปรุงหลักสูตร/อาจารย์) — จำนวนนิสิต */
   basic?: boolean;
+  /** ต่อท้ายชื่อด้วยอัตรารายหัวที่อนุมัติ (หน้าตั้งค่าระบบ) */
+  rate?: RateKey;
   /** แสดงเฉพาะตอนจำกัดสิทธิ์ (basicOnly) */
   basicOnlyRow?: boolean;
   /** หมวดต้นทุนผันแปร — แก้ได้เมื่อเปิด editVariable (หน้าปรับปรุงหลักสูตร) */
@@ -285,13 +286,14 @@ const linesOf = (semesters?: number, years?: number): Line[] => [
     variable: true,
   },
   {
-    label: `- ค่าธรรมเนียมรายการหลัก (${MAIN_FEE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
+    label: '- ค่าธรรมเนียมรายการหลัก',
     get: (b) => b.mainFee,
     unit: 'บาท',
     depth: 2,
   },
   {
-    label: `- หักสมทบมหาวิทยาลัย (${UNI_SHARE_RATE.toLocaleString('th-TH')} บ./คน/ภาค)`,
+    label: '- หักสมทบมหาวิทยาลัย',
+    rate: 'uniShare',
     get: (b) => b.uniShare,
     unit: 'บาท',
     depth: 2,
@@ -364,6 +366,7 @@ const CostBlockTable = ({
   semesters,
   years,
 }: Props) => {
+  const rates = useRates();
   const editStart = useRef<CostBlock | null>(null);
   // แก้ได้เฉพาะ Q/ค่าธรรมเนียม → หุบหมวดรายจ่ายไว้ก่อน · กรอกต้นทุนเองต้องเห็นช่องกรอกทุกหมวด
   const [costOpen, setCostOpen] = useState(!basicOnly || editAll);
@@ -516,6 +519,7 @@ const CostBlockTable = ({
                 ) : (
                   l.label
                 )}
+                {l.rate && ` (${rates[l.rate].toLocaleString('th-TH')} บ./คน/ภาค)`}
                 {l.no === 4 && anyNegative && (
                   <Chip
                     size="small"
