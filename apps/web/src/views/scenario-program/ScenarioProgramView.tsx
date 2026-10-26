@@ -60,7 +60,7 @@ import {
   type FacultyScenario,
 } from './facultyAllocation';
 import { type ModeCosts } from './StudentMixTable';
-import { buildSegments, scaleSegs } from './segments';
+import { buildSegments, fitSegs, scaleSegs, segTotals } from './segments';
 import CostStep from './steps/CostStep';
 import HistoryTable from './steps/HistoryTable';
 import SaveSuccessDialog from './steps/SaveSuccessDialog';
@@ -81,7 +81,6 @@ import {
   defaultYears,
   embeddedShareOf,
   emptyBlock,
-  isForeignSeg,
   scaleQ,
   withPerHeadCharges,
   type CostBlock,
@@ -159,6 +158,8 @@ const STEP_HINT: Record<Purpose, Record<StepKey, string>> = {
 type ManualBlocks = Record<RevenueMode, CostBlock>;
 
 const MODES: RevenueMode[] = ['with_government', 'without_government'];
+/** เพดานค้นหาจำนวนนิสิตขั้นต่ำที่คุ้มทุน — เกินนี้ถือว่าหาไม่ได้ */
+const MAX_BREAKEVEN_Q = 20000;
 const bothModes = (b: CostBlock): ManualBlocks => ({
   with_government: b,
   without_government: structuredClone(b),
@@ -228,17 +229,15 @@ const saveDraft = (purpose: Purpose, d: Draft | null) => {
 const sheetShareOf = poolAmountOf('ALL');
 
 /** purpose มาจากเมนูย่อย — /scenario/program/improve หรือ /scenario/program/new */
-/** ค่าธรรมเนียม บาท/ภาค/คน จากรายได้ค่าธรรมเนียมของก้อน (2.2 ÷ Q ÷ เทอม) — ยังไม่มีนิสิต = null */
-const feePerSemOf = (b: { q: number; income: number }, semesters: number) =>
-  b.q > 0 && semesters > 0 ? b.income / b.q / semesters : null;
+type Rate = { fee: number; gov: number };
 
-/** คีย์อัตราของการ์ด ② ไว้เช็กว่าเปลี่ยนหรือยัง — ยังไม่มีนิสิต = null */
-const rateKey = (b: { q: number; income: number; gov: number }, semesters: number) =>
-  b.q > 0 ? `${feePerSemOf(b, semesters)}|${govPerSemOf(b, semesters)}` : null;
+/** อัตราเฉลี่ยของการ์ด ② ไว้เช็กว่าเปลี่ยนหรือยัง — ยังไม่มีนิสิต = null */
+const rateOf = (b: { q: number; income: number; gov: number }, semesters: number): Rate | null =>
+  b.q > 0 && semesters > 0 ? { fee: b.income / b.q / semesters, gov: b.gov / b.q / semesters } : null;
 
-/** เงินแผ่นดิน บาท/ภาค/คน จากก้อนรวมเงินแผ่นดิน (2.1 ÷ Q ÷ เทอม) — ยังไม่มีนิสิต = null */
-const govPerSemOf = (b: { q: number; gov: number }, semesters: number) =>
-  b.q > 0 && semesters > 0 ? b.gov / b.q / semesters : null;
+/** เทียบอัตราแบบเผื่อเศษทศนิยม (scaleQ คูณ/หารแล้วเลขท้ายขยับ) */
+const sameRate = (a: Rate | null, b: Rate | null) =>
+  !!a && !!b && Math.abs(a.fee - b.fee) < 1e-6 && Math.abs(a.gov - b.gov) < 1e-6;
 
 const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [newName, setNewName] = useState('');
@@ -289,10 +288,11 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const [lockedId, setLockedId] = useState<number | null>(null);
   /** วิธีปันส่วน ณ ตอนบันทึกร่างที่เปิดมาแก้ — ต่างจากปัจจุบันแจ้งผู้ใช้ (D7) */
   const [openedMethod, setOpenedMethod] = useState<string | null>(null);
-  /** ตารางสัดส่วนนิสิตปรับตามจำนวนนิสิตที่เปลี่ยน — ตั้งไว้ก่อนเปิดร่าง/ผลที่บันทึก จะได้ไม่ถูกปรับทับ */
-  const prevQ = useRef<number | null>(null);
-  /** อัตราจากการ์ด ② ที่เทลงตาราง ③ ล่าสุด (ค่าธรรมเนียม|เงินแผ่นดิน) — แบบเดียวกับ prevQ */
-  const prevFee = useRef<string | null>(null);
+  /** อัตราเฉลี่ยของการ์ด ② ที่ตาราง ③ ตรงกันล่าสุด — ต่างจากปัจจุบัน = ผู้ใช้แก้ค่าธรรมเนียมในการ์ด ② · null = เพิ่งเลือกหลักสูตร */
+  const prevRate = useRef<Rate | null>(null);
+  /** สัดส่วนนิสิต/อัตรารายกลุ่มที่ผู้ใช้ตั้งไว้ล่าสุดในตาราง ③ — แบ่ง/ปรับจากชุดนี้เสมอ พิมพ์ในการ์ด ② ทีละหลัก
+   *  (ผ่าน 0 หรือ 3 คน) แล้วนิสิตต่างชาติหรือส่วนต่างค่าธรรมเนียมจึงไม่หาย · null = ใช้ตารางปัจจุบัน */
+  const mixShape = useRef<Segment[] | null>(null);
 
   /** เทข้อมูลฟอร์ม (ร่าง หรือผลที่บันทึกไว้) กลับเข้าฟอร์ม */
   const applyDraft = (d: Draft) => {
@@ -310,8 +310,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     const manualBlocks = bothModes(loaded.with_government);
 
     setManual(manualBlocks);
-    prevQ.current = manualBlocks.with_government.q;
-    prevFee.current = rateKey(manualBlocks.with_government, d.semesters);
+    prevRate.current = rateOf(manualBlocks.with_government, d.semesters);
+    mixShape.current = null;
     // ร่างเก่าเก็บชื่อหัวคอลัมน์แบบเดิม/ป.โท-เอกมี 4 คอลัมน์ — ใช้ชื่อปัจจุบันและเติมคอลัมน์ที่ขาด
     const blank = buildSegments(d.level, null, d.semesters);
 
@@ -386,39 +386,64 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     lockedId,
   ]);
 
-  // ตารางสัดส่วนนิสิตตั้งต้นจากจำนวนนิสิตที่จำลองในคอลัมน์ที่แก้ได้ ของกรณีที่เลือกที่หัวหน้า
-  // ปรับเฉพาะตอน Q หรือกรณีเปลี่ยน — แก้รายกลุ่มในขั้นสัดส่วนแล้วไม่ถูกทับ
   const targetQ = manual[mode].q;
   // การ์ด ③ คิดจากกรณีรวมเงินแผ่นดินของการ์ด ② เสมอ ไม่ตามฐานรายได้ที่หัวหน้า
   const mixBase = manual.with_government;
 
+  // การ์ด ② (ผลรวม) กับตาราง ③ (อัตรารายกลุ่ม) เป็นข้อมูลชุดเดียวกัน — ขั้นที่ 3 กราฟ และรายงานจึงตรงกับที่จำลองเสมอ
+  // ② เปลี่ยน Q → แบ่งนิสิตใหม่ตามสัดส่วนเดิม อัตรารายกลุ่มคงเดิม · ② เปลี่ยนค่าธรรมเนียม/เงินแผ่นดิน (Q เท่าเดิม)
+  // → ปรับทุกกลุ่มเป็นสัดส่วนเท่ากัน · แล้วเขียนผลรวมของ ③ กลับที่ ② (เปลี่ยน Q แล้วค่าธรรมเนียมเฉลี่ยขยับตามสัดส่วนกลุ่ม)
+  // แก้ใน ③ ดู onMixChange
   useEffect(() => {
     if (!draftReady) return;
-    if (prevQ.current !== null && prevQ.current !== mixBase.q) {
-      setSegs((xs) => scaleSegs(xs, mixBase.q));
+    const b = mixBase;
+    const t0 = segTotals(segs);
+
+    // ③ เป็น 0 ทั้งตาราง หลังเคยตรงกันแล้ว = กำลังพิมพ์ใหม่ในตาราง ③ — รอค่าก่อน (เพิ่งเลือกหลักสูตร → ใส่กลุ่มแรก)
+    if (b.q <= 0 || (t0.q <= 0 && prevRate.current)) return;
+
+    const shape = (mixShape.current ??= segs);
+    const counts = scaleSegs(shape, b.q);
+    let next = t0.q !== b.q ? segs.map((s, i) => ({ ...s, n: counts[i]!.n })) : segs;
+
+    // เพิ่งเลือกหลักสูตร (อัตราตามแท็บค่าธรรมเนียม → ให้ผลรวมเท่าตัวเลขปัจจุบัน) หรือแก้อัตราในการ์ด ②
+    const fresh = !prevRate.current;
+
+    if (fresh || (t0.q === b.q && !sameRate(prevRate.current, rateOf(b, semesters)))) {
+      const rates = next.map((s, i) => ({ ...s, fee: shape[i]!.fee, gov: shape[i]!.gov }));
+
+      next = fitSegs(rates, b.income, b.gov, fresh);
+      // จำอัตราใหม่ไว้เป็นฐาน — ยกเว้นช่องที่ลบจนเป็น 0 ระหว่างพิมพ์ (ส่วนต่างระหว่างกลุ่มจะหาย)
+      mixShape.current = shape.map((x, i) => ({
+        ...x,
+        fee: b.income > 0 ? next[i]!.fee : x.fee,
+        gov: b.gov > 0 ? next[i]!.gov : x.gov,
+      }));
     }
 
-    prevQ.current = mixBase.q;
-  }, [draftReady, mixBase.q]);
+    if (next !== segs) setSegs(next);
 
-  // อัตราต่อคนของการ์ด ② (รวมเงินแผ่นดิน) ÷ เทอม/ปี → ตาราง ③ เฉพาะคอลัมน์ที่มีนิสิต (อัตราเฉลี่ยของ ②
-  // ไม่ใช่อัตราของกลุ่มอื่น) · เงินแผ่นดินไม่ใส่ให้ต่างชาติ — ผลรวมจึงตรงกับการ์ด ② · คอลัมน์ไม่มีนิสิต = 0
-  // เทเฉพาะตอนค่าใน ② เปลี่ยน — แก้รายกลุ่มในตาราง ③ แล้วไม่ถูกทับ
-  const feePerSem = feePerSemOf(mixBase, semesters);
-  const govPerSem = govPerSemOf(mixBase, semesters);
-  const mixRate = rateKey(mixBase, semesters);
+    const t = segTotals(next);
+    const synced = { ...b, income: t.income, gov: t.gov };
 
-  useEffect(() => {
-    if (!draftReady || mixRate === null || prevFee.current === mixRate) return;
-    prevFee.current = mixRate;
-    setSegs((xs) =>
-      xs.map((s, i) =>
-        s.n > 0
-          ? { ...s, fee: feePerSem ?? 0, gov: isForeignSeg(i) ? 0 : (govPerSem ?? 0) }
-          : { ...s, fee: 0, gov: 0 },
-      ),
-    );
-  }, [draftReady, mixRate]);
+    prevRate.current = rateOf(synced, semesters);
+    if (Math.abs(t.income - b.income) > 0.01 || Math.abs(t.gov - b.gov) > 0.01) {
+      setManual(bothModes(synced));
+    }
+  }, [draftReady, mixBase, segs, semesters]);
+
+  /** แก้ตาราง ③ → จำนวนนิสิต/เงินรายได้/เงินแผ่นดินของการ์ด ② ตาม (ต้นทุนผันแปรต่อหัวคงเดิม) */
+  const onMixChange = (next: Segment[]) => {
+    setSegs(next);
+    mixShape.current = next;
+    const t = segTotals(next);
+
+    if (t.q <= 0) return;
+    const b = { ...scaleQ(mixBase, t.q), income: t.income, gov: t.gov };
+
+    prevRate.current = rateOf(b, semesters);
+    setManual(bothModes(b));
+  };
 
   const facultyOptions = useMemo(
     () => (scopedFac ? [scopedFac] : PG_DATA.map((g) => g.faculty)),
@@ -663,8 +688,20 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   const canSave = !saveBlocker;
 
   /**
+   * ก้อนของการ์ด ② ที่จำนวนนิสิต q — แบ่งนิสิตลงตาราง ③ แบบเดียวกับตอนซิงก์ (สัดส่วนล่าสุด · อัตรารายกลุ่มคงเดิม)
+   * รายได้จึงเท่ากับที่จะได้จริงหลังปัดจำนวนคนรายกลุ่ม ไม่ใช่ค่าเฉลี่ย × q
+   */
+  const blockAtQ = (q: number): CostBlock => {
+    const base = manual.with_government;
+    const counts = scaleSegs(mixShape.current ?? segs, q);
+    const t = segTotals(segs.map((s, i) => ({ ...s, n: counts[i]!.n })));
+
+    return t.q === q ? { ...scaleQ(base, q), income: t.income, gov: t.gov } : scaleQ(base, q);
+  };
+
+  /**
    * จำนวนนิสิตขั้นต่ำที่คุ้มทุนทั้งกรณีรวมและไม่รวมเงินแผ่นดิน ที่ค่าธรรมเนียม/ต้นทุนผันแปรต่อหัวของคอลัมน์หลังปรับปรุง
-   * วนหาจุดตรึง q = max Q*(q) — ปันส่วนตามรายหัวทำให้ TFC (จึง Q*) ขยับตาม q · null = หาไม่ได้ (R ≤ AVC / ไม่ลู่เข้า)
+   * = q น้อยสุดที่ Q*(q) ≤ q — ปันส่วนตามรายหัวทำให้ TFC (จึง Q*) ขยับตาม q · null = หาไม่ได้ (R ≤ AVC)
    * modes = กรณีที่ต้องคุ้มทุน (ค่าเริ่มต้นทั้งสองกรณี)
    */
   const breakEvenQ = (modes: RevenueMode[] = MODES): number | null => {
@@ -675,32 +712,17 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
 
     const needAt = (q: number) => {
       const needs = modes.map(
-        (m) => blockResult(withCharges(scaleQ(base, q)), m, adjOf('manual', m, q)).qStar,
+        (m) => blockResult(withCharges(blockAtQ(q)), m, adjOf('manual', m, q)).qStar,
       );
 
       return needs.some((n) => n === null || n <= 0) ? null : Math.max(...(needs as number[]));
     };
 
-    let q = base.q;
-
-    for (let i = 0; i < 30; i++) {
+    // ไล่จาก 1 คนขึ้นไปหาจำนวนแรกที่คุ้มทุนจริง — ปัดจำนวนคนรายกลุ่มทำให้ Q*(q) ไม่เรียบ วนหาจุดตรึงจึงเด้งไปมาได้
+    for (let q = 1; q <= MAX_BREAKEVEN_Q; q++) {
       const need = needAt(q);
 
-      if (need === null) return null;
-
-      if (need === q) {
-        // เริ่มจากค่าที่สูงกว่าจุดคุ้มทุนอาจหยุดที่จุดตรึงที่สูงไป — ไล่ลงจนจำนวนน้อยกว่านี้ไม่คุ้มทุนแล้ว
-        for (let k = 0; k < 1000 && q > 1; k++) {
-          const lower = needAt(q - 1);
-
-          if (lower === null || lower > q - 1) break;
-          q--;
-        }
-
-        return q;
-      }
-
-      q = need;
+      if (need !== null && need <= q) return q;
     }
 
     return null;
@@ -724,7 +746,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
       return;
     }
 
-    setManual((x) => bothModes(scaleQ(x.with_government, q)));
+    setManual(bothModes(blockAtQ(q)));
     setToast(`ตั้งจำนวนนิสิตเป็น ${fmtInt(q)} คน — ขั้นต่ำที่คุ้มทุนกรณีรวมเงินแผ่นดิน`);
   }, [pendingDefault, refBlock, lockReady, lock]);
 
@@ -735,7 +757,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     if (p) copyManualFrom(p);
 
     setSegs(buildSegments(lvl, p, semesters));
-    prevFee.current = null;
+    prevRate.current = null;
+    mixShape.current = null;
   };
 
   // ปรับปรุงหลักสูตร: ระดับเฉพาะที่คณะมีหลักสูตรจริง · เปิดใหม่: ทุกระดับ (คณะอาจเปิดระดับใหม่)
@@ -795,6 +818,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     setManual(bothModes(emptyBlock()));
     setManualEmbedded(0);
     setSegs(buildSegments(DEFAULT_LEVEL, null, 2));
+    mixShape.current = null;
     setEditingId(null);
     setLockedId(null);
     setOpenedMethod(null);
@@ -1082,7 +1106,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
       title: 'แบ่งสัดส่วนนิสิตแต่ละกลุ่ม',
       items: [
         {
-          text: `จำนวนนิสิตตั้งต้นจากขั้นที่ 1 (${REVENUE_MODE_LABEL.with_government} ${fmtInt(mixBase.q)} คน) แบ่งตามสัดส่วนเดิม — แก้รายกลุ่มได้ (ไทย/ต่างชาติ ในเวลา/นอกเวลา)`,
+          text: `จำนวนนิสิตตั้งต้นจากขั้นที่ 1 (${REVENUE_MODE_LABEL.with_government} ${fmtInt(mixBase.q)} คน) แบ่งตามสัดส่วนเดิม — แก้รายกลุ่มได้ (ไทย/ต่างชาติ ในเวลา/นอกเวลา) ผลรวมกลับไปที่การ์ด ② อัตโนมัติ`,
         },
         { text: 'ดูแถว "กำไร (ขาดทุน)" ว่าแต่ละกลุ่มคุ้มทุนหรือไม่' },
         { text: 'กด "ถัดไป" เพื่อดูสรุปผล (ขั้นนี้ข้ามได้ถ้าไม่ต้องแยกกลุ่ม)' },
@@ -1377,11 +1401,11 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
           {stepKey === 'mix' && (
             <MixStep
               segs={segs}
-              onSegsChange={setSegs}
+              onSegsChange={onMixChange}
               costs={mixCosts}
               lockGov={!isNew}
               readOnly={formLocked}
-              note={`ตั้งต้นจากการ์ด ② กรณี${REVENUE_MODE_LABEL.with_government} — นิสิต ${fmtInt(mixBase.q)} คน แบ่งตามสัดส่วนเดิม · ค่าธรรมเนียมและเงินแผ่นดินต่อคนหารตามเทอม/ปี`}
+              note={`เชื่อมกับการ์ด ② กรณี${REVENUE_MODE_LABEL.with_government} (นิสิต ${fmtInt(mixBase.q)} คน) — แก้ที่นี่แล้วการ์ด ② ขั้นที่ 3 และรายงานเปลี่ยนตาม · แก้ค่าธรรมเนียมในการ์ด ② ทุกกลุ่มปรับเป็นสัดส่วนเท่ากัน`}
             />
           )}
 

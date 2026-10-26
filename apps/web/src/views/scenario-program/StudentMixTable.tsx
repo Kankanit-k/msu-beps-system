@@ -223,7 +223,7 @@ const StudentMixTable = ({ segs, onChange, costs, lockGov = false }: Props) => {
         <NumberTextField
           size="small"
           showZero
-          value={locked ? 0 : segs[i]![row.input]}
+          value={locked ? 0 : Math.round(segs[i]![row.input])}
           disabled={row.disabled || locked}
           title={locked ? 'นิสิตต่างชาติไม่ได้เงินแผ่นดิน' : undefined}
           onChange={(v) => set(i, row.input!, v)}
