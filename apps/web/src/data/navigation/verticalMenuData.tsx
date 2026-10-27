@@ -301,7 +301,7 @@ const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] 
           children: [
             { label: 'หน้ารวม', href: '/admin', icon: LANDING_LINK_ICON, iconColor: T.navy },
             {
-              label: 'วิธีปันส่วน (คณะ)',
+              label: 'ตั้งค่าต้นทุน (คณะ)',
               href: '/admin/fixed-cost-lock',
               icon: 'ri-lock-line',
               iconColor: T.pink,

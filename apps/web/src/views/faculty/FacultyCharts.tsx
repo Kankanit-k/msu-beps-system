@@ -17,7 +17,7 @@ import type { RevenueMode } from '@beps/calc-engine';
 import { BarTitle, BEPS, KPI_BAR_TRACK, kpiBarLabels, LegendItem } from '@components/ChartBits';
 import InfoTip from '@components/InfoTip';
 import type { ProgRow } from '@/data/mockup';
-import { fmtInt, fmtMillion } from '@views/breakeven/calc';
+import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 import { composeCost, PART_COLORS, PART_SHORT } from '@views/cost/costParts';
 
 import type { ProgStat } from './FacultyContext';
@@ -314,7 +314,12 @@ export const CostDonut = ({
             sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}
           >
             <LegendItem color={x.c} label={x.label} />
-            <Typography variant="body2" fontWeight={700} className="num" sx={{ whiteSpace: 'nowrap' }}>
+            <Typography
+              variant="body2"
+              fontWeight={700}
+              className="num"
+              sx={{ whiteSpace: 'nowrap' }}
+            >
               {fmtMillion(x.v)} ลบ.{' '}
               <Typography component="span" variant="caption" color="text.secondary">
                 {total ? ((x.v / total) * 100).toFixed(0) : 0}%
@@ -326,9 +331,6 @@ export const CostDonut = ({
     </Box>
   );
 };
-
-/** สีเส้นจุดคุ้มทุน 2 กรณีในกราฟเป้าหมาย vs นิสิตจริง */
-const GOAL = { gov: BEPS.profit, own: BEPS.revenue.dark };
 
 /** ป้ายสถานะนิสิตจริงเทียบจุดคุ้มทุน */
 export const targetStatus = (q: number, target: number) =>
@@ -345,8 +347,9 @@ const TONE_COLOR = {
 };
 
 /**
- * เป้าหมาย vs นิสิตจริง — แท่ง = นิสิตจริง · ขีดตั้ง 2 เส้น = จุดคุ้มทุน รวม / ไม่รวมเงินแผ่นดิน
- * สีแท่งตามโหมดที่เลือก: teal = ถึงจุดคุ้มทุนแล้ว · ชมพู = ยังขาด · เทา = ไม่มีจุดคุ้มทุน
+ * เป้าหมาย vs นิสิตจริง — 1 แถวต่อหลักสูตร · แถบ = นิสิตจริงคิดเป็นกี่ % ของจุดคุ้มทุน (เต็มแถบ = ถึงเป้า)
+ * วัดเป็น % เพื่อให้หลักสูตรเล็กกับใหญ่เทียบกันได้ · ใช้จุดคุ้มทุนของฐานรายได้ที่เลือกด้านบนอย่างเดียว
+ * เรียงจากห่างเป้ามากสุด → ถึงเป้า · หลักสูตรที่ไม่มีจุดคุ้มทุนอยู่ท้าย
  */
 export const TargetVsActualChart = ({
   progs,
@@ -359,140 +362,113 @@ export const TargetVsActualChart = ({
   onPick: (key: string) => void;
   height?: number;
 }) => {
-  const targetOf = (x: ProgStat) => (mode === 'with_government' ? x.qStarGov : x.qStarOwn);
+  const rows = useMemo(
+    () =>
+      progs
+        .map((x) => {
+          const target = mode === 'with_government' ? x.qStarGov : x.qStarOwn;
 
-  // แกนพอดีกับนิสิตจริงและจุดคุ้มทุนของฐานที่เลือก — เส้นของอีกฐานที่ยาวเกินขอบแสดงเป็นป้าย ▸ แทน
-  // (ถ้าครอบทุกเส้น จุดคุ้มทุนแบบไม่รวมแผ่นดินดันแกนยาวจนแท่งกองอยู่ซ้าย)
-  const xmax = Math.max(1, ...progs.flatMap((x) => [x.p.Q, targetOf(x)])) * 1.1;
+          return { x, target, ratio: target > 0 ? x.p.Q / target : Infinity };
+        })
+        .sort((a, b) => a.ratio - b.ratio),
+    [progs, mode],
+  );
 
-  const goal = (name: string, value: number, color: string, dashed: boolean) =>
-    value > 0 && value <= xmax
-      ? [
-          {
-            name,
-            value,
-            strokeColor: color,
-            strokeWidth: 3,
-            strokeHeight: 14,
-            ...(dashed ? { strokeDashArray: 3 } : {}),
-          },
-        ]
-      : [];
-
-  /** ป้ายเส้นที่เกินขอบกราฟ เช่น "┊ 1,573 ▸" */
-  const overflow = (x: ProgStat) =>
-    [
-      x.qStarGov > xmax ? `| ${fmtInt(x.qStarGov)} ▸` : '',
-      x.qStarOwn > xmax ? `┊ ${fmtInt(x.qStarOwn)} ▸` : '',
-    ]
-      .filter(Boolean)
-      .join('  ');
-
-  const hasOverflow = progs.some((x) => overflow(x));
-
-  const data = progs.map((x) => ({
-    x: x.label,
-    y: x.p.Q,
-    fillColor: TONE_COLOR[targetStatus(x.p.Q, targetOf(x)).tone],
-    goals: [
-      ...goal('จุดคุ้มทุน · รวมเงินแผ่นดิน', x.qStarGov, GOAL.gov, false),
-      ...goal('จุดคุ้มทุน · ไม่รวมเงินแผ่นดิน', x.qStarOwn, GOAL.own, true),
-    ],
-  }));
-
-  const options: ApexOptions = {
-    chart: {
-      type: 'bar',
-      toolbar: { show: false },
-      parentHeightOffset: 0,
-      events: {
-        dataPointSelection: (_e, _c, cfg: { dataPointIndex: number }) => {
-          const hit = progs[cfg.dataPointIndex];
-
-          if (hit) onPick(hit.key);
-        },
-      },
-    },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        barHeight: '60%',
-        borderRadius: 4,
-        colors: KPI_BAR_TRACK,
-        dataLabels: { position: 'top' },
-      },
-    },
-    // ป้ายต่อท้ายแท่ง เฉพาะหลักสูตรที่เส้นจุดคุ้มทุนยาวเกินขอบกราฟ
-    dataLabels: {
-      enabled: hasOverflow,
-      textAnchor: 'start',
-      offsetX: 6,
-      formatter: (_v: number, o: { dataPointIndex: number }) => {
-        const x = progs[o.dataPointIndex];
-
-        return x ? overflow(x) : '';
-      },
-      style: { fontSize: '11px', fontWeight: 600, colors: [GOAL.own] },
-      background: { enabled: false },
-    },
-    legend: { show: false },
-    grid: {
-      borderColor: 'var(--mui-palette-divider)',
-      xaxis: { lines: { show: true } },
-      yaxis: { lines: { show: false } },
-    },
-    xaxis: {
-      min: 0,
-      max: xmax,
-      title: { text: 'คน' },
-      labels: { formatter: (v: string) => fmtInt(Number(v)) },
-    },
-    yaxis: { labels: { maxWidth: 220, style: { fontSize: '12px' } } },
-    responsive: [
-      {
-        breakpoint: 600,
-        options: { yaxis: { labels: { maxWidth: 110, style: { fontSize: '10px' } } } },
-      },
-    ],
-    tooltip: {
-      custom: ({ dataPointIndex }: { dataPointIndex: number }) => {
-        const x = progs[dataPointIndex];
-
-        if (!x) return '';
-        const st = targetStatus(x.p.Q, targetOf(x));
-        const be = (v: number) => (v > 0 ? `${fmtInt(v)} คน` : 'ไม่มี');
-
-        return `<div style="padding:8px 10px;font-size:12px;line-height:1.6">
-          <b>${x.label}</b><br/>
-          นิสิตจริง ${fmtInt(x.p.Q)} คน<br/>
-          จุดคุ้มทุน รวมเงินแผ่นดิน ${be(x.qStarGov)}<br/>
-          จุดคุ้มทุน ไม่รวมเงินแผ่นดิน ${be(x.qStarOwn)}<br/>
-          <b style="color:${TONE_COLOR[st.tone]}">${st.text}</b>
-        </div>`;
-      },
-    },
-  };
+  const level = progs[0]
+    ? new Set(progs.map((x) => x.p.lvl)).size > 1
+      ? 'ทุกระดับ'
+      : progs[0].p.lvl
+    : '';
 
   return (
     <Box>
       <ChartTitle
-        title={`เป้าหมาย vs นิสิตจริง${progs[0] ? ` — ${new Set(progs.map((x) => x.p.lvl)).size > 1 ? 'ทุกระดับ' : progs[0].p.lvl}` : ''}`}
-        info="แท่ง = นิสิตจริง · ขีดทึบ = จุดคุ้มทุนแบบรวมเงินแผ่นดิน · ขีดประ = แบบไม่รวมเงินแผ่นดิน · สีแท่งและความยาวแกนตามฐานรายได้ที่เลือกด้านบน · ▸ = เส้นยาวเกินขอบกราฟ ตัวเลขคือจำนวนคนที่ต้องมี · กดแท่งเพื่อดูรายละเอียดหลักสูตร"
+        title={`นิสิตจริงเทียบจุดคุ้มทุน${level ? ` — ${level}` : ''}`}
+        info={`แถบเต็ม = นิสิตจริงถึงจำนวนที่ต้องมี ณ จุดคุ้มทุนแล้ว · ตัวเลขขวา = มีกี่คน / ต้องมีกี่คน · ${REVENUE_MODE_LABEL[mode]} (เปลี่ยนที่ฐานรายได้ด้านบน) · กดแถวเพื่อดูรายละเอียดหลักสูตร`}
       />
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5, mb: 1 }}>
-        <LegendItem color={TONE_COLOR.ok} label="ถึงจุดคุ้มทุน" />
-        <LegendItem color={TONE_COLOR.short} label="ยังขาด" />
-        <LegendItem color={GOAL.gov} label="| รวมเงินแผ่นดิน" />
-        <LegendItem color={GOAL.own} label="┊ ไม่รวมเงินแผ่นดิน" />
-        {hasOverflow && <LegendItem color={GOAL.own} label="▸ เกินขอบกราฟ" />}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5, mb: 1.5 }}>
+        <LegendItem
+          color={TONE_COLOR.ok}
+          label={`ถึงจุดคุ้มทุนแล้ว ${rows.filter((r) => r.ratio !== Infinity && r.ratio >= 1).length}`}
+        />
+        <LegendItem
+          color={TONE_COLOR.short}
+          label={`ยังไม่ถึง ${rows.filter((r) => r.ratio < 1).length}`}
+        />
+        <Typography variant="caption" color="text.secondary">
+          · {REVENUE_MODE_LABEL[mode]}
+        </Typography>
       </Box>
-      <AppReactApexCharts
-        type="bar"
-        height={height ?? Math.max(240, progs.length * 24 + 60)}
-        width="100%"
-        options={options}
-        series={[{ name: 'นิสิตจริง', data }]}
-      />
+      <Box sx={{ maxBlockSize: height, overflowY: 'auto', pr: 0.5 }}>
+        {rows.map(({ x, target, ratio }) => {
+          const st = targetStatus(x.p.Q, target);
+          const color = TONE_COLOR[st.tone];
+          const pctText = st.tone === 'none' ? '—' : `${Math.round(ratio * 100)}%`;
+
+          return (
+            <Box
+              key={x.key}
+              role="button"
+              tabIndex={0}
+              onClick={() => onPick(x.key)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPick(x.key);
+                }
+              }}
+              title={x.p.prog}
+              sx={{
+                py: 0.75,
+                px: 1,
+                borderRadius: 1,
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
+            >
+              {/* บรรทัดบน: ชื่อหลักสูตร ·· มีกี่คน / ต้องมีกี่คน */}
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5 }}>
+                <Typography variant="body2" noWrap sx={{ flex: 1, minInlineSize: 0 }}>
+                  {x.label}
+                </Typography>
+                <Typography variant="caption" className="num" color="text.secondary" noWrap>
+                  มี <b>{fmtInt(x.p.Q)}</b>
+                  {target > 0 && <> / ต้องมี {fmtInt(target)}</>} คน
+                </Typography>
+              </Box>
+              {/* บรรทัดล่าง: แถบ % ถึงเป้า ·· % + สถานะ */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
+                <Box
+                  sx={{
+                    flex: 1,
+                    blockSize: 10,
+                    borderRadius: 5,
+                    bgcolor: BEPS.track,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      inlineSize: `${st.tone === 'none' ? 0 : Math.min(100, ratio * 100)}%`,
+                      blockSize: '100%',
+                      borderRadius: 5,
+                      bgcolor: color,
+                    }}
+                  />
+                </Box>
+                <Typography
+                  variant="caption"
+                  className="num"
+                  noWrap
+                  sx={{ color, fontWeight: 700, minInlineSize: 128, textAlign: 'end' }}
+                >
+                  {pctText} · {st.text}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 };

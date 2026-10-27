@@ -28,12 +28,15 @@ const FacultyStatusBar = ({
   showRevenue,
   showCost,
   showLevel,
+  levelTabs,
 }: {
   section?: string;
   showRevenue?: boolean;
   /** หน้าต้นทุน: ชิปต้นทุนรวม + ป้ายปีงบของข้อมูลต้นทุน */
   showCost?: boolean;
   showLevel?: boolean;
+  /** ระดับเป็นแถบปุ่มทีละระดับ ไม่มีทุกระดับ */
+  levelTabs?: boolean;
 }) => {
   const { fac, canPick, setFac, year, setYear, mode, setMode, facRes } = useFaculty();
 
@@ -50,7 +53,6 @@ const FacultyStatusBar = ({
         cost={showCost ? facRes.tc : undefined}
         extra={
           <>
-            {showLevel && <LevelSwitch />}
             {canPick && (
               <Autocomplete
                 size="small"
@@ -63,6 +65,8 @@ const FacultyStatusBar = ({
                 renderInput={(params) => <TextField {...params} label="คณะ" />}
               />
             )}
+            {/* เรียง ฐานรายได้ → คณะ → ระดับ → ปี (ระดับขึ้นกับคณะที่เลือก) */}
+            {showLevel && <LevelSwitch tabs={levelTabs} />}
             <YearFilter value={year} onChange={setYear} />
             {showCost && (
               <Chip

@@ -57,6 +57,8 @@ type FacultyCtx = {
   /** ระดับที่เลือก — ALL_LEVELS = ทุกระดับ */
   level: string;
   setLevel: (lvl: string) => void;
+  /** หน้าที่ห้ามรวมทุกระดับ (เช่น รายได้ — แหล่งรายได้แต่ละระดับต่างกัน) เรียก true ตอน mount → ทุกระดับกลายเป็นระดับแรก */
+  setRequireLevel: (on: boolean) => void;
   /** หลักสูตรที่มีนิสิตทุกระดับ (ใช้เฉพาะตัวเลขรวมทั้งคณะ) */
   allProgs: ProgStat[];
   /** หลักสูตรของระดับที่เลือก (ทุกระดับ = allProgs) — ใช้กับกราฟและตารางทุกตัว */
@@ -104,6 +106,7 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
   const [pickedFac, setPickedFac] = useState<string>(FAC_NAMES[0] ?? '');
   const [mode, setMode] = useState<RevenueMode>('with_government');
   const [pickedLevel, setLevel] = useState('');
+  const [requireLevel, setRequireLevel] = useState(false);
   // ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล
   const [year, setYear] = useState(MOCK_RUN.budgetYear);
   const [detail, setDetail] = useState<ProgRow | null>(null);
@@ -151,8 +154,12 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
     return [...m.values()];
   }, [allProgs]);
 
-  // ยังไม่เลือก / ระดับที่เลือกไม่มีในคณะนี้ → ทุกระดับ
-  const level = levels.some((l) => l.lvl === pickedLevel) ? pickedLevel : ALL_LEVELS;
+  // ยังไม่เลือก / ระดับที่เลือกไม่มีในคณะนี้ → ทุกระดับ (หน้าที่ห้ามรวมทุกระดับ → ระดับแรกของคณะ โดยไม่ทับค่าที่ผู้ใช้เลือกไว้)
+  const level = levels.some((l) => l.lvl === pickedLevel)
+    ? pickedLevel
+    : requireLevel && levels[0]
+      ? levels[0].lvl
+      : ALL_LEVELS;
 
   const progs = useMemo(
     () => (level === ALL_LEVELS ? allProgs : allProgs.filter((x) => x.p.lvl === level)),
@@ -250,6 +257,7 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
       setLevel(lvl);
       saveDashFilter({ lvl: lvl === ALL_LEVELS ? '' : lvl });
     },
+    setRequireLevel,
     allProgs,
     progs,
     facRes,

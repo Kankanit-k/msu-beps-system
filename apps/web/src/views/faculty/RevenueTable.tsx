@@ -19,12 +19,15 @@ import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { alpha } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 
 import type { RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
+import { BEPS } from '@components/ChartBits';
 import InfoTip from '@components/InfoTip';
+import { gridTableSx } from '@views/scenario-program/CostBlockTable';
 import { fmtInt } from '@views/breakeven/calc';
 
 import type { ProgStat } from './FacultyContext';
@@ -42,6 +45,16 @@ type Row = ProgStat & { Q: number; st: number; own: number; tr: number; dep: num
 const govDep = (st: number, own: number) => (st + own ? st / (st + own) : 0);
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+/** หัวตารางฟ้าอ่อน + เส้นตาราง (แบบตารางปรับปรุงหลักสูตร) · แถวสลับสี · คอลัมน์รายได้รวมพื้นม่วงอ่อน */
+const tableSx = {
+  ...gridTableSx,
+  '& .MuiTableCell-root': { fontSize: '0.8125rem' },
+  '& tbody tr:nth-of-type(even)': { bgcolor: (t: Theme) => alpha(t.palette.primary.main, 0.03) },
+  '& td.tr-col': { bgcolor: alpha(BEPS.revenue.dark, 0.08), color: BEPS.revenue.onLight },
+  '& thead th.tr-col': { bgcolor: alpha(BEPS.revenue.dark, 0.18) },
+  '& tfoot td': { bgcolor: (t: Theme) => alpha(t.palette.primary.main, 0.12) },
+};
 
 /** ช่อง % พึ่งพาแผ่นดิน — แถบเล็ก + ตัวเลข · เกินเกณฑ์เป็นสีเตือน */
 const DepCell = ({ dep }: { dep: number }) => {
@@ -209,13 +222,13 @@ const RevenueTable = ({
   return (
     <Box>
       <TableContainer>
-        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '0.8125rem' } }}>
+        <Table size="small" sx={tableSx}>
           <TableHead>
             <TableRow>
               {COLUMNS.map((c) => (
                 <TableCell
                   key={c.label}
-                  align={c.key ? 'right' : undefined}
+                  className={c.key === 'tr' ? 'tr-col' : undefined}
                   sx={{ lineHeight: 1.3 }}
                 >
                   {c.key ? (
@@ -266,7 +279,7 @@ const RevenueTable = ({
                 <TableCell align="right" className="num">
                   {fmtInt(x.own)}
                 </TableCell>
-                <TableCell align="right" className="num" sx={{ fontWeight: 700 }}>
+                <TableCell align="right" className="num tr-col" sx={{ fontWeight: 700 }}>
                   {fmtInt(x.tr)}
                 </TableCell>
                 <TableCell align="right">
@@ -287,7 +300,7 @@ const RevenueTable = ({
               <TableCell align="right" className="num">
                 {fmtInt(total.own)}
               </TableCell>
-              <TableCell align="right" className="num">
+              <TableCell align="right" className="num tr-col">
                 {fmtInt(total.tr)}
               </TableCell>
               <TableCell align="right">

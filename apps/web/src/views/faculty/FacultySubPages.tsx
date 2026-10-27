@@ -62,18 +62,34 @@ const SubPage = ({
   section,
   showRevenue,
   showCost,
+  levelTabs,
   children,
 }: {
   section: string;
   showRevenue?: boolean;
   showCost?: boolean;
+  /** ห้ามรวมทุกระดับ — ระดับเป็นแถบปุ่มทีละระดับ */
+  levelTabs?: boolean;
   children: ReactNode;
 }) => {
-  const { progs, year } = useFaculty();
+  const { progs, year, setRequireLevel } = useFaculty();
+
+  useEffect(() => {
+    if (!levelTabs) return;
+    setRequireLevel(true);
+
+    return () => setRequireLevel(false);
+  }, [levelTabs, setRequireLevel]);
 
   return (
     <Box>
-      <FacultyStatusBar section={section} showRevenue={showRevenue} showCost={showCost} showLevel />
+      <FacultyStatusBar
+        section={section}
+        showRevenue={showRevenue}
+        showCost={showCost}
+        showLevel
+        levelTabs={levelTabs}
+      />
       {progs.length === 0 ? (
         <Card>
           <CardContent>
@@ -136,8 +152,9 @@ export const FacultyRevenuePage = () => {
     [progs, withGov],
   );
 
+  // รายได้ ป.ตรี/โท/เอก มาจากคนละแหล่ง — ไม่รวมทุกระดับในกราฟเดียว
   return (
-    <SubPage section="รายได้" showRevenue>
+    <SubPage section="รายได้" showRevenue levelTabs>
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <ScrollTile target="revenue-table">
@@ -204,7 +221,7 @@ export const FacultyRevenuePage = () => {
       <Card sx={{ mb: 3, overflow: 'visible' }}>
         <CardContent>
           <StackedProgramBar
-            title={`รายได้รายหลักสูตร — ${level}`}
+            title={`รายได้รายหลักสูตร/ปี — ${level}`}
             info={
               withGov
                 ? 'ล้านบาท · เงินรายได้ = ค่าธรรมเนียมการศึกษา · เงินแผ่นดิน = งบประมาณแผ่นดินที่ปันให้หลักสูตร · เรียงรายได้รวมมาก → น้อย · กดแท่งเพื่อดูรายละเอียด'
@@ -219,7 +236,7 @@ export const FacultyRevenuePage = () => {
       <Card id="revenue-table" sx={{ scrollMarginTop: 120 }}>
         <CardContent>
           <ChartTitle
-            title={`ตารางรายได้รายหลักสูตร — ${level}`}
+            title={`ตารางรายได้รายหลักสูตร/ปี — ${level}`}
             info="บาท · กดหัวคอลัมน์เพื่อเรียง · กดแถวเพื่อดูรายละเอียดหลักสูตร"
           />
           <RevenueTable progs={progs} mode={mode} onPick={openDetail} />

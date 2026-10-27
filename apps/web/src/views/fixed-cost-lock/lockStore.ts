@@ -43,6 +43,8 @@ export interface FacultyLock {
   lockedAt: string;
   lockedBy: string;
   submitLock?: SubmitLock;
+  /** ประวัติปลดล็อก (ใหม่สุดก่อน) — memo = เลขที่บันทึกข้อความขออนุมัติ */
+  unlockLog?: { at: string; by: string; memo: string; program: string }[];
   /** เฉพาะค่าที่ useFacultyLock คืน — config = คณะตั้งปีนี้ · prev-year = ยกจากปี fromYear · default = ตาม Excel */
   source?: PolicySource;
   fromYear?: string;
@@ -95,6 +97,9 @@ export const lockFaculty = (lock: Omit<FacultyLock, 'lockedAt'>): boolean => {
       choice: lock.choice,
       lockedBy: lock.lockedBy,
       lockedAt: new Date().toISOString(),
+      ...(s[keyOf(lock.year, lock.faculty)]?.unlockLog
+        ? { unlockLog: s[keyOf(lock.year, lock.faculty)]!.unlockLog }
+        : {}),
     },
   });
 };
@@ -139,8 +144,15 @@ export const lockFacultyBySubmit = (
   });
 };
 
-/** ปลดล็อกจากการยืนยันเอกสาร — กองแผนเท่านั้น หลังได้รับบันทึกขออนุมัติ · การตั้งค่ายังอยู่ แก้ต่อได้ */
-export const unlockSubmit = (year: string, faculty: string): boolean => {
+/** ล็อกจากการยืนยันเอกสารแล้วหรือยัง — การจำแนกต้นทุน (classStore) ใช้ล็อกชุดเดียวกัน */
+export const isSubmitLocked = (year: string, faculty: string): boolean =>
+  !!readStore()[keyOf(year, faculty)]?.submitLock;
+
+/**
+ * ปลดล็อกจากการยืนยันเอกสาร — กองแผนเท่านั้น หลังได้รับบันทึกข้อความขออนุมัติ (ต้องระบุเลขที่)
+ * การตั้งค่ายังอยู่ แก้ต่อได้ · เก็บประวัติการปลดล็อกไว้ใน `unlockLog`
+ */
+export const unlockSubmit = (year: string, faculty: string, memo: string, by: string): boolean => {
   const s = readStore();
   const cur = s[keyOf(year, faculty)];
 
@@ -149,6 +161,10 @@ export const unlockSubmit = (year: string, faculty: string): boolean => {
   const rest = { ...cur };
 
   delete rest.submitLock;
+  rest.unlockLog = [
+    { at: new Date().toISOString(), by, memo, program: cur.submitLock.program },
+    ...(cur.unlockLog ?? []),
+  ];
 
   return writeStore({ ...s, [keyOf(year, faculty)]: rest });
 };
@@ -168,7 +184,9 @@ export const choiceValidFor = (faculty: string, choice: AllocChoice): boolean =>
   const scenario = { pool: programs.reduce((a, p) => a + p.sheetShare, 0), programs };
   const buckets = allocBuckets(scenario, choice.bucketLevel);
 
-  return allocateFaculty(scenario, policyOf(choice, buckets)).applied && !levelCapIssue(choice, buckets);
+  return (
+    allocateFaculty(scenario, policyOf(choice, buckets)).applied && !levelCapIssue(choice, buckets)
+  );
 };
 
 /** ค่าที่ใช้คำนวณจริง: ปีนี้ → ปีก่อนที่ใกล้ที่สุด (ที่ใช้ได้) → ตาม Excel */
