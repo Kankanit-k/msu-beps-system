@@ -51,7 +51,12 @@ describe('resolveFacultyPolicy (มติ 25 ต.ค. — ปีนี้ → �
   });
 
   it('ค่าปีก่อนใช้กับปีนี้ไม่ได้ → ตาม Excel + บอกปีที่ใช้ไม่ได้', () => {
-    const l = resolveFacultyPolicy({ '2567|คณะ ก': rec('2567', PCT) }, '2568', 'คณะ ก', () => false);
+    const l = resolveFacultyPolicy(
+      { '2567|คณะ ก': rec('2567', PCT) },
+      '2568',
+      'คณะ ก',
+      () => false,
+    );
 
     expect(l.source).toBe('default');
     expect(l.prevInvalidYear).toBe('2567');

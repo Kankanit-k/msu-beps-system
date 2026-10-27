@@ -631,11 +631,11 @@ const UniversityDashboard = () => {
           <KpiTile
             label="รายได้ต่อหัว"
             value={fmtInt(rHead)}
-            suffix="บาท"
+            suffix="บาท/ปี"
             accent="warning"
             icon="ri-coins-line"
             progress={pctOf(rHead, costHead)}
-            footer={`ต้นทุนต่อหัว ${fmtInt(costHead)} บาท`}
+            footer={`ต้นทุนต่อหัว ${fmtInt(costHead)} บาท/ปี`}
             info="รายได้รวม ÷ นิสิตจริง · แถบ = รายได้ต่อหัวคิดเป็นกี่ % ของต้นทุนต่อหัว"
           />
         </Grid>

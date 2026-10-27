@@ -77,6 +77,18 @@ export const MOCK_USERS: MockUser[] = [
     scope: { faculty: 'คณะสิ่งแวดล้อมและทรัพยากรศาสตร์', program: null },
   },
   {
+    email: 'staff.it@beps.test',
+    name: 'เจ้าหน้าที่คณะวิทยาการสารสนเทศ (ทดสอบ)',
+    role: 'deptAdmin',
+    scope: { faculty: 'คณะวิทยาการสารสนเทศ', program: null },
+  },
+  {
+    email: 'staff.sci@beps.test',
+    name: 'เจ้าหน้าที่คณะวิทยาศาสตร์ (ทดสอบ)',
+    role: 'deptAdmin',
+    scope: { faculty: 'คณะวิทยาศาสตร์', program: null },
+  },
+  {
     email: 'lecturer.tech@beps.test',
     name: 'อาจารย์หลักสูตรสัตวศาสตร์ (ทดสอบ)',
     role: 'lecturer',

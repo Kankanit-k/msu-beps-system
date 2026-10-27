@@ -16,20 +16,11 @@ import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
-// Config / Hook Imports
-import { canAccess } from '@/configs/accessControl';
-import { useRole } from '@/hooks/useRole';
-
 // Component Imports
 import { BEPS } from '@components/ChartBits';
 import KpiTile from '@components/KpiTile';
 import BreakEvenLineChart from '@views/breakeven/BreakEvenLineChart';
 import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
-import { LOCK_SETTINGS_HREF, policySourceShort } from '@views/fixed-cost-lock/NoLockAlert';
-import {
-  ALLOC_METHOD_LABEL,
-  ALLOC_METHOD_SHORT as METHOD_SHORT,
-} from '@views/scenario-program/facultyAllocation';
 
 import { useFaculty } from './FacultyContext';
 import type { ProgStat } from './FacultyContext';
@@ -55,7 +46,8 @@ const INFO = {
   q: 'จำนวนนิสิตจริงทุกชั้นปีของคณะ (ตามข้อมูลชีต)',
   profit: 'รายได้รวม − ต้นทุนรวม ตามฐานรายได้ที่เลือกด้านบน',
   r: 'รายได้รวม ÷ นิสิตจริง เทียบกับต้นทุนรวม ÷ นิสิตจริง',
-  cfg: 'วิธีปันต้นทุนคงที่ส่วนกลางของคณะที่ใช้วิเคราะห์หลักสูตร (คณะตั้งค่าปีนี้ / ค่าปีก่อน / ค่าเริ่มต้นตาม Excel) — ตัวเลขบนหน้านี้ยังเป็นข้อมูลจริงตามชีต (หารรายหัว)',
+  qStar:
+    'ผลบวกจุดคุ้มทุนรายหลักสูตรแบบชีต = ROUNDUP(ต้นทุนคงที่ ÷ (รายได้ต่อหัว − ต้นทุนผันแปรต่อหัว)) · ตามฐานรายได้ที่เลือก · แถบ = นิสิตจริงคิดเป็นกี่ % ของจุดคุ้มทุน',
 };
 
 /** การ์ด KPI ที่กดแล้วไปหน้าย่อย */
@@ -123,11 +115,8 @@ const FacultyLanding = () => {
     progs,
     facRes,
     levelRes,
-    lock,
-    lockReady,
     openDetail,
   } = useFaculty();
-  const { role } = useRole();
 
   const tr = facRes.tr;
   const stShare = fac.st + fac.own ? fac.st / (fac.st + fac.own) : 0;
@@ -136,13 +125,17 @@ const FacultyLanding = () => {
   const costPerHead = facRes.q ? facRes.tc / facRes.q : 0;
   const levelTfcShare = levelRes.tc ? levelRes.tfc / levelRes.tc : 0;
   const levelProgRows = useMemo(() => progs.map((x) => x.p), [progs]);
-  const method = lock?.choice.method;
+  // Q* แบบชีต = ผลบวก Q* รายหลักสูตรที่มีนิสิต (ค่าติดลบนับรวม) — เหมือนภาพรวมมหาวิทยาลัย
+  const qStar = allProgs
+    .filter((x) => x.p.Q > 0)
+    .reduce((a, x) => a + (mode === 'with_government' ? x.qStarGov : x.qStarOwn), 0);
+  const reached = qStar > 0 ? Math.min(100, (facRes.q / qStar) * 100) : 0;
 
   return (
     <Box>
       <FacultyStatusBar showLevel />
 
-      {/* จังหวะที่ 1 · การ์ด 6 ใบ — ผลรวมทั้งคณะ */}
+      {/* จังหวะที่ 1 · การ์ด 6 ใบ — ผลรวมทั้งคณะ · ชุดและลำดับเดียวกับภาพรวมมหาวิทยาลัย */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <KpiTile
@@ -156,17 +149,23 @@ const FacultyLanding = () => {
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          <KpiTile
-            label="รายได้เฉลี่ยต่อหัว"
-            value={fmtInt(r)}
-            suffix="บาท"
-            accent="success"
-            color={BEPS.breakEven}
-            icon="ri-user-heart-line"
-            progress={costPerHead ? (r / costPerHead) * 100 : 0}
-            footer={`ต้นทุนต่อหัว ${fmtInt(costPerHead)} บาท`}
-            info={INFO.r}
-          />
+          <TileLink href="/faculty/breakeven">
+            <KpiTile
+              label="นิสิต ณ จุดคุ้มทุน"
+              value={fmtInt(qStar)}
+              suffix="คน"
+              accent="primary"
+              color={BEPS.breakEven}
+              icon="ri-flag-2-line"
+              progress={reached}
+              footer={
+                qStar > facRes.q
+                  ? `จริง ${fmtInt(facRes.q)} · ขาดอีก ${fmtInt(qStar - facRes.q)} คน`
+                  : `จริง ${fmtInt(facRes.q)} · เกินมา ${fmtInt(facRes.q - qStar)} คน`
+              }
+              info={INFO.qStar}
+            />
+          </TileLink>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <TileLink href="/faculty/revenue">
@@ -218,24 +217,16 @@ const FacultyLanding = () => {
           </TileLink>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-          {/* กดไปหน้าวิธีปันส่วนคณะ — เฉพาะบทบาทที่เปิดหน้านั้นได้ */}
-          <TileLink href={canAccess(role, LOCK_SETTINGS_HREF) ? LOCK_SETTINGS_HREF : undefined}>
-            <KpiTile
-              label="สถานะการตั้งค่า"
-              value={!lockReady || !lock || !method ? '…' : METHOD_SHORT[method]}
-              accent={
-                lock?.source === 'config' ? 'success' : lock?.prevInvalidYear ? 'warning' : 'info'
-              }
-              color={lock?.source === 'config' ? BEPS.breakEven : undefined}
-              icon={lock?.submitLock ? 'ri-lock-line' : 'ri-scales-3-line'}
-              footer={
-                lock && method
-                  ? `${policySourceShort(lock)} · ${ALLOC_METHOD_LABEL[method]} · ปีงบ ${year}`
-                  : `ปีงบ ${year}`
-              }
-              info={INFO.cfg}
-            />
-          </TileLink>
+          <KpiTile
+            label="รายได้เฉลี่ยต่อหัว"
+            value={fmtInt(r)}
+            suffix="บาท/ปี"
+            accent="warning"
+            icon="ri-user-heart-line"
+            progress={costPerHead ? (r / costPerHead) * 100 : 0}
+            footer={`ต้นทุนต่อหัว ${fmtInt(costPerHead)} บาท/ปี`}
+            info={INFO.r}
+          />
         </Grid>
       </Grid>
 
