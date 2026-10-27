@@ -2,9 +2,12 @@
 
 // Next Imports
 import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
 
 import type { ApexOptions } from 'apexcharts';
@@ -15,6 +18,7 @@ import { BarTitle, BEPS, KPI_BAR_TRACK, kpiBarLabels, LegendItem } from '@compon
 import InfoTip from '@components/InfoTip';
 import type { ProgRow } from '@/data/mockup';
 import { fmtInt, fmtMillion } from '@views/breakeven/calc';
+import { composeCost, PART_COLORS, PART_SHORT } from '@views/cost/costParts';
 
 import type { ProgStat } from './FacultyContext';
 
@@ -74,9 +78,20 @@ export const ChartTitle = ({ title, info }: { title: string; info?: string }) =>
   </Typography>
 );
 
-/** กราฟแท่งซ้อนแนวนอนรายหลักสูตร (ล้านบาท หรือ บาท/คน) — กดแท่งเพื่อดูรายละเอียด */
+/** ป้ายแกนสีจาง ขนาดเล็ก — แบบกราฟ ①②③ ภาพรวมมหาวิทยาลัย */
+const AXIS_TITLE_STYLE = {
+  fontSize: '11px',
+  fontWeight: 500,
+  color: 'var(--mui-palette-text-secondary)',
+};
+
+/**
+ * กราฟแท่งซ้อนแนวนอนรายหลักสูตร (ล้านบาท หรือ บาท/คน) — กดแท่งเพื่อดูรายละเอียด
+ * หน้าตาเดียวกับกราฟ ①②③ ภาพรวมมหาวิทยาลัย: แถวละ 24px · แท่ง 74% · ตัวเลขซ่อนเมื่อแท่งสั้นเกินอ่าน
+ */
 export const StackedProgramBar = ({
   title,
+  sub,
   info,
   progs,
   series,
@@ -85,6 +100,8 @@ export const StackedProgramBar = ({
   perHead,
 }: {
   title: string;
+  /** คำอธิบายสั้นใต้ชื่อกราฟ เช่น "ทั้งแท่ง = รวมเงินแผ่นดิน · ส่วนม่วงเข้ม = ไม่รวม" */
+  sub?: string;
   info: string;
   progs: ProgStat[];
   series: { name: string; color: string; labelColor?: string; pick: (p: ProgRow) => number }[];
@@ -98,6 +115,12 @@ export const StackedProgramBar = ({
   const fmt = (v: number) => v.toLocaleString('th-TH', { maximumFractionDigits: perHead ? 0 : 1 });
   const value = (v: number, p: ProgRow) =>
     perHead ? (p.Q ? Math.round(v / p.Q) : 0) : Number((v / 1e6).toFixed(2));
+  // แท่งสั้นเกินกว่าตัวเลขจะพอดี (ล้านบาท < 6% · บาท/คน ซึ่งเลขยาวกว่า < 15% ของแท่งยาวสุด) — ซ่อนไว้ ชี้ดูใน tooltip แทน
+  const maxTotal = Math.max(
+    0,
+    ...progs.map((x) => series.reduce((a, s) => a + value(s.pick(x.p), x.p), 0)),
+  );
+  const minLabel = maxTotal * (perHead ? 0.15 : 0.06);
 
   const options: ApexOptions = {
     chart: {
@@ -116,13 +139,11 @@ export const StackedProgramBar = ({
     plotOptions: {
       bar: {
         horizontal: true,
-        barHeight: '70%',
+        barHeight: '74%',
         borderRadius: 4,
         borderRadiusApplication: 'end',
         borderRadiusWhenStacked: 'last',
         colors: KPI_BAR_TRACK,
-        // แสดงตัวเลขครบทุกแท่ง แม้แท่งสั้น
-        dataLabels: { hideOverflowingLabels: false },
       },
     },
     colors: series.map((s) => s.color),
@@ -130,7 +151,7 @@ export const StackedProgramBar = ({
     // ตัวเลขขาวบนสีเข้ม / สีเข้มบนสีอ่อน แบบภาพรวมมหาวิทยาลัย
     dataLabels: {
       ...kpiBarLabels(0),
-      formatter: (v: number) => (v > 0 ? fmt(v) : ''),
+      formatter: (v: number) => (v > 0 && v >= minLabel ? fmt(v) : ''),
       style: {
         fontSize: '10px',
         fontWeight: 700,
@@ -140,15 +161,21 @@ export const StackedProgramBar = ({
     legend: { show: false },
     grid: {
       borderColor: 'var(--mui-palette-divider)',
+      padding: { top: -10, bottom: -4 },
       xaxis: { lines: { show: true } },
       yaxis: { lines: { show: false } },
     },
     xaxis: {
       categories: progs.map((x) => x.label),
-      title: { text: perHead ? 'บาท ต่อนิสิต 1 คน' : 'ล้านบาท' },
-      labels: { formatter: (v: string) => fmt(Number(v)) },
+      // บาท/คน ตัวเลขยาว — จำกัดจำนวนเส้นแกนไม่ให้ป้ายชนกัน
+      ...(perHead && { tickAmount: 4 }),
+      title: { text: perHead ? 'บาท ต่อนิสิต 1 คน' : 'ล้านบาท', style: AXIS_TITLE_STYLE },
+      labels: { formatter: (v: string) => fmt(Number(v)), style: { fontSize: '11px' } },
     },
-    yaxis: { labels: { maxWidth: 260, style: { fontSize: '12px' } } },
+    yaxis: {
+      labels: { maxWidth: 190, style: { fontSize: '11px' } },
+      title: { text: 'หลักสูตร', style: AXIS_TITLE_STYLE },
+    },
     // จอแคบ: ป้ายชื่อหลักสูตรกินที่จนแท่งเหลือนิดเดียว — ตัดป้ายให้สั้นลง
     responsive: [
       {
@@ -169,14 +196,19 @@ export const StackedProgramBar = ({
   return (
     <Box>
       <ChartTitle title={title} info={info} />
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, mb: 1 }}>
+      {sub && (
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: -1, mb: 1 }}>
+          {sub}
+        </Typography>
+      )}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 1, mb: 1 }}>
         {series.map((s) => (
           <LegendItem key={s.name} color={s.color} label={s.name} />
         ))}
       </Box>
       <AppReactApexCharts
         type="bar"
-        height={height ?? Math.max(240, progs.length * 21 + 60)}
+        height={height ?? Math.max(240, progs.length * 24 + 60)}
         width="100%"
         options={options}
         series={series.map((s) => ({
@@ -188,23 +220,48 @@ export const StackedProgramBar = ({
   );
 };
 
-/** โดนัทต้นทุนคงที่ | ผันแปร + ยอดและสัดส่วน */
+/**
+ * โดนัทโครงสร้างต้นทุน — แท็บ คงที่/ผันแปร | องค์ประกอบ (แบบการ์ด ④ ภาพรวมมหาวิทยาลัย)
+ * ส่ง progs = เปิดแท็บองค์ประกอบ (รวบจากรายหลักสูตรด้วย composeCost) · ไม่ส่ง = คงที่/ผันแปรอย่างเดียว
+ */
 export const CostDonut = ({
   tfc,
   tvc,
+  progs,
   title = 'โครงสร้างต้นทุนรวมของคณะ',
   height = 220,
 }: {
   tfc: number;
   tvc: number;
+  progs?: readonly ProgRow[];
   title?: string;
   height?: number;
 }) => {
-  const total = tfc + tvc;
+  const [view, setView] = useState<'fv' | 'parts'>('fv');
+  const composition = useMemo(() => (progs ? composeCost(progs) : null), [progs]);
+  const showParts = view === 'parts' && composition !== null;
+
+  const items = showParts
+    ? composition.parts
+        .filter((p) => p.amount > 0)
+        .sort((a, b) => b.amount - a.amount)
+        .map((p, i) => ({
+          key: p.key,
+          label: PART_SHORT[p.key] ?? p.label,
+          hint: `${p.label} · ที่มา: ${p.source}`,
+          v: p.amount,
+          c: PART_COLORS[i % PART_COLORS.length]!,
+        }))
+    : [
+        { key: 'tfc', label: 'ต้นทุนคงที่', hint: undefined, v: tfc, c: C.fixed },
+        { key: 'tvc', label: 'ต้นทุนผันแปร', hint: undefined, v: tvc, c: C.variable },
+      ];
+  const total = items.reduce((a, x) => a + x.v, 0);
+
   const options: ApexOptions = {
     chart: { type: 'donut' },
-    labels: ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
-    colors: [C.fixed, C.variable],
+    labels: items.map((x) => x.label),
+    colors: items.map((x) => x.c),
     legend: { show: false },
     dataLabels: { enabled: false },
     stroke: { width: 3, colors: ['var(--mui-palette-background-paper)'] },
@@ -218,22 +275,46 @@ export const CostDonut = ({
 
   return (
     <Box>
-      <ChartTitle title={title} />
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <ChartTitle title={title} />
+        </Box>
+        {composition && (
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            color="primary"
+            value={view}
+            onChange={(_, v: 'fv' | 'parts' | null) => v && setView(v)}
+            sx={{ '& .MuiToggleButton-root': { px: 1.5, py: 0.25, fontSize: '0.75rem' } }}
+          >
+            <ToggleButton value="fv">คงที่/ผันแปร</ToggleButton>
+            <ToggleButton value="parts">องค์ประกอบ</ToggleButton>
+          </ToggleButtonGroup>
+        )}
+      </Box>
+      {showParts && (
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: -1, mb: 1 }}>
+          แยกองค์ประกอบ {items.length} หมวด · ล้านบาท
+        </Typography>
+      )}
       <AppReactApexCharts
+        key={view}
         type="donut"
         height={height}
         width="100%"
         options={options}
-        series={[Number((tfc / 1e6).toFixed(2)), Number((tvc / 1e6).toFixed(2))]}
+        series={items.map((x) => Number((x.v / 1e6).toFixed(2)))}
       />
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
-        {[
-          { label: 'ต้นทุนคงที่', v: tfc, c: C.fixed },
-          { label: 'ต้นทุนผันแปร', v: tvc, c: C.variable },
-        ].map((x) => (
-          <Box key={x.label} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: showParts ? 0.5 : 1, mt: 2 }}>
+        {items.map((x) => (
+          <Box
+            key={x.key}
+            title={x.hint}
+            sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}
+          >
             <LegendItem color={x.c} label={x.label} />
-            <Typography variant="body2" fontWeight={700} className="num">
+            <Typography variant="body2" fontWeight={700} className="num" sx={{ whiteSpace: 'nowrap' }}>
               {fmtMillion(x.v)} ลบ.{' '}
               <Typography component="span" variant="caption" color="text.secondary">
                 {total ? ((x.v / total) * 100).toFixed(0) : 0}%
@@ -395,7 +476,7 @@ export const TargetVsActualChart = ({
   return (
     <Box>
       <ChartTitle
-        title={`เป้าหมาย vs นิสิตจริง${progs[0] ? ` — ${progs[0].p.lvl}` : ''}`}
+        title={`เป้าหมาย vs นิสิตจริง${progs[0] ? ` — ${new Set(progs.map((x) => x.p.lvl)).size > 1 ? 'ทุกระดับ' : progs[0].p.lvl}` : ''}`}
         info="แท่ง = นิสิตจริง · ขีดทึบ = จุดคุ้มทุนแบบรวมเงินแผ่นดิน · ขีดประ = แบบไม่รวมเงินแผ่นดิน · สีแท่งและความยาวแกนตามฐานรายได้ที่เลือกด้านบน · ▸ = เส้นยาวเกินขอบกราฟ ตัวเลขคือจำนวนคนที่ต้องมี · กดแท่งเพื่อดูรายละเอียดหลักสูตร"
       />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5, mb: 1 }}>

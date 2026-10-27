@@ -9,6 +9,7 @@ import type { BreakEvenResult, RevenueMode } from '@beps/calc-engine';
 
 // Component Imports
 import { MOCK_RUN } from '@components/PageHeaderBar';
+import { loadDashFilter, saveDashFilter } from '@components/dashboardFilters';
 import { isUniversityLevel, lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 
@@ -29,6 +30,9 @@ import type { DetailTab } from './ProgramDialog';
 
 export const FAC_NAMES = RAW.FACS.map((f) => f.name);
 
+/** ตัวเลือก "ทุกระดับ" ของช่องระดับการศึกษา — ใช้หลักสูตรทุกระดับของคณะ (ค่าเริ่มต้น · ตรงกับภาพรวมมหาวิทยาลัย) */
+export const ALL_LEVELS = 'ทุกระดับ';
+
 export type ProgStat = {
   p: ProgRow;
   key: string;
@@ -48,13 +52,14 @@ type FacultyCtx = {
   setYear: (y: string) => void;
   mode: RevenueMode;
   setMode: (m: RevenueMode) => void;
-  /** ระดับการศึกษาที่มีหลักสูตรในคณะนี้ — ห้ามรวมระดับในกราฟ/ตารางเดียวกัน */
+  /** ระดับการศึกษาที่มีหลักสูตรในคณะนี้ (ไม่รวมตัวเลือก ALL_LEVELS) */
   levels: LevelOption[];
+  /** ระดับที่เลือก — ALL_LEVELS = ทุกระดับ */
   level: string;
   setLevel: (lvl: string) => void;
   /** หลักสูตรที่มีนิสิตทุกระดับ (ใช้เฉพาะตัวเลขรวมทั้งคณะ) */
   allProgs: ProgStat[];
-  /** หลักสูตรของระดับที่เลือก — ใช้กับกราฟและตารางทุกตัว */
+  /** หลักสูตรของระดับที่เลือก (ทุกระดับ = allProgs) — ใช้กับกราฟและตารางทุกตัว */
   progs: ProgStat[];
   /** ผลทั้งคณะ (แถวคณะในชีต) */
   facRes: BreakEvenResult;
@@ -105,15 +110,18 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
   const [detailTab, setDetailTab] = useState<DetailTab>('be');
   const [urlRead, setUrlRead] = useState(false);
 
-  // อ่านค่าเริ่มจาก URL (เช่น ป็อปอัปอันดับคณะส่ง ?fac=ชื่อคณะ มา)
+  // อ่านค่าเริ่มจาก URL (เช่น ป็อปอัปอันดับคณะส่ง ?fac=ชื่อคณะ มา) · ไม่มีใน URL → ตัวกรองที่ค้างจากหน้า Dashboard อื่น
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    const fac = q.get('fac');
-    const lvl = q.get('lvl');
+    const saved = loadDashFilter();
+    const fac = q.get('fac') ?? (saved.facs?.length === 1 ? saved.facs[0] : null);
+    const lvl = q.get('lvl') ?? saved.lvl;
+    const own = q.has('mode') ? q.get('mode') === 'own' : saved.mode === 'without_government';
 
     if (fac && FAC_NAMES.includes(fac)) setPickedFac(fac);
     if (lvl) setLevel(lvl);
-    if (q.get('mode') === 'own') setMode('without_government');
+    if (own) setMode('without_government');
+    if (saved.year) setYear(saved.year);
     setUrlRead(true);
   }, []);
 
@@ -143,10 +151,13 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
     return [...m.values()];
   }, [allProgs]);
 
-  // ระดับที่เลือกไม่มีในคณะนี้ → ใช้ระดับแรกที่มี
-  const level = levels.some((l) => l.lvl === pickedLevel) ? pickedLevel : (levels[0]?.lvl ?? '');
+  // ยังไม่เลือก / ระดับที่เลือกไม่มีในคณะนี้ → ทุกระดับ
+  const level = levels.some((l) => l.lvl === pickedLevel) ? pickedLevel : ALL_LEVELS;
 
-  const progs = useMemo(() => allProgs.filter((x) => x.p.lvl === level), [allProgs, level]);
+  const progs = useMemo(
+    () => (level === ALL_LEVELS ? allProgs : allProgs.filter((x) => x.p.lvl === level)),
+    [allProgs, level],
+  );
 
   const facRes = useMemo(() => computeBreakEven(fac, mode), [fac, mode]);
 
@@ -162,7 +173,7 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
 
     if (canPick) q.set('fac', fac.name);
     else q.delete('fac');
-    if (level) q.set('lvl', level);
+    if (level !== ALL_LEVELS) q.set('lvl', level);
     else q.delete('lvl');
     if (mode === 'without_government') q.set('mode', 'own');
     else q.delete('mode');
@@ -217,18 +228,28 @@ export const FacultyProvider = ({ children }: { children: ReactNode }) => {
   const value: FacultyCtx = {
     fac,
     canPick,
-    // เปลี่ยนคณะ → เริ่มที่ระดับแรกของคณะใหม่ (URL กับค่าที่เลือกตรงกันเสมอ)
+    // เปลี่ยนคณะ → คงระดับเดิม (คณะใหม่ไม่มีระดับนั้น = ทุกระดับ)
+    // ค่าที่ผู้ใช้เลือกเองบันทึกให้หน้า Dashboard อื่นด้วย
     setFac: (name) => {
       setPickedFac(name);
-      setLevel('');
+      saveDashFilter({ facs: [name] });
     },
     year,
-    setYear,
+    setYear: (y) => {
+      setYear(y);
+      saveDashFilter({ year: y });
+    },
     mode,
-    setMode,
+    setMode: (m) => {
+      setMode(m);
+      saveDashFilter({ mode: m });
+    },
     levels,
     level,
-    setLevel,
+    setLevel: (lvl) => {
+      setLevel(lvl);
+      saveDashFilter({ lvl: lvl === ALL_LEVELS ? '' : lvl });
+    },
     allProgs,
     progs,
     facRes,

@@ -1,10 +1,11 @@
 'use client';
 
 // React Imports
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // Next Imports
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 
 // MUI Imports
 import Grid from '@mui/material/Grid';
@@ -34,6 +35,8 @@ import { BarTitle, BEPS, KPI_BAR_TRACK, kpiBarLabels, LegendItem } from '@compon
 import FacultyFilter from '@components/FacultyFilter';
 import KpiTile from '@components/KpiTile';
 import PageHeaderBar, { MOCK_RUN } from '@components/PageHeaderBar';
+import YearFilter from '@components/YearFilter';
+import { loadDashFilter, saveDashFilter } from '@components/dashboardFilters';
 import { isUniversityLevel } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 import FacultyRankDialog from './FacultyRankDialog';
@@ -43,7 +46,7 @@ import type { RankKind } from './FacultyRankDialog';
 import { RAW } from '@/data/mockup';
 import type { RevenueMode } from '@beps/calc-engine';
 import { fmtInt, fmtMillion, sheetQStar, shortFacName } from '@views/breakeven/calc';
-import { composeCost } from '@views/cost/costParts';
+import { composeCost, PART_SHORT } from '@views/cost/costParts';
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
@@ -74,39 +77,28 @@ const PAL = [
   { dark: '#ef6c00', light: '#ffb74d' },
 ];
 
-/** สีองค์ประกอบต้นทุนในการ์ด ④ (ตามลำดับ composeCost) */
-const PART_COLORS = [
-  'var(--mui-palette-primary-main)',
-  BEPS.breakEven,
-  BEPS.revenue.dark,
-  BEPS.cost.dark,
-  BEPS.profit,
-  'var(--mui-palette-warning-main)',
-  BEPS.compare.light,
-  BEPS.revenue.light,
-];
-
 /** สีการ์ด ⑤⑥ — ส่วนเกิน = teal (การ์ดจุดคุ้มทุน) · ขาดทุน = ชมพู (ต้นทุน) */
 const GAIN = BEPS.breakEven;
 const LOSS = BEPS.cost.dark;
-
-/** ชื่อย่อองค์ประกอบต้นทุนสำหรับการ์ด ④ (ชื่อเต็มอยู่ใน costParts — แสดงตอนชี้) */
-const PART_SHORT: Record<string, string> = {
-  tfcProg: 'คงที่ทางตรงหลักสูตร',
-  tvcProg: 'ผันแปรทางตรงหลักสูตร',
-  tfcOffice: 'ส่วนกลางคณะ (คงที่)',
-  tvcOffice: 'ส่วนกลางคณะ (ผันแปร)',
-  dep: 'ค่าเสื่อมครุภัณฑ์',
-  genEd: 'วิชาศึกษาทั่วไป (GE)',
-  matchMain: 'สมทบรายการหลัก',
-  matchUni: 'สมทบมหาวิทยาลัย',
-};
 
 /** สีกราฟ ① ตามกราฟ "Data Science" ของ Materio — ม่วงเข้ม/ม่วงอ่อน (รางเทาอ่อนเหมือนกราฟอื่น) */
 const C1 = { own: BEPS.revenue.dark, st: BEPS.revenue.light };
 
 /** สีกราฟ ② โทนชมพูแบบโดนัท "Weekly Sales" ของ Materio — ชมพูเข้ม/ชมพูอ่อน */
 const C2 = { fixed: BEPS.cost.dark, variable: BEPS.cost.light };
+
+/** สีโดนัท ④ — คู่ตัดกันแต่เข้ากัน (ฟ้า/เหลือง) · องค์ประกอบ: สลับโทนเย็น/อุ่น */
+const C4 = { fixed: BEPS.compare.dark, variable: '#f5b400' };
+const C4_PARTS = [
+  BEPS.compare.dark, // ฟ้า
+  '#f5b400', // เหลือง
+  BEPS.revenue.dark, // ม่วง
+  '#ff8a3d', // ส้ม
+  BEPS.breakEven, // เขียวหัวเป็ด
+  '#f0436b', // ชมพู
+  BEPS.profit, // กรมท่า
+  '#ffd666', // เหลืองอ่อน
+];
 
 /** สีกราฟ ③ โทนฟ้าแบบโดนัท "Weekly Sales" ของ Materio — ฟ้าเข้ม = รายได้ · ฟ้าอ่อน = ต้นทุน */
 const C3 = { rev: BEPS.compare.dark, cost: BEPS.compare.light };
@@ -179,7 +171,7 @@ const groupTitle = (grid: FacSum[][], names: string[], fmt: (f: FacSum) => strin
 
       if (!first) return '';
 
-      return `${first.label} — ${grid
+      return `${first.name} — ${grid
         .map((g, gi) => (grid.length > 1 ? `${names[gi]} ` : '') + fmt(g[i]!))
         .join(' · ')}`;
     },
@@ -225,7 +217,7 @@ const barOptions = (
     },
   },
   yaxis: {
-    labels: { style: { fontSize: '11px' }, maxWidth: 120 },
+    labels: { style: { fontSize: '11px' }, maxWidth: 210 },
     title: {
       text: 'คณะ',
       style: { fontSize: '11px', fontWeight: 500, color: 'var(--mui-palette-text-secondary)' },
@@ -250,13 +242,42 @@ const barOptions = (
 });
 
 const UniversityDashboard = () => {
-  const [mode, setMode] = useState<RevenueMode>('with_government');
+  const [mode, setModeState] = useState<RevenueMode>('with_government');
   // ป็อปอัป "ดูทั้งหมด" — gain = การ์ด ⑤ · loss = การ์ด ⑥ · null = ปิด
   const [rankTab, setRankTab] = useState<RankKind | null>(null);
   const { role } = useRole();
-  const [level, setLevel] = useState('all');
-  const [pickedFacs, setPickedFacs] = useState<string[]>([]);
-  const [year, setYear] = useState(MOCK_RUN.budgetYear);
+  const [level, setLevelState] = useState('all');
+  const [pickedFacs, setPickedFacsState] = useState<string[]>([]);
+  const [year, setYearState] = useState(MOCK_RUN.budgetYear);
+  const router = useRouter();
+
+  // ตัวกรองค้างข้ามหน้า Dashboard — อ่านค่าที่เลือกไว้จากหน้าอื่นตอนเข้าหน้า · เลือกใหม่แล้วบันทึกกลับ
+  useEffect(() => {
+    const saved = loadDashFilter();
+    const lv = Object.entries(LV).find(([, v]) => v.lvl === saved.lvl)?.[0];
+
+    if (saved.mode) setModeState(saved.mode);
+    if (lv) setLevelState(lv);
+    if (saved.facs) setPickedFacsState(saved.facs.filter((f) => FAC_NAMES.includes(f)));
+    if (saved.year) setYearState(saved.year);
+  }, []);
+
+  const setMode = (m: RevenueMode) => {
+    setModeState(m);
+    saveDashFilter({ mode: m });
+  };
+  const setLevel = (key: string) => {
+    setLevelState(key);
+    saveDashFilter({ lvl: LV[key as LvKey]?.lvl ?? '' });
+  };
+  const setPickedFacs = (facs: string[]) => {
+    setPickedFacsState(facs);
+    saveDashFilter({ facs });
+  };
+  const setYear = (y: string) => {
+    setYearState(y);
+    saveDashFilter({ year: y });
+  };
   // การ์ด ④: คงที่/ผันแปร หรือแตกองค์ประกอบต้นทุน (ย้ายมาจากหน้าโครงสร้างต้นทุนเดิม)
   const [costView, setCostView] = useState<'fv' | 'parts'>('fv');
 
@@ -368,7 +389,26 @@ const UniversityDashboard = () => {
   const grid1 = sortGrid((f) => f.own + f.st);
   const grid2 = sortGrid((f) => f.tc);
   const grid3 = sortGrid((f) => revOf(f) + f.tc);
-  const catsOf = (g: FacSum[][]) => (g[0] ?? []).map((f) => f.label);
+  // ชื่อเต็มบนแกนกราฟ ①②③ (ชื่อย่อ label ใช้ในการ์ดจัดอันดับ)
+  const catsOf = (g: FacSum[][]) => (g[0] ?? []).map((f) => f.name);
+  // ระดับมหาวิทยาลัย: กดแท่งคณะ → ภาพรวมคณะของคณะนั้น (เงื่อนไขเดียวกับป็อปอัปจัดอันดับ)
+  const canOpenFaculty = isUniversityLevel(role) && !compare;
+  const openFac = (g: FacSum[][]): ApexOptions['chart'] =>
+    canOpenFaculty
+      ? {
+          stacked: true,
+          events: {
+            dataPointSelection: (_e, _c, { dataPointIndex }: { dataPointIndex: number }) => {
+              const name = g[0]?.[dataPointIndex]?.name;
+
+              if (name) router.push(`/faculty?fac=${encodeURIComponent(name)}`);
+            },
+            dataPointMouseEnter: (e: MouseEvent) => {
+              (e.target as HTMLElement).style.cursor = 'pointer';
+            },
+          },
+        }
+      : { stacked: true };
 
   const stackSeries = (g3: FacSum[][], parts: [string, (f: FacSum) => number][]) =>
     g3.flatMap((g, gi) =>
@@ -383,7 +423,7 @@ const UniversityDashboard = () => {
     tc: number,
     centerLabel = 'ต้นทุนรวม (ลบ.)',
     labels = ['ต้นทุนคงที่', 'ต้นทุนผันแปร'],
-    colors = [C2.fixed, C2.variable],
+    colors = [C4.fixed, C4.variable],
   ): ApexOptions => ({
     chart: { type: 'donut' },
     labels,
@@ -422,7 +462,7 @@ const UniversityDashboard = () => {
 
   // กราฟ ① สีแบบ Materio: ตัวเลขขาวบนม่วงเข้ม / ม่วงเข้มบนม่วงอ่อน
   const chart1Base = barOptions(catsOf(grid1), twoTone([C1.own, C1.st]), {
-    chart: { stacked: true },
+    chart: openFac(grid1),
     tooltip: groupTitle(grid1, groupNames, (f) => `รายได้รวม ${fmtMillion(f.own + f.st)} ลบ.`),
   });
   const chart1Options: ApexOptions = {
@@ -435,7 +475,7 @@ const UniversityDashboard = () => {
 
   // กราฟ ② โทนชมพู: ตัวเลขขาวบนชมพูเข้ม / ชมพูเข้มบนชมพูอ่อน
   const chart2Base = barOptions(catsOf(grid2), twoTone([C2.fixed, C2.variable]), {
-    chart: { stacked: true },
+    chart: openFac(grid2),
     tooltip: groupTitle(grid2, groupNames, (f) => `ต้นทุนรวม ${fmtMillion(f.tc)} ลบ.`),
   });
   const chart2Options: ApexOptions = {
@@ -448,7 +488,7 @@ const UniversityDashboard = () => {
 
   // กราฟ ③ โทนฟ้า: ตัวเลขขาวบนฟ้าเข้ม / ฟ้าเข้มบนฟ้าอ่อน
   const chart3Base = barOptions(catsOf(grid3), twoTone([C3.rev, C3.cost]), {
-    chart: { stacked: true },
+    chart: openFac(grid3),
     tooltip: groupTitle(
       grid3,
       groupNames,
@@ -472,6 +512,7 @@ const UniversityDashboard = () => {
         onModeChange={setMode}
         q={tot.Q}
         profit={totTr - totTc}
+        filterCount={(level !== 'all' ? 1 : 0) + (pickedFacs.length > 0 ? 1 : 0)}
         // ตัวกรอง — ระดับการศึกษา + คณะ + ปีงบ อยู่ในแถบหัวที่ติดจอ (แบบภาพรวมคณะ)
         extra={
           <>
@@ -493,18 +534,7 @@ const UniversityDashboard = () => {
               onChange={setPickedFacs}
               minWidth={200}
             />
-            {/* ชุดข้อมูลมีเฉพาะปีงบล่าสุด — ปีอื่นแสดงไว้แต่เลือกไม่ได้จนกว่าจะนำเข้าข้อมูล */}
-            <Autocomplete
-              size="small"
-              disableClearable
-              options={[...MOCK_RUN.budgetYears].reverse()}
-              getOptionDisabled={(y) => y !== MOCK_RUN.budgetYear}
-              getOptionLabel={(y) => (y === MOCK_RUN.budgetYear ? y : `${y} (ยังไม่มีข้อมูล)`)}
-              value={year}
-              onChange={(_, v) => setYear(v)}
-              sx={{ width: 130 }}
-              renderInput={(params) => <TextField {...params} label="ปีงบประมาณ" />}
-            />
+            <YearFilter value={year} onChange={setYear} />
             {(level !== 'all' || pickedFacs.length > 0) && (
               <Button
                 size="small"
@@ -723,7 +753,7 @@ const UniversityDashboard = () => {
                         composition.total,
                         'ต้นทุนรวม (ลบ.)',
                         parts.map((c) => PART_SHORT[c.key] ?? c.label),
-                        parts.map((_, i) => PART_COLORS[i % PART_COLORS.length]!),
+                        parts.map((_, i) => C4_PARTS[i % C4_PARTS.length]!),
                       )}
                       series={parts.map((c) => toM(c.amount))}
                     />
@@ -741,7 +771,7 @@ const UniversityDashboard = () => {
                             width: 9,
                             height: 9,
                             borderRadius: '2px',
-                            bgcolor: PART_COLORS[parts.indexOf(c) % PART_COLORS.length],
+                            bgcolor: C4_PARTS[parts.indexOf(c) % C4_PARTS.length],
                             flexShrink: 0,
                           }}
                         />
@@ -807,10 +837,10 @@ const UniversityDashboard = () => {
                     />
                   </Box>
                   <Stack spacing={2} sx={{ flex: 1 }}>
-                    <CostLine label="ต้นทุนคงที่" color={C2.fixed} value={tot.tfc} total={totTc} />
+                    <CostLine label="ต้นทุนคงที่" color={C4.fixed} value={tot.tfc} total={totTc} />
                     <CostLine
                       label="ต้นทุนผันแปร"
-                      color={C2.variable}
+                      color={C4.variable}
                       value={tot.tvc}
                       total={totTc}
                     />
@@ -853,7 +883,7 @@ const UniversityDashboard = () => {
         mode={mode}
         unitWord={compare ? 'รายการ' : 'คณะ'}
         // เปิดหน้าภาพรวมคณะได้เฉพาะระดับมหาวิทยาลัย (ระดับคณะถูกล็อกที่คณะตนอยู่แล้ว)
-        canOpenFaculty={isUniversityLevel(role) && !compare}
+        canOpenFaculty={canOpenFaculty}
         onClose={() => setRankTab(null)}
       />
 

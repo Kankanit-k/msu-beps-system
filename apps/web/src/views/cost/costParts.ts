@@ -13,6 +13,7 @@
  * ที่ผูกรหัสหลักสูตรใน ERP แล้ว ส่วน `tfcOffice`/`dep` เป็นก้อนที่นโยบายรับไปปันส่วน
  * W20 ไม่มีฝั่งต้นทุนผันแปร การแบ่ง `tvcProg`/`tvcOffice` ตามหลักเดียวกันจึงเพิ่มขึ้นที่นี่
  */
+import { BEPS } from '@components/ChartBits';
 import type { ProgRow } from '@/data/mockup';
 
 /** ที่มาของต้นทุน — ตอบคำถามว่า "ก้อนนี้ผูกถึงหลักสูตรได้แค่ไหน จึงต้องปันส่วนแค่ไหน" */
@@ -158,4 +159,28 @@ export const composeCost = (progs: readonly ProgRow[]): CostComposition => {
   );
 
   return { parts, byOrigin, total: parts.reduce((s, p) => s + p.amount, 0) };
+};
+
+/** สีองค์ประกอบต้นทุน (โดนัทองค์ประกอบ — ภาพรวม ม. การ์ด ④ · ภาพรวมคณะ) ไล่ตามลำดับหมวดที่เรียงยอดมากไปน้อย */
+export const PART_COLORS = [
+  'var(--mui-palette-primary-main)',
+  BEPS.breakEven,
+  BEPS.revenue.dark,
+  BEPS.cost.dark,
+  BEPS.profit,
+  'var(--mui-palette-warning-main)',
+  BEPS.compare.light,
+  BEPS.revenue.light,
+];
+
+/** ชื่อย่อองค์ประกอบต้นทุนบนโดนัท/รายการ (ชื่อเต็ม = label ของ composeCost — แสดงตอนชี้) */
+export const PART_SHORT: Record<string, string> = {
+  tfcProg: 'คงที่ทางตรงหลักสูตร',
+  tvcProg: 'ผันแปรทางตรงหลักสูตร',
+  tfcOffice: 'ส่วนกลางคณะ (คงที่)',
+  tvcOffice: 'ส่วนกลางคณะ (ผันแปร)',
+  dep: 'ค่าเสื่อมครุภัณฑ์',
+  genEd: 'วิชาศึกษาทั่วไป (GE)',
+  matchMain: 'สมทบรายการหลัก',
+  matchUni: 'สมทบมหาวิทยาลัย',
 };

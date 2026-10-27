@@ -1,6 +1,7 @@
 'use client';
 
 // React Imports
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 // Next Imports
@@ -44,7 +45,7 @@ import {
 import FacultyStatusBar from './FacultyStatusBar';
 import ProgramRankTable from './ProgramRankTable';
 
-/** หลักสูตรในระดับเดียวกันเกินนี้ → กราฟหน้าภาพรวมแสดงเฉพาะอันดับต้น + ลิงก์ "ดูทั้งหมด" */
+/** หลักสูตรของระดับที่เลือกเกินนี้ → กราฟหน้าภาพรวมแสดงเฉพาะอันดับต้น + ลิงก์ "ดูทั้งหมด" */
 const TOP_N = 12;
 const CHART_H = 250;
 
@@ -109,7 +110,7 @@ const topBy = (progs: ProgStat[], v: (x: ProgStat) => number) =>
 
 /**
  * ภาพรวมคณะ (/faculty) — การ์ดรวมทั้งคณะ + กราฟ 2×2 และตารางจัดอันดับของระดับที่เลือก
- * ห้ามรวม ตรี/โท/เอก ในกราฟหรือตารางเดียวกัน · รายละเอียดอยู่ในเมนูย่อย
+ * กราฟ/ตารางตามระดับที่เลือก (หรือทุกระดับ) · รายละเอียดอยู่ในหมวดผลการดำเนินงาน
  */
 const FacultyLanding = () => {
   const {
@@ -134,6 +135,7 @@ const FacultyLanding = () => {
   const r = facRes.r ?? 0;
   const costPerHead = facRes.q ? facRes.tc / facRes.q : 0;
   const levelTfcShare = levelRes.tc ? levelRes.tfc / levelRes.tc : 0;
+  const levelProgRows = useMemo(() => progs.map((x) => x.p), [progs]);
   const method = lock?.choice.method;
 
   return (
@@ -254,6 +256,7 @@ const FacultyLanding = () => {
                 <CostDonut
                   tfc={levelRes.tfc}
                   tvc={levelRes.tvc}
+                  progs={levelProgRows}
                   title={`โครงสร้างต้นทุน — ${level}`}
                   height={190}
                 />
@@ -266,14 +269,15 @@ const FacultyLanding = () => {
               </ChartCard>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <ChartCard more={{ href: '/faculty/revenue', total: progs.length }}>
+              {/* แสดงครบทุกหลักสูตร (ไม่ตัดอันดับต้น) — สูงตามจำนวนหลักสูตร */}
+              <ChartCard>
                 <StackedProgramBar
-                  title={`โครงสร้างรายได้ — ${level}`}
+                  title={`โครงสร้างรายได้ — ${level} (${progs.length} หลักสูตร)`}
+                  sub="ทั้งแท่ง = รวมเงินแผ่นดิน · ส่วนม่วงเข้ม = ไม่รวม"
                   info="ล้านบาท · เงินรายได้ = ค่าธรรมเนียมการศึกษา · เงินแผ่นดิน = งบประมาณแผ่นดินที่ปันให้หลักสูตร · กดแท่งเพื่อดูรายละเอียด"
-                  progs={topBy(progs, (x) => x.p.st + x.p.own)}
+                  progs={[...progs].sort((a, b) => b.p.st + b.p.own - (a.p.st + a.p.own))}
                   series={REVENUE_SERIES}
                   onPick={openDetail}
-                  height={CHART_H}
                 />
               </ChartCard>
             </Grid>

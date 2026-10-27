@@ -101,7 +101,7 @@ const filterByRole = (items: VerticalMenuDataType[], role: AppRole): VerticalMen
  *                                                               icon ยังใช้บนการ์ดหน้าแรกหมวด)
  *
  * Conventions (see CLAUDE.md → Access control · มติประชุม 21 ต.ค. 2569 ข้อ 1.6/1.7/6.1):
- *   • หมวดเรียงตามหน้าที่: ภาพรวม → เจาะลึกจุดคุ้มทุน (ทุกบทบาท) → วิเคราะห์จุดคุ้มทุน (เจ้าหน้าที่ + อาจารย์)
+ *   • หมวดเรียงตามหน้าที่: Dashboard → ผลการดำเนินงาน → เจาะลึกจุดคุ้มทุน (ทุกบทบาท) → วิเคราะห์จุดคุ้มทุน (เจ้าหน้าที่ + อาจารย์)
  *     → ตั้งค่าการคำนวณ (เจ้าหน้าที่) → ทะเบียน & ระบบ (เจ้าหน้าที่ระดับมหาวิทยาลัย)
  *   • รายการแรกของเมนูย่อย = หน้าแรกหมวด (SectionLanding ดึงการ์ดจากเมนูย่อยที่มีลิงก์นั้น)
  *   • ใครเห็นลิงก์ไหนมาจาก routeAccessRules ใน accessControl.ts — filterByRole ซ่อนให้เอง ไม่ต้องเช็กบทบาทที่นี่
@@ -110,39 +110,38 @@ const filterByRole = (items: VerticalMenuDataType[], role: AppRole): VerticalMen
  */
 const verticalMenuData = (role: AppRole = DEFAULT_ROLE): VerticalMenuDataType[] => {
   const menu: VerticalMenuDataType[] = [
-    // ── ภาพรวม — ทุกบทบาท (ระดับคณะ: ภาพรวมคณะล็อกที่คณะตน) ─────────────
+    // ── Dashboard — ทุกบทบาท (ระดับคณะ: ภาพรวมคณะล็อกที่คณะตน) · ประชุม 26 ต.ค. 2569 ─────
     {
-      label: 'ภาพรวม',
+      label: 'Dashboard',
       isSection: true,
       children: [
         { label: 'ภาพรวมมหาวิทยาลัย', href: '/overview', icon: 'ri-bank-line', iconColor: T.blue },
+        { label: 'ภาพรวมคณะ', href: '/faculty', icon: 'ri-building-2-line', iconColor: T.purple },
+      ],
+    },
+
+    // ── ผลการดำเนินงาน — รายคณะ (ทุกบทบาท) · URL ยังอยู่ใต้ /faculty ──────────
+    {
+      label: 'ผลการดำเนินงาน',
+      isSection: true,
+      children: [
         {
-          label: 'ภาพรวมคณะ',
-          icon: 'ri-building-2-line',
+          label: 'รายได้',
+          href: '/faculty/revenue',
+          icon: 'ri-hand-coin-line',
           iconColor: T.purple,
-          // เข้ามาครั้งแรกให้กางไว้ก่อน
-          defaultOpen: true,
-          children: [
-            { label: 'ภาพรวม', href: '/faculty', icon: 'ri-building-2-line', iconColor: T.purple },
-            {
-              label: 'รายได้',
-              href: '/faculty/revenue',
-              icon: 'ri-hand-coin-line',
-              iconColor: T.purple,
-            },
-            {
-              label: 'ต้นทุน / ค่าใช้จ่าย',
-              href: '/faculty/cost',
-              icon: 'ri-stack-line',
-              iconColor: T.pink,
-            },
-            {
-              label: 'จุดคุ้มทุน',
-              href: '/faculty/breakeven',
-              icon: 'ri-focus-3-line',
-              iconColor: T.teal,
-            },
-          ],
+        },
+        {
+          label: 'ต้นทุน / ค่าใช้จ่าย',
+          href: '/faculty/cost',
+          icon: 'ri-stack-line',
+          iconColor: T.pink,
+        },
+        {
+          label: 'จุดคุ้มทุน',
+          href: '/faculty/breakeven',
+          icon: 'ri-focus-3-line',
+          iconColor: T.teal,
         },
       ],
     },
