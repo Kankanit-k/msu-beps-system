@@ -219,7 +219,7 @@ const AccountRules = () => {
         <Alert severity="success" icon={<i className="ri-building-line" />} sx={{ mb: 3 }}>
           หน้านี้คือ<b>ค่าตั้งต้นของมหาวิทยาลัย</b> (มติ “ตั้งค่าต้นทุน” 27 ต.ค.) —
           คณะที่ยังไม่ได้ตั้งค่าใช้กติกาชุดนี้ และคณะปรับเป็นของตัวเองได้ที่{' '}
-          <Link href="/admin/fixed-cost-lock">ตั้งค่าต้นทุน (คณะ)</Link> ·
+          <Link href="/admin/variable-cost">ตั้งค่าต้นทุนผันแปร</Link> ·
           วิธีปันส่วนลงหลักสูตรเป็นนโยบายคณะ จึงไม่ได้ตั้งที่หน้านี้
         </Alert>
         <Alert severity="info">
