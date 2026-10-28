@@ -5,10 +5,12 @@
  *
  * - รายการมาจาก fetchExpenseAccounts (เฉพาะที่คณะมีในงบ Oracle 2568 · กติกาตั้งต้นจาก Excel) จัดกลุ่มตามหมวดรายจ่าย
  * - เก็บรายคีย์ 4 ระดับ (ตรงกับ Excel) · ปุ่ม "ใช้กับทุกแผนงาน" ตั้งรายการเดียวกันต่างแผนงานให้เท่ากันในคลิกเดียว
- * - ค่าตั้งต้น = กติกามหาวิทยาลัย (account-rules ที่อนุมัติ → Excel) · คณะเลือก คงที่ 100% / ผันแปร 100% / แบ่ง %
+ * - ค่าตั้งต้น = กติกามหาวิทยาลัย (account-rules ที่อนุมัติ → Excel)
+ * - ลำดับตามที่ประชุม (28 ต.ค.): เลือกประเภท คงที่ / ผันแปร / ผสม → เลือก "ผสม" แล้วช่อง % โผล่เป็นแถวย่อยใต้รายการ
+ *   · ตัวกรอง "ผสม" รวมรายการผสมทุกหมวดให้ทบทวนก่อนบันทึก
  * - ร่างเก็บในเบราว์เซอร์ · บันทึกแล้วมีผลเป็นนโยบายคณะปีนั้น · ล็อกพร้อมวิธีปันส่วนเมื่อยืนยันเอกสารฉบับจริง
  */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 // MUI Imports
 import Alert from '@mui/material/Alert';
@@ -46,14 +48,14 @@ import {
 import { fmtLockedAt } from './lockStore';
 
 type Rows = Record<string, ClassRow>;
-type Filter = 'all' | 'changed' | 'unclassified';
+type Filter = 'all' | 'changed' | 'mixed' | 'unclassified';
 
 /** ตัวเลือกตามมติ 3 แบบ — "ยังไม่จำแนก" แสดงเป็นสถานะของค่าตั้งต้นเท่านั้น เลือกเองไม่ได้ */
 const CHOICES: Behavior[] = ['TFC', 'TVC', 'MIXED'];
 const CHOICE_LABEL: Partial<Record<Behavior, string>> = {
-  TFC: 'คงที่ 100%',
-  TVC: 'ผันแปร 100%',
-  MIXED: 'แบ่ง %',
+  TFC: 'คงที่',
+  TVC: 'ผันแปร',
+  MIXED: 'ผสม',
 };
 
 const fmtM = (n: number) =>
@@ -65,7 +67,7 @@ const toRow = (r: Pick<AccountRule, 'beh' | 'f'>): ClassRow => ({ beh: r.beh, f:
 const sameRow = (a: ClassRow, b: ClassRow) => a.beh === b.beh && (a.beh !== 'MIXED' || a.f === b.f);
 const rowText = (r: ClassRow) =>
   r.beh === 'MIXED'
-    ? `แบ่ง ${Math.round(r.f * 100)}:${100 - Math.round(r.f * 100)}`
+    ? `ผสม ${Math.round(r.f * 100)}:${100 - Math.round(r.f * 100)}`
     : (CHOICE_LABEL[r.beh] ?? BEH[r.beh].label);
 const pctError = (r: ClassRow) =>
   r.beh === 'MIXED' && (r.f < 0.01 || r.f > 0.99) ? 'คงที่ 1–99%' : null;
@@ -110,7 +112,15 @@ interface Props {
   onToast: (t: { msg: string; ok: boolean }) => void;
 }
 
-const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }: Props) => {
+const ClassificationStep = ({
+  id,
+  header,
+  year,
+  fac,
+  locked,
+  savedBy,
+  onToast,
+}: Props) => {
   const [accounts, setAccounts] = useState<ExpenseAccount[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [byOracle, setByOracle] = useState(false);
@@ -230,7 +240,9 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
           ? true
           : filter === 'changed'
             ? !!diff[a.key]
-            : v?.beh === 'UNCLASSIFIED';
+            : filter === 'mixed'
+              ? v?.beh === 'MIXED'
+              : v?.beh === 'UNCLASSIFIED';
       })
       .forEach((a) => m.set(a.group, [...(m.get(a.group) ?? []), a]));
 
@@ -256,6 +268,8 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
   }, [accounts]);
   const unclassified = accounts?.filter((a) => valueOf(a.key).beh === 'UNCLASSIFIED').length ?? 0;
   const invalid = Object.values(draft).some((r) => pctError(r));
+  /** รายการผสม (รวมที่ค่าตั้งต้นเป็นผสม) — ตัวกรอง "ผสม" ใช้ทบทวน % ก่อนบันทึก */
+  const mixed = accounts?.filter((a) => valueOf(a.key).beh === 'MIXED') ?? [];
   const expandAll = q.trim() !== '' || filter !== 'all';
 
   const toggle = (g: string) =>
@@ -271,7 +285,7 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
   const save = () => {
     if (invalid) {
       onToast({
-        msg: 'บันทึกไม่ได้ — มีรายการแบ่ง % ที่สัดส่วนคงที่ไม่อยู่ระหว่าง 1–99%',
+        msg: 'บันทึกไม่ได้ — มีรายการผสมที่สัดส่วนคงที่ไม่อยู่ระหว่าง 1–99% (ดูได้ที่ตัวกรอง "ผสม")',
         ok: false,
       });
 
@@ -318,6 +332,7 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
   };
 
   return (
+    <>
     <Card id={id} sx={{ scrollMarginTop: 80 }}>
       {header}
       <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -371,6 +386,7 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
               >
                 <ToggleButton value="all">ทั้งหมด ({accounts.length})</ToggleButton>
                 <ToggleButton value="changed">ต่างจากค่าตั้งต้น ({changedCount})</ToggleButton>
+                <ToggleButton value="mixed">ผสม ({mixed.length})</ToggleButton>
                 <ToggleButton value="unclassified">ยังไม่จำแนก ({unclassified})</ToggleButton>
               </ToggleButtonGroup>
               <Box flexGrow={1} />
@@ -494,8 +510,8 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
                           const siblings = subKeys.get(a.sub) ?? [];
 
                           return (
+                            <Fragment key={a.key}>
                             <Box
-                              key={a.key}
                               display="flex"
                               flexWrap="wrap"
                               alignItems="center"
@@ -534,23 +550,6 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
                                   </ToggleButton>
                                 ))}
                               </ToggleButtonGroup>
-                              {v.beh === 'MIXED' && (
-                                <NumberTextField
-                                  size="small"
-                                  label="คงที่ %"
-                                  disabled={locked}
-                                  value={Math.round(v.f * 100)}
-                                  onChange={(n) =>
-                                    setRows([a.key], () => ({
-                                      beh: 'MIXED',
-                                      f: Math.min(n, 100) / 100,
-                                    }))
-                                  }
-                                  error={!!err}
-                                  helperText={err ?? `ผันแปร ${100 - Math.round(v.f * 100)}%`}
-                                  sx={{ width: 110 }}
-                                />
-                              )}
                               {/* ช่องกว้างคงที่ ให้ปุ่มเลือกของทุกแถวตรงกัน */}
                               {!locked && (
                                 <Box width={170}>
@@ -587,6 +586,40 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
                                 )}
                               </Box>
                             </Box>
+                            {/* เลือก "ผสม" แล้วช่อง % โผล่ใต้รายการนั้นเลย */}
+                            {v.beh === 'MIXED' && (
+                              <Box
+                                display="flex"
+                                flexWrap="wrap"
+                                alignItems="center"
+                                gap={2}
+                                pl={8}
+                                pr={3}
+                                pb={2}
+                                bgcolor={isChanged ? 'warning.lighterOpacity' : undefined}
+                              >
+                                <Box component="i" className="ri-corner-down-right-line" color="text.disabled" />
+                                <Typography variant="body2" color="text.secondary">
+                                  สัดส่วน:
+                                </Typography>
+                                <NumberTextField
+                                  size="small"
+                                  label="คงที่ %"
+                                  disabled={locked}
+                                  value={Math.round(v.f * 100)}
+                                  onChange={(n) =>
+                                    setRows([a.key], () => ({ beh: 'MIXED', f: Math.min(n, 100) / 100 }))
+                                  }
+                                  error={!!err}
+                                  helperText={err ?? undefined}
+                                  sx={{ width: 110 }}
+                                />
+                                <Typography variant="body2" fontWeight={600}>
+                                  ผันแปร {100 - Math.round(v.f * 100)}%
+                                </Typography>
+                              </Box>
+                            )}
+                            </Fragment>
                           );
                         })}
                       </Collapse>
@@ -598,8 +631,8 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
 
             <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
               <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
-                ต่างจากค่าตั้งต้น <b>{changedCount}</b> รายการ · ยังไม่จำแนก <b>{unclassified}</b>{' '}
-                รายการ
+                ต่างจากค่าตั้งต้น <b>{changedCount}</b> รายการ · ผสม <b>{mixed.length}</b> รายการ ·
+                ยังไม่จำแนก <b>{unclassified}</b> รายการ
                 {dirty && !locked && ' · มีการแก้ที่ยังไม่บันทึก (เก็บเป็นร่างไว้แล้ว)'}
               </Typography>
               {!locked && (
@@ -640,6 +673,7 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
           </>
         )}
       </CardContent>
+    </Card>
 
       <Dialog open={!!confirm} onClose={() => setConfirm(null)} maxWidth="xs" fullWidth>
         <DialogTitle>
@@ -663,7 +697,7 @@ const ClassificationStep = ({ id, header, year, fac, locked, savedBy, onToast }:
           </Button>
         </DialogActions>
       </Dialog>
-    </Card>
+    </>
   );
 };
 

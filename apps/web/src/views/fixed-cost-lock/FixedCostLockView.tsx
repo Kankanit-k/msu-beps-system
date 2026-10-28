@@ -7,10 +7,14 @@
  * - ผู้ดูแลคณะเลือก 1 ใน 3 วิธี (หารรายหัว · หารเท่ากันทุกหลักสูตร · กำหนด %) แล้ว "บันทึกการตั้งค่า" → มีผลทันที
  *   แก้ได้อิสระจนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง → 🔒 ล็อก · แก้ต้องทำบันทึกขออนุมัติ แล้วกองแผนปลดล็อก
  * - สถานะ 3 แบบ: ยังไม่ตั้ง / ตั้งค่าแล้ว / ล็อกแล้ว
- * - มติ "ตั้งค่าต้นทุน" 27 ต.ค. (PLAN-2026-10-27-cost-config): เพิ่มขั้นที่ 2 จำแนกคงที่/ผันแปรของคณะ (ClassificationStep)
+ * - มติ "ตั้งค่าต้นทุน" 27 ต.ค. (PLAN-2026-10-27-cost-config): จำแนกคงที่/ผันแปรของคณะ (ClassificationStep)
  *   ล็อกพร้อมวิธีปันส่วน · ผู้บริหารคณะตั้งค่าได้ (D1) · ปลดล็อกต้องกรอกเลขที่บันทึกข้อความ
+ * - 28 ต.ค. แยกเป็น 2 หน้า (mode): `variable` = จำแนกคงที่/ผันแปร (/admin/variable-cost) ·
+ *   `fixed` = วิธีปันส่วนต้นทุนคงที่ (/admin/fixed-cost-lock) — ที่เก็บและการล็อกยังเป็นชุดเดียวกัน
  */
 import { useEffect, useMemo, useState } from 'react';
+
+import Link from 'next/link';
 
 // MUI Imports
 import Alert from '@mui/material/Alert';
@@ -89,8 +93,8 @@ const STEPS = [
   { id: 'step-faculty', label: 'เลือกคณะ', hint: 'เลือกคณะที่จะตั้งค่า' },
   {
     id: 'step-classify',
-    label: 'จำแนกคงที่/ผันแปร',
-    hint: 'ไม่บังคับ — ค่าตั้งต้นตาม Excel มหาวิทยาลัย',
+    label: 'เลือกประเภทต้นทุน',
+    hint: 'คงที่ / ผันแปร / ผสม (กรอก %) แล้วบันทึก — ไม่แก้ใช้ค่าตั้งต้นมหาวิทยาลัย',
   },
   { id: 'step-method', label: 'เลือกวิธีแบ่งต้นทุน', hint: 'เลือก 1 ใน 3 วิธีตามมติคณะ' },
   { id: 'step-compare', label: 'เทียบผล 3 วิธี', hint: 'ดูภาระของแต่ละหลักสูตร (ไม่บังคับ)' },
@@ -98,6 +102,17 @@ const STEPS = [
 ];
 
 type StepStatus = 'done' | 'current' | 'optional' | 'todo';
+
+/** variable = หน้าตั้งค่าต้นทุนผันแปร (จำแนก) · fixed = หน้าตั้งค่าต้นทุนคงที่ (วิธีปันส่วน) */
+export type CostSettingMode = 'variable' | 'fixed';
+
+export const VARIABLE_COST_HREF = '/admin/variable-cost';
+export const FIXED_COST_HREF = '/admin/fixed-cost-lock';
+
+const STEP_IDS: Record<CostSettingMode, string[]> = {
+  variable: ['step-faculty', 'step-classify'],
+  fixed: ['step-faculty', 'step-method', 'step-compare', 'step-save'],
+};
 
 const STATUS_CHIP: Record<
   StepStatus,
@@ -212,7 +227,7 @@ const writeDrafts = (d: Drafts) => {
 /** ส่วนแบ่งส่วนกลางคณะ (งบสำนักงาน + ค่าเสื่อม) ที่ชีตแท็บ 3 ปันไว้ */
 const sheetShareOf = poolAmountOf('ALL');
 
-const FixedCostLockView = () => {
+const FixedCostLockView = ({ mode }: { mode: CostSettingMode }) => {
   const year = MOCK_RUN.budgetYear;
   const { role, scope, ready: roleReady } = useRole();
   const { user } = useAuthUser();
@@ -358,15 +373,33 @@ const FixedCostLockView = () => {
       : !outcome?.applied
         ? 'แก้ข้อทักท้วงของวิธีปันส่วนก่อน (เช่น % รวมไม่ครบ 100)'
         : capIssue;
-  const activeStep = !fac ? 0 : saved ? 5 : lockBlocker ? 2 : 4;
   const methodOk = !!fac && rows.length > 0 && !lockBlocker;
-  const status: StepStatus[] = [
-    fac ? 'done' : 'current',
-    !fac ? 'todo' : classConfig ? 'done' : 'optional',
-    !fac ? 'todo' : saved || readOnly || methodOk ? 'done' : 'current',
-    !fac ? 'todo' : saved ? 'done' : 'optional',
-    !fac ? 'todo' : saved ? 'done' : readOnly ? 'todo' : methodOk ? 'current' : 'todo',
-  ];
+  const classStatus: StepStatus = !fac ? 'todo' : classConfig ? 'done' : 'optional';
+  const statusOf: Record<string, StepStatus> = {
+    'step-faculty': fac ? 'done' : 'current',
+    'step-classify': classStatus,
+    'step-method': !fac ? 'todo' : saved || readOnly || methodOk ? 'done' : 'current',
+    'step-compare': !fac ? 'todo' : saved ? 'done' : 'optional',
+    'step-save': !fac ? 'todo' : saved ? 'done' : readOnly ? 'todo' : methodOk ? 'current' : 'todo',
+  };
+  /** ขั้นเฉพาะของหน้านี้ — เลขขั้นนับใหม่ต่อหน้า */
+  const shown = STEPS.filter((st) => STEP_IDS[mode].includes(st.id)).map((st) => ({
+    ...st,
+    status: statusOf[st.id]!,
+  }));
+  const status = shown.map((st) => st.status);
+  const noOf = (id: string) => shown.findIndex((st) => st.id === id) + 1;
+  const activeStep = !fac
+    ? 0
+    : mode === 'variable'
+      ? classConfig
+        ? 2
+        : 1
+      : saved
+        ? 4
+        : lockBlocker
+          ? 1
+          : 3;
   /** เงื่อนไขที่ปุ่มบันทึกต้องผ่านทุกข้อ — แสดงเป็นรายการให้รู้ว่าปุ่มจะกดได้เมื่อไร */
   const lockChecks = [
     { ok: !!fac, label: 'เลือกคณะแล้ว (ขั้นที่ 1)' },
@@ -375,8 +408,8 @@ const FixedCostLockView = () => {
       ok: !!fac && rows.length > 0 && !lockBlocker,
       label:
         choice.method === 'CUSTOM_PCT'
-          ? 'กรอกสัดส่วน % ครบ 100 และไม่มีข้อทักท้วง (ขั้นที่ 3)'
-          : 'เลือกวิธีปันส่วนแล้ว (ขั้นที่ 3)',
+          ? `กรอกสัดส่วน % ครบ 100 และไม่มีข้อทักท้วง (ขั้นที่ ${noOf('step-method')})`
+          : `เลือกวิธีปันส่วนแล้ว (ขั้นที่ ${noOf('step-method')})`,
     },
   ];
 
@@ -531,12 +564,21 @@ const FixedCostLockView = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box>
         <Typography variant="h5" fontWeight={700}>
-          ตั้งค่าต้นทุนของคณะ — จำแนกคงที่/ผันแปร และวิธีปันส่วน
+          {mode === 'variable'
+            ? 'ตั้งค่าต้นทุนผันแปร — จำแนกรายการต้นทุนคงที่/ผันแปรของคณะ'
+            : 'ตั้งค่าต้นทุนคงที่ — วิธีปันส่วนต้นทุนคงที่ส่วนกลางคณะลงหลักสูตร'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          ปีงบประมาณ {year} · ไม่บังคับ — ถ้าคณะยังไม่ตั้งค่า หน้าคำนวณใช้ค่าปีก่อนหน้า
-          หรือค่าเริ่มต้นตามแบบจำลอง Excel (หารรายหัว) · บันทึกแล้วมีผลทันที
-          แก้ได้จนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง (ล็อก)
+          ปีงบประมาณ {year} · ไม่บังคับ —{' '}
+          {mode === 'variable'
+            ? 'ถ้าคณะยังไม่ตั้งค่า ใช้ค่าปีก่อนหน้า หรือกติกาตั้งต้นของมหาวิทยาลัย'
+            : 'ถ้าคณะยังไม่ตั้งค่า หน้าคำนวณใช้ค่าปีก่อนหน้า หรือค่าเริ่มต้นตามแบบจำลอง Excel (หารรายหัว) · บันทึกแล้วมีผลทันที'}{' '}
+          · แก้ได้จนกว่าจะมีหลักสูตรในคณะยืนยันเอกสารฉบับจริง (ล็อกทั้งสองหน้าพร้อมกัน) ·{' '}
+          {mode === 'variable' ? (
+            <Link href={FIXED_COST_HREF}>ไปหน้าตั้งค่าต้นทุนคงที่</Link>
+          ) : (
+            <Link href={VARIABLE_COST_HREF}>ไปหน้าตั้งค่าต้นทุนผันแปร</Link>
+          )}
           {readOnly && ' · ผู้บริหารคณะดูได้อย่างเดียว เจ้าหน้าที่ระดับคณะเป็นผู้บันทึก'}
         </Typography>
       </Box>
@@ -544,7 +586,7 @@ const FixedCostLockView = () => {
       <Card>
         <CardContent>
           <Stepper activeStep={activeStep} alternativeLabel nonLinear>
-            {STEPS.map((st, i) => (
+            {shown.map((st, i) => (
               <Step key={st.id} completed={status[i] === 'done'}>
                 <StepButton
                   disabled={i > 0 && !fac}
@@ -570,19 +612,19 @@ const FixedCostLockView = () => {
           </Stepper>
           {!fac && (
             <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 3 }}>
-              เริ่มที่ขั้นที่ 1 — เลือกคณะด้านล่าง แล้วขั้นที่ 2–5 จะปรากฏ
+              เริ่มที่ขั้นที่ 1 — เลือกคณะด้านล่าง แล้วขั้นถัดไปจะปรากฏ
             </Typography>
           )}
         </CardContent>
       </Card>
 
       {/* ---------- 1. คณะ + สถานะ ---------- */}
-      <Card id={STEPS[0]!.id} sx={{ scrollMarginTop: 80 }}>
+      <Card id="step-faculty" sx={{ scrollMarginTop: 80 }}>
         <StepHeader
           no={1}
           status={status[0]!}
           title="เลือกคณะ / หน่วยงาน"
-          hint="เลือกคณะที่ประชุมตกลงวิธีปันส่วนแล้ว · ระบบจะแสดงสถานะการตั้งค่าปัจจุบันของคณะนั้น"
+          hint="เลือกคณะที่จะตั้งค่า · ระบบจะแสดงสถานะการตั้งค่าปัจจุบันของคณะนั้น"
         />
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Autocomplete
@@ -624,7 +666,10 @@ const FixedCostLockView = () => {
                 ) : undefined
               }
             >
-              <AlertTitle>🔒 ล็อกแล้ว — {ALLOC_METHOD_LABEL[config.choice.method]}</AlertTitle>
+              <AlertTitle>
+                🔒 ล็อกแล้ว
+                {mode === 'fixed' && ` — ${ALLOC_METHOD_LABEL[config.choice.method]}`}
+              </AlertTitle>
               ล็อกเมื่อหลักสูตร <b>{submitLock.program}</b> ยืนยันเอกสารฉบับจริง{' '}
               {fmtLockedAt(submitLock.at)} โดย {submitLock.by} · ตั้งค่าเมื่อ{' '}
               {fmtLockedAt(config.lockedAt)} โดย {config.lockedBy}
@@ -632,7 +677,7 @@ const FixedCostLockView = () => {
               แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน แล้วกองแผนจะปลดล็อกให้
             </Alert>
           )}
-          {fac && ready && config && !submitLock && (
+          {mode === 'fixed' && fac && ready && config && !submitLock && (
             <Alert
               severity="success"
               icon={<i className="ri-checkbox-circle-line" />}
@@ -657,7 +702,7 @@ const FixedCostLockView = () => {
               {editing && ' — กำลังแก้ไข: ค่าเดิมยังใช้คำนวณอยู่จนกว่าจะกดบันทึก'}
             </Alert>
           )}
-          {fac && ready && !config && effective && (
+          {mode === 'fixed' && fac && ready && !config && effective && (
             <Alert
               severity={effective.prevInvalidYear ? 'warning' : 'info'}
               icon={<i className="ri-information-line" />}
@@ -670,26 +715,25 @@ const FixedCostLockView = () => {
               — <b>{ALLOC_METHOD_LABEL[effective.choice.method]}</b>
               {effective.prevInvalidYear &&
                 ` · ค่าปี ${effective.prevInvalidYear} ใช้กับหลักสูตรปีนี้ไม่ได้ — ใช้ค่าตาม Excel แทน กรุณาตั้งค่า`}
-              {!readOnly && ' · ตั้งค่าในขั้นที่ 2–5 ด้านล่าง (ฟอร์มเริ่มจากค่าที่ใช้อยู่)'}
+              {!readOnly && ' · ตั้งค่าในขั้นถัดไปด้านล่าง (ฟอร์มเริ่มจากค่าที่ใช้อยู่)'}
             </Alert>
           )}
         </CardContent>
       </Card>
 
-      {fac && scenario && (
-        <>
-          {/* ---------- 2. จำแนกคงที่/ผันแปร (มติ ตั้งค่าต้นทุน 27 ต.ค.) ---------- */}
+      {mode === 'variable' && fac && scenario && (
+          /* ---------- จำแนกคงที่/ผันแปร (มติ ตั้งค่าต้นทุน 27 ต.ค.) ---------- */
           <ClassificationStep
-            id={STEPS[1]!.id}
+            id="step-classify"
             header={
               <StepHeader
-                no={2}
-                status={status[1]!}
-                title="จำแนกต้นทุนคงที่/ผันแปร"
+                no={noOf('step-classify')}
+                status={statusOf['step-classify']!}
+                title="เลือกประเภทต้นทุน — คงที่ / ผันแปร / ผสม"
                 hint={
                   submitLock
                     ? 'ล็อกแล้ว — แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน'
-                    : 'เลือกประเภทของแต่ละรายการให้ตรงบริบทคณะ — ไม่แก้ = ใช้ค่าตั้งต้นของมหาวิทยาลัย · บันทึกแยกจากวิธีปันส่วน'
+                    : 'เลือกประเภทของแต่ละรายการให้ตรงบริบทคณะ — ไม่แก้ = ใช้ค่าตั้งต้นของมหาวิทยาลัย · รายการที่เป็นทั้งสองแบบเลือก “ผสม” แล้วกรอก % ในแถวที่โผล่ใต้รายการ · ตัวกรอง “ผสม” ใช้ทบทวนก่อนบันทึก'
                 }
               />
             }
@@ -699,12 +743,15 @@ const FixedCostLockView = () => {
             savedBy={lockedBy}
             onToast={setToast}
           />
+      )}
 
-          {/* ---------- 3. วิธี ---------- */}
-          <Card id={STEPS[2]!.id} sx={{ scrollMarginTop: 80 }}>
+      {mode === 'fixed' && fac && scenario && (
+        <>
+          {/* ---------- วิธี ---------- */}
+          <Card id="step-method" sx={{ scrollMarginTop: 80 }}>
             <StepHeader
-              no={3}
-              status={status[2]!}
+              no={noOf('step-method')}
+              status={statusOf['step-method']!}
               title="เลือกวิธีแบ่งต้นทุน"
               hint={
                 submitLock
@@ -870,10 +917,10 @@ const FixedCostLockView = () => {
           </Card>
 
           {/* ---------- 3. เทียบ 3 วิธี ---------- */}
-          <Card id={STEPS[3]!.id} sx={{ scrollMarginTop: 80 }}>
+          <Card id="step-compare" sx={{ scrollMarginTop: 80 }}>
             <StepHeader
-              no={4}
-              status={status[3]!}
+              no={noOf('step-compare')}
+              status={statusOf['step-compare']!}
               title="เทียบส่วนแบ่งรายหลักสูตรทั้ง 3 วิธี"
               hint="ดูว่าแต่ละวิธีทำให้หลักสูตรรับภาระเท่าไร (ไม่บังคับ) · บรรทัดล่าง = เทียบกับที่ชีตปันไว้ (▲ แดง = ภาระเพิ่ม · ▼ เขียว = ภาระลด) · คอลัมน์ที่ไฮไลต์ = วิธีที่เลือกอยู่ · เปลี่ยนวิธีได้จากปุ่ม “เลือกวิธีนี้”"
             />
@@ -1010,7 +1057,7 @@ const FixedCostLockView = () => {
               )}
               {compare.some((c) => c.m === 'CUSTOM_PCT' && !c.applied) && (
                 <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
-                  วิธีกำหนด % เอง ยังแสดงผลไม่ได้ — เลือกวิธีนี้ในขั้นที่ 3 แล้วกรอกสัดส่วนให้ครบ
+                  วิธีกำหนด % เอง ยังแสดงผลไม่ได้ — เลือกวิธีนี้ในขั้นที่ {noOf('step-method')} แล้วกรอกสัดส่วนให้ครบ
                   100% ก่อน
                 </Alert>
               )}
@@ -1018,7 +1065,7 @@ const FixedCostLockView = () => {
           </Card>
           {/* ---------- 4. บันทึกการตั้งค่า ---------- */}
           <Card
-            id={STEPS[4]!.id}
+            id="step-save"
             sx={{
               scrollMarginTop: 80,
               border: 2,
@@ -1030,8 +1077,8 @@ const FixedCostLockView = () => {
             }}
           >
             <StepHeader
-              no={5}
-              status={status[4]!}
+              no={noOf('step-save')}
+              status={statusOf['step-save']!}
               title="บันทึกการตั้งค่า"
               hint={
                 submitLock

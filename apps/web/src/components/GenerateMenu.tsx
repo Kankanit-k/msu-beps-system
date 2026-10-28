@@ -113,7 +113,8 @@ export const GenerateVerticalMenu = ({ menuData }: { menuData: VerticalMenuDataT
 
       return (
         <VerticalMenuItem
-          key={index}
+          // key ตาม href — key ตาม index ทำให้สถานะ active ค้างผิดรายการเมื่อเมนูเปลี่ยนตามบทบาทหลังโหลด
+          key={href ?? index}
           prefix={menuItemPrefix}
           suffix={menuItemSuffix}
           {...rest}

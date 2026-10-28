@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนแชร์การตั้งค่าข้ามผู้ใช้</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+  --primary:#818cf8; --primary-soft:#23264a;
+  --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+  --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+h3{font-size:1.05rem;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+nav.toc a:hover{border-color:var(--primary);color:var(--primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+td.c,th.c{text-align:center}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+ol.steps{margin:0;padding-left:20px}
+ol.steps li{margin-bottom:10px}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem;margin-top:4px}
+.wire{border:2px dashed var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;background:var(--bg)}
+.wire .box{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--card);font-size:.9rem}
+.wire .row{display:grid;gap:10px}
+.wire .c2{grid-template-columns:1fr 1fr}
+.wire .c3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:760px){.wire .c2,.wire .c3{grid-template-columns:1fr}}
+.wire .sticky{background:var(--primary-soft);border-color:var(--primary)}
+.wire .lockd{background:var(--line)}
+.wire .edit{background:var(--warn-soft);border-color:var(--warn)}
+.wire small{color:var(--muted);display:block}
+code{font-size:.88em}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>แผนงาน: ย้ายการตั้งค่าและผลคำนวณจากเบราว์เซอร์ไปฐานข้อมูลกลาง</h1>
+<p class="sub">MSU-BEPS · จากคำถาม “ผู้ใช้ระดับเดียวกันคนละบัญชีเห็นการตั้งค่าของกันไหม” · 28 ต.ค. 2569 · <span class="tag t-info">พักไว้ — ตอนนี้ระบบยังเป็น mockup ใช้ localStorage ต่อ (28 ต.ค.)</span></p>
+
+<nav class="toc">
+  <a href="#s1">1. สรุป</a><a href="#s2">2. ที่เก็บปัจจุบัน</a><a href="#s3">3. ใครเห็นอะไร</a>
+  <a href="#s4">4. โครงสร้าง</a><a href="#s5">5. ต้องตัดสินใจ</a><a href="#s6">6. ลำดับงาน</a>
+</nav>
+
+<div class="card" id="s1">
+<h2><span class="n">1</span>สรุป</h2>
+<p>ตอนนี้การตั้งค่าและผลคำนวณทั้งหมดเก็บใน <b>localStorage ของเบราว์เซอร์</b> จึงผูกกับเครื่อง ไม่ได้ผูกกับบัญชี</p>
+<ul>
+  <li>คนละเครื่อง หรือคนละเบราว์เซอร์ จะ<b>มองไม่เห็น</b>ของกันและกัน แม้อยู่คณะเดียวกันและบทบาทเดียวกัน</li>
+  <li>เครื่องเดียวกันที่สลับ login จะ<b>เห็นทั้งหมด</b>เพราะไม่ได้กรองตามผู้ใช้ เช่น เห็นผลที่คุณเอื้องยืนยันไว้</li>
+  <li>ล้างข้อมูลเบราว์เซอร์แล้วข้อมูลหาย รวมถึงการล็อกคณะและผลที่ยืนยันแล้ว</li>
+</ul>
+<p>เป้าหมายคือย้ายข้อมูลที่ต้องใช้ร่วมกันขึ้นฐานข้อมูลกลาง แล้วให้<b>เซิร์ฟเวอร์</b>เป็นผู้กรองตามบทบาทและคณะ โดยคงชื่อฟังก์ชันใน store เดิมไว้ หน้าจอจึงแทบไม่ต้องแก้</p>
+<div class="callout"><b>เงื่อนไขก่อนเริ่ม:</b> production ยังตั้ง <code>AUTH_DISABLED=true</code> และบทบาท/คณะยังเลือกเองได้จากเมนูโปรไฟล์ ถ้าเซิร์ฟเวอร์ไม่รู้ว่าใครเป็นใคร ก็บังคับสิทธิ์การมองเห็นไม่ได้ ต้องเปิด login (อย่างน้อยเป็น mock login ที่บทบาทมาจาก <code>configs/mockUsers.ts</code> ฝั่งเซิร์ฟเวอร์) ก่อน (D5)</div>
+</div>
+
+<div class="card" id="s2">
+<h2><span class="n">2</span>ที่เก็บปัจจุบัน (localStorage) และปลายทาง</h2>
+<div class="scroll"><table>
+<tr><th>ไฟล์ store</th><th>เก็บอะไร</th><th>ลักษณะ</th><th>ปลายทาง</th></tr>
+<tr><td><code>fixed-cost-lock/lockStore.ts</code></td><td>วิธีปันส่วนต้นทุนคงที่ของคณะ + การล็อก/ปลดล็อก</td><td>ใช้ร่วมกันทั้งคณะ</td><td><span class="tag t-ok">ขึ้นฐานข้อมูล</span></td></tr>
+<tr><td><code>fixed-cost-lock/classStore.ts</code></td><td>จำแนกคงที่/ผันแปรของคณะ</td><td>ใช้ร่วมกันทั้งคณะ</td><td><span class="tag t-ok">ขึ้นฐานข้อมูล</span></td></tr>
+<tr><td><code>scenario-program/historyStore.ts</code></td><td>ผลคำนวณปรับปรุง/เปิดหลักสูตร (ร่าง + ยืนยันแล้ว)</td><td>ร่าง = ของเจ้าของ · ยืนยันแล้ว = ใช้ร่วม</td><td><span class="tag t-ok">ขึ้นฐานข้อมูล</span></td></tr>
+<tr><td><code>account-rules/ruleStore.ts</code></td><td>กติกาผังบัญชีของมหาวิทยาลัย (เสนอ → อนุมัติ)</td><td>ใช้ร่วมทั้งมหาวิทยาลัย</td><td><span class="tag t-ok">ขึ้นฐานข้อมูล</span></td></tr>
+<tr><td><code>per-head-rates/rateStore.ts</code></td><td>อัตราหักสมทบ/รายการหลัก (เสนอ → อนุมัติ)</td><td>ใช้ร่วมทั้งมหาวิทยาลัย</td><td><span class="tag t-ok">ขึ้นฐานข้อมูล</span></td></tr>
+<tr><td><code>scenario-program/admissionPlanStore.ts</code> · <code>sandboxStore.ts</code></td><td>แผนรับนิสิต / แผนจำลองที่ตั้งชื่อบันทึก</td><td>ของเจ้าของเท่านั้น (ตัดสินใจ 14 ต.ค.)</td><td><span class="tag t-ok">ขึ้นฐานข้อมูล</span> แยกตามเจ้าของ</td></tr>
+<tr><td>ร่างที่กำลังกรอก (<code>*.draft</code>, <code>fixed-cost-policy/draft.ts</code>)</td><td>ค่าที่ยังไม่กดบันทึก กันปิดหน้าพลาด</td><td>เฉพาะเครื่องนี้</td><td><span class="tag t-info">คงไว้ในเบราว์เซอร์</span></td></tr>
+<tr><td><code>hooks/useRole.ts</code></td><td>บทบาทที่สลับดู (ตัวสลับบทบาทของนักพัฒนา)</td><td>เฉพาะเครื่องนี้</td><td><span class="tag t-info">คงไว้</span> แต่สิทธิ์จริงมาจาก session</td></tr>
+</table></div>
+</div>
+
+<div class="card" id="s3">
+<h2><span class="n">3</span>ใครเห็นอะไร (ข้อเสนอ)</h2>
+<div class="scroll"><table>
+<tr><th>ข้อมูล</th><th class="c">กองแผน<br><small>universityAdmin</small></th><th class="c">ผู้บริหาร มหาวิทยาลัย</th><th class="c">ผู้บริหารคณะ / เจ้าหน้าที่คณะ</th><th class="c">อาจารย์ประจำหลักสูตร</th></tr>
+<tr><td>การตั้งค่าคณะ (วิธีปันส่วน + จำแนก)</td><td class="c">ดูทุกคณะ · ปลดล็อก</td><td class="c">ดูทุกคณะ</td><td class="c">ดู + แก้ของคณะตัวเอง (จนกว่าจะล็อก)</td><td class="c">ดูของคณะตัวเอง</td></tr>
+<tr><td>ผลคำนวณที่<b>ยืนยันแล้ว</b></td><td class="c">ดูทุกคณะ</td><td class="c">ดูทุกคณะ</td><td class="c">ดูทั้งคณะ</td><td class="c">ดูของหลักสูตรตัวเอง</td></tr>
+<tr><td>ผลคำนวณที่เป็น<b>ร่าง</b> / แผนจำลอง</td><td class="c">ดูทุกคน (ตาม API แผนรับนิสิต)</td><td class="c">—</td><td class="c">ของตัวเองเท่านั้น</td><td class="c">ของตัวเองเท่านั้น</td></tr>
+<tr><td>กติกาผังบัญชี / อัตรารายหัว</td><td class="c">เสนอ + อนุมัติ</td><td class="c">ดู</td><td class="c">ดู</td><td class="c">ดู</td></tr>
+</table></div>
+<p>แถวร่างใช้กติกาเดิมที่ตัดสินไว้แล้วใน <code>ADMISSION-PLAN-API.md</code> ข้อ 4 (14 ต.ค.): ผู้ดูแลคณะไม่เห็นผลจำลองของคนอื่นในคณะ</p>
+</div>
+
+<div class="card" id="s4">
+<h2><span class="n">4</span>โครงสร้างที่เสนอ</h2>
+<ol class="steps">
+  <li><b>ฐานข้อมูล:</b> PostgreSQL ตัวเดียวกับที่วางไว้ใน <code>docker-compose.yml</code> (ที่ตั้งเครื่องดู D2)</li>
+  <li><b>API:</b> route handler ใน <code>apps/web/src/app/api/store/…</code> แบบเดียวกับ <code>api/fixed-cost/simulate</code> ทุก request อ่านผู้ใช้ บทบาท และคณะจาก session ฝั่งเซิร์ฟเวอร์ แล้วกรองตามตารางข้อ 3 ไม่เชื่อค่าที่ส่งมาจากเบราว์เซอร์</li>
+  <li><b>ตาราง (ระยะแรก):</b> เก็บก้อน JSON ตามรูปแบบเดิมของแต่ละ store ในตารางเดียว (D1)
+<pre style="white-space:pre-wrap;font-size:.85rem">app_record(id, kind, scope_year, scope_faculty, scope_program,
+           owner_email, status, data jsonb, version, updated_by, updated_at)
+app_record_log(record_id, action, by, at, memo, data_before jsonb)</pre>
+  <code>kind</code> เช่น <code>faculty-lock</code>, <code>faculty-class</code>, <code>program-result</code>, <code>account-rule</code>, <code>per-head-rate</code>, <code>admission-plan</code>, <code>sandbox-plan</code></li>
+  <li><b>ฝั่งหน้าจอ:</b> แก้เฉพาะข้างในไฟล์ store ให้เรียก API แทน localStorage และคงชื่อฟังก์ชันเดิมไว้ ระหว่างโหลดแสดง skeleton ถ้าบันทึกไม่สำเร็จให้แจ้งสาเหตุผ่าน toast</li>
+  <li><b>ชนกันเมื่อสองคนแก้พร้อมกัน:</b> ส่ง <code>version</code> ไปด้วยทุกครั้ง ถ้าข้อมูลถูกแก้ไปก่อนแล้ว ให้ตอบ 409 และแสดงข้อความ “มีผู้อื่นแก้ไขเมื่อ … โดย … กรุณาโหลดใหม่” (D6)</li>
+</ol>
+<div class="callout info">เมื่อทำ Sprint 2 (Prisma schema 32 ตารางตาม SA.md) ค่อยย้ายจาก <code>app_record</code> ไปตารางจริง (<code>fixed_cost_policy</code>, <code>account_behavior_rule</code>, <code>per_student_charge</code>, <code>scenario_plan</code>) โดยหน้าจอไม่ต้องแก้ เพราะคุยผ่าน store เดิม</div>
+</div>
+
+<div class="card" id="s5">
+<h2><span class="n">5</span>ต้องตัดสินใจ</h2>
+<div class="q"><b>D1 · รูปแบบตาราง</b>
+ก) ตาราง JSON ตารางเดียว (ทำได้ภายในไม่กี่วัน ตรงกับรูปแบบข้อมูลที่หน้าจอใช้อยู่) · ข) สร้างตารางจริงตาม <code>db/01_schema.sql</code> เลย (ถูกต้องระยะยาว แต่ต้องแปลงรูปข้อมูลเยอะ และตารางต้นทาง เช่น program_version ยังไม่มีข้อมูล)
+<div class="rec">เสนอ: ก) ตอนนี้ แล้วย้ายไป ข) ใน Sprint 2</div></div>
+<div class="q"><b>D2 · ฐานข้อมูลตั้งที่ไหน</b>
+ก) Postgres บนคลาวด์ที่ต่อกับ Vercel ได้ทันที (เช่น Neon ผ่าน Vercel Marketplace) · ข) เซิร์ฟเวอร์ของมหาวิทยาลัย (ข้อมูลอยู่ในมหาวิทยาลัย แต่ Vercel ต้องเข้าถึงจากภายนอกได้ หรือต้องย้ายแอปไปรันในมหาวิทยาลัยด้วย)
+<div class="rec">เสนอ: ก) สำหรับช่วงทดลองใช้ แล้วถามศูนย์คอมพิวเตอร์เรื่องย้ายไป ข) ก่อนใช้งานจริง · ข้อนี้ต้องให้กองแผน/ศูนย์คอมฯ ตัดสินเรื่องที่เก็บข้อมูลการเงิน</div></div>
+<div class="q"><b>D3 · สิทธิ์การมองเห็น</b>
+ตามตารางข้อ 3 — ยืนยันแล้วเห็นทั้งคณะ · ร่างเห็นเฉพาะเจ้าของ · กองแผนเห็นทุกคณะ
+<div class="rec">เสนอ: ใช้ตามตาราง · ถามเพิ่ม: อาจารย์ประจำหลักสูตรควรเห็นผลที่ยืนยันแล้วของหลักสูตรอื่นในคณะไหม (เสนอว่าไม่เห็น)</div></div>
+<div class="q"><b>D4 · ข้อมูลที่ค้างในเบราว์เซอร์ตอนนี้</b>
+ก) ทิ้ง เริ่มใหม่บนฐานข้อมูล · ข) มีปุ่ม “นำข้อมูลจากเครื่องนี้ขึ้นระบบ” ครั้งเดียว
+<div class="rec">เสนอ: ก) เพราะยังเป็นข้อมูลทดลอง แต่ประกาศให้ผู้ทดสอบรู้ก่อน deploy · ถ้ามีผลที่ยืนยันไว้จริงแล้ว (เช่น ของคุณเอื้อง) ให้กองแผนกรอกซ้ำ หรือเลือก ข)</div></div>
+<div class="q"><b>D5 · เปิด login บน production</b>
+ต้องรู้ตัวผู้ใช้ฝั่งเซิร์ฟเวอร์ก่อน ก) mock login (บัญชีใน <code>mockUsers.ts</code>) · ข) ERP login จริง พร้อมข้อมูลคณะ/หลักสูตรจาก ERP
+<div class="rec">เสนอ: ก) ไปก่อน และปิดตัวสลับบทบาท (SHOW_ROLE_SWITCHER ปิดอยู่แล้ว) ให้บทบาทมาจาก session เท่านั้น</div></div>
+<div class="q"><b>D6 · สองคนแก้การตั้งค่าคณะพร้อมกัน</b>
+ก) คนบันทึกหลังทับคนแรก · ข) ตรวจ version แล้วแจ้งให้โหลดใหม่
+<div class="rec">เสนอ: ข) กันการตั้งค่าคณะถูกทับโดยไม่รู้ตัว</div></div>
+</div>
+
+<div class="card" id="s6">
+<h2><span class="n">6</span>ลำดับงาน</h2>
+<div class="scroll"><table>
+<tr><th>รหัส</th><th>งาน</th><th>ขนาด</th></tr>
+<tr><td>DB-0</td><td>ตั้ง Postgres (D2) + ตาราง <code>app_record</code> / <code>app_record_log</code> + ตัวแปร <code>DATABASE_URL</code> บน Vercel</td><td>เล็ก</td></tr>
+<tr><td>DB-1</td><td>เปิด login บน prod (D5) + helper ฝั่งเซิร์ฟเวอร์ที่คืน {email, role, faculty, program} จาก session</td><td>เล็ก–กลาง</td></tr>
+<tr><td>DB-2</td><td>API <code>/api/store/[kind]</code> GET/PUT/DELETE + กรองสิทธิ์ตามข้อ 3 + ตรวจ version + บันทึก log</td><td>กลาง</td></tr>
+<tr><td>DB-3</td><td>ย้าย lockStore + classStore (ตอบคำถามเรื่องการตั้งค่าคณะโดยตรง)</td><td>กลาง</td></tr>
+<tr><td>DB-4</td><td>ย้าย historyStore (ร่างของเจ้าของ / ยืนยันแล้วเห็นทั้งคณะ / กองแผนปลดล็อก)</td><td>กลาง</td></tr>
+<tr><td>DB-5</td><td>ย้าย ruleStore + rateStore + admissionPlan + sandbox</td><td>กลาง</td></tr>
+<tr><td>DB-6</td><td>ทดสอบด้วย 2 บัญชีบทบาทเดียวกันคนละเบราว์เซอร์ + บัญชีต่างคณะ (ต้องไม่เห็นกัน) · ตรวจความปลอดภัยของ API ก่อน deploy</td><td>เล็ก</td></tr>
+</table></div>
+<p>DB-0 ถึง DB-3 ทำให้ผู้ใช้คณะเดียวกันเห็นการตั้งค่าเดียวกันได้ ส่วนงานที่เหลือทยอยทำได้ทีละ store</p>
+</div>
+</div>
+</body>
+</html>

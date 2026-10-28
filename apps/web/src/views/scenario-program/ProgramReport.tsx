@@ -627,6 +627,8 @@ const ProgramReport = ({ entry }: Props) => {
     day: 'numeric',
   });
   const typeLabel = entry.isNew ? 'หลักสูตรใหม่' : 'หลักสูตรเดิม';
+  // ไม่มี = บันทึกก่อนมีฟิลด์นี้ = ตามชีต
+  const allocLabel = entry.allocMethod ?? 'ตามชีต';
   const status = (r: BreakEvenResult) =>
     r.qStar === null ? 'คำนวณจุดคุ้มทุนไม่ได้' : okOf(r) ? 'ผ่านจุดคุ้มทุน' : 'ยังไม่ถึงจุดคุ้มทุน';
   const tone = allOk
@@ -789,6 +791,9 @@ const ProgramReport = ({ entry }: Props) => {
                 <Pill bg="#fff1cc" color="#8a5a00">
                   ฐานรายได้: {REVENUE_MODE_LABEL.with_government}
                 </Pill>
+                <Pill bg="#dff3ff" color={NAVY}>
+                  ต้นทุนคงที่: {allocLabel}
+                </Pill>
               </Box>
             </Box>
           }
@@ -840,6 +845,7 @@ const ProgramReport = ({ entry }: Props) => {
             <Field label="สังกัดคณะ / วิทยาลัย" value={entry.fac || '-'} />
             <Field label="ระดับการศึกษา" value={entry.level} />
             <Field label="ประเภทหลักสูตร" value={typeLabel} />
+            <Field label="วิธีปันส่วนต้นทุนคงที่ส่วนกลางคณะ" value={allocLabel} />
             {entry.isNew && (
               <Field label="หลักสูตรอ้างอิง" value={entry.ref ?? 'ไม่มี (กรอกต้นทุนเอง)'} />
             )}

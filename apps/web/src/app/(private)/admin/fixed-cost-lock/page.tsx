@@ -1,7 +1,7 @@
 // Component Imports
 import FixedCostLockView from '@views/fixed-cost-lock/FixedCostLockView';
 
-/** ตั้งค่าวิธีปันส่วนต้นทุนคงที่ของคณะ (ผู้ดูแลคณะ) — ล็อกก่อน อาจารย์จึงปรับปรุง/เปิดหลักสูตรได้ */
-const FixedCostLockPage = () => <FixedCostLockView />;
+/** ตั้งค่าต้นทุนคงที่ — วิธีปันส่วนต้นทุนคงที่ส่วนกลางคณะลงหลักสูตร (ผู้ดูแลคณะ) */
+const FixedCostLockPage = () => <FixedCostLockView mode="fixed" />;
 
 export default FixedCostLockPage;

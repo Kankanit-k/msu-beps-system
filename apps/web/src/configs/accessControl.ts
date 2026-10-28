@@ -11,7 +11,7 @@
  *   deptAdmin        ✓          คณะตน              ✓ (คณะตน)          ✓ (คณะตน)  ✗
  *   lecturer         ✓          คณะตน              หลักสูตรตน          ✗          ✗
  *
- *   * ผู้บริหารคณะตั้งค่าหน้า "ตั้งค่าต้นทุน (คณะ)" (/admin/fixed-cost-lock) ของคณะตนได้
+ *   * ผู้บริหารคณะตั้งค่าหน้า "ตั้งค่าต้นทุนคงที่/ผันแปร" (/admin/fixed-cost-lock, /admin/variable-cost) ของคณะตนได้
  *     (มติ "ตั้งค่าต้นทุน" 27 ต.ค. 2569 D1 — เดิมอ่านอย่างเดียว) · หน้าตั้งค่าอื่นยังไม่เห็น
  *
  * Routes are matched WITHOUT the basePath (Next.js strips it inside middleware).
@@ -102,8 +102,9 @@ export const routeAccessRules: { prefix: string; roles: 'public' | AppRole[]; ex
     { prefix: '/cost-data', roles: UNIVERSITY_STAFF },
     { prefix: '/programs', roles: UNIVERSITY_STAFF },
     { prefix: '/about', roles: UNIVERSITY_STAFF },
-    // ตั้งค่าต้นทุน (คณะ) — เจ้าหน้าที่คณะ + ผู้บริหารคณะตั้งค่าคณะตนได้ (มติ 27 ต.ค. D1) · อาจารย์ไม่เห็น
+    // ตั้งค่าต้นทุนคงที่/ผันแปร (คณะ) — เจ้าหน้าที่คณะ + ผู้บริหารคณะตั้งค่าคณะตนได้ (มติ 27 ต.ค. D1) · อาจารย์ไม่เห็น
     { prefix: '/admin/fixed-cost-lock', roles: [...CONFIGURE_ROLES, 'facultyExec'] },
+    { prefix: '/admin/variable-cost', roles: [...CONFIGURE_ROLES, 'facultyExec'] },
     // ตั้งค่าการคำนวณ (วิธีปันส่วน · ปันส่วนต้นทุน) — เจ้าหน้าที่ ม. + เจ้าหน้าที่คณะ
     { prefix: '/admin', roles: CONFIGURE_ROLES },
   ];
