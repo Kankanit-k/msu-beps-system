@@ -34,6 +34,7 @@ import {
   STATUS_COLOR,
   STATUS_LABEL,
 } from '@views/breakeven/calc';
+import { programName } from '@/utils/programName';
 
 type SortKey = 'Q' | 'TC' | 'atc' | 'r' | 'diff';
 
@@ -175,7 +176,7 @@ const ProgramCostTable = ({ progs, mode, showFaculty, scopeLabel }: Props) => {
                 <TableCell sx={{ color: 'text.disabled', fontWeight: 700 }}>
                   {page * rowsPerPage + i + 1}
                 </TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{p.prog}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{programName(p)}</TableCell>
                 {showFaculty && (
                   <TableCell sx={{ color: 'text.secondary' }}>{shortFacName(p.fac)}</TableCell>
                 )}

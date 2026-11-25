@@ -52,6 +52,8 @@ export interface ProgramHistoryEntry {
   id: number;
   time: string;
   name: string;
+  /** ปรับปรุงหลักสูตร: ชื่อเดิมก่อนเปลี่ยนชื่อ (ไม่มี = ไม่ได้เปลี่ยนชื่อ) */
+  renamedFrom?: string;
   fac: string;
   level: string;
   isNew: boolean;

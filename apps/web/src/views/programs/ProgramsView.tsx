@@ -33,6 +33,7 @@ import type { ThemeColor } from '@core/types';
 // Data Imports
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
+import { programName } from '@/utils/programName';
 
 // อ้างอิง mockup/W16-programs.html — ทะเบียนหลักสูตรกับวงจรชีวิต (DRAFT → PENDING_APPROVAL → ACTIVE
 // → REVISING/SUSPENDED → CLOSED). ชุดข้อมูลจริงมีแค่ RAW.PROGS (230 หลักสูตร) ซึ่งไม่มีคอลัมน์สถานะ/รหัส
@@ -150,7 +151,9 @@ const ProgramsView = () => {
     return programs
       .map((p, i) => ({ p, i }))
       .filter(({ i }) => filterStatus === 'all' || statuses[i] === filterStatus)
-      .filter(({ p }) => !q || `${p.prog}${p.fac}${p.deg}`.toLowerCase().includes(q));
+      .filter(
+        ({ p }) => !q || `${p.prog}${programName(p)}${p.fac}${p.deg}`.toLowerCase().includes(q),
+      );
   }, [programs, statuses, filterStatus, query]);
 
   const pageRows = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -169,7 +172,8 @@ const ProgramsView = () => {
   };
 
   const transition = (index: number, next: ProgramStatus) => {
-    const prog = programs[index]?.prog ?? '';
+    const p = programs[index];
+    const prog = p ? programName(p) : '';
 
     setStatuses((prev) => ({ ...prev, [index]: next }));
     logChange(prog, `เปลี่ยนสถานะเป็น "${STATUS_META[next].label}"`);
@@ -401,12 +405,12 @@ const ProgramsView = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600} component="span">
-                            {p.prog}
+                            {programName(p)}
                             {p.deg.includes('นานาชาติ') && (
                               <Chip label="นานาชาติ" size="small" sx={{ ml: 2 }} />
                             )}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" display="block">
                             {p.fac}
                           </Typography>
                         </TableCell>
@@ -456,7 +460,7 @@ const ProgramsView = () => {
         <Stack spacing={6}>
           <Card>
             <CardHeader
-              title={selectedProgram.prog}
+              title={programName(selectedProgram)}
               subheader={`${programCode(selectedProgram, selected)} · ${selectedProgram.fac} · ${selectedProgram.lvl}`}
               action={
                 <Chip
@@ -568,7 +572,7 @@ const ProgramsView = () => {
           />
           <CardContent>
             <Typography variant="body2" sx={{ mb: 3 }}>
-              <b>{selectedProgram.prog}</b> ({selectedProgram.lvl}) — ผ่าน{' '}
+              <b>{programName(selectedProgram)}</b> — ผ่าน{' '}
               <b
                 style={{
                   color: readiness.every((c) => c.ok)

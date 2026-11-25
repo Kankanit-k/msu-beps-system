@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup หน้ารายได้คณะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5fa; --card:#fff; --text:#2e263d; --muted:#6d6777; --line:#e6e5ea;
+  --rev:#826af9; --rev-l:#d2b0ff; --rev-on:#5b47c9;
+  --perhead:#ffac2a; --be:#0d8f87; --navy:#022975; --gain:#1f9a2d; --loss:#e5383b;
+  --warn:#b26a00; --warn-soft:#fff3e0; --new:#0d8f87; --new-soft:#e0f4f2;
+  --track:#f0eff4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1f1d2b; --card:#2a2738; --text:#e7e3fc; --muted:#a8a3b8; --line:#3b3750;
+    --warn-soft:#3d2e14; --new-soft:#133532; --track:#35324a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1f1d2b; --card:#2a2738; --text:#e7e3fc; --muted:#a8a3b8; --line:#3b3750;
+  --warn-soft:#3d2e14; --new-soft:#133532; --track:#35324a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+.num{font-variant-numeric:tabular-nums}
+h1{font-size:22px;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 16px}
+.mockflag{display:inline-block;background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:2px 10px;font-size:13px;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;box-shadow:0 2px 6px rgba(46,38,61,.06)}
+/* tag ชี้จุดที่เปลี่ยน */
+.tag{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--new);color:#fff;font-size:12px;font-weight:700;vertical-align:middle;margin-left:6px}
+.tag.fix{background:var(--warn)}
+/* header bar */
+.hdr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}
+.hdr .title{font-weight:700;font-size:18px}
+.hdr .crumb{color:var(--muted)}
+.sp{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;padding:6px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--rev);color:#fff}
+.pill{border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:var(--card);font-size:14px}
+.badge{border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;background:#eeeafe;color:var(--rev-on)}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.kpis{grid-template-columns:1fr}}
+.kpi{cursor:pointer;transition:box-shadow .15s;border-top:3px solid var(--c)}
+.kpi:hover{box-shadow:0 6px 16px rgba(46,38,61,.14)}
+.kpi .lbl{color:var(--muted);font-size:14px}
+.kpi .val{font-size:28px;font-weight:700;color:var(--c)}
+.kpi .val small{font-size:14px;color:var(--muted);font-weight:400}
+.kpi .bar{height:6px;border-radius:3px;background:var(--track);margin:6px 0}
+.kpi .bar i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.kpi .ft{font-size:13px;color:var(--muted)}
+.kpi .uni{font-size:13px;margin-top:4px;padding-top:4px;border-top:1px dashed var(--line)}
+.kpi .act{font-size:12px;color:var(--rev-on);margin-top:4px}
+/* insight */
+.ins{border-left:4px solid var(--rev);margin-bottom:16px}
+.ins h3{margin:0 0 8px;font-size:16px}
+.ins ul{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.ins li{padding-left:22px;position:relative}
+.ins li::before{position:absolute;left:0;font-weight:700}
+.ins li.warn::before{content:"⚠";color:var(--warn)}
+.ins li.ok::before{content:"✓";color:var(--gain)}
+.ins li.info::before{content:"▸";color:var(--rev)}
+.ins a{color:var(--rev-on);cursor:pointer;text-decoration:underline}
+/* chart */
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+.ch-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin-bottom:10px}
+.ch-head h3{margin:0;font-size:16px}
+.ch-head .sub{color:var(--muted);font-size:13px;width:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.row{display:grid;grid-template-columns:200px 1fr 70px;align-items:center;gap:8px;padding:4px 0;cursor:pointer;border-radius:6px}
+.row:hover{background:var(--track)}
+@media(max-width:600px){.row{grid-template-columns:110px 1fr 60px}}
+.row .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .track{position:relative;height:22px;background:var(--track);border-radius:4px;display:flex}
+.row .seg1{background:var(--rev);height:100%;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.row .seg2{background:var(--rev-l);height:100%;color:var(--rev-on);font-size:11px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.row .segph{background:var(--perhead);height:100%;border-radius:4px}
+.row .avg{position:absolute;top:-3px;bottom:-3px;border-left:2px dashed var(--navy)}
+.row .v{font-size:13px;text-align:right}
+.avgnote{font-size:12px;color:var(--muted);margin-top:6px}
+/* table */
+.tbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:16px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{background:var(--rev);border-color:var(--rev);color:#fff}
+.search{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:14px;min-width:220px;background:var(--card);color:var(--text)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#eef4ff;color:#1a3d7c;text-align:right;padding:8px;font-weight:600;border:1px solid var(--line);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:7px 8px;border:1px solid var(--line);text-align:right}
+td:first-child{text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--track)}
+td.tr{background:rgba(130,106,249,.08);color:var(--rev-on);font-weight:600}
+th.newcol{background:var(--new-soft);color:var(--new)}
+.dep{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.dep .b{width:50px;height:6px;background:var(--track);border-radius:3px}
+.dep .b i{display:block;height:100%;border-radius:3px;background:var(--rev-l)}
+.dep.hi{color:var(--warn);font-weight:700}
+.dep.hi .b i{background:var(--warn)}
+.ph.lo{color:var(--loss)}
+tfoot td{background:#eef4ff;font-weight:700}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.tw{overflow-x:auto}
+@media(max-width:700px){
+  table.resp thead{display:none}
+  table.resp tr{display:block;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;padding:6px}
+  table.resp td{display:flex;justify-content:space-between;border:0;padding:3px 4px}
+  table.resp td::before{content:attr(data-l);color:var(--muted);font-size:12px}
+}
+/* decisions */
+.dec{margin-top:24px}
+.dec h2{font-size:18px;margin:0 0 10px}
+.dec table td,.dec table th{text-align:left;vertical-align:top}
+.dec td:first-child{white-space:nowrap;font-weight:700}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+.modal{background:var(--card);border-radius:10px;max-width:520px;width:100%;padding:18px}
+.modal h3{margin:0 0 6px}
+.close{float:right;border:0;background:none;font-size:20px;cursor:pointer;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mockup: ผลการดำเนินงาน › รายได้ (คณะ)</h1>
+  <p class="lead">
+    <span class="mockflag">ข้อมูลสมมติ — ไม่ใช่ตัวเลขจริง</span>
+    &nbsp;วงกลมเขียว <span class="tag">1</span> = ส่วนที่เพิ่มใหม่ · วงกลมส้ม <span class="tag fix">A</span> = ส่วนที่แก้ของเดิม · รายละเอียดอยู่ในตารางท้ายหน้า · กดสลับฐานรายได้ ชิป และแถวต่างๆ ได้จริง
+  </p>
+
+  <!-- header -->
+  <div class="card hdr">
+    <span class="title">ผลการดำเนินงาน › รายได้</span><span class="crumb">› คณะเทคโนโลยี</span>
+    <span class="sp"></span>
+    <div class="seg" id="mode"><button data-m="gov" class="on">รวมเงินแผ่นดิน</button><button data-m="own">ไม่รวมเงินแผ่นดิน</button></div>
+    <span class="pill">คณะ: คณะเทคโนโลยี</span>
+    <div class="seg" id="lvl"><button class="on">ตรี</button><button>โท</button><button>เอก</button></div><span class="tag fix">A</span>
+    <span class="pill">ปีการศึกษา 2568</span>
+    <span class="badge num" id="hdrRev"></span>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpis">
+    <div class="card kpi" style="--c:var(--rev)" data-go="all">
+      <div class="lbl">รายได้รวม — ปริญญาตรี</div>
+      <div class="val num" id="kTr"></div>
+      <div class="bar"><i id="kTrBar"></i></div>
+      <div class="ft" id="kTrFt"></div>
+      <div class="uni">คิดเป็น <b class="num" id="kShare"></b> ของรายได้ มมส. <span class="tag">4</span></div>
+      <div class="act">กด → ดูตารางทั้งหมด</div>
+    </div>
+    <div class="card kpi" style="--c:var(--rev-on)" data-go="gov">
+      <div class="lbl">เงินงบประมาณแผ่นดิน</div>
+      <div class="val num" id="kSt"></div>
+      <div class="bar"><i id="kStBar" style="background:var(--rev-l)"></i></div>
+      <div class="ft" id="kStFt"></div>
+      <div class="uni">มมส. เฉลี่ย <b>28%</b> · คณะนี้<b id="kDepCmp"></b> <span class="tag">4</span></div>
+      <div class="act">กด → กรองหลักสูตรพึ่งแผ่นดิน &gt;50% <span class="tag fix">B</span></div>
+    </div>
+    <div class="card kpi" style="--c:var(--rev)" data-go="all">
+      <div class="lbl">เงินรายได้ / ค่าธรรมเนียม</div>
+      <div class="val num" id="kOwn"></div>
+      <div class="bar"><i id="kOwnBar"></i></div>
+      <div class="ft" id="kOwnFt"></div>
+      <div class="uni">ค่าเทอมเฉลี่ยขึ้น <b>+4.2%</b> จากปี 2563 <span class="tag">5</span></div>
+      <div class="act">กด → ดูตารางทั้งหมด</div>
+    </div>
+    <div class="card kpi" style="--c:var(--perhead)" data-go="low">
+      <div class="lbl">รายได้เฉลี่ยต่อหัว <span class="tag fix">C</span></div>
+      <div class="val num" id="kR"></div>
+      <div class="bar"><i id="kRBar"></i></div>
+      <div class="ft" id="kRFt"></div>
+      <div class="uni">มมส. เฉลี่ย <b class="num" id="kRUni"></b> บาท/คน <span class="tag">4</span></div>
+      <div class="act">กด → กรองหลักสูตรต่อหัวต่ำกว่าเฉลี่ย <span class="tag fix">B</span></div>
+    </div>
+  </div>
+
+  <!-- insights -->
+  <div class="card ins">
+    <h3>ประเด็นสำคัญ — รายได้ <span class="tag">3</span></h3>
+    <ul id="insights"></ul>
+  </div>
+
+  <!-- charts -->
+  <div class="grid2">
+    <div class="card">
+      <div class="ch-head">
+        <h3>① รายได้รายหลักสูตร — แยกแหล่งเงิน <span class="tag">1</span></h3>
+        <span class="sp"></span>
+        <div class="seg" id="unit"><button data-u="tot" class="on">ยอดรวม</button><button data-u="ph">ต่อหัว</button></div>
+        <div class="sub" id="chSub"></div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div id="chart"></div>
+      <div class="avgnote" id="avgNote"></div>
+    </div>
+    <div class="card">
+      <div class="ch-head">
+        <h3>② รายได้ต่อหัวเทียบค่าเฉลี่ยคณะ <span class="tag">2</span></h3>
+        <div class="sub">บาท/คน/ปี · เส้นประ = ค่าเฉลี่ยคณะ · แท่งเลยเส้น = สูงกว่าเฉลี่ย</div>
+      </div>
+      <div id="phChart"></div>
+    </div>
+  </div>
+
+  <!-- table -->
+  <div class="card" id="tbl">
+    <div class="ch-head"><h3>ตารางรายได้รายหลักสูตร — ปริญญาตรี</h3></div>
+    <div class="tbar">
+      <input class="search" id="q" placeholder="ค้นหาชื่อหลักสูตร…">
+      <button class="chip on" data-f="all">ทั้งหมด</button>
+      <button class="chip" data-f="gov">พึ่งแผ่นดิน &gt;50%</button>
+      <button class="chip" data-f="low">ต่อหัวต่ำกว่าเฉลี่ย</button>
+      <button class="chip" data-f="intl">นานาชาติ / ภาคพิเศษ</button>
+      <span class="tag fix">B</span>
+    </div>
+    <div class="tw">
+      <table class="resp">
+        <thead><tr>
+          <th>หลักสูตร</th><th>นิสิต</th><th>เงินแผ่นดิน (บาท)</th><th>เงินรายได้ (บาท)</th><th>รายได้รวม (บาท)</th>
+          <th class="newcol">รายได้/หัว <span class="tag">2</span></th>
+          <th>% พึ่งพาแผ่นดิน</th>
+          <th class="newcol">ค่าเทอม 2563→68 <span class="tag">5</span></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- decisions -->
+  <div class="dec card">
+    <h2>สิ่งที่เปลี่ยน + ประเด็นให้ตัดสินใจ</h2>
+    <div class="tw"><table>
+      <thead><tr><th>#</th><th>เปลี่ยนอะไร</th><th>ข้อเสนอ / ต้องตัดสินใจ</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag">1</span></td><td>กราฟ ① เป็นแท่งซ้อน เงินรายได้ (ม่วงเข้ม) + เงินแผ่นดิน (ม่วงอ่อน) มีสวิตช์ ยอดรวม | ต่อหัว</td><td>D1: โหมดไม่รวมแผ่นดิน ไม่แสดงแท่งแผ่นดิน (ตามที่ตกลงไว้แล้ว) · ค่าเริ่มต้น = ยอดรวม?</td></tr>
+        <tr><td><span class="tag">2</span></td><td>คอลัมน์ รายได้/หัว ในตาราง + กราฟ ② เทียบค่าเฉลี่ยคณะ</td><td>D2: ถ้ามีกราฟ ② แล้ว จะยังต้องมีสวิตช์ "ต่อหัว" ในกราฟ ① ไหม (เสนอ: ตัดสวิตช์ออก ใช้ ② แทน)</td></tr>
+        <tr><td><span class="tag">3</span></td><td>กล่องประเด็นสำคัญ สร้างอัตโนมัติจากกฎ (รายได้กระจุก, พึ่งแผ่นดิน, ต่อหัวสูง/ต่ำ) กดลิงก์แล้วกรองตาราง</td><td>D3: เกณฑ์ "กระจุก" = 3 หลักสูตรแรก &gt; 60%? เกณฑ์พึ่งแผ่นดิน 50% (ใช้ค่าเดิม GOV_DEP_ALERT)</td></tr>
+        <tr><td><span class="tag">4</span></td><td>บรรทัดเทียบมหาวิทยาลัยใต้การ์ด KPI</td><td>D4: เทียบกับค่าเฉลี่ย มมส. ทุกระดับ หรือเฉพาะระดับเดียวกัน (เสนอ: ระดับเดียวกัน)</td></tr>
+        <tr><td><span class="tag">5</span></td><td>เส้นแนวโน้มค่าเทอม 2563–2568 จากข้อมูลประวัติใน /tuition (ข้อมูลอ้างอิง ไม่เข้าการคำนวณ)</td><td>D5: หลักสูตรที่ไม่มีประวัติครบ (เปิดใหม่) แสดง "—"</td></tr>
+        <tr><td><span class="tag fix">A</span></td><td>ขอบเขตเดียวทั้งหน้า: ระดับที่เลือกที่หัวหน้าใช้กับการ์ด กราฟ และตาราง (เดิม: การ์ด = ทั้งคณะ, กราฟ = ทุกระดับ, ตาราง = ระดับเดียว)</td><td>D6: ยอดทั้งคณะย้ายไปอยู่บรรทัด footer ของการ์ด — ตกลงไหม? (กราฟเทียบ 3 ระดับเดิมจะถูกแทนด้วยกราฟ ①)</td></tr>
+        <tr><td><span class="tag fix">B</span></td><td>การ์ด KPI กดแล้วกรองตาราง (เดิมแค่เลื่อนลง) + ชิปกรองด่วน + ช่องค้นหา · ตัวกรองยังอยู่เมื่อเปลี่ยนหน้า</td><td>D7: ชิป "นานาชาติ / ภาคพิเศษ" ต้องมีฟิลด์ระบุประเภทหลักสูตร — ตอนนี้จับจากชื่อ "(หลักสูตรนานาชาติ)" ได้ไหม</td></tr>
+        <tr><td><span class="tag fix">C</span></td><td>การ์ดรายได้ต่อหัวเปลี่ยนจากสีต้นทุน (ชมพู) เป็น BEPS.perHead (ส้ม)</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- detail modal -->
+<div class="modal-bg" id="mbg"><div class="modal">
+  <button class="close" id="mclose" aria-label="ปิด">×</button>
+  <h3 id="mt"></h3><div id="mb"></div>
+</div></div>
+
+<script>
+// ข้อมูลสมมติ — ปริญญาตรี คณะเทคโนโลยี
+const P=[
+ {n:'สัตวศาสตร์',q:396,st:12.9e6,own:11.9e6,fee:[14000,14000,14500,15000,15000,15000]},
+ {n:'เทคโนโลยีการอาหารและโภชนาการ',q:377,st:12.2e6,own:11.3e6,fee:[14000,14500,14500,15000,15000,15000]},
+ {n:'เกษตรศาสตร์',q:316,st:10.3e6,own:9.5e6,fee:[14000,14000,14000,14500,15000,15000]},
+ {n:'เทคโนโลยีชีวภาพและอุตสาหกรรมชีวภาพ',q:145,st:4.7e6,own:4.4e6,fee:[14000,14000,14500,14500,15000,15000]},
+ {n:'ประมง',q:98,st:3.2e6,own:2.9e6,fee:[14000,14000,14000,14000,15000,15000]},
+ {n:'พัฒนาผลิตภัณฑ์อาหาร',q:97,st:3.1e6,own:2.9e6,fee:null},
+ {n:'นวัตกรรมเกษตรอัจฉริยะ (หลักสูตรนานาชาติ)',q:42,st:0.6e6,own:3.8e6,fee:[42000,42000,44000,45000,45000,45000]},
+];
+const UNI={tr:2448.7e6,st:690e6,own:1758.6e6,q:48695,rGov:50286,rOwn:36116};
+let mode='gov',unit='tot',filt='all',term='';
+const $=id=>document.getElementById(id);
+const M=v=>(v/1e6).toLocaleString('th-TH',{minimumFractionDigits:1,maximumFractionDigits:1});
+const B=v=>Math.round(v).toLocaleString('th-TH');
+const rev=p=>mode==='gov'?p.st+p.own:p.own;
+const dep=p=>p.st/(p.st+p.own);
+const ph=p=>rev(p)/p.q;
+const sum=(k)=>P.reduce((a,p)=>a+(typeof k==='function'?k(p):p[k]),0);
+const avgPh=()=>sum(rev)/sum('q');
+const intl=p=>/นานาชาติ|ภาคพิเศษ/.test(p.n);
+
+function kpis(){
+  const tr=sum(rev),st=sum('st'),own=sum('own'),q=sum('q'),share=st/(st+own),r=tr/q;
+  const uniTr=mode==='gov'?UNI.tr:UNI.own,uniR=mode==='gov'?UNI.rGov:UNI.rOwn;
+  $('hdrRev').textContent='รายได้ '+M(tr)+' ลบ.';
+  $('kTr').innerHTML=M(tr)+' <small>ลบ.</small>';
+  $('kTrBar').style.width='100%';
+  $('kTrFt').textContent=(mode==='gov'?'รวมเงินแผ่นดิน':'เงินรายได้อย่างเดียว')+' · ทั้งคณะทุกระดับ '+M(tr*1.04)+' ลบ.';
+  $('kShare').textContent=(tr/uniTr*100).toFixed(1)+'%';
+  $('kSt').innerHTML=M(st)+' <small>ลบ.</small>';
+  $('kStBar').style.width=(share*100)+'%';
+  $('kStFt').textContent=mode==='gov'?(share*100).toFixed(0)+'% ของรายได้':'ไม่นับในฐานรายได้นี้';
+  $('kDepCmp').textContent=' '+(share*100).toFixed(0)+'% — '+(share>.28?'สูงกว่าเฉลี่ย':'ต่ำกว่าเฉลี่ย');
+  $('kOwn').innerHTML=M(own)+' <small>ลบ.</small>';
+  $('kOwnBar').style.width=((1-share)*100)+'%';
+  $('kOwnFt').textContent=((1-share)*100).toFixed(0)+'% ของรายได้';
+  $('kR').innerHTML=B(r)+' <small>บาท/คน</small>';
+  $('kRBar').style.width=Math.min(100,r/uniR*100)+'%';
+  $('kRFt').textContent='นิสิต '+B(q)+' คน · '+(r>=uniR?'สูงกว่า':'ต่ำกว่า')+' มมส. '+B(Math.abs(r-uniR))+' บาท';
+  $('kRUni').textContent=B(uniR);
+}
+
+function insights(){
+  const tr=sum(rev),sorted=[...P].sort((a,b)=>rev(b)-rev(a)),top3=sorted.slice(0,3).reduce((a,p)=>a+rev(p),0)/tr;
+  const hi=P.filter(p=>dep(p)>.5),a=avgPh();
+  const phs=[...P].sort((x,y)=>ph(y)-ph(x)),low=P.filter(p=>ph(p)<a);
+  const L=[];
+  L.push({t:top3>.6?'warn':'info',h:`รายได้กระจุก: 3 หลักสูตรแรก (${sorted.slice(0,3).map(p=>p.n.split(' (')[0]).join(', ')}) คิดเป็น <b>${(top3*100).toFixed(0)}%</b> ของรายได้ระดับนี้ — ถ้านิสิต 3 หลักสูตรนี้ลดลง รายได้คณะกระทบมาก`});
+  if(hi.length)L.push({t:'warn',h:`<b>${hi.length} จาก ${P.length} หลักสูตร</b> พึ่งเงินแผ่นดินเกิน 50% — ถ้างบแผ่นดินถูกตัด รายได้หายเกินครึ่ง · <a data-f="gov">ดูรายชื่อ</a>`});
+  L.push({t:'ok',h:`รายได้ต่อหัวสูงสุด: <b>${phs[0].n}</b> ${B(ph(phs[0]))} บาท/คน (${(ph(phs[0])/a).toFixed(1)}× ค่าเฉลี่ยคณะ)`});
+  L.push({t:'info',h:`${low.length} หลักสูตรมีรายได้ต่อหัวต่ำกว่าค่าเฉลี่ยคณะ (${B(a)} บาท) · <a data-f="low">ดูรายชื่อ</a>`});
+  $('insights').innerHTML=L.map(x=>`<li class="${x.t}">${x.h}</li>`).join('');
+  $('insights').querySelectorAll('a').forEach(el=>el.onclick=()=>setFilter(el.dataset.f,true));
+}
+
+function chart(){
+  const gov=mode==='gov',rows=[...P].sort((a,b)=>rev(b)-rev(a));
+  $('legend').innerHTML=unit==='tot'
+    ?`<span><i style="background:var(--rev)"></i>เงินรายได้ (ค่าธรรมเนียม)</span>`+(gov?`<span><i style="background:var(--rev-l)"></i>เงินแผ่นดิน</span>`:'')
+    :`<span><i style="background:var(--perhead)"></i>รายได้ต่อหัว</span><span><i style="border-left:2px dashed var(--navy);width:0;border-radius:0"></i>ค่าเฉลี่ยคณะ</span>`;
+  $('chSub').textContent=(unit==='tot'?'ล้านบาท':'บาท/คน/ปี')+' · '+(gov?'รวมเงินแผ่นดิน':'ไม่รวมเงินแผ่นดิน — เฉพาะเงินรายได้')+' · เรียงตามรายได้รวม · กดแท่งเพื่อดูรายละเอียด';
+  if(unit==='tot'){
+    const max=Math.max(...rows.map(rev));
+    $('chart').innerHTML=rows.map((p,i)=>`<div class="row" data-i="${P.indexOf(p)}"><div class="nm" title="${p.n}">${p.n}</div>
+      <div class="track"><div class="seg1" style="width:${p.own/max*100}%">${p.own/max>.12?M(p.own):''}</div>${gov?`<div class="seg2" style="width:${p.st/max*100}%">${p.st/max>.12?M(p.st):''}</div>`:''}</div>
+      <div class="v num">${M(rev(p))}</div></div>`).join('');
+    $('avgNote').textContent='';
+  }else{
+    const a=avgPh(),max=Math.max(...rows.map(ph))*1.05;
+    $('chart').innerHTML=rows.map(p=>`<div class="row" data-i="${P.indexOf(p)}"><div class="nm" title="${p.n}">${p.n}</div>
+      <div class="track"><div class="segph" style="width:${ph(p)/max*100}%"></div><div class="avg" style="left:${a/max*100}%"></div></div>
+      <div class="v num">${B(ph(p))}</div></div>`).join('');
+    $('avgNote').textContent='ค่าเฉลี่ยคณะ '+B(a)+' บาท/คน';
+  }
+  // ② per-head vs avg
+  const a=avgPh(),pr=[...P].sort((x,y)=>ph(y)-ph(x)),max=ph(pr[0])*1.05;
+  $('phChart').innerHTML=pr.map(p=>`<div class="row" style="grid-template-columns:130px 1fr 60px" data-i="${P.indexOf(p)}"><div class="nm" title="${p.n}">${p.n}</div>
+    <div class="track"><div class="segph" style="width:${ph(p)/max*100}%;${ph(p)<a?'opacity:.55':''}"></div><div class="avg" style="left:${a/max*100}%"></div></div>
+    <div class="v num">${B(ph(p)/1000)}k</div></div>`).join('')+`<div class="avgnote">ค่าเฉลี่ยคณะ ${B(a)} บาท/คน · แท่งจาง = ต่ำกว่าเฉลี่ย</div>`;
+  document.querySelectorAll('.row').forEach(r=>r.onclick=()=>openDetail(P[+r.dataset.i]));
+}
+
+function spark(f){
+  if(!f)return '<span style="color:var(--muted)">— ไม่มีประวัติครบ</span>';
+  const mn=Math.min(...f),mx=Math.max(...f),w=70,h=20;
+  const pts=f.map((v,i)=>`${(i/(f.length-1)*w).toFixed(1)},${(h-(mx===mn?h/2:(v-mn)/(mx-mn)*h)).toFixed(1)}`).join(' ');
+  const pct=((f[f.length-1]/f[0]-1)*100);
+  return `<span style="display:inline-flex;align-items:center;gap:6px"><svg width="${w}" height="${h+2}"><polyline points="${pts}" fill="none" stroke="var(--rev)" stroke-width="2"/></svg><span class="num" style="font-size:12px">${pct>0?'+':''}${pct.toFixed(0)}%</span></span>`;
+}
+
+function table(){
+  const a=avgPh();
+  const rows=P.filter(p=>!term||p.n.includes(term))
+    .filter(p=>filt==='all'||(filt==='gov'&&dep(p)>.5)||(filt==='low'&&ph(p)<a)||(filt==='intl'&&intl(p)))
+    .sort((x,y)=>rev(y)-rev(x));
+  if(!rows.length){
+    $('tbody').innerHTML=`<tr><td colspan="8" class="empty">ไม่พบหลักสูตรที่ตรงกับเงื่อนไข — <a style="color:var(--rev-on);cursor:pointer" id="clr">ล้างตัวกรอง</a></td></tr>`;
+    $('clr').onclick=()=>{$('q').value='';term='';setFilter('all');};
+    $('tfoot').innerHTML='';return;
+  }
+  $('tbody').innerHTML=rows.map(p=>{const d=dep(p),hi=d>.5,lo=ph(p)<a;return `<tr data-i="${P.indexOf(p)}">
+    <td data-l="หลักสูตร">${p.n}</td><td data-l="นิสิต" class="num">${B(p.q)}</td>
+    <td data-l="เงินแผ่นดิน" class="num">${B(p.st)}</td><td data-l="เงินรายได้" class="num">${B(p.own)}</td>
+    <td data-l="รายได้รวม" class="num tr">${B(rev(p))}</td>
+    <td data-l="รายได้/หัว" class="num ph ${lo?'lo':''}">${B(ph(p))}${lo?' ↓':''}</td>
+    <td data-l="% พึ่งแผ่นดิน"><span class="dep ${hi?'hi':''}"><span class="b"><i style="width:${d*100}%"></i></span><span class="num">${(d*100).toFixed(1)}%</span></span></td>
+    <td data-l="ค่าเทอม 2563→68">${spark(p.fee)}</td></tr>`;}).join('');
+  const st=rows.reduce((s,p)=>s+p.st,0),own=rows.reduce((s,p)=>s+p.own,0),q=rows.reduce((s,p)=>s+p.q,0),tr=rows.reduce((s,p)=>s+rev(p),0);
+  $('tfoot').innerHTML=`<tr><td data-l="">รวม ${rows.length} หลักสูตร</td><td data-l="นิสิต" class="num">${B(q)}</td><td data-l="เงินแผ่นดิน" class="num">${B(st)}</td><td data-l="เงินรายได้" class="num">${B(own)}</td><td data-l="รายได้รวม" class="num">${B(tr)}</td><td data-l="รายได้/หัว" class="num">${B(tr/q)}</td><td data-l="% พึ่งแผ่นดิน" class="num">${(st/(st+own)*100).toFixed(1)}%</td><td></td></tr>`;
+  document.querySelectorAll('#tbody tr').forEach(r=>r.onclick=()=>openDetail(P[+r.dataset.i]));
+}
+
+function setFilter(f,scroll){
+  filt=f;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.f===f));
+  table();if(scroll)$('tbl').scrollIntoView({behavior:'smooth'});
+}
+function openDetail(p){
+  $('mt').textContent=p.n;
+  $('mb').innerHTML=`<p style="color:var(--muted);margin:0 0 8px">dialog รายละเอียดหลักสูตรเดิม (ProgramDialog) — เพิ่มกราฟค่าเทอม 6 ปี</p>
+    นิสิต <b>${B(p.q)}</b> คน · รายได้ <b>${M(rev(p))}</b> ลบ. · ต่อหัว <b>${B(ph(p))}</b> บาท<br>พึ่งแผ่นดิน <b>${(dep(p)*100).toFixed(1)}%</b><br>ค่าเทอม 2563→2568: ${spark(p.fee)}`;
+  $('mbg').style.display='flex';
+}
+$('mclose').onclick=()=>$('mbg').style.display='none';
+$('mbg').onclick=e=>{if(e.target===$('mbg'))$('mbg').style.display='none';};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('mbg').style.display='none';});
+document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;document.querySelectorAll('#mode button').forEach(x=>x.classList.toggle('on',x===b));render();});
+document.querySelectorAll('#unit button').forEach(b=>b.onclick=()=>{unit=b.dataset.u;document.querySelectorAll('#unit button').forEach(x=>x.classList.toggle('on',x===b));chart();});
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>setFilter(c.dataset.f));
+document.querySelectorAll('.kpi').forEach(k=>k.onclick=()=>setFilter(k.dataset.go,true));
+$('q').oninput=e=>{term=e.target.value.trim();table();};
+function render(){kpis();insights();chart();table();}
+render();
+</script>
+</body>
+</html>

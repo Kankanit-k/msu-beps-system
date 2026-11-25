@@ -8,6 +8,7 @@ import { RAW } from '@/data/mockup';
 import type { FacRow, ProgRow } from '@/data/mockup';
 import { computeBreakEven, inLevel } from '@views/breakeven/calc';
 import type { LevelScope } from '@views/breakeven/calc';
+import { programName } from '@/utils/programName';
 
 export const shortFacName = (name: string) =>
   name.replace('คณะ', '').replace('วิทยาลัย', 'วล.').replace('สถาบันวิจัย', 'สถ.');
@@ -94,7 +95,8 @@ export function buildCrossData(mode: RevenueMode): FacultyCrossRow[] {
 export const progKey = (p: ProgRow) => `${p.lvl}|${p.prog}|${p.deg}`;
 
 /** ชื่อหลักสูตร — ปริญญาตรีแสดงชื่ออย่างเดียว ระดับอื่นต่อท้ายด้วยระดับ */
-export const progName = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);
+/** ชื่อหลักสูตรที่แสดงผล — ใช้ตัวกลางของทั้งระบบ (ชื่อปริญญาย่อ เช่น "บธ.บ. เทคโนโลยีสารสนเทศธุรกิจ") */
+export const progName = programName;
 
 /** รายหลักสูตรของคณะเดียว (ผู้ดูแลคณะ/อาจารย์) — ไม่นับหลักสูตรที่ไม่มีนิสิต · เรียงตามนิสิตจริงมากไปน้อย */
 export function buildProgramCrossData(

@@ -29,7 +29,7 @@ export const sectionLandings: Record<string, { icon: string; desc: string }> = {
 export const pageInfo: Record<string, { desc: string; when: string }> = {
   // เจาะลึกจุดคุ้มทุน (ย้อนหลัง 5 ปี)
   '/deep-dive/breakeven': {
-    desc: 'ส่วนเกิน/ขาดทุนรายหลักสูตรย้อนหลัง 5 ปี จัดอันดับขาดทุนต่อเนื่อง',
+    desc: 'ส่วนต่างรายหลักสูตรย้อนหลัง 5 ปี จัดอันดับขาดทุนต่อเนื่อง',
     when: 'หาหลักสูตรวิกฤตเพื่อพิจารณายุบ ควบรวม หรือพัฒนา',
   },
   '/deep-dive/revenue': {

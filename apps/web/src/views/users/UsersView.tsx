@@ -77,6 +77,14 @@ const ROLE_META = Object.fromEntries(ROLES.map((r) => [r.key, r])) as Record<
   (typeof ROLES)[number]
 >;
 
+// อาจารย์ประจำหลักสูตร — ยังไม่มีใน RoleName จึงแสดงเป็นการ์ดสรุปอย่างเดียว (ยังไม่อยู่ในตารางสิทธิ์/ตัวเลือกบทบาท)
+const LECTURER_CARD = {
+  key: 'lecturer',
+  label: 'อาจารย์ประจำหลักสูตร',
+  scoped: true,
+  color: 'warning' as ThemeColor,
+};
+
 type Access = 'y' | 'p' | 'n';
 
 type RbacRow = { screen: string; action?: string; label: string; access: Record<RoleName, Access> };
@@ -334,8 +342,8 @@ const UsersView = () => {
 
   return (
     <Grid container spacing={6}>
-      {ROLES.map((r) => (
-        <Grid key={r.key} size={{ xs: 12, sm: 6, md: 3 }}>
+      {[ROLES[0]!, LECTURER_CARD, ...ROLES.slice(1)].map((r) => (
+        <Grid key={r.key} size={{ xs: 12, sm: 6, md: 'grow' }}>
           <Card>
             <CardContent>
               <Typography variant="body2" color="text.secondary">

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนปรับภาพรวมมหาวิทยาลัย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-soft:#eef2ff;
+  --ok:#15803d; --ok-soft:#dcfce7; --no:#b91c1c; --no-soft:#fee2e2;
+  --warn:#a16207; --warn-soft:#fef9c3; --info:#0369a1; --info-soft:#e0f2fe;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+    --primary:#818cf8; --primary-soft:#23264a;
+    --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+    --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --card:#181b24; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a;
+  --primary:#818cf8; --primary-soft:#23264a;
+  --ok:#4ade80; --ok-soft:#14321f; --no:#f87171; --no-soft:#3a1a1a;
+  --warn:#facc15; --warn-soft:#3a3212; --info:#38bdf8; --info-soft:#102a3a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}
+h2{font-size:1.25rem;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--primary);color:#fff;border-radius:999px;width:28px;height:28px;display:inline-grid;place-items:center;font-size:.9rem;flex:none}
+h3{font-size:1.05rem;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+nav.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 14px;color:var(--text);text-decoration:none;font-size:.9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--primary-soft);font-weight:600}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-no{background:var(--no-soft);color:var(--no)}
+.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-info{background:var(--info-soft);color:var(--info)}
+.callout{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:8px;margin:12px 0}
+.callout.info{border-color:var(--info);background:var(--info-soft)}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.q b{display:block;margin-bottom:4px}
+.rec{color:var(--ok);font-size:.9rem;margin-top:4px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.menu{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg);font-size:.95rem}
+.menu .sec{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.03em;margin:10px 0 4px}
+.menu .sec:first-child{margin-top:0}
+.menu .it{padding:3px 8px;border-radius:6px}
+.menu .ch{padding:2px 8px 2px 28px;color:var(--muted)}
+.menu .new{background:var(--ok-soft);color:var(--ok);font-weight:600}
+.menu .gone{text-decoration:line-through;color:var(--muted)}
+.hdr{border:2px solid var(--primary);border-radius:12px;background:var(--card);padding:12px 14px;display:grid;gap:10px;font-size:.9rem}
+.hdr .r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hdr .title{font-weight:700;font-size:1.15rem}
+.hdr .crumb{color:var(--muted);font-size:.85rem}
+.hdr .sp{margin-left:auto}
+.hdr .f{border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--bg);white-space:nowrap}
+.hdr .f.on{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.hdr .chip{border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.hdr .meta{color:var(--muted);font-size:.8rem}
+.lbl{font-size:.85rem;color:var(--muted);margin:14px 0 6px}
+code{font-size:.88em}
+</style>
+.bar{height:18px;border-radius:0 4px 4px 0;display:inline-block;vertical-align:middle;color:#fff;font-size:.72rem;font-weight:700;line-height:18px;padding-left:4px;overflow:hidden;white-space:nowrap}
+.mock{border:1px dashed var(--line);border-radius:10px;padding:12px;background:var(--bg);font-size:.85rem}
+.mock .row{display:grid;grid-template-columns:150px 1fr 70px;gap:8px;align-items:center;margin:2px 0}
+.mock .nm{text-align:right;color:var(--muted);font-size:.8rem}
+.mock .pair{display:grid;gap:2px}
+.lay{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;font-size:.78rem;text-align:center}
+.lay div{border:1px solid var(--line);border-radius:6px;padding:8px 4px;background:var(--card)}
+.lay .new{border-color:var(--ok);background:var(--ok-soft);color:var(--ok);font-weight:600}
+.lay .gone{text-decoration:line-through;color:var(--muted);background:var(--no-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>แผนงาน: ปรับหน้าภาพรวมมหาวิทยาลัย (รวมกราฟ ①②③)</h1>
+<p class="sub">MSU-BEPS · <code>/overview</code> · จากสรุปข้อสั่งการ (ภาพที่ส่งมา 18 พ.ย. 2569) เทียบกับโค้ดปัจจุบัน <code>views/overview/UniversityDashboard.tsx</code> · สถานะ: <span class="tag t-no">D1 ยกเลิก (D6 ตกไปด้วย)</span> <span class="tag t-ok">D2 = เรียงตามข้อมูลตั้งต้น · D3 ไม่ใส่ส่วนต่างท้ายชื่อ · D4 D5 ตามข้อเสนอ — โค้ด UO-1 UO-2 UO-5 ทำแล้ว 19 พ.ย.</span></p>
+
+<nav class="toc">
+  <a href="#s1">1. สรุป</a><a href="#s2">2. ตีความข้อสั่งการ</a><a href="#s3">3. เลย์เอาต์ก่อน/หลัง</a>
+  <a href="#s4">4. กราฟรวมใหม่</a><a href="#s5">5. การ์ดตัวเลข + ป็อปอัป</a><a href="#s6">6. ต้องตัดสินใจ</a><a href="#s7">7. ลำดับงาน</a>
+</nav>
+
+<div class="card" id="s1">
+<h2><span class="n">1</span>สรุป</h2>
+<ul>
+  <li><b>ยุบกราฟ ① รายได้ ② ต้นทุน ③ รายได้เทียบต้นทุน</b> ให้เหลือ <b>กราฟเดียว</b>: แต่ละคณะมีแท่งคู่ — แท่งบน = รายได้ (เงินรายได้ + เงินแผ่นดินซ้อนกัน) · แท่งล่าง = ต้นทุน (คงที่ + ผันแปรซ้อนกัน) → เห็นทั้งโครงสร้างภายในและการเทียบรายได้/ต้นทุนในจุดเดียว</li>
+  <li><s>ตัดเส้นในการ์ดตัวเลข 6 ใบ + ป็อปอัป</s> <span class="tag t-no">ยกเลิก (D1)</span> — การ์ดคงเดิม</li>
+  <li><b>เก็บโดนัท ④ โครงสร้างต้นทุน</b> แต่จัดใหม่ให้ <b>แถวละ 2 การ์ด</b> ตัวเลขไม่เบียด</li>
+  <li>ไม่กระทบตัวเลข/สูตร — เปลี่ยนเฉพาะการแสดงผล · แก้ไฟล์เดียวเป็นหลัก (+ <code>KpiTile.tsx</code> เล็กน้อย)</li>
+</ul>
+<div class="callout info">โค้ดโหมด “เทียบระดับ” (ตรี เทียบ โท) ถูกปิดไปตั้งแต่ 22 ต.ค. แล้ว — กราฟใหม่จึงไม่ต้องรองรับโหมดนี้ และลบโค้ดส่วน <code>compare</code> ที่เหลือทิ้งได้ (หน้าเล็กลง)</div>
+</div>
+
+<div class="card" id="s2">
+<h2><span class="n">2</span>ตีความข้อสั่งการ เทียบกับของที่มีอยู่</h2>
+<div class="scroll"><table>
+<tr><th>ข้อสั่งการ</th><th>ปัจจุบันในระบบ</th><th>สิ่งที่จะทำ</th><th>ลักษณะงาน</th></tr>
+<tr><td>เอากราฟย่อย 3 กราฟออก (รายได้ / ต้นทุน / รายได้เทียบต้นทุน)</td><td>กราฟ ①②③ วางคู่กัน แต่ละกราฟเรียงคณะคนละลำดับ → เทียบข้ามกราฟยาก</td><td>ลบ ①②③ แทนด้วยกราฟรวมกราฟเดียว เต็มความกว้าง</td><td><span class="tag t-warn">แก้ของเดิม</span></td></tr>
+<tr><td>กราฟแท่งแนวนอนคู่ รายได้ + ต้นทุน รายคณะ กราฟเดียว</td><td>มีแค่กราฟ ③ ที่ซ้อน “รายได้ต่อด้วยต้นทุน” ในแท่งเดียว (อ่านว่าคุ้มทุนหรือไม่ยาก)</td><td>แท่งคู่ต่อคณะ: รายได้ / ต้นทุน อยู่ติดกัน ยาวเทียบกันตรง ๆ</td><td><span class="tag t-ok">สร้างใหม่</span></td></tr>
+<tr><td>แสดงสัดส่วนซ้อนข้างใน (เงินแผ่นดิน vs เงินรายได้)</td><td>อยู่ในกราฟ ① แยกต่างหาก</td><td>แท่งรายได้ซ้อน 2 สี · แท่งต้นทุนซ้อน คงที่/ผันแปร (สีเดียวกับเดิม: ม่วง / ชมพู)</td><td><span class="tag t-info">ย้ายมารวม</span></td></tr>
+<tr><td>ตัดเส้นแนวโน้มขนาดเล็ก (sparkline) ในการ์ด → ย้ายไปป็อปอัป</td><td>หน้านี้ <b>ไม่มี sparkline</b> จริง — สิ่งที่เป็น “เส้น” ในการ์ดคือแถบ progress ใต้ตัวเลข 6 ใบ (ดู D1)</td><td>ตัดแถบออก · คลิกการ์ด → ป็อปอัปกราฟใหญ่รายคณะของตัวชี้วัดนั้น</td><td><span class="tag t-warn">แก้ของเดิม</span> + <span class="tag t-ok">ป็อปอัปใหม่</span></td></tr>
+<tr><td>เก็บโดนัทโครงสร้างต้นทุน ปรับเหลือ 2 การ์ดต่อแถว</td><td>④ ⑤ ⑥ วาง 3 ใบต่อแถว (จอใหญ่)</td><td>แถวละ 2 ใบทุกขนาดจอ ≥ 900px (ดู D5)</td><td><span class="tag t-warn">แก้ของเดิม</span></td></tr>
+</table></div>
+</div>
+
+<div class="card" id="s3">
+<h2><span class="n">3</span>เลย์เอาต์ ก่อน / หลัง (จอใหญ่)</h2>
+<div class="cols">
+<div>
+<div class="lbl">ปัจจุบัน</div>
+<div class="lay">
+  <div>KPI</div><div>KPI</div><div>KPI</div><div>KPI</div><div>KPI</div><div>KPI</div>
+  <div class="gone" style="grid-column:span 2">① รายได้</div><div class="gone" style="grid-column:span 2">② ต้นทุน</div><div class="gone" style="grid-column:span 2">③ รายได้ vs ต้นทุน</div>
+  <div style="grid-column:span 2">④ โดนัท</div><div style="grid-column:span 2">⑤ ส่วนต่างสูงสุด</div><div style="grid-column:span 2">⑥ เฝ้าระวัง</div>
+</div>
+</div>
+<div>
+<div class="lbl">ข้อเสนอ</div>
+<div class="lay">
+  <div>KPI*</div><div>KPI*</div><div>KPI*</div><div>KPI*</div><div>KPI*</div><div>KPI*</div>
+  <div class="new" style="grid-column:span 6;padding:22px 4px">① รายได้ เทียบ ต้นทุน รายคณะ (แท่งคู่ · กราฟเดียว เต็มแถว)</div>
+  <div style="grid-column:span 3">② โดนัทโครงสร้างต้นทุน</div><div class="new" style="grid-column:span 3">③ จัดอันดับคณะ<br>(แท็บ ส่วนต่างสูงสุด / เฝ้าระวัง)</div>
+</div>
+<p style="font-size:.85rem;color:var(--muted)">* การ์ดคงแถบเดิม (D1 ยกเลิก) · จอ &lt; 1536px เป็น 3 ใบ × 2 แถวเหมือนที่แก้ไปแล้ว</p>
+</div>
+</div>
+</div>
+
+<div class="card" id="s4">
+<h2><span class="n">4</span>กราฟรวมใหม่: รายได้ เทียบ ต้นทุน รายคณะ</h2>
+<div class="mock">
+  <div style="margin-bottom:6px"><span class="bar" style="width:12px;background:#7c4dff"></span> เงินรายได้ &nbsp; <span class="bar" style="width:12px;background:#c9b6ff"></span> เงินแผ่นดิน &nbsp;&nbsp; <span class="bar" style="width:12px;background:#ef3e5c"></span> ต้นทุนคงที่ &nbsp; <span class="bar" style="width:12px;background:#f7a1b0"></span> ต้นทุนผันแปร</div>
+  <div class="row"><div class="nm">คณะการบัญชีและการจัดการ</div><div class="pair">
+    <div><span class="bar" style="width:72%;background:#7c4dff">384</span><span class="bar" style="width:6%;background:#c9b6ff;border-radius:0 4px 4px 0"></span></div>
+    <div><span class="bar" style="width:24%;background:#ef3e5c;border-radius:0">135</span><span class="bar" style="width:36%;background:#f7a1b0">199</span></div></div><div class="tag t-ok">+90.3</div></div>
+  <div class="row"><div class="nm">คณะวิทยาศาสตร์</div><div class="pair">
+    <div><span class="bar" style="width:14%;background:#7c4dff;border-radius:0">77</span><span class="bar" style="width:19%;background:#c9b6ff">107</span></div>
+    <div><span class="bar" style="width:29%;background:#ef3e5c;border-radius:0">162</span><span class="bar" style="width:9%;background:#f7a1b0">49</span></div></div><div class="tag t-no">−27.0</div></div>
+  <div class="row"><div class="nm">คณะแพทยศาสตร์</div><div class="pair">
+    <div><span class="bar" style="width:9%;background:#7c4dff;border-radius:0">49</span><span class="bar" style="width:9%;background:#c9b6ff">48</span></div>
+    <div><span class="bar" style="width:37%;background:#ef3e5c;border-radius:0">204</span><span class="bar" style="width:7%;background:#f7a1b0">37</span></div></div><div class="tag t-no">−144.5</div></div>
+  <div style="text-align:center;color:var(--muted);margin-top:6px">… 20 คณะ · ล้านบาท · (ภาพร่าง — สัดส่วนโดยประมาณ)</div>
+</div>
+<h3>รายละเอียด</h3>
+<ul>
+  <li><b>แท่งคู่ต่อคณะ</b> ใช้ ApexCharts แบบ stacked + <code>group</code> (มีอยู่แล้วใน apexcharts 3.49 ที่ใช้ — โค้ดเดิมใช้ตอนโหมดเทียบระดับ) → ไม่ต้องเพิ่มไลบรารี</li>
+  <li><b>สีคงเดิมตามมาตรฐาน BEPS</b>: รายได้ = ม่วงเข้ม/อ่อน (เดิมกราฟ ①) · ต้นทุน = ชมพูเข้ม/อ่อน (เดิมกราฟ ②)</li>
+  <li><b>ฐาน “ไม่รวมเงินแผ่นดิน”</b>: ส่วนเงินแผ่นดินหายจากแท่งรายได้ (ดู D4)</li>
+  <li><b>ส่วนต่างต่อคณะ</b> แสดงท้ายแถว เขียว/แดง (ดู D3) และใน tooltip: รายได้ · ต้นทุน · ส่วนต่าง</li>
+  <li><b>การเรียง</b>: ปุ่มสลับ “เรียงตามรายได้ / ตามส่วนต่าง” (ดู D2)</li>
+  <li><b>คลิกแท่งคณะ</b> → ไปหน้าภาพรวมคณะ (ระดับมหาวิทยาลัย — พฤติกรรมเดิมของ ①②③)</li>
+  <li>ความสูงกราฟ ≈ 36px × จำนวนคณะ (20 คณะ ≈ 780px) — เต็มความกว้าง จึงอ่านชื่อคณะครบไม่ถูกตัด</li>
+</ul>
+</div>
+
+<div class="card" id="s5">
+<h2><span class="n">5</span>การ์ดตัวเลข 6 ใบ + ป็อปอัปกราฟใหญ่</h2><div class="callout">ยกเลิกทั้งหัวข้อนี้ตาม D1 (18 พ.ย.) — เก็บไว้เป็นบันทึก</div>
+<div class="scroll"><table>
+<tr><th>การ์ด</th><th>บรรทัดล่าง (คงไว้)</th><th>ป็อปอัปเมื่อคลิก (ข้อเสนอ)</th></tr>
+<tr><td>นิสิตทั้งหมด</td><td>20 คณะ · 230 หลักสูตร</td><td>แท่งรายคณะ: นิสิตจริง เทียบ นิสิต ณ จุดคุ้มทุน</td></tr>
+<tr><td>นิสิต ณ จุดคุ้มทุน</td><td>จริง … · เกินมา/ขาดอีก … คน</td><td>(ป็อปอัปเดียวกับการ์ดแรก)</td></tr>
+<tr><td>รายได้รวม</td><td>…% ของต้นทุน</td><td>แท่งรายคณะ ซ้อน เงินรายได้/เงินแผ่นดิน (= กราฟ ① เดิม ขนาดใหญ่)</td></tr>
+<tr><td>ต้นทุนรวม</td><td>คงที่ …% · ผันแปร …%</td><td>แท่งรายคณะ ซ้อน คงที่/ผันแปร (= กราฟ ② เดิม)</td></tr>
+<tr><td>ส่วนต่าง</td><td>…% ของรายได้</td><td>แท่งบวก/ลบรายคณะ (เขียว/แดง) เรียงจากมากไปน้อย</td></tr>
+<tr><td>รายได้ต่อหัว</td><td>ต้นทุนต่อหัว …</td><td>แท่งคู่รายคณะ: รายได้ต่อหัว / ต้นทุนต่อหัว + เส้นค่าเฉลี่ยมหาวิทยาลัย</td></tr>
+</table></div>
+<p>ใช้ Dialog เดียว (คอมโพเนนต์ใหม่ <code>KpiDetailDialog</code>) รับชนิดตัวชี้วัดแล้ววาดกราฟ — นำ <code>barOptions</code> เดิมกลับมาใช้ · Esc ปิด · การ์ดมีไอคอน/เคอร์เซอร์บอกว่าคลิกได้ · กราฟ ①② เดิมจึงไม่หายไปเลย แต่ย้ายไปอยู่ในป็อปอัป</p>
+</div>
+
+<div class="card" id="s6">
+<h2><span class="n">6</span>ต้องตัดสินใจ</h2>
+<div class="q"><b>D1 · “เส้นแนวโน้มขนาดเล็กในการ์ด” หมายถึงแถบ progress ใต้ตัวเลขใช่ไหม?</b>หน้านี้ไม่มี sparkline (เส้นกราฟเวลา) อยู่จริง — มีแค่แถบสีใต้ตัวเลขในการ์ด 6 ใบ<div class="rec"><span class="tag t-no">ยกเลิก 18 พ.ย.</span> ไม่ต้องทำ — การ์ด 6 ใบคงแถบไว้เหมือนเดิม ไม่มีป็อปอัป</div></div>
+<div class="q"><b>D2 · กราฟรวมเรียงคณะแบบไหนเป็นค่าเริ่มต้น?</b>ตามรายได้ (คณะใหญ่อยู่บน) หรือตามส่วนต่าง (กำไรมากบน ขาดทุนล่างสุด)<div class="rec">เสนอ: เรียงตามรายได้เป็นค่าเริ่มต้น + ปุ่มสลับ “ตามส่วนต่าง”</div></div>
+<div class="q"><b>D3 · แสดงตัวเลขส่วนต่างต่อคณะตรงไหน?</b>(ก) ต่อท้ายชื่อคณะบนแกน (ข) เฉพาะใน tooltip<div class="rec">เสนอ: (ก) — อ่านได้ทันทีโดยไม่ต้องชี้ เช่น “คณะแพทยศาสตร์ · −144.5”</div></div>
+<div class="q"><b>D4 · ฐาน “ไม่รวมเงินแผ่นดิน”: แท่งเงินแผ่นดินทำอย่างไร?</b><div class="rec">เสนอ: ซ่อนไป (แท่งรายได้เหลือเงินรายได้อย่างเดียว) — ตรงกับตัวเลขการ์ดและส่วนต่างของฐานนั้น</div></div>
+<div class="q"><b>D5 · แถวล่างแบบ 2 การ์ดต่อแถว: มี 3 ชิ้น (โดนัท ④, ⑤ ส่วนต่างสูงสุด, ⑥ เฝ้าระวัง) จะจัดอย่างไร?</b>(ก) โดนัท + การ์ดจัดอันดับที่รวม ⑤⑥ เป็นแท็บ → 1 แถวพอดี (ข) โดนัทเต็มแถว แล้ว ⑤⑥ คู่กันแถวถัดไป<div class="rec">เสนอ: (ก) — แต่ถ้าที่ประชุมอยากเห็นคณะดี/คณะเฝ้าระวังพร้อมกัน ให้เลือก (ข)</div></div>
+<div class="q" style="opacity:.5"><b>D6 · ป็อปอัปของการ์ดตัวเลข ทำทั้ง 6 ใบเลย หรือเฉพาะบางใบ?</b><div class="rec">ตกไปตาม D1 — ไม่ทำป็อปอัป</div></div>
+</div>
+
+<div class="card" id="s7">
+<h2><span class="n">7</span>ลำดับงาน</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>งาน</th><th>ไฟล์</th><th>ขนาด</th></tr>
+<tr><td>UO-1</td><td>ลบโค้ดโหมดเทียบระดับที่ปิดแล้ว (<code>compare</code>, <code>PAL</code>, <code>grid[][]</code> หลายระดับ) ให้เหลือแบบระดับเดียว</td><td>UniversityDashboard.tsx</td><td>เล็ก</td></tr>
+<tr><td>UO-2</td><td>กราฟรวมแท่งคู่ (รายได้/ต้นทุน ซ้อนภายใน) + ส่วนต่างท้ายชื่อ + ปุ่มเรียง + คลิกไปภาพรวมคณะ · ลบ ①②③</td><td>UniversityDashboard.tsx</td><td>กลาง</td></tr>
+<tr style="opacity:.45"><td><s>UO-3</s></td><td>การ์ด 6 ใบ: เอาแถบ progress ออก (prop <code>progress</code> ไม่ส่งในหน้านี้) + เพิ่ม <code>onClick</code> ใน KpiTile</td><td>KpiTile.tsx · UniversityDashboard.tsx</td><td>เล็ก</td></tr>
+<tr style="opacity:.45"><td><s>UO-4</s></td><td>KpiDetailDialog — ป็อปอัปกราฟใหญ่รายคณะ 5 แบบ</td><td>views/overview/KpiDetailDialog.tsx (ใหม่)</td><td>กลาง</td></tr>
+<tr><td>UO-5</td><td>แถวล่าง 2 การ์ดต่อแถว (ตาม D5)</td><td>UniversityDashboard.tsx</td><td>เล็ก</td></tr>
+<tr><td>UO-6</td><td>ทดสอบจริงด้วย Playwright ที่จอ 1240 / 1600 / มือถือ · ทั้ง 2 ฐานรายได้ · กรองระดับ/คณะ · ทุกบทบาท (คณะต้องยังเห็นได้ครบตามมติ)</td><td>—</td><td>กลาง</td></tr>
+</table></div>
+<div class="callout">ความเสี่ยง: กราฟแท่งคู่ 20 คณะสูง ~780px ต้องเลื่อนจอ — ขัดกับหลัก “1 หน้าจบ” เล็กน้อย · ถ้ากรองคณะ/ระดับ จำนวนแถวลดลง ความสูงลดตาม · ถ้ายังยาวไป ทางเลือกคือแสดง 10 คณะแรก + ปุ่ม “ดูทั้งหมด”</div>
+</div>
+
+</div>
+</body>
+</html>

@@ -842,6 +842,7 @@ const ProgramReport = ({ entry }: Props) => {
         <Section no={next()} title="ข้อมูลหลักสูตร">
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
             <Field label="ชื่อหลักสูตร" value={entry.name} />
+            {entry.renamedFrom && <Field label="ชื่อหลักสูตรเดิม" value={entry.renamedFrom} />}
             <Field label="สังกัดคณะ / วิทยาลัย" value={entry.fac || '-'} />
             <Field label="ระดับการศึกษา" value={entry.level} />
             <Field label="ประเภทหลักสูตร" value={typeLabel} />

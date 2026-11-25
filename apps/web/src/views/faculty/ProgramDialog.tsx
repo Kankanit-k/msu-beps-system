@@ -26,6 +26,7 @@ import { computeBreakEven, fmtInt, fmtMillion } from '@views/breakeven/calc';
 import type { AfterResult } from '@views/cross/CrossPanels';
 
 import CostCategoryPanel from './CostCategoryPanel';
+import { programName, programSubtitle } from '@/utils/programName';
 
 export type DetailTab = 'be' | 'cost';
 
@@ -66,7 +67,7 @@ const ProgramDialog = ({
       v: (r) => (r.qStar !== null && r.qStar > 0 ? fmtInt(r.qStar) : 'ไม่มี'),
     },
     {
-      label: 'ส่วนเกิน / ขาดทุน (ลบ.)',
+      label: 'ส่วนต่าง (ลบ.)',
       v: (r) => `${r.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(r.profit))}`,
     },
   ];
@@ -76,9 +77,10 @@ const ProgramDialog = ({
       {p && both && (
         <>
           <DialogTitle sx={{ pr: 12 }}>
-            {p.prog}
+            {programName(p)}
             <Typography variant="body2" color="text.secondary">
-              {p.lvl} · {p.deg}
+              {p.lvl}
+              {programSubtitle(p) && ` · ${programSubtitle(p)}`}
             </Typography>
             <IconButton
               aria-label="ปิด"

@@ -31,6 +31,7 @@ import { gridTableSx } from '@views/scenario-program/CostBlockTable';
 import { fmtInt } from '@views/breakeven/calc';
 
 import type { ProgStat } from './FacultyContext';
+import { programName, programSubtitle } from '@/utils/programName';
 
 const PAGE_SIZE = 10;
 
@@ -189,7 +190,7 @@ const RevenueTable = ({
               sx={{ p: 2.5, cursor: 'pointer' }}
             >
               <Typography fontWeight={600} sx={{ mb: 1 }}>
-                {x.p.prog}
+                {programName(x.p)}
               </Typography>
               <Typography variant="body2" color="text.secondary" className="num">
                 นิสิต {fmtInt(x.Q)} คน · รายได้รวม <b>{fmtInt(x.tr)}</b> บาท
@@ -256,19 +257,21 @@ const RevenueTable = ({
                     fontWeight={600}
                     color="primary.main"
                     noWrap
-                    title={x.p.prog}
+                    title={programName(x.p)}
                   >
-                    {x.p.prog}
+                    {programName(x.p)}
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    noWrap
-                    component="div"
-                    title={x.p.deg}
-                  >
-                    {x.p.deg}
-                  </Typography>
+                  {programSubtitle(x.p) && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      noWrap
+                      component="div"
+                      title={programSubtitle(x.p)}
+                    >
+                      {programSubtitle(x.p)}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell align="right" className="num">
                   {fmtInt(x.Q)}

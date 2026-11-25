@@ -22,10 +22,13 @@ import KpiTile from '@components/KpiTile';
 import BreakEvenLineChart from '@views/breakeven/BreakEvenLineChart';
 import { fmtInt, fmtMillion, REVENUE_MODE_LABEL } from '@views/breakeven/calc';
 
+import type { ProgRow } from '@/data/mockup';
+
 import { useFaculty } from './FacultyContext';
 import type { ProgStat } from './FacultyContext';
 import {
   BE_LINE,
+  C,
   ChartTitle,
   CostDonut,
   REVENUE_SERIES,
@@ -38,6 +41,8 @@ import ProgramRankTable from './ProgramRankTable';
 
 /** หลักสูตรของระดับที่เลือกเกินนี้ → กราฟหน้าภาพรวมแสดงเฉพาะอันดับต้น + ลิงก์ "ดูทั้งหมด" */
 const TOP_N = 12;
+/** การ์ดนิสิตจริงเทียบจุดคุ้มทุน — แสดงเฉพาะหลักสูตรที่ควรติดตาม */
+const WATCH_N = 9;
 const CHART_H = 250;
 
 const INFO = {
@@ -76,12 +81,12 @@ const ChartCard = ({
   more,
 }: {
   children: ReactNode;
-  more?: { href: string; total: number };
+  more?: { href: string; total: number; shown?: number };
 }) => (
   <Card sx={{ blockSize: '100%', overflow: 'visible' }}>
-    <CardContent sx={{ pb: '12px !important' }}>
+    <CardContent sx={{ pb: '12px !important', blockSize: '100%', boxSizing: 'border-box' }}>
       {children}
-      {more && more.total > TOP_N && (
+      {more && more.total > (more.shown ?? TOP_N) && (
         <Box sx={{ textAlign: 'end' }}>
           <Button
             size="small"
@@ -97,26 +102,13 @@ const ChartCard = ({
   </Card>
 );
 
-const topBy = (progs: ProgStat[], v: (x: ProgStat) => number) =>
-  [...progs].sort((a, b) => v(b) - v(a)).slice(0, TOP_N);
-
 /**
  * ภาพรวมคณะ (/faculty) — การ์ดรวมทั้งคณะ + กราฟ 2×2 และตารางจัดอันดับของระดับที่เลือก
  * กราฟ/ตารางตามระดับที่เลือก (หรือทุกระดับ) · รายละเอียดอยู่ในหมวดผลการดำเนินงาน
  */
 const FacultyLanding = () => {
-  const {
-    fac,
-    year,
-    mode,
-    levels,
-    level,
-    allProgs,
-    progs,
-    facRes,
-    levelRes,
-    openDetail,
-  } = useFaculty();
+  const { fac, year, mode, levels, level, allProgs, progs, facRes, levelRes, openDetail } =
+    useFaculty();
 
   const tr = facRes.tr;
   const stShare = fac.st + fac.own ? fac.st / (fac.st + fac.own) : 0;
@@ -131,13 +123,31 @@ const FacultyLanding = () => {
     .reduce((a, x) => a + (mode === 'with_government' ? x.qStarGov : x.qStarOwn), 0);
   const reached = qStar > 0 ? Math.min(100, (facRes.q / qStar) * 100) : 0;
 
+  // ① แท่งคู่รายหลักสูตร: รายได้ (เงินรายได้ + เงินแผ่นดิน เมื่อรวม) | ต้นทุน (คงที่ + ผันแปร)
+  const withGov = mode === 'with_government';
+  // ① ค่าเริ่มต้น = ต่อหัว: หลักสูตรเล็ก/ใหญ่เทียบกันได้ (ยอดรวม → หลักสูตรใหญ่บังแท่งที่เหลือ)
+  const revOf = (x: ProgStat) => x.p.own + (withGov ? x.p.st : 0);
+  const byRevenue = [...progs].sort((a, b) => revOf(b) - revOf(a));
+  const pairSeries = [
+    { ...REVENUE_SERIES[0]!, group: 'รายได้' },
+    ...(withGov ? [{ ...REVENUE_SERIES[1]!, group: 'รายได้' }] : []),
+    { name: 'ต้นทุนคงที่', color: C.fixed, group: 'ต้นทุน', pick: (p: ProgRow) => p.TFC },
+    {
+      name: 'ต้นทุนผันแปร',
+      color: C.variable,
+      labelColor: BEPS.cost.onLight,
+      group: 'ต้นทุน',
+      pick: (p: ProgRow) => p.TVC,
+    },
+  ];
+
   return (
     <Box>
       <FacultyStatusBar showLevel />
 
       {/* จังหวะที่ 1 · การ์ด 6 ใบ — ผลรวมทั้งคณะ · ชุดและลำดับเดียวกับภาพรวมมหาวิทยาลัย */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
           <KpiTile
             label="นิสิตปัจจุบัน"
             value={fmtInt(facRes.q)}
@@ -148,7 +158,7 @@ const FacultyLanding = () => {
             info={INFO.q}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
           <TileLink href="/faculty/breakeven">
             <KpiTile
               label="นิสิต ณ จุดคุ้มทุน"
@@ -167,7 +177,7 @@ const FacultyLanding = () => {
             />
           </TileLink>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
           <TileLink href="/faculty/revenue">
             <KpiTile
               label="รายได้รวม"
@@ -186,7 +196,7 @@ const FacultyLanding = () => {
             />
           </TileLink>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
           <TileLink href="/faculty/cost">
             <KpiTile
               label="ต้นทุนรวม"
@@ -201,10 +211,10 @@ const FacultyLanding = () => {
             />
           </TileLink>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
           <TileLink href="/faculty/breakeven">
             <KpiTile
-              label="ส่วนเกิน / ขาดทุน"
+              label="ส่วนต่าง"
               value={`${facRes.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(facRes.profit))}`}
               suffix="ลบ."
               accent={facRes.profit >= 0 ? 'success' : 'error'}
@@ -216,7 +226,7 @@ const FacultyLanding = () => {
             />
           </TileLink>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
           <KpiTile
             label="รายได้เฉลี่ยต่อหัว"
             value={fmtInt(r)}
@@ -240,15 +250,40 @@ const FacultyLanding = () => {
         </Card>
       ) : (
         <>
-          {/* กราฟ 2×2 ของระดับที่เลือก */}
+          {/* ① รายได้เทียบต้นทุน รายหลักสูตร — เต็มความกว้าง */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={12}>
+              <ChartCard>
+                <StackedProgramBar
+                  title={`① รายได้เทียบต้นทุน รายหลักสูตร — ${level} (${progs.length})`}
+                  sub={`${REVENUE_MODE_LABEL[mode]} · ล้านบาท · แท่งม่วง (บน) = รายได้ · แท่งชมพู (ล่าง) = ต้นทุน · ม่วงยาวกว่าชมพู = มีส่วนต่างเป็นบวก · เรียงตามรายได้รวม`}
+                  info="ล้านบาท · เงินรายได้ = ค่าธรรมเนียมการศึกษา · เงินแผ่นดิน = งบประมาณแผ่นดินที่ปันให้หลักสูตร · กดแท่งเพื่อดูรายละเอียด"
+                  progs={byRevenue}
+                  series={pairSeries}
+                  onPick={openDetail}
+                  height={Math.max(320, progs.length * 26 + 60)}
+                  fill
+                  tooltipTitle={(x) => {
+                    const tr = revOf(x);
+                    const tc = x.p.TFC + x.p.TVC;
+                    const d = tr - tc;
+
+                    return `${x.label} — รายได้ ${fmtMillion(tr)} · ต้นทุน ${fmtMillion(tc)} · ส่วนต่าง ${d >= 0 ? '+' : '−'}${fmtMillion(Math.abs(d))} ลบ.`;
+                  }}
+                />
+              </ChartCard>
+            </Grid>
+          </Grid>
+
+          {/* ② โครงสร้างต้นทุน (ซ้าย) + ⑥ จุดตัดคุ้มทุน (ขวา) · จอ < 1536px เรียงลงกัน · ต่อท้ายด้วย ⑤ นิสิตจริงเทียบจุดคุ้มทุน เต็มความกว้าง (WATCH_N หลักสูตรที่ควรติดตาม + ดูทั้งหมดที่หน้าจุดคุ้มทุน) */}
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, xl: 4 }}>
               <ChartCard>
                 <CostDonut
                   tfc={levelRes.tfc}
                   tvc={levelRes.tvc}
                   progs={levelProgRows}
-                  title={`โครงสร้างต้นทุน — ${level}`}
+                  title={`② โครงสร้างต้นทุน — ${level}`}
                   height={190}
                 />
                 {levelTfcShare > FIXED_COST_ALERT && (
@@ -259,33 +294,10 @@ const FacultyLanding = () => {
                 )}
               </ChartCard>
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              {/* แสดงครบทุกหลักสูตร (ไม่ตัดอันดับต้น) — สูงตามจำนวนหลักสูตร */}
-              <ChartCard>
-                <StackedProgramBar
-                  title={`โครงสร้างรายได้ — ${level} (${progs.length} หลักสูตร)`}
-                  sub="ทั้งแท่ง = รวมเงินแผ่นดิน · ส่วนม่วงเข้ม = ไม่รวม"
-                  info="ล้านบาท · เงินรายได้ = ค่าธรรมเนียมการศึกษา · เงินแผ่นดิน = งบประมาณแผ่นดินที่ปันให้หลักสูตร · กดแท่งเพื่อดูรายละเอียด"
-                  progs={[...progs].sort((a, b) => b.p.st + b.p.own - (a.p.st + a.p.own))}
-                  series={REVENUE_SERIES}
-                  onPick={openDetail}
-                />
-              </ChartCard>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <ChartCard more={{ href: '/faculty/breakeven', total: progs.length }}>
-                <TargetVsActualChart
-                  progs={topBy(progs, (x) => x.p.Q)}
-                  mode={mode}
-                  onPick={openDetail}
-                  height={CHART_H}
-                />
-              </ChartCard>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, xl: 8 }}>
               <ChartCard>
                 <ChartTitle
-                  title={`จุดตัดคุ้มทุน — ${level}`}
+                  title={`③ จุดตัดคุ้มทุน — ${level}`}
                   info="จุดตัดของเส้นรายได้รวมกับเส้นต้นทุนรวม = จุดคุ้มทุน · จุดสีเข้ม = จำนวนนิสิตปัจจุบัน"
                 />
                 <BreakEvenLineChart
@@ -296,6 +308,19 @@ const FacultyLanding = () => {
                 />
               </ChartCard>
             </Grid>
+            <Grid size={12}>
+              <ChartCard
+                more={{ href: '/faculty/breakeven#be-target', total: progs.length, shown: WATCH_N }}
+              >
+                <TargetVsActualChart
+                  num="④"
+                  progs={progs}
+                  limit={WATCH_N}
+                  mode={mode}
+                  onPick={openDetail}
+                />
+              </ChartCard>
+            </Grid>
           </Grid>
 
           {/* จังหวะที่ 2 · ตารางจัดอันดับหลักสูตร */}
@@ -303,8 +328,8 @@ const FacultyLanding = () => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
                 <ChartTitle
-                  title={`จัดอันดับหลักสูตร — ${level} (${progs.length})`}
-                  info="อันดับ = ส่วนเกินมากสุด (ดีที่สุด) → ขาดทุนมากสุด ตามฐานรายได้ที่เลือก · เขียว 3 อันดับแรก · แดง 3 อันดับท้าย · กดแถวเพื่อดูรายละเอียด"
+                  title={`⑤ จัดอันดับหลักสูตร — ${level} (${progs.length})`}
+                  info="อันดับ = ส่วนต่างมากสุด (ดีที่สุด) → ขาดทุนมากสุด ตามฐานรายได้ที่เลือก · เขียว 3 อันดับแรก · แดง 3 อันดับท้าย · กดแถวเพื่อดูรายละเอียด"
                 />
                 <Button
                   size="small"

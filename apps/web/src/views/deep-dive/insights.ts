@@ -21,6 +21,7 @@ import {
   PER_HEAD_ALERT,
   topCategory,
 } from './deepDiveData';
+import { programName } from '@/utils/programName';
 
 export type InsightTone = 'error' | 'warning' | 'info' | 'success';
 
@@ -100,7 +101,7 @@ export const buildInsights = (rows: DDRow[], mode: RevenueMode): Insight[] => {
       tone: 'warning',
       page: 'breakeven',
       row: losing[0],
-      text: `ปีงบ ${DD_LAST} ไม่คุ้มทุน ${losing.length} จาก ${rows.length} หลักสูตร รวมขาดทุน ${fmtMillion(-sum)} ลบ. — มากสุดคือ ${losing[0]!.p.prog} (${fmtMillion(-lastValue(losing[0]!.profit[mode])!)} ลบ.)`,
+      text: `ปีงบ ${DD_LAST} ไม่คุ้มทุน ${losing.length} จาก ${rows.length} หลักสูตร รวมขาดทุน ${fmtMillion(-sum)} ลบ. — มากสุดคือ ${programName(losing[0]!.p)} (${fmtMillion(-lastValue(losing[0]!.profit[mode])!)} ลบ.)`,
     });
   }
 
@@ -115,7 +116,7 @@ export const buildInsights = (rows: DDRow[], mode: RevenueMode): Insight[] => {
       row: stopped.length === 1 ? stopped[0] : undefined,
       text: `${stopped.length} หลักสูตรไม่มีค่าเทอมเรียกเก็บในปี ${DD_LAST} (เคยมีในปีก่อน — อาจงดรับหรือปิดหลักสูตร): ${stopped
         .slice(0, 3)
-        .map((x) => x.p.prog)
+        .map((x) => programName(x.p))
         .join(', ')}${stopped.length > 3 ? ' …' : ''}`,
     });
 
@@ -131,7 +132,7 @@ export const buildInsights = (rows: DDRow[], mode: RevenueMode): Insight[] => {
         tone: 'warning',
         page: 'revenue',
         row: x,
-        text: `${x.p.prog}: ค่าเทอมเรียกเก็บลดลง ${Math.abs(d!).toFixed(0)}% ในช่วง ${DD_YEARS[0]}–${DD_LAST}${n !== null ? ` · นิสิต${n < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} ${Math.abs(n).toFixed(0)}%` : ''}`,
+        text: `${programName(x.p)}: ค่าเทอมเรียกเก็บลดลง ${Math.abs(d!).toFixed(0)}% ในช่วง ${DD_YEARS[0]}–${DD_LAST}${n !== null ? ` · นิสิต${n < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} ${Math.abs(n).toFixed(0)}%` : ''}`,
       }),
     );
 
@@ -145,7 +146,7 @@ export const buildInsights = (rows: DDRow[], mode: RevenueMode): Insight[] => {
         tone: 'warning',
         page: 'cost',
         row: x,
-        text: `${x.p.prog}: ต้นทุนกองอยู่ที่ ${catLabel(t!.cat)} ${(t!.share * 100).toFixed(0)}% ของต้นทุนทั้งหมด และยังขาดทุน`,
+        text: `${programName(x.p)}: ต้นทุนกองอยู่ที่ ${catLabel(t!.cat)} ${(t!.share * 100).toFixed(0)}% ของต้นทุนทั้งหมด และยังขาดทุน`,
       }),
     );
 
@@ -162,7 +163,7 @@ export const buildInsights = (rows: DDRow[], mode: RevenueMode): Insight[] => {
         tone: 'info',
         page: 'cost',
         row: x,
-        text: `${x.p.prog}: ต้นทุนต่อหัวสูงกว่าค่ากลางของกลุ่ม ${r!.toFixed(1)} เท่า (นิสิต ${x.p.Q.toLocaleString('th-TH')} คน)`,
+        text: `${programName(x.p)}: ต้นทุนต่อหัวสูงกว่าค่ากลางของกลุ่ม ${r!.toFixed(1)} เท่า (นิสิต ${x.p.Q.toLocaleString('th-TH')} คน)`,
       }),
     );
 

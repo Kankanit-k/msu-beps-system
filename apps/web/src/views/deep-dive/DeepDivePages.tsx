@@ -48,10 +48,17 @@ import {
 } from './deepDiveData';
 import type { Series } from './deepDiveData';
 import HistoryFilterBar from './HistoryFilterBar';
-import { buildInsights, costPerHead, PER_HEAD_MIN_Q, perHeadMedian, perHeadRatio } from './insights';
+import {
+  buildInsights,
+  costPerHead,
+  PER_HEAD_MIN_Q,
+  perHeadMedian,
+  perHeadRatio,
+} from './insights';
 import type { Insight } from './insights';
 import MatrixTable from './MatrixTable';
 import type { ExtraCol, MatrixRow } from './MatrixTable';
+import { programName, programSubtitle } from '@/utils/programName';
 
 type Page = 'breakeven' | 'revenue' | 'cost';
 
@@ -196,7 +203,11 @@ export const DeepDiveBreakEvenPage = () => {
   const topLoss = useMemo(
     () =>
       rows
-        .map((x) => ({ key: x.key, label: x.p.prog, value: cumulativeLoss(x.profit[mode]) / 1e6 }))
+        .map((x) => ({
+          key: x.key,
+          label: programName(x.p),
+          value: cumulativeLoss(x.profit[mode]) / 1e6,
+        }))
         .filter((i) => i.value > 0)
         .sort((a, b) => b.value - a.value)
         .slice(0, 10),
@@ -215,8 +226,8 @@ export const DeepDiveBreakEvenPage = () => {
 
   const mrows: MatrixRow[] = ranked.map((x) => ({
     key: x.key,
-    label: x.p.prog,
-    sub: x.p.deg,
+    label: programName(x.p),
+    sub: programSubtitle(x.p),
     badge: <StatusChip r={x} />,
     values: x.profit[mode],
     children: [
@@ -258,7 +269,7 @@ export const DeepDiveBreakEvenPage = () => {
       charts={[
         <ChartCard
           key="1"
-          title="ส่วนเกิน/ขาดทุนรวม (ลบ.)"
+          title="ส่วนต่างรวม (ลบ.)"
           info="ผลรวม (รายได้ − ต้นทุนรวม) ของหลักสูตรที่กรองอยู่ · บวก = ส่วนเกิน · ลบ = ขาดทุน"
         >
           <YearTrend
@@ -266,7 +277,7 @@ export const DeepDiveBreakEvenPage = () => {
             signedColors
             labels
             fmt={axisM}
-            series={[{ name: 'ส่วนเกิน/ขาดทุน', color: BEPS.profit, data: toM(profitSum) }]}
+            series={[{ name: 'ส่วนต่าง', color: BEPS.profit, data: toM(profitSum) }]}
           />
         </ChartCard>,
         <ChartCard
@@ -311,7 +322,7 @@ export const DeepDiveBreakEvenPage = () => {
           />
         </ChartCard>,
       ]}
-      tableTitle={`ส่วนเกิน/ขาดทุนรายหลักสูตร × ปี (ลบ.) — ${dd.level}`}
+      tableTitle={`ส่วนต่างรายหลักสูตร × ปี (ลบ.) — ${dd.level}`}
       table={
         <MatrixTable
           rows={mrows}
@@ -341,7 +352,7 @@ export const DeepDiveRevenuePage = () => {
   const movers = useMemo(
     () =>
       rows
-        .map((x) => ({ key: x.key, label: x.p.prog, d: changePct(x.tuition) }))
+        .map((x) => ({ key: x.key, label: programName(x.p), d: changePct(x.tuition) }))
         .filter((i): i is { key: string; label: string; d: number } => i.d !== null)
         .filter((i) => i.d < 0)
         .sort((a, b) => a.d - b.d)
@@ -355,8 +366,8 @@ export const DeepDiveRevenuePage = () => {
 
   const mrows: MatrixRow[] = rows.map((x) => ({
     key: x.key,
-    label: x.p.prog,
-    sub: x.p.deg,
+    label: programName(x.p),
+    sub: programSubtitle(x.p),
     values: x.tuition,
     children: [
       { key: `${x.key}|n`, label: 'นิสิต (คน)', values: x.students, fmt: fmtN },
@@ -483,7 +494,7 @@ export const DeepDiveCostPage = () => {
   const topHead = useMemo(
     () =>
       rows
-        .map((x) => ({ key: x.key, label: x.p.prog, r: ratioOf(x) }))
+        .map((x) => ({ key: x.key, label: programName(x.p), r: ratioOf(x) }))
         .filter((i): i is { key: string; label: string; r: number } => i.r !== null)
         .sort((a, b) => b.r - a.r)
         .slice(0, 10)
@@ -502,8 +513,8 @@ export const DeepDiveCostPage = () => {
 
     return {
       key: x.key,
-      label: x.p.prog,
-      sub: x.p.deg,
+      label: programName(x.p),
+      sub: programSubtitle(x.p),
       badge:
         t && t.share >= DRIVER_SHARE ? (
           <Chip
@@ -591,7 +602,9 @@ export const DeepDiveCostPage = () => {
             items={topHead}
             fmt={fmtInt}
             color={BEPS.compare.dark}
-            refLine={headMed > 0 ? { value: headMed, label: `ค่ากลาง ${fmtInt(headMed)}` } : undefined}
+            refLine={
+              headMed > 0 ? { value: headMed, label: `ค่ากลาง ${fmtInt(headMed)}` } : undefined
+            }
             onBack={dd.focused ? dd.unfocus : undefined}
             onPick={(k) => {
               const x = byKey.get(k);
@@ -789,7 +802,7 @@ export const DeepDiveLanding = () => {
                         </Typography>
                       </ListItemIcon>
                       <ListItemText
-                        primary={x.p.prog}
+                        primary={programName(x.p)}
                         secondary={`ขาดทุนติดต่อกัน ${x.streak} ปี · สะสม ${fmtM(cumulativeLoss(x.profit[mode]))} ลบ.`}
                         slotProps={{ primary: { noWrap: true } }}
                       />

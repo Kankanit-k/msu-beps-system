@@ -34,6 +34,7 @@ import type { RevenueMode } from '@beps/calc-engine';
 
 import { DotTitle } from '@components/ChartBits';
 import type { ProgRow } from '@/data/mockup';
+import { programName, programSubtitle } from '@/utils/programName';
 import { fmtMillion, REVENUE_MODE_LABEL, sheetQStar } from '@views/breakeven/calc';
 import { policySourceLabel, type FacultyLock } from '@views/fixed-cost-lock/lockStore';
 
@@ -129,20 +130,31 @@ const MethodCompareTable = ({ rows }: { rows: MethodCompareRow[] }) => {
               <TableCell sx={{ fontWeight: r.current ? 700 : 400 }}>
                 {ALLOC_METHOD_LABEL[r.method]}
                 {r.current && (
-                  <Chip size="small" color="primary" label="ใช้อยู่" sx={{ ml: 1, height: 18, fontSize: 10 }} />
+                  <Chip
+                    size="small"
+                    color="primary"
+                    label="ใช้อยู่"
+                    sx={{ ml: 1, height: 18, fontSize: 10 }}
+                  />
                 )}
               </TableCell>
               <TableCell align="right">
                 {fmtB(r.tfc)}
                 {!r.current && cur && (
-                  <Box component="span" sx={{ display: 'block', fontSize: 11, color: 'text.secondary' }}>
+                  <Box
+                    component="span"
+                    sx={{ display: 'block', fontSize: 11, color: 'text.secondary' }}
+                  >
                     {fmtD(r.tfc - cur.tfc)}
                   </Box>
                 )}
               </TableCell>
               <TableCell align="right">{fmtQ(r.qStarWith)}</TableCell>
               <TableCell align="right">{fmtQ(r.qStarWithout)}</TableCell>
-              <TableCell align="right" sx={{ color: r.profit >= 0 ? 'success.main' : 'error.main' }}>
+              <TableCell
+                align="right"
+                sx={{ color: r.profit >= 0 ? 'success.main' : 'error.main' }}
+              >
                 {fmtB(r.profit)}
               </TableCell>
               <TableCell align="center">
@@ -322,7 +334,8 @@ const ImpactCard = ({ r }: { r: ImpactRow }) => {
             )}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {r.deg} · {r.lvl} · นิสิต {fmtB(r.q)} คน
+            {r.deg && `${r.deg} · `}
+            {r.lvl} · นิสิต {fmtB(r.q)} คน
           </Typography>
         </Box>
         <ImpactStatus q={r.q} before={r.qBefore} after={r.qAfter} />
@@ -443,7 +456,13 @@ const AllocFlow = (props: {
  * สถานะวิธีปันส่วนของคณะ — ชิปเดียวบอกทั้ง "เลือกแล้วหรือยัง" และ "ใช้วิธีไหน"
  * เขียว = คณะเลือกปีนี้แล้ว (🔒 เมื่อล็อกจาก Submit) · ส้ม = คณะยังไม่เลือก ระบบใช้ค่าปีก่อน/ค่าตาม Excel แทน
  */
-const PolicyStatusChip = ({ lock, method }: { lock: FacultyLock; method: AllocChoice['method'] }) => {
+const PolicyStatusChip = ({
+  lock,
+  method,
+}: {
+  lock: FacultyLock;
+  method: AllocChoice['method'];
+}) => {
   const m = ALLOC_METHOD_LABEL[method];
   const [icon, color, label] =
     lock.source === 'config'
@@ -512,8 +531,8 @@ const FixedCostAllocationCard = ({
 
         return {
           id,
-          prog: p.prog,
-          deg: p.deg,
+          prog: programName(p),
+          deg: programSubtitle(p),
           lvl: p.lvl,
           q: p.Q,
           before: s.before,
@@ -587,8 +606,9 @@ const FixedCostAllocationCard = ({
         <Collapse in={compareOpen} unmountOnExit>
           <CardContent sx={{ pt: 0 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              ตัวเลขของหลักสูตรนี้ถ้าคณะใช้แต่ละวิธี — คิดจากตัวเลขหลังปรับปรุง (จำนวนนิสิต ค่าธรรมเนียม
-              ต้นทุนผันแปร) · ดูเพื่อประกอบการตัดสินใจเท่านั้น วิธีที่ใช้จริงกำหนดที่หน้าตั้งค่าของคณะ
+              ตัวเลขของหลักสูตรนี้ถ้าคณะใช้แต่ละวิธี — คิดจากตัวเลขหลังปรับปรุง (จำนวนนิสิต
+              ค่าธรรมเนียม ต้นทุนผันแปร) · ดูเพื่อประกอบการตัดสินใจเท่านั้น
+              วิธีที่ใช้จริงกำหนดที่หน้าตั้งค่าของคณะ
               {!compare.some((r) => r.method === 'CUSTOM_PCT') &&
                 ' · "กำหนด % เอง" แสดงเมื่อคณะกรอกสัดส่วนไว้แล้ว'}
             </Typography>
@@ -701,7 +721,8 @@ const FixedCostAllocationCard = ({
                   {isNew && choice.method === 'CUSTOM_PCT' && choice.bucketLevel === 'PROGRAM'
                     ? ' (คณะยังไม่ได้กำหนด % ให้ระดับการศึกษาของหลักสูตรใหม่)'
                     : ''}{' '}
-                  — แจ้งผู้ดูแลคณะให้ปรับสัดส่วนในหน้าตั้งค่า (ถ้าล็อกแล้วต้องทำบันทึกขออนุมัติถึงกองแผนงาน)
+                  — แจ้งผู้ดูแลคณะให้ปรับสัดส่วนในหน้าตั้งค่า
+                  (ถ้าล็อกแล้วต้องทำบันทึกขออนุมัติถึงกองแผนงาน)
                   {!compact && ' · ยังบันทึกผลไม่ได้'}
                 </Alert>
               )}
@@ -895,7 +916,8 @@ const FixedCostAllocationCard = ({
                                 )}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {r.deg} · {r.lvl}
+                                {r.deg && `${r.deg} · `}
+                                {r.lvl}
                               </Typography>
                             </TableCell>
                             <TableCell align="right" sx={numSx}>

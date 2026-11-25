@@ -35,6 +35,7 @@ import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 import { RAW } from '@/data/mockup';
 import type { ProgRow } from '@/data/mockup';
+import { programName } from '@/utils/programName';
 import type { BreakEvenResult, RevenueMode, ScopeLevel } from '@beps/calc-engine';
 import {
   aggregateRows,
@@ -131,7 +132,7 @@ const buildEntity = (
   const p: ProgRow = progsInLevel[progIdx] ?? progsInLevel[0] ?? RAW.PROGS[0]!;
 
   return {
-    name: `${fac.name} — ${p.prog} (${p.lvl})`,
+    name: `${fac.name} — ${programName(p)}`,
     q: p.Q,
     st: p.st,
     own: p.own,
@@ -348,7 +349,7 @@ const BreakEvenChart = () => {
       accent: 'success',
     },
     {
-      label: 'ส่วนเกิน/ขาดทุน',
+      label: 'ส่วนต่าง',
       value: `${res.profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(res.profit))}`,
       unit: 'ล้านบาท',
       accent: res.profit >= 0 ? 'success' : 'error',
@@ -395,7 +396,7 @@ const BreakEvenChart = () => {
               sx={{ minWidth: 340 }}
               options={facProgs}
               groupBy={(p) => p.lvl}
-              getOptionLabel={(p) => p.prog}
+              getOptionLabel={(p) => programName(p)}
               isOptionEqualToValue={(a, b) => a === b}
               value={pickedProg}
               onChange={(_, p) => pickProg(p)}
@@ -405,7 +406,7 @@ const BreakEvenChart = () => {
 
                 return (
                   <li key={key} {...rest}>
-                    {p.prog}
+                    {programName(p)}
                   </li>
                 );
               }}
@@ -473,7 +474,7 @@ const BreakEvenChart = () => {
               >
                 {progsInLevel.map((p, i) => (
                   <MenuItem key={p.prog} value={i}>
-                    {p.prog}
+                    {programName(p)}
                   </MenuItem>
                 ))}
               </Select>

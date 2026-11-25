@@ -43,6 +43,7 @@ import { useRole } from '@/hooks/useRole';
 
 // Util Imports
 import { downloadCsv } from '@/utils/csv';
+import { programName, programSubtitle } from '@/utils/programName';
 
 // Data / calc Imports
 import { RAW } from '@/data/mockup';
@@ -192,6 +193,7 @@ const BreakEvenDrill = () => {
     const text =
       !searchTerm ||
       norm(p.prog).includes(searchTerm) ||
+      norm(programName(p)).includes(searchTerm) ||
       norm(p.deg || '').includes(searchTerm) ||
       norm(p.fac).includes(searchTerm) ||
       norm(p.lvl).includes(searchTerm) ||
@@ -297,8 +299,8 @@ const BreakEvenDrill = () => {
             out.push({
               key: `prog-${RAW.PROGS.indexOf(p)}`,
               level: 2,
-              label: p.prog,
-              sub: p.lvl,
+              label: programName(p),
+              sub: programSubtitle(p) || undefined,
               q: pRes.q,
               qStar: pRes.qStar,
               r: pRes.r,
@@ -356,7 +358,7 @@ const BreakEvenDrill = () => {
         sev: 'warning',
         text: (
           <>
-            หลักสูตรที่ต้องเพิ่มนิสิตมากสุดเพื่อคุ้มทุน: <b>{gap.p.prog}</b> (
+            หลักสูตรที่ต้องเพิ่มนิสิตมากสุดเพื่อคุ้มทุน: <b>{programName(gap.p)}</b> (
             {shortFacName(gap.p.fac)}) ปัจจุบัน {fmtInt(gap.res.q)} คน ต้องการ{' '}
             {fmtInt(gap.res.qStar)} คน — ขาดอีก <b>{fmtInt(gap.res.qStar! - gap.res.q)} คน</b>
           </>
@@ -378,7 +380,7 @@ const BreakEvenDrill = () => {
             {worst.map((e, i) => (
               <span key={e.p.prog}>
                 {i > 0 && ', '}
-                <b>{e.p.prog}</b> (−{fmtMillion(Math.abs(e.res.profit))} ลบ.)
+                <b>{programName(e.p)}</b> (−{fmtMillion(Math.abs(e.res.profit))} ลบ.)
               </span>
             ))}
           </>
@@ -470,7 +472,7 @@ const BreakEvenDrill = () => {
           out.push(line(f.name, d.grp, '', computeBreakEven(d, mode)));
           progs
             .filter((p) => p.fac === f.name && p.grp === d.grp)
-            .forEach((p) => out.push(line(f.name, d.grp, p.prog, progStats.get(p)!.res)));
+            .forEach((p) => out.push(line(f.name, d.grp, programName(p), progStats.get(p)!.res)));
         });
     });
 

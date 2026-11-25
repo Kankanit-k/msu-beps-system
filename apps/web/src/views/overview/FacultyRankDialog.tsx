@@ -18,7 +18,6 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import TextField from '@mui/material/TextField';
@@ -46,18 +45,17 @@ type SortKey = 'label' | 'Q' | 'with' | 'without';
 
 const GAIN = BEPS.breakEven;
 const LOSS = BEPS.cost.dark;
-const PAGE_SIZE = 10;
 
 const fmtSigned = (v: number) => `${v >= 0 ? '+' : '−'}${fmtMillion(Math.abs(v))}`;
 
-/** หัวป็อปอัปตามการ์ดที่กด — ⑤ ส่วนเกิน · ⑥ ขาดทุน (แยกกันคนละป็อปอัป ไม่มีแท็บ) */
+/** หัวป็อปอัปตามการ์ดที่กด — ④ ส่วนต่างสูงสุด · ⑤ ค่าใช้จ่ายสูงกว่ารายได้ (แยกกันคนละป็อปอัป ไม่มีแท็บ) */
 const KIND = {
-  gain: { title: '⑤ คณะที่มีส่วนเกินสูงสุด', color: GAIN, word: 'มีส่วนเกิน' },
-  loss: { title: '⑥ คณะที่ต้องเฝ้าระวัง (ขาดทุน)', color: LOSS, word: 'ขาดทุน' },
+  gain: { title: '④ คณะที่มีส่วนต่างสูงสุด', color: GAIN, word: 'มีส่วนต่าง' },
+  loss: { title: '⑤ คณะที่มีค่าใช้จ่ายสูงกว่ารายได้', color: LOSS, word: 'ขาดทุน' },
 };
 
 /**
- * ป็อปอัป "ดูทั้งหมด" ของการ์ด ⑤ หรือ ⑥ — แสดงเฉพาะกลุ่มของการ์ดนั้น
+ * ป็อปอัป "ดูทั้งหมด" ของการ์ด ④ หรือ ⑤ — แสดงเฉพาะกลุ่มของการ์ดนั้น
  * ค้นหาชื่อคณะ · กดหัวคอลัมน์เพื่อเรียง · กดแถวเพื่อเปิดหน้าภาพรวมคณะ (เฉพาะผู้ที่เลือกคณะได้)
  */
 const FacultyRankDialog = ({
@@ -84,13 +82,11 @@ const FacultyRankDialog = ({
     key: mode === 'with_government' ? 'with' : 'without',
     dir: 'desc',
   });
-  const [page, setPage] = useState(0);
 
   // เปิดใหม่ทุกครั้ง = ล้างคำค้น · เรียงแบบการ์ด (ส่วนเกินมากสุด / ขาดทุนมากสุด ขึ้นก่อน)
   useEffect(() => {
     if (!open) return;
     setQuery('');
-    setPage(0);
     setSort({
       key: mode === 'with_government' ? 'with' : 'without',
       dir: kind === 'loss' ? 'asc' : 'desc',
@@ -116,7 +112,7 @@ const FacultyRankDialog = ({
   const q = query.trim();
   const val = (r: RankRow): number | string =>
     sort.key === 'label'
-      ? r.label
+      ? r.name
       : sort.key === 'Q'
         ? r.Q
         : sort.key === 'with'
@@ -133,11 +129,8 @@ const FacultyRankDialog = ({
       return sort.dir === 'asc' ? d : -d;
     });
 
-  const pageRows = shown.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
-
   const sortBy = (key: SortKey) => {
     setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }));
-    setPage(0);
   };
 
   const head = (key: SortKey, label: string, align: 'left' | 'right' = 'right') => (
@@ -153,6 +146,8 @@ const FacultyRankDialog = ({
   );
 
   const color = (v: number) => (v >= 0 ? GAIN : LOSS);
+  const curKey: SortKey = mode === 'with_government' ? 'with' : 'without';
+  const modeWord = mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน';
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">
@@ -178,11 +173,11 @@ const FacultyRankDialog = ({
             ทั้งหมด {rows.length} {unitWord} · {k.word} {nCard}
           </Box>
         </Box>
-        <Typography variant="body2" color="text.secondary">
-          ฐาน{mode === 'with_government' ? 'รวมเงินแผ่นดิน' : 'ไม่รวมเงินแผ่นดิน'} · หน่วย ล้านบาท
-          {canOpenFaculty && unitWord === 'คณะ' ? ' · กดแถวเพื่อเปิดภาพรวมคณะ' : ''}
-          {top5.size > 0 ? ' · แถบสี = 5 อันดับแรกที่แสดงบนการ์ด' : ''}
-        </Typography>
+        {canOpenFaculty && unitWord === 'คณะ' && (
+          <Typography variant="body2" color="text.secondary">
+            กดแถวเพื่อเปิดภาพรวมคณะ
+          </Typography>
+        )}
         <IconButton
           aria-label="ปิด"
           onClick={onClose}
@@ -196,10 +191,7 @@ const FacultyRankDialog = ({
           size="small"
           placeholder="ค้นหาคณะ…"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(0);
-          }}
+          onChange={(e) => setQuery(e.target.value)}
           sx={{ width: { xs: '100%', sm: 220 } }}
           slotProps={{
             input: {
@@ -220,14 +212,14 @@ const FacultyRankDialog = ({
                 <TableCell>#</TableCell>
                 {head('label', unitWord, 'left')}
                 {head('Q', 'นิสิต')}
-                {head('with', 'รวม ง.แผ่นดิน')}
-                {head('without', 'ไม่รวม ง.แผ่นดิน')}
+                {/* แสดงเฉพาะฐานรายได้ที่เลือกบนหัวหน้า */}
+                {head(curKey, `${modeWord} (ล้านบาท)`)}
               </TableRow>
             </TableHead>
             <TableBody>
-              {pageRows.length === 0 && (
+              {shown.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.secondary' }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 8, color: 'text.secondary' }}>
                     {query ? (
                       <>
                         ไม่พบ{unitWord}ที่ตรงกับ “{query}” —{' '}
@@ -247,7 +239,7 @@ const FacultyRankDialog = ({
                   </TableCell>
                 </TableRow>
               )}
-              {pageRows.map((r, i) => {
+              {shown.map((r, i) => {
                 const clickable = canOpenFaculty;
 
                 return (
@@ -283,37 +275,22 @@ const FacultyRankDialog = ({
                             fontWeight: 700,
                           }}
                         >
-                          {page * PAGE_SIZE + i + 1}
+                          {i + 1}
                         </Box>
                       ) : (
-                        page * PAGE_SIZE + i + 1
+                        i + 1
                       )}
                     </TableCell>
-                    <TableCell title={r.name} sx={{ fontWeight: top5.has(r.key) ? 700 : 500 }}>
-                      {r.label}
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: top5.has(r.key) ? 700 : 500 }}>{r.name}</TableCell>
                     <TableCell align="right" className="num">
                       {fmtInt(r.Q)}
                     </TableCell>
                     <TableCell
                       align="right"
                       className="num"
-                      sx={{
-                        color: color(r.profitWith),
-                        fontWeight: mode === 'with_government' ? 700 : 400,
-                      }}
+                      sx={{ color: color(cur(r)), fontWeight: 700 }}
                     >
-                      {fmtSigned(r.profitWith)}
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      className="num"
-                      sx={{
-                        color: color(r.profitWithout),
-                        fontWeight: mode === 'without_government' ? 700 : 400,
-                      }}
-                    >
-                      {fmtSigned(r.profitWithout)}
+                      {fmtSigned(cur(r))}
                     </TableCell>
                   </TableRow>
                 );
@@ -321,17 +298,6 @@ const FacultyRankDialog = ({
             </TableBody>
           </Table>
         </TableContainer>
-        {shown.length > PAGE_SIZE && (
-          <TablePagination
-            component="div"
-            count={shown.length}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={PAGE_SIZE}
-            rowsPerPageOptions={[PAGE_SIZE]}
-            labelDisplayedRows={({ from, to, count }) => `${from}–${to} จาก ${count}`}
-          />
-        )}
       </DialogContent>
     </Dialog>
   );

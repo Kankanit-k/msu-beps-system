@@ -55,6 +55,7 @@ import type { FinancialRow, LevelScope } from '@views/breakeven/calc';
 import CostSimulator from './CostSimulator';
 import { composeCost, ORIGIN_META, ORIGIN_ORDER } from './costParts';
 import ProgramCostTable from './ProgramCostTable';
+import { programName } from '@/utils/programName';
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
@@ -208,7 +209,7 @@ const CostView = () => {
       isSingleFac
         ? [...progs]
             .sort((a, b) => b.TC - a.TC)
-            .map((p) => ({ label: `${p.prog} (${p.lvl})`, TFC: p.TFC, TVC: p.TVC }))
+            .map((p) => ({ label: programName(p), TFC: p.TFC, TVC: p.TVC }))
         : facs.map((f) => ({ label: shortFacName(f.name), TFC: f.TFC, TVC: f.TVC })),
     [isSingleFac, progs, facs],
   );

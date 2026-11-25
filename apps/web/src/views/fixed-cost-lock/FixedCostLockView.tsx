@@ -53,7 +53,7 @@ import { MOCK_RUN } from '@components/PageHeaderBar';
 import { useAuthUser } from '@/hooks/AuthHooks';
 import { useRole } from '@/hooks/useRole';
 import { roleDisplay } from '@/configs/accessControl';
-import type { ProgRow } from '@/data/mockup';
+import { programName } from '@/utils/programName';
 import { fmtMillion } from '@views/breakeven/calc';
 import { FACULTIES, facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
 import MethodCards from '@views/fixed-cost-policy/MethodCards';
@@ -75,7 +75,6 @@ import {
   type FacultyScenario,
 } from '@views/scenario-program/facultyAllocation';
 import { gridTableSx } from '@views/scenario-program/CostBlockTable';
-import { progDegreeLabel } from '@views/scenario-program/programData';
 
 import ClassificationStep from './ClassificationStep';
 import { useFacultyClassification } from './classStore';
@@ -318,16 +317,6 @@ const FixedCostLockView = ({ mode }: { mode: CostSettingMode }) => {
 
   /* ---------- ผลปันส่วนของทั้งคณะตามวิธีที่เลือก (ชุดคำนวณเดียวกับหน้าคำนวณรายหลักสูตร) ---------- */
   const rows = useMemo(() => (fac ? facultyRows(fac) : []), [fac]);
-  /** แสดงแค่ชื่อปริญญา — ชื่อซ้ำในระดับเดียวกัน (6 คู่ในชีต) ต่อชื่อหลักสูตรในวงเล็บให้แยกได้ */
-  const progName = useMemo(() => {
-    const n = new Map<string, number>();
-    const key = (p: ProgRow) => `${p.lvl}|${progDegreeLabel(p)}`;
-
-    rows.forEach(({ p }) => n.set(key(p), (n.get(key(p)) ?? 0) + 1));
-
-    return (p: ProgRow) =>
-      n.get(key(p))! > 1 ? `${progDegreeLabel(p)} (${p.prog})` : progDegreeLabel(p);
-  }, [rows]);
   /** ตารางขั้นที่ 3 จัดกลุ่มตามระดับ — sort คงลำดับเดิมภายในระดับเดียวกัน */
   const byLevel = useMemo(
     () => [...rows].sort((a, b) => lvlRank(a.p.lvl) - lvlRank(b.p.lvl)),
@@ -344,14 +333,14 @@ const FixedCostLockView = ({ mode }: { mode: CostSettingMode }) => {
     if (!fac) return null;
     const programs = rows.map(({ p, id }) => ({
       id,
-      label: progName(p),
+      label: programName(p),
       educationLevel: p.lvl,
       q: p.Q,
       sheetShare: sheetShareOf(p),
     }));
 
     return { pool: programs.reduce((a, p) => a + p.sheetShare, 0), programs };
-  }, [fac, rows, progName]);
+  }, [fac, rows]);
   const byLvl = (bs: ReturnType<typeof allocBuckets>) =>
     [...bs].sort((a, b) => lvlRank(a.group ?? a.key) - lvlRank(b.group ?? b.key));
   const buckets = scenario ? byLvl(allocBuckets(scenario, choice.bucketLevel)) : [];
@@ -722,27 +711,27 @@ const FixedCostLockView = ({ mode }: { mode: CostSettingMode }) => {
       </Card>
 
       {mode === 'variable' && fac && scenario && (
-          /* ---------- จำแนกคงที่/ผันแปร (มติ ตั้งค่าต้นทุน 27 ต.ค.) ---------- */
-          <ClassificationStep
-            id="step-classify"
-            header={
-              <StepHeader
-                no={noOf('step-classify')}
-                status={statusOf['step-classify']!}
-                title="เลือกประเภทต้นทุน — คงที่ / ผันแปร / ผสม"
-                hint={
-                  submitLock
-                    ? 'ล็อกแล้ว — แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน'
-                    : 'เลือกประเภทของแต่ละรายการให้ตรงบริบทคณะ — ไม่แก้ = ใช้ค่าตั้งต้นของมหาวิทยาลัย · รายการที่เป็นทั้งสองแบบเลือก “ผสม” แล้วกรอก % ในแถวที่โผล่ใต้รายการ · ตัวกรอง “ผสม” ใช้ทบทวนก่อนบันทึก'
-                }
-              />
-            }
-            year={year}
-            fac={fac}
-            locked={!!submitLock}
-            savedBy={lockedBy}
-            onToast={setToast}
-          />
+        /* ---------- จำแนกคงที่/ผันแปร (มติ ตั้งค่าต้นทุน 27 ต.ค.) ---------- */
+        <ClassificationStep
+          id="step-classify"
+          header={
+            <StepHeader
+              no={noOf('step-classify')}
+              status={statusOf['step-classify']!}
+              title="เลือกประเภทต้นทุน — คงที่ / ผันแปร / ผสม"
+              hint={
+                submitLock
+                  ? 'ล็อกแล้ว — แก้ไขต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน'
+                  : 'เลือกประเภทของแต่ละรายการให้ตรงบริบทคณะ — ไม่แก้ = ใช้ค่าตั้งต้นของมหาวิทยาลัย · รายการที่เป็นทั้งสองแบบเลือก “ผสม” แล้วกรอก % ในแถวที่โผล่ใต้รายการ · ตัวกรอง “ผสม” ใช้ทบทวนก่อนบันทึก'
+              }
+            />
+          }
+          year={year}
+          fac={fac}
+          locked={!!submitLock}
+          savedBy={lockedBy}
+          onToast={setToast}
+        />
       )}
 
       {mode === 'fixed' && fac && scenario && (
@@ -999,7 +988,7 @@ const FixedCostLockView = ({ mode }: { mode: CostSettingMode }) => {
                         <TableRow key={id} hover>
                           {/* ลำดับต่อเนื่องข้ามหน้า */}
                           <TableCell align="center">{page * ROWS_PER_PAGE + i + 1}</TableCell>
-                          <TableCell sx={{ pl: 4 }}>{progName(p)}</TableCell>
+                          <TableCell sx={{ pl: 4 }}>{programName(p)}</TableCell>
                           <TableCell align="right">{fmtB(p.Q)}</TableCell>
                           {compare.map(({ m, applied, after }) => {
                             const v = after.get(id) ?? 0;
@@ -1057,8 +1046,8 @@ const FixedCostLockView = ({ mode }: { mode: CostSettingMode }) => {
               )}
               {compare.some((c) => c.m === 'CUSTOM_PCT' && !c.applied) && (
                 <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
-                  วิธีกำหนด % เอง ยังแสดงผลไม่ได้ — เลือกวิธีนี้ในขั้นที่ {noOf('step-method')} แล้วกรอกสัดส่วนให้ครบ
-                  100% ก่อน
+                  วิธีกำหนด % เอง ยังแสดงผลไม่ได้ — เลือกวิธีนี้ในขั้นที่ {noOf('step-method')}{' '}
+                  แล้วกรอกสัดส่วนให้ครบ 100% ก่อน
                 </Alert>
               )}
             </CardContent>

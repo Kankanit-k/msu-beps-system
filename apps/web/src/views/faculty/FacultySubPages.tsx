@@ -142,17 +142,16 @@ export const FacultyRevenuePage = () => {
   const lvlOwn = progs.reduce((a, x) => a + x.p.own, 0);
   const stShare = fac.st + fac.own ? fac.st / (fac.st + fac.own) : 0;
 
-  // ไม่รวมแผ่นดิน → ตัดแท่งม่วงออก · เรียงรายได้มาก → น้อยตามฐานที่เลือก
-  const series = withGov ? REVENUE_SERIES : REVENUE_SERIES.filter((s) => s.name !== 'เงินแผ่นดิน');
-  const ranked = useMemo(
-    () =>
-      [...progs].sort((a, b) =>
-        withGov ? b.p.st + b.p.own - a.p.st - a.p.own : b.p.own - a.p.own,
-      ),
-    [progs, withGov],
-  );
+  // กราฟรายได้: แท่งซ้อน เงินรายได้ | เงินแผ่นดิน ตามระดับที่เลือก (ตรงกับตารางด้านล่าง) · สลับรวม/ต่อหัว
+  const [revPerHead, setRevPerHead] = useState(false);
+  const revSeries = withGov ? REVENUE_SERIES : REVENUE_SERIES.slice(0, 1);
+  const revRanked = useMemo(() => {
+    const total = (x: ProgStat) => revSeries.reduce((a, s) => a + s.pick(x.p), 0);
+    const val = (x: ProgStat) => (revPerHead ? (x.p.Q ? total(x) / x.p.Q : 0) : total(x));
 
-  // รายได้ ป.ตรี/โท/เอก มาจากคนละแหล่ง — ไม่รวมทุกระดับในกราฟเดียว
+    return [...progs].sort((a, b) => val(b) - val(a));
+  }, [progs, revSeries, revPerHead]);
+
   return (
     <SubPage section="รายได้" showRevenue levelTabs>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -221,15 +220,29 @@ export const FacultyRevenuePage = () => {
       <Card sx={{ mb: 3, overflow: 'visible' }}>
         <CardContent>
           <StackedProgramBar
-            title={`รายได้รายหลักสูตร/ปี — ${level}`}
-            info={
+            title={`รายได้${revPerHead ? 'ต่อหัว' : ''}รายหลักสูตร/ปี — ${level}`}
+            sub={
               withGov
-                ? 'ล้านบาท · เงินรายได้ = ค่าธรรมเนียมการศึกษา · เงินแผ่นดิน = งบประมาณแผ่นดินที่ปันให้หลักสูตร · เรียงรายได้รวมมาก → น้อย · กดแท่งเพื่อดูรายละเอียด'
-                : 'ล้านบาท · ไม่รวมเงินแผ่นดิน — แสดงเฉพาะเงินรายได้ (ค่าธรรมเนียม) ที่หลักสูตรหาเองได้ · เรียงมาก → น้อย · กดแท่งเพื่อดูรายละเอียด'
+                ? 'ทั้งแท่ง = รายได้รวม · ม่วงเข้ม = เงินรายได้ (ค่าธรรมเนียม) · ม่วงอ่อน = เงินแผ่นดิน'
+                : 'ไม่รวมเงินแผ่นดิน — เฉพาะเงินรายได้ (ค่าธรรมเนียม)'
             }
-            progs={ranked}
-            series={series}
+            info={`${revPerHead ? 'บาทต่อนิสิต 1 คน (รายได้ ÷ นิสิตปัจจุบัน)' : 'ล้านบาท'} · เรียงมาก → น้อย · เปลี่ยนระดับที่แท็บด้านบน · กดแท่งเพื่อดูรายละเอียด`}
+            progs={revRanked}
+            series={revSeries}
             onPick={openDetail}
+            perHead={revPerHead}
+            action={
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                exclusive
+                value={revPerHead ? 'head' : 'total'}
+                onChange={(_, v) => v && setRevPerHead(v === 'head')}
+              >
+                <ToggleButton value="total">รวม (ลบ.)</ToggleButton>
+                <ToggleButton value="head">ต่อหัว (บาท/คน)</ToggleButton>
+              </ToggleButtonGroup>
+            }
           />
         </CardContent>
       </Card>
@@ -715,7 +728,6 @@ export const FacultyBreakEvenPage = () => {
   const facGov = useMemo(() => beSummary(allProgs, true).qStar, [allProgs]);
   const facOwn = useMemo(() => beSummary(allProgs, false).qStar, [allProgs]);
   const q = levelRes.q;
-  const chartH = Math.max(320, progs.length * 24 + 60);
 
   const crossRows = useMemo(() => {
     const keys = new Set(progs.map((x) => x.key));
@@ -828,23 +840,23 @@ export const FacultyBreakEvenPage = () => {
         <b>{!lockReady || !lock ? '…' : ALLOC_METHOD_LABEL[lock.choice.method]}</b>
         {lock && ` · ${policySourceLabel(lock)}`}
       </Typography>
-      {/* 2 กราฟวางคู่กัน — ความสูงเท่ากัน ตามจำนวนหลักสูตร */}
+      {/* นิสิตจริงเทียบจุดคุ้มทุน เต็มความกว้าง แสดงครบไม่ต้องเลื่อน · จุดตัดคุ้มทุนอยู่แถวถัดไป */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ blockSize: '100%' }}>
+        <Grid size={12}>
+          <Card id="be-target" sx={{ scrollMarginTop: 120 }}>
             <CardContent>
-              <TargetVsActualChart progs={progs} mode={mode} onPick={openDetail} height={chartH} />
+              <TargetVsActualChart progs={progs} mode={mode} onPick={openDetail} />
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={12}>
           <Card sx={{ blockSize: '100%' }}>
             <CardContent>
               <ChartTitle
                 title={`จุดตัดคุ้มทุน — ${level} · ${REVENUE_MODE_LABEL[mode]}`}
                 info="จุดตัดของเส้นรายได้รวมกับเส้นต้นทุนรวม = จุดคุ้มทุน (เริ่มมีกำไร) · จุดสีเข้ม = จำนวนนิสิตปัจจุบัน · จุดคุ้มทุนที่ปักไว้ = ผลบวก Q* รายหลักสูตรแบบชีต Excel"
               />
-              <BreakEvenLineChart res={levelRes} q={levelRes.q} height={chartH} palette={BE_LINE} />
+              <BreakEvenLineChart res={levelRes} q={levelRes.q} height={360} palette={BE_LINE} />
             </CardContent>
           </Card>
         </Grid>

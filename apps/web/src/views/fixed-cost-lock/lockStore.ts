@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { facultyRows, poolAmountOf } from '@views/fixed-cost-policy/data';
+import { programName } from '@/utils/programName';
 import {
   allocateFaculty,
   allocBuckets,
@@ -173,7 +174,7 @@ export const unlockSubmit = (year: string, faculty: string, memo: string, by: st
 export const choiceValidFor = (faculty: string, choice: AllocChoice): boolean => {
   const programs = facultyRows(faculty).map(({ p, id }) => ({
     id,
-    label: p.prog,
+    label: programName(p),
     educationLevel: p.lvl,
     q: p.Q,
     sheetShare: poolAmountOf('ALL')(p),

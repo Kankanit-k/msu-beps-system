@@ -140,6 +140,19 @@ const ProgramStep = (props: Props) => {
               : 'เลือกหลักสูตรเดิมในคณะที่ใกล้เคียง — ระบบดึงโครงสร้างค่าใช้จ่าย ต้นทุน และอัตราค่าธรรมเนียมมาตั้งต้น · ถ้าไม่มี ให้กด "กรอกต้นทุนเอง"'
           }
         />
+        {purpose === 'improve' && props.refProg && (
+          <TextField
+            size="small"
+            fullWidth
+            sx={{ mt: 3 }}
+            label="ชื่อหลักสูตรหลังปรับปรุง (ถ้าเปลี่ยนชื่อ)"
+            placeholder={props.refProg.prog}
+            value={props.newName}
+            onChange={(e) => props.onNewNameChange(e.target.value)}
+            disabled={props.confirmed}
+            helperText={`เว้นว่าง = ใช้ชื่อเดิม "${props.refProg.prog}"`}
+          />
+        )}
 
         {props.onConfirm && !props.confirmed && (
           <Box

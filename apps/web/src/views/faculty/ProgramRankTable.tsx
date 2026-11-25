@@ -1,7 +1,7 @@
 'use client';
 
 // React Imports
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 
 // MUI Imports
 import Box from '@mui/material/Box';
@@ -13,7 +13,6 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Typography from '@mui/material/Typography';
@@ -25,11 +24,10 @@ import type { RevenueMode } from '@beps/calc-engine';
 // Component Imports
 import { BEPS } from '@components/ChartBits';
 import InfoTip from '@components/InfoTip';
-import { fmtInt, fmtMillion } from '@views/breakeven/calc';
+import { fmtInt, fmtMillion, levelRank } from '@views/breakeven/calc';
 
 import type { ProgStat } from './FacultyContext';
-
-const PAGE_SIZE = 10;
+import { programName, programSubtitle } from '@/utils/programName';
 
 type SortKey = 'profit' | 'profitPct' | 'Q' | 'tr' | 'tc';
 
@@ -115,14 +113,15 @@ const COLUMNS: { key?: SortKey; label: string; align?: 'right'; hint?: string }[
   },
   {
     key: 'profit',
-    label: 'ส่วนเกิน / ขาดทุน',
+    label: 'ส่วนต่าง',
     align: 'right',
     hint: 'ล้านบาท ตามฐานรายได้ที่เลือกด้านบน · กดหัวคอลัมน์เพื่อเรียง',
   },
 ];
 
 /**
- * ตารางจัดอันดับหลักสูตรของระดับที่เลือก (หรือทุกระดับ) — อันดับ = ส่วนเกินมากสุด → ขาดทุนมากสุด (ตามโหมด)
+ * ตารางจัดอันดับหลักสูตร แยกตอนตามระดับ ตรี → โท → เอก ต่อกันในตารางเดียว (ไม่ต้องเลือกตัวกรองระดับ)
+ * อันดับนับในระดับเดียวกัน = ส่วนต่างมากสุด → ขาดทุนมากสุด (ตามโหมด) · แสดงครบทุกหลักสูตร ไม่แบ่งหน้า
  * กดหัวคอลัมน์เพื่อเรียงแบบอื่น · กดแถวเพื่อเปิดรายละเอียด · จอแคบเปลี่ยนเป็นการ์ด
  */
 const ProgramRankTable = ({
@@ -137,7 +136,6 @@ const ProgramRankTable = ({
   const isMobile = useMediaQuery((t: Theme) => t.breakpoints.down('md'));
   const [sortKey, setSortKey] = useState<SortKey>('profit');
   const [asc, setAsc] = useState(false);
-  const [page, setPage] = useState(0);
 
   const ranked = useMemo<Row[]>(() => {
     const rows = progs.map((x) => {
@@ -148,8 +146,13 @@ const ProgramRankTable = ({
       return { ...x, tr, tc, profit, profitPct: tr ? profit / tr : 0, rank: 0 };
     });
 
-    // อันดับคงที่ตามส่วนเกิน/ขาดทุน ไม่ว่าจะเรียงด้วยคอลัมน์ไหน
-    [...rows].sort((a, b) => b.profit - a.profit).forEach((r, i) => (r.rank = i + 1));
+    // อันดับคงที่ตามส่วนต่าง (นับในระดับเดียวกัน) ไม่ว่าจะเรียงด้วยคอลัมน์ไหน
+    const byLvl = new Map<string, Row[]>();
+
+    rows.forEach((r) => byLvl.set(r.p.lvl, [...(byLvl.get(r.p.lvl) ?? []), r]));
+    byLvl.forEach((rs) =>
+      [...rs].sort((a, b) => b.profit - a.profit).forEach((r, i) => (r.rank = i + 1)),
+    );
 
     return rows;
   }, [progs, mode]);
@@ -164,10 +167,21 @@ const ProgramRankTable = ({
     [ranked, sortKey, asc],
   );
 
-  // เปลี่ยนระดับ/คณะ → กลับหน้าแรก (การเรียงยังอยู่)
-  useEffect(() => setPage(0), [progs]);
+  // ตอนละระดับ เรียงตรี → โท → เอก · ภายในตอนเรียงตามคอลัมน์ที่เลือก
+  const groups = useMemo(() => {
+    const lvls = [...new Set(sorted.map((x) => x.p.lvl))].sort(
+      (a, b) => levelRank(a) - levelRank(b),
+    );
 
-  const pageRows = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    return lvls.map((lvl) => {
+      const rows = sorted.filter((x) => x.p.lvl === lvl);
+
+      return { lvl, rows, q: rows.reduce((a, x) => a + x.p.Q, 0) };
+    });
+  }, [sorted]);
+
+  const groupNote = (g: (typeof groups)[number]) =>
+    `${g.rows.length} หลักสูตร · นิสิต ${fmtInt(g.q)} คน`;
 
   const sortBy = (k: SortKey) => {
     if (k === sortKey) setAsc((v) => !v);
@@ -184,55 +198,53 @@ const ProgramRankTable = ({
       </Typography>
     );
 
-  const pager = (
-    <TablePagination
-      component="div"
-      count={sorted.length}
-      page={page}
-      onPageChange={(_, p) => setPage(p)}
-      rowsPerPage={PAGE_SIZE}
-      rowsPerPageOptions={[PAGE_SIZE]}
-      labelDisplayedRows={({ from, to, count }) => `${from}–${to} จาก ${count}`}
-    />
-  );
-
   if (isMobile)
     return (
-      <Box>
-        <Stack spacing={2}>
-          {pageRows.map((x) => (
-            <Card
-              key={x.key}
-              variant="outlined"
-              onClick={() => onPick(x.key)}
-              sx={{ p: 2.5, cursor: 'pointer' }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                <RankChip rank={x.rank} total={ranked.length} profit={x.profit} />
-                <Typography fontWeight={600} sx={{ flex: 1 }}>
-                  {x.p.prog}
-                </Typography>
-                <StatusChip profit={x.profit} />
-              </Box>
-              <Typography variant="body2" color="text.secondary" className="num">
-                นิสิต {fmtInt(x.p.Q)} คน · จุดคุ้มทุน {x.qStarGov > 0 ? fmtInt(x.qStarGov) : '—'} /{' '}
-                {x.qStarOwn > 0 ? fmtInt(x.qStarOwn) : '—'} คน (รวม / ไม่รวมแผ่นดิน)
+      <Stack spacing={3}>
+        {groups.map((g) => (
+          <Box key={g.lvl}>
+            <Typography fontWeight={700} sx={{ mb: 1.5 }}>
+              {g.lvl}{' '}
+              <Typography component="span" variant="caption" color="text.secondary">
+                {groupNote(g)}
               </Typography>
-              <Typography variant="body2" color="text.secondary" className="num">
-                รายได้ {fmtMillion(x.tr)} · ต้นทุน {fmtMillion(x.tc)} ·{' '}
-                <b
-                  style={{
-                    color: x.profit >= 0 ? BEPS.breakEven : 'var(--mui-palette-error-main)',
-                  }}
+            </Typography>
+            <Stack spacing={2}>
+              {g.rows.map((x) => (
+                <Card
+                  key={x.key}
+                  variant="outlined"
+                  onClick={() => onPick(x.key)}
+                  sx={{ p: 2.5, cursor: 'pointer' }}
                 >
-                  {signed(x.profit)} ลบ.
-                </b>
-              </Typography>
-            </Card>
-          ))}
-        </Stack>
-        {pager}
-      </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <RankChip rank={x.rank} total={g.rows.length} profit={x.profit} />
+                    <Typography fontWeight={600} sx={{ flex: 1 }}>
+                      {programName(x.p)}
+                    </Typography>
+                    <StatusChip profit={x.profit} />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" className="num">
+                    นิสิต {fmtInt(x.p.Q)} คน · จุดคุ้มทุน{' '}
+                    {x.qStarGov > 0 ? fmtInt(x.qStarGov) : '—'} /{' '}
+                    {x.qStarOwn > 0 ? fmtInt(x.qStarOwn) : '—'} คน (รวม / ไม่รวมแผ่นดิน)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" className="num">
+                    รายได้ {fmtMillion(x.tr)} · ต้นทุน {fmtMillion(x.tc)} ·{' '}
+                    <b
+                      style={{
+                        color: x.profit >= 0 ? BEPS.breakEven : 'var(--mui-palette-error-main)',
+                      }}
+                    >
+                      {signed(x.profit)} ลบ.
+                    </b>
+                  </Typography>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
+        ))}
+      </Stack>
     );
 
   return (
@@ -260,77 +272,112 @@ const ProgramRankTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {pageRows.map((x) => (
-              <TableRow key={x.key} hover onClick={() => onPick(x.key)} sx={{ cursor: 'pointer' }}>
-                <TableCell>
-                  <RankChip rank={x.rank} total={ranked.length} profit={x.profit} />
-                </TableCell>
-                <TableCell sx={{ maxWidth: 240, '& > *': { maxWidth: 240 } }}>
-                  <Typography
-                    variant="body2"
-                    fontWeight={600}
-                    color="primary.main"
-                    noWrap
-                    title={x.p.prog}
+            {groups.map((g) => (
+              <Fragment key={g.lvl}>
+                <TableRow>
+                  <TableCell
+                    colSpan={COLUMNS.length}
+                    sx={{ bgcolor: 'action.hover', py: 1.5, borderBottom: 0 }}
                   >
-                    {x.p.prog}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    noWrap
-                    component="div"
-                    title={x.p.deg}
-                  >
-                    {x.p.deg}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right" className="num" sx={{ whiteSpace: 'nowrap' }}>
-                  {fmtInt(x.p.Q)}{' '}
-                  <Typography component="span" variant="caption" color="text.disabled">
-                    / —
-                  </Typography>
-                </TableCell>
-                <TableCell align="right" className="num" sx={{ whiteSpace: 'nowrap' }}>
-                  {fmtMillion(x.tr)}
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    แผ่นดิน {fmtMillion(x.p.st)} · รายได้ {fmtMillion(x.p.own)}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right" className="num" sx={{ whiteSpace: 'nowrap' }}>
-                  {fmtMillion(x.tc)}
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    คงที่ {fmtMillion(x.p.TFC)} · ผันแปร {fmtMillion(x.p.TVC)}
-                  </Typography>
-                </TableCell>
-                <TargetCell q={x.p.Q} target={x.qStarGov} active={mode === 'with_government'} />
-                <TargetCell q={x.p.Q} target={x.qStarOwn} active={mode === 'without_government'} />
-                <TableCell align="right">
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: 1.5,
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      fontWeight={700}
-                      className="num"
-                      color={x.profit >= 0 ? BEPS.breakEven : 'error.main'}
-                    >
-                      {signed(x.profit)}
+                    <Typography component="span" fontWeight={700}>
+                      {g.lvl}
+                    </Typography>{' '}
+                    <Typography component="span" variant="caption" color="text.secondary">
+                      {groupNote(g)}
                     </Typography>
-                    <StatusChip profit={x.profit} />
-                  </Box>
-                </TableCell>
-              </TableRow>
+                  </TableCell>
+                </TableRow>
+                {g.rows.map((x) => (
+                  <TableRow
+                    key={x.key}
+                    hover
+                    onClick={() => onPick(x.key)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    <TableCell>
+                      <RankChip rank={x.rank} total={g.rows.length} profit={x.profit} />
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 240, '& > *': { maxWidth: 240 } }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color="primary.main"
+                        noWrap
+                        title={programName(x.p)}
+                      >
+                        {programName(x.p)}
+                      </Typography>
+                      {programSubtitle(x.p) && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          noWrap
+                          component="div"
+                          title={programSubtitle(x.p)}
+                        >
+                          {programSubtitle(x.p)}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right" className="num" sx={{ whiteSpace: 'nowrap' }}>
+                      {fmtInt(x.p.Q)}{' '}
+                      <Typography component="span" variant="caption" color="text.disabled">
+                        / —
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" className="num" sx={{ whiteSpace: 'nowrap' }}>
+                      {fmtMillion(x.tr)}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block' }}
+                      >
+                        แผ่นดิน {fmtMillion(x.p.st)} · รายได้ {fmtMillion(x.p.own)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" className="num" sx={{ whiteSpace: 'nowrap' }}>
+                      {fmtMillion(x.tc)}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block' }}
+                      >
+                        คงที่ {fmtMillion(x.p.TFC)} · ผันแปร {fmtMillion(x.p.TVC)}
+                      </Typography>
+                    </TableCell>
+                    <TargetCell q={x.p.Q} target={x.qStarGov} active={mode === 'with_government'} />
+                    <TargetCell
+                      q={x.p.Q}
+                      target={x.qStarOwn}
+                      active={mode === 'without_government'}
+                    />
+                    <TableCell align="right">
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          className="num"
+                          color={x.profit >= 0 ? BEPS.breakEven : 'error.main'}
+                        >
+                          {signed(x.profit)}
+                        </Typography>
+                        <StatusChip profit={x.profit} />
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </Fragment>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      {pager}
     </Box>
   );
 };

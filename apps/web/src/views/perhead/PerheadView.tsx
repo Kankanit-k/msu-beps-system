@@ -47,7 +47,6 @@ import { useRole } from '@/hooks/useRole';
 // Data & Calc Imports
 import { calcBreakEven } from '@beps/calc-engine';
 import { RAW } from '@/data/mockup';
-import type { ProgRow } from '@/data/mockup';
 import {
   computeBreakEven,
   fmtInt,
@@ -59,6 +58,7 @@ import {
 } from '@views/breakeven/calc';
 import type { FinancialRow, LevelScope } from '@views/breakeven/calc';
 import { downloadCsv } from '@/utils/csv';
+import { programName } from '@/utils/programName';
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
@@ -86,7 +86,6 @@ type UnitRow = FinancialRow & { name: string; TC: number };
 type UnitCalc = UnitRow & { r: number; atc: number; avc: number; cm: number; diff: number };
 
 /** ชื่อหลักสูตร + ระดับต่อท้ายเสมอ — ชื่อซ้ำกันได้ข้ามระดับ */
-const progLabel = (p: ProgRow) => `${p.prog} (${p.lvl})`;
 
 const calcFor = (row: UnitRow, mode: RevenueMode): UnitCalc => {
   const res = calcBreakEven({
@@ -166,7 +165,7 @@ const PerheadView = () => {
   const allRows = useMemo(
     () =>
       byProgram
-        ? progs.map((p) => calcFor({ ...p, name: progLabel(p) }, mode))
+        ? progs.map((p) => calcFor({ ...p, name: programName(p) }, mode))
         : facs.map((f) => calcFor(f, mode)),
     [byProgram, progs, facs, mode],
   );
@@ -182,7 +181,7 @@ const PerheadView = () => {
         levelScope === 'all' ? '' : ` · ${LEVEL_SCOPE_LABEL[levelScope]}`
       }`;
 
-  // ส่วนเกิน/ขาดทุนบนหัวหน้าจอ — ผู้ดูแลคณะเห็นของคณะตน ที่เหลือเห็นระดับมหาวิทยาลัย
+  // ส่วนต่างบนหัวหน้าจอ — ผู้ดูแลคณะเห็นของคณะตน ที่เหลือเห็นระดับมหาวิทยาลัย
   const uniRes = useMemo(() => computeBreakEven(RAW.UNI, mode), [mode]);
   const scopeRes = useMemo(() => computeBreakEven(scope, mode), [scope, mode]);
   const headRes = lockedFac ? scopeRes : uniRes;

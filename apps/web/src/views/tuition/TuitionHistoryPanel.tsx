@@ -52,6 +52,7 @@ import {
   type HistoryRow,
   type TuitionYear,
 } from './historyData';
+import { programName, programSubtitle } from '@/utils/programName';
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'));
 
@@ -209,9 +210,10 @@ const ProgramHistoryDialog = ({
   return (
     <Dialog open onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
-        {prog.prog}
+        {programName(prog)}
         <Typography variant="body2" color="text.secondary">
-          {prog.deg} · {prog.fac} · {prog.lvl}
+          {programSubtitle(prog) && `${programSubtitle(prog)} · `}
+          {prog.fac} · {prog.lvl}
         </Typography>
       </DialogTitle>
       <DialogContent dividers>
@@ -289,7 +291,7 @@ const UnmatchedDialog = ({ open, onClose }: { open: boolean; onClose: () => void
         </Typography>
         {PROGS_WITHOUT_HISTORY.map((p) => (
           <Typography key={`${p.fac}${p.lvl}${p.prog}`} variant="body2" color="text.secondary">
-            • {p.prog} — {p.fac} · {p.lvl} (Q {fmtInt(p.Q)})
+            • {programName(p)} — {p.fac} · {p.lvl} (Q {fmtInt(p.Q)})
           </Typography>
         ))}
         <Typography variant="subtitle2" sx={{ mt: 4, mb: 1 }}>
@@ -366,7 +368,10 @@ const TuitionHistoryPanel = () => {
       (r) =>
         (level === 'all' || r.prog.lvl === level) &&
         (!facs.length || facs.includes(r.prog.fac)) &&
-        (!q || `${r.prog.fac}${r.prog.prog}${r.prog.deg}`.toLowerCase().includes(q)),
+        (!q ||
+          `${r.prog.fac}${r.prog.prog}${programName(r.prog)}${r.prog.deg}`
+            .toLowerCase()
+            .includes(q)),
     ).sort((a, b) => b.last.billed - a.last.billed);
   }, [level, facs, query]);
 
@@ -546,7 +551,7 @@ const TuitionHistoryPanel = () => {
                   >
                     <TableCell>
                       <Typography fontWeight={600} variant="body2">
-                        {r.prog.prog}
+                        {programName(r.prog)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {r.prog.fac} · {r.prog.lvl}

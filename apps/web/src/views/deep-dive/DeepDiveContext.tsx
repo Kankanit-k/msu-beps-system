@@ -14,6 +14,7 @@ import { RAW } from '@/data/mockup';
 
 import { DD_PROGRAMS, lastValue, lossStreak, statusOfDD } from './deepDiveData';
 import type { DDProgram, DDStatus } from './deepDiveData';
+import { programName } from '@/utils/programName';
 
 /** ตัวกรองสถานะ — loss = ขาดทุนปีล่าสุด (ไม่คุ้มทุน) */
 export type StatusFilter = 'all' | 'ok' | 'loss' | DDStatus;
@@ -100,7 +101,12 @@ export const DeepDiveProvider = ({ children }: { children: ReactNode }) => {
   const [focusKey, setFocusKey] = useState<string | null>(null);
 
   /** ตัวกรองก่อนเจาะ — ไว้คืนค่าเมื่อกด "แสดงทั้งหมด" */
-  const beforeFocus = useRef<{ fac: string; level: string; status: StatusFilter; search: string } | null>(null);
+  const beforeFocus = useRef<{
+    fac: string;
+    level: string;
+    status: StatusFilter;
+    search: string;
+  } | null>(null);
 
   const setSearch = (v: string) => {
     setFocusKey(null);
@@ -157,7 +163,7 @@ export const DeepDiveProvider = ({ children }: { children: ReactNode }) => {
     return scope.filter(
       (x) =>
         matchStatus(x, status) &&
-        (!s || `${x.p.prog} ${x.p.deg} ${x.p.fac}`.toLowerCase().includes(s)),
+        (!s || `${x.p.prog} ${programName(x.p)} ${x.p.deg} ${x.p.fac}`.toLowerCase().includes(s)),
     );
   }, [scope, status, search, focusKey]);
 

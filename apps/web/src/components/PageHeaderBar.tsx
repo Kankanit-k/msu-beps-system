@@ -59,11 +59,11 @@ type Props = {
   onModeChange: (mode: RevenueMode) => void;
   /** จำนวนนิสิตของขอบเขตที่หน้านั้นแสดง (ปกติคือทั้งมหาวิทยาลัย) */
   q: number;
-  /** ส่วนเกิน/ขาดทุนของขอบเขตเดียวกัน — บวกเป็นส่วนเกิน ลบเป็นขาดทุน */
+  /** ส่วนต่างของขอบเขตเดียวกัน — บวกเป็นส่วนเกิน ลบเป็นขาดทุน */
   profit: number;
-  /** ส่ง = ชิปท้ายแสดงรายได้รวมแทนส่วนเกิน/ขาดทุน (หน้าที่เน้นขารายได้) */
+  /** ส่ง = ชิปท้ายแสดงรายได้รวมแทนส่วนต่าง (หน้าที่เน้นขารายได้) */
   revenue?: number;
-  /** ส่ง = ชิปท้ายแสดงต้นทุนรวมแทนส่วนเกิน/ขาดทุน (หน้าที่เน้นขาต้นทุน) */
+  /** ส่ง = ชิปท้ายแสดงต้นทุนรวมแทนส่วนต่าง (หน้าที่เน้นขาต้นทุน) */
   cost?: number;
   /** ตัวกรอง/ชิปเพิ่มเติมของหน้านั้น — วางในแถวตัวกรองต่อจากสวิตช์ฐานรายได้ */
   extra?: ReactNode;
@@ -194,13 +194,19 @@ const PageHeaderBar = ({
           ) : (
             <Chip
               size="small"
-              color={profit >= 0 ? undefined : 'error'}
               variant="tonal"
-              // ส่วนเกิน = เขียวอมฟ้า (teal) เดียวกับการ์ดจุดคุ้มทุน · ขาดทุน = แดงตามธีม
-              sx={
-                profit >= 0 ? { bgcolor: 'rgb(13 143 135 / 0.16)', color: BEPS.breakEven } : undefined
+              // ส่วนต่าง: บวก = เขียว + ลูกศรขึ้น · ลบ = แดง + ลูกศรลง (BEPS.gain/loss เดียวกับการ์ดส่วนต่าง)
+              icon={
+                <i
+                  className={profit >= 0 ? 'ri-arrow-up-line' : 'ri-arrow-down-line'}
+                  style={{ fontSize: 14, color: 'inherit' }}
+                />
               }
-              label={`${profit >= 0 ? 'ส่วนเกิน' : 'ขาดทุน'} ${fmtMillion(Math.abs(profit))} ลบ.`}
+              sx={{
+                color: profit >= 0 ? BEPS.gain : BEPS.loss,
+                bgcolor: `color-mix(in srgb, ${profit >= 0 ? BEPS.gain : BEPS.loss} 14%, transparent)`,
+              }}
+              label={`ส่วนต่าง ${profit >= 0 ? '+' : '−'}${fmtMillion(Math.abs(profit))} ลบ.`}
             />
           )}
           {narrow && (

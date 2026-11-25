@@ -48,6 +48,7 @@ import PageHeaderBar from '@components/PageHeaderBar';
 import { lockedFacultyFor } from '@/configs/accessControl';
 import { useRole } from '@/hooks/useRole';
 import { downloadCsv } from '@/utils/csv';
+import { programName } from '@/utils/programName';
 
 // Data / calc Imports
 import { chargesOf, RAW, sumCharges } from '@/data/mockup';
@@ -146,9 +147,6 @@ const LEVEL_COLOR: Record<(typeof LEVEL_ORDER)[number], string> = {
   ปริญญาเอก: 'var(--mui-palette-warning-main)',
   'อื่น ๆ': 'var(--mui-palette-secondary-main)',
 };
-
-/** ชื่อหลักสูตรบนกราฟ — ระบุระดับต่อท้ายเมื่อไม่ใช่ปริญญาตรี เพราะชื่อซ้ำกันได้ข้ามระดับ */
-const progLabel = (p: ProgRow) => (p.lvl === 'ปริญญาตรี' ? p.prog : `${p.prog} (${p.lvl})`);
 
 type Alert = {
   severity: 'error' | 'warning' | 'success' | 'info';
@@ -253,7 +251,7 @@ const RevenueView = () => {
         'สถานะ',
       ],
       ...progRows.map(({ p, res, status }) => [
-        p.prog,
+        programName(p),
         p.fac,
         p.lvl,
         p.Q,
@@ -388,7 +386,7 @@ const RevenueView = () => {
     [scopeProgs],
   );
   const chartRows: { label: string; st: number; own: number }[] = byProgram
-    ? chartProgs.map((p) => ({ label: progLabel(p), st: p.st, own: p.own }))
+    ? chartProgs.map((p) => ({ label: programName(p), st: p.st, own: p.own }))
     : facs.map((f) => ({ label: shortFacName(f.name), st: f.st, own: f.own }));
 
   const stackedOptions: ApexOptions = {
@@ -927,7 +925,7 @@ const RevenueView = () => {
                   <TableCell sx={{ color: 'text.disabled', fontWeight: 700 }}>
                     {page * rowsPerPage + i + 1}
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{p.prog}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{programName(p)}</TableCell>
                   {!isFiltered && (
                     <TableCell sx={{ color: 'text.secondary' }}>{shortFacName(p.fac)}</TableCell>
                   )}
@@ -1170,7 +1168,7 @@ const ProgramDetailDialog = ({
 
   return (
     <Dialog open={!!prog} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{prog ? progLabel(prog) : ''}</DialogTitle>
+      <DialogTitle>{prog ? programName(prog) : ''}</DialogTitle>
       <DialogContent>
         {prog && res && (
           <Stack spacing={1.5}>

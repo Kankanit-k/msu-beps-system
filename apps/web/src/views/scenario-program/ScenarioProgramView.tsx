@@ -756,6 +756,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
 
   const pickRef = (p: ProgRow | null, lvl = level) => {
     setRefProg(p);
+    // ปรับปรุงหลักสูตร: ชื่อใหม่ผูกกับหลักสูตรเดิมที่เลือก — เปลี่ยนหลักสูตรแล้วเริ่มจากชื่อเดิม
+    if (purpose === 'improve') setNewName('');
     // ปรับปรุงหลักสูตร: เลือกหลักสูตรแล้วไปต่อได้ทันที ไม่ต้องกดยืนยัน (มติ 25 ต.ค.) · ตั้งต้นที่ตัวเลขปัจจุบัน (D4)
     setConfirmed(purpose === 'improve' && !!p);
     if (p) copyManualFrom(p);
@@ -830,13 +832,16 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
   };
 
   const allocTargetLabel = isNew ? 'หลักสูตรใหม่' : 'หลักสูตรนี้';
+  /** ชื่อที่ใช้ในผล/รายงาน — ปรับปรุงหลักสูตรเปลี่ยนชื่อได้ (เว้นว่าง = ชื่อเดิม) */
+  const programName = isNew ? newName.trim() : newName.trim() || (refProg?.prog ?? '');
+  const renamedFrom =
+    !isNew && refProg && programName !== refProg.prog ? refProg.prog : undefined;
 
   /** ผลที่เพิ่งบันทึก — เปิดกล่องแจ้งสำเร็จ */
   const [savedEntry, setSavedEntry] = useState<ProgramHistoryEntry | null>(null);
 
   /** ผลคำนวณปัจจุบันในรูปรายการประวัติ — ใช้ทั้งบันทึก และพรีวิว/พิมพ์ร่างโดยยังไม่บันทึก */
   const buildEntry = (): ProgramHistoryEntry => {
-    const name = isNew ? newName.trim() : (refProg?.prog ?? '');
 
     // ต้นทุนกำหนดเองแยกตามกรณี → คิดแต่ละโหมดจากก้อนของโหมดนั้น
     const both = (m: RevenueMode) => {
@@ -856,7 +861,8 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
     const entry: ProgramHistoryEntry = {
       id: editing && editingId ? editingId : Date.now(),
       time: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
-      name,
+      name: programName,
+      renamedFrom,
       fac: fac ?? '',
       level,
       isNew,
@@ -1168,13 +1174,14 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
                 onGo={goTo}
                 lockReason={stepBlocker}
                 status={
-                  (isNew ? newName.trim() : refProg) && (
+                  programName && (
                     <Typography
                       variant="caption"
                       color="text.secondary"
                       sx={{ display: { xs: 'none', md: 'block' }, whiteSpace: 'nowrap' }}
                     >
-                      {isNew ? newName.trim() : refProg?.prog}
+                      {programName}
+                      {renamedFrom ? ` (เดิม: ${renamedFrom})` : ''}
                       {editingId !== null ? ' · กำลังแก้ไขร่างที่บันทึกไว้' : ''}{' '}
                       <Chip
                         size="small"
@@ -1658,7 +1665,7 @@ const ScenarioProgramView = ({ purpose }: { purpose: Purpose }) => {
         <DialogTitle>ยืนยันและล็อกข้อมูล?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            เมื่อยืนยัน &quot;{isNew ? newName.trim() : refProg?.prog}&quot; แล้ว
+            เมื่อยืนยัน &quot;{programName}&quot; แล้ว
             ลายน้ำฉบับร่างจะหายไป และข้อมูลจะถูกล็อก
             <b> ห้ามแก้ไขในระบบอีก</b> — หากต้องการแก้ไขภายหลัง
             ต้องทำบันทึกข้อความขออนุมัติถึงกองแผนงาน

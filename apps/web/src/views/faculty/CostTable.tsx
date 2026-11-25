@@ -29,6 +29,7 @@ import { fmtInt, shortFacName } from '@views/breakeven/calc';
 
 import { FIXED_COST_ALERT, fixedShare } from './FacultyCharts';
 import type { ProgStat } from './FacultyContext';
+import { programName, programSubtitle } from '@/utils/programName';
 
 const PAGE_SIZE = 10;
 
@@ -201,7 +202,7 @@ const CostTable = ({
       ],
       ['หลักสูตร', 'ชื่อปริญญา', ...COLUMNS.map((c) => c.label)],
       ...sorted.map((r) => [
-        r.p.prog,
+        programName(r.p),
         r.p.deg,
         r.Q,
         Math.round(r.direct),
@@ -289,7 +290,7 @@ const CostTable = ({
               sx={{ p: 2.5, cursor: 'pointer' }}
             >
               <Typography fontWeight={600} sx={{ mb: 1 }}>
-                {x.p.prog}
+                {programName(x.p)}
               </Typography>
               <Typography variant="body2" color="text.secondary" className="num">
                 นิสิต {fmtInt(x.Q)} คน · ต้นทุนรวม <b>{fmtInt(x.tc)}</b> บาท · ต่อหัว{' '}
@@ -370,19 +371,21 @@ const CostTable = ({
                     fontWeight={600}
                     color="primary.main"
                     noWrap
-                    title={x.p.prog}
+                    title={programName(x.p)}
                   >
-                    {x.p.prog}
+                    {programName(x.p)}
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    noWrap
-                    component="div"
-                    title={x.p.deg}
-                  >
-                    {x.p.deg}
-                  </Typography>
+                  {programSubtitle(x.p) && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      noWrap
+                      component="div"
+                      title={programSubtitle(x.p)}
+                    >
+                      {programSubtitle(x.p)}
+                    </Typography>
+                  )}
                 </TableCell>
                 {cells(x)}
               </TableRow>

@@ -10,6 +10,7 @@ import type { FixedCostPool } from '@beps/shared-types';
 
 import { RAW } from '@/data/mockup';
 import type { FacRow, ProgRow } from '@/data/mockup';
+import { programName } from '@/utils/programName';
 
 /**
  * องค์ประกอบของต้นทุนคงที่ที่ชุดข้อมูลปัจจุบัน "แยกออกจากกันได้จริง"
@@ -166,7 +167,7 @@ export function buildFacultyScope(faculty: string, pool: FixedCostPool): Faculty
 
     return {
       programVersionId: id,
-      label: p.prog,
+      label: programName(p),
       educationLevel: p.lvl,
       // ชุดตัวอย่างมีแต่จำนวนนิสิต ยังไม่มี registration snapshot ให้ถ่วงน้ำหนัก
       // จึงเท่ากับ headcount (= ตั้งน้ำหนักทุกประเภทเป็น 1) ตามที่ ProgramWeightInput อนุญาต
